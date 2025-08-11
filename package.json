@@ -1,0 +1,30 @@
+{
+  "name": "fractch-sb3-to-dsl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "fractch": "./bin/cli.js"
+  },
+  "scripts": {
+    "build": "npm run clean && node ./bin/cli.js --input ./originv6.0.0.sb3 --out ./build",
+    "clean": "rm -rf build && mkdir -p build",
+    "dev": "node ./bin/cli.js --input ./originv6.0.0.sb3 --out ./build --verbose",
+    "pack": "node ./bin/cli.js --pack --out ./build --outSb3 ./repacked.sb3 --verbose --preferDSL",
+    "pack:lossless": "node ./bin/cli.js --pack --out ./build --outSb3 ./repacked.sb3 --verbose --no-preferDSL",
+    "lint": "echo 'No linter configured'",
+    "test": "node ./src/selftest.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.12",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "eslint": "^9.33.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2"
+  }
+}
