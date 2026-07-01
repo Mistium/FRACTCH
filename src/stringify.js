@@ -94,6 +94,11 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     return `${w} ${name};`;
   }
 
+  if (opcode === 'mistsutils_patchreporter' || opcode === 'mistsutils_patchcommand') {
+    const code = getInputExpr(block.inputs?.a ?? block.inputs?.A, subgraph);
+    return inline ? `js(${code})` : `js ${code};`;
+  }
+
   const opExpr = tryOperatorExpression(block, subgraph);
   if (opExpr) {
     return inline ? opExpr : opExpr + ';';
