@@ -1,13 +1,10 @@
 import { stringifyBlockCall, setContext, renderBody } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
-import fs from 'fs';
-import path from 'path';
 
-export function emitScriptFile({ target, script, subgraph, index, context }) {
+export function emitScriptFile({ target, script, subgraph, index, context, cfg = {} }) {
   const { topBlockId, hatOpcode } = script;
   const blocksArr = linearize(subgraph, topBlockId);
 
-  const cfg = readConfig();
   setContext(context);
 
   let body;
@@ -155,17 +152,4 @@ function indentBlock(str, spaces = 2) {
 
 function escapeLabel(s) {
   return String(s).replace(/[\r\n]+/g, ' ');
-}
-
-function readConfig() {
-  try {
-    const cwd = process.cwd();
-    const p = path.join(cwd, 'fractch.config.json');
-    if (!fs.existsSync(p)) return {};
-    const text = fs.readFileSync(p, 'utf8');
-    const json = JSON.parse(text || '{}');
-    return json || {};
-  } catch {
-    return {};
-  }
 }

@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 // Opcodes that are only ever legitimately used as shadow-only blocks
 // (literal input defaults / custom-block parameter reporters). Used to
 // restore the `shadow` flag for orphan top-level blocks reconstructed from
@@ -477,10 +474,4 @@ function collectBlocksSubgraph(blocks, topId) {
     }
   }
   return sub;
-}
-
-export function writeProjectJson(dir, manifest) {
-  const out = path.join(dir, 'project.json');
-  fs.writeFileSync(out, JSON.stringify(manifest, null, 2));
-  return out;
 }

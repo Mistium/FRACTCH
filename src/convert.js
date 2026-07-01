@@ -1,9 +1,11 @@
-import fs from 'fs';
-import path from 'path';
+import * as path from './pathUtils.js';
+import { toPromiseFs } from './fsAdapter.js';
 import { emitScriptFile, emitIndex, emitTargetIndex } from './emit.js';
 import { groupTopLevelScripts, collectBlocksSubgraph } from './graph.js';
 
-export function convertProject(projectJson, { outDir }) {
+export async function convertProject(projectJson, { outDir, fs: fsLike, config = {}, verbose = false } = {}) {
+  const vfs = toPromiseFs(fsLike);
+  await vfs.mkdirp(outDir);
   const targets = projectJson.targets || [];
   const files = [];
 
@@ -53,7 +55,7 @@ export function convertProject(projectJson, { outDir }) {
 
   for (const target of targets) {
     const tDir = path.join(outDir, sanitize(target.name));
-    fs.mkdirSync(tDir, { recursive: true });
+    await vfs.mkdirp(tDir);
 
     const varMap = new Map([...stageVarMap, ...nameIdMap(target.variables)]);
     const listMap = new Map([...stageListMap, ...nameIdMap(target.lists)]);
@@ -96,7 +98,7 @@ export function convertProject(projectJson, { outDir }) {
       const { topBlockId, hatOpcode } = script;
       const subgraph = subgraphs.get(topBlockId);
       const hatDir = path.join(tDir, sanitize(hatOpcode || 'nohat'));
-      fs.mkdirSync(hatDir, { recursive: true });
+      await vfs.mkdirp(hatDir);
 
       const procLabel =
         hatOpcode === 'procedures_definition' ? procedureDefsByTarget.get(target.name)?.get(topBlockId) || null : null;
@@ -116,8 +118,9 @@ export function convertProject(projectJson, { outDir }) {
         subgraph,
         index: idx++,
         context: { broadcastMap, proceduresMap, procByCode, varMap, listMap, broadcastNameToId },
+        cfg: config,
       });
-      fs.writeFileSync(filePath, content);
+      await vfs.writeFile(filePath, content);
       const rel = `./${sanitize(target.name)}/${sanitize(hatOpcode || 'nohat')}/${filename}`;
       const label = procLabel;
       files.push({
@@ -130,14 +133,18 @@ export function convertProject(projectJson, { outDir }) {
     }
 
     const tIndex = emitTargetIndex(files.filter((f) => f.target === target.name));
-    fs.writeFileSync(path.join(tDir, 'index.fractch'), tIndex);
+    await vfs.writeFile(path.join(tDir, 'index.fractch'), tIndex);
   }
 
   const indexContent = emitIndex(files);
+  const manifest = manifestWithoutBlocks(projectJson);
+  await vfs.writeFile(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  await vfs.writeFile(path.join(outDir, 'index.fractch'), indexContent);
+  if (verbose) console.log(`[convert] ${files.length} script files across ${targets.length} targets`);
 
   return {
     filesWritten: files.length + (targets.length || 0) + 1,
-    manifest: manifestWithoutBlocks(projectJson),
+    manifest,
     indexContent,
   };
 }

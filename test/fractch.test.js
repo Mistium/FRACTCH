@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { writeExtensions } from '../src/extensions.js';
+import { writeExtensions } from '../src/index.js';
 import { checkFractch } from '../src/lint.js';
 import { parseFractch } from '../src/parse.js';
 
@@ -74,6 +74,92 @@ test('pack accepts headerless handwritten projects without a manifest', () => {
   assert.ok(zip.getEntry(stage.costumes[0].md5ext), 'default svg asset missing');
 });
 
+test('word syntax: `fractch <sb3> from <dir>` packs a build dir', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-word-'));
+  const scriptDir = path.join(dir, 'Stage', 'event_whenflagclicked');
+  fs.mkdirSync(scriptDir, { recursive: true });
+  fs.writeFileSync(path.join(scriptDir, 'main.fractch'), 'event.whenflagclicked();\nlooks.say(MESSAGE: "word");\n');
+  const sb3 = path.join(dir, 'word.sb3');
+
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const stage = project.targets.find((t) => t.name === 'Stage');
+  assert.ok(Object.values(stage.blocks).some((b) => b.opcode === 'looks_say'));
+});
+
+test('programmatic API: unpackSb3/packSb3 round-trip without touching cwd', async () => {
+  const { unpackSb3, packSb3 } = await import('../src/index.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-api-'));
+  const buildDir = path.join(dir, 'build');
+  const sb3 = path.join(dir, 'repacked.sb3');
+
+  const result = await unpackSb3({ input: path.join(root, SB3), outDir: buildDir });
+  assert.ok(result.filesWritten > 0);
+  assert.ok(fs.existsSync(path.join(buildDir, 'manifest.json')));
+  assert.ok(fs.existsSync(path.join(buildDir, 'index.fractch')));
+
+  await packSb3({ buildDir, outSb3: sb3, originSb3: path.join(root, SB3) });
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const orig = JSON.parse(new AdmZip(path.join(root, SB3)).readAsText('project.json'));
+  assert.strictEqual(project.targets.length, orig.targets.length);
+});
+
+function makeMemoryFs() {
+  const dirs = new Set(['/']);
+  const files = new Map();
+  const err = (code, p) => Object.assign(new Error(`${code}: ${p}`), { code });
+  return {
+    promises: {
+      async readFile(p, enc) {
+        if (!files.has(p)) throw err('ENOENT', p);
+        const data = files.get(p);
+        return enc ? data.toString() : data;
+      },
+      async writeFile(p, data) {
+        files.set(p, typeof data === 'string' ? data : Buffer.from(data));
+      },
+      async mkdir(p) {
+        if (dirs.has(p)) throw err('EEXIST', p);
+        dirs.add(p);
+      },
+      async readdir(p) {
+        const prefix = p === '/' ? '/' : p + '/';
+        const names = new Set();
+        for (const key of [...dirs, ...files.keys()]) {
+          if (key !== p && key.startsWith(prefix)) names.add(key.slice(prefix.length).split('/')[0]);
+        }
+        return [...names];
+      },
+      async stat(p) {
+        if (files.has(p)) return { type: 'file', isDirectory: () => false };
+        if (dirs.has(p)) return { type: 'dir', isDirectory: () => true };
+        throw err('ENOENT', p);
+      },
+    },
+  };
+}
+
+test('browser entry: convert + pack against an in-memory lightning-fs style fs', async () => {
+  const { convertProject, buildProjectFromBuildDir } = await import('../src/browser.js');
+  const memfs = makeMemoryFs();
+  const projectJson = JSON.parse(new AdmZip(path.join(root, SB3)).readAsText('project.json'));
+
+  const result = await convertProject(projectJson, { outDir: '/build', fs: memfs });
+  assert.ok(result.filesWritten > 0);
+  assert.ok((await memfs.promises.readFile('/build/manifest.json', 'utf8')).length > 0);
+  assert.ok((await memfs.promises.readFile('/build/index.fractch', 'utf8')).includes('import "'));
+
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: '/build', fs: memfs });
+  const origCounts = projectJson.targets.map((t) => Object.keys(t.blocks || {}).length);
+  for (let i = 0; i < projectJson.targets.length; i++) {
+    const rebuilt = manifest.targets.find((t) => t.name === projectJson.targets[i].name);
+    assert.ok(rebuilt, `target ${projectJson.targets[i].name} missing`);
+    const rc = Object.keys(rebuilt.blocks || {}).length;
+    if (origCounts[i] > 0) assert.ok(rc / origCounts[i] > 0.95, `${rebuilt.name}: ${origCounts[i]} -> ${rc}`);
+  }
+});
+
 test('index imports choose which top-level scripts are packed', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-index-'));
   const scriptDir = path.join(dir, 'Stage', 'event_whenflagclicked');
@@ -127,8 +213,6 @@ test('emitted calls use readable colon inputs and explicit field arguments', () 
     const text = fs.readFileSync(f, 'utf8');
     return /mistsutils\.patchcommand2\(A:/.test(text);
   });
-  // Self-classifying field refs drop the `field` keyword (the parser
-  // re-derives it from key + value shape); everything else keeps it.
   const hasBareFieldRef = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;
     const text = fs.readFileSync(f, 'utf8');
@@ -167,19 +251,16 @@ test('generic opcodes can use dotted namespace aliases', () => {
 });
 
 test('infix expressions parse without mandatory parens, left-associative', () => {
-  // a + b * c == d -> equals(add(a, multiply(b, c)), d)
   const eq = parseFractch('vars["r"] = a + b * c == d;\n').calls[0].args[1].value.value;
   assert.strictEqual(eq.callee.name, 'operator_equals');
   const add = eq.args[0].value.value;
   assert.strictEqual(add.callee.name, 'operator_add');
   assert.strictEqual(add.args[1].value.value.callee.name, 'operator_multiply');
 
-  // left-assoc: a - b - c -> subtract(subtract(a, b), c)
   const sub = parseFractch('vars["r"] = a - b - c;\n').calls[0].args[1].value.value;
   assert.strictEqual(sub.callee.name, 'operator_subtract');
   assert.strictEqual(sub.args[0].value.value.callee.name, 'operator_subtract');
 
-  // old fully-parenthesized form builds the identical tree
   const oldStyle = parseFractch('vars["r"] = ((a - b) - c);\n').calls[0].args[1].value.value;
   assert.deepStrictEqual(oldStyle, sub);
 });
@@ -228,7 +309,7 @@ test('script files carry no raw JSON block snapshot - DSL text is the only sourc
   }
 });
 
-test('extensions: http url -> .url file, data url -> decoded source', () => {
+test('extensions: http url -> .url file, data url -> decoded source', async () => {
   const edir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-ext-'));
   const project = {
     extensions: ['httpExt', 'dataExt', 'pen'],
@@ -237,7 +318,7 @@ test('extensions: http url -> .url file, data url -> decoded source', () => {
       dataExt: 'data:application/javascript;base64,' + Buffer.from('const x = 1;').toString('base64'),
     },
   };
-  writeExtensions(project, edir);
+  await writeExtensions(project, edir);
   assert.strictEqual(fs.readFileSync(path.join(edir, 'extensions', 'httpExt.url'), 'utf8'), 'https://example.com/ext.js');
   assert.strictEqual(fs.readFileSync(path.join(edir, 'extensions', 'dataExt.js'), 'utf8'), 'const x = 1;');
   const index = JSON.parse(fs.readFileSync(path.join(edir, 'extensions', 'index.json'), 'utf8'));

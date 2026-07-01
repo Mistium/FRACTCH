@@ -334,11 +334,7 @@ function formatLiteral(arr) {
       const value = payload[1];
       switch (typeCode) {
         case 10: {
-          // string/text - Scratch types most literal slots as text even when
-          // the content is a number ("0" in a comparison). Print numeric text
-          // bare when the number grammar re-reads the exact same characters;
-          // the type code (10 vs 4) is an editor-widget hint with no runtime
-          // meaning, and the payload text round-trips verbatim either way.
+          // string/text
           const raw = String(value ?? '');
           if (raw !== '' && REPARSABLE_NUMBER.test(raw)) return raw;
           return `${JSON.stringify(raw)}`;

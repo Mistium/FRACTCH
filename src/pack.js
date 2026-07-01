@@ -1,20 +1,23 @@
-import fs from 'fs';
-import path from 'path';
-import AdmZip from 'adm-zip';
-import crypto from 'crypto';
+import * as path from './pathUtils.js';
+import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode } from './buildBlocks.js';
 import { assertValidFractch } from './lint.js';
 
+export const BLANK_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><rect width="100%" height="100%" fill="white"/></svg>';
+export const BLANK_SVG_ID = 'c3d7ff782edb43ba0e0a79849362613c';
+
 // Packing reconstructs every block purely by parsing the DSL text - there is
 // no raw JSON snapshot anywhere to fall back on, so the .fractch files
 // themselves are the single source of truth for the round trip.
-export async function packFromBuildDir({ buildDir, outSb3, verbose = false }) {
+export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose = false }) {
+  const vfs = toPromiseFs(fsLike);
   const manifestPath = path.join(buildDir, 'manifest.json');
-  const hasManifest = fs.existsSync(manifestPath);
-  let manifest = hasManifest ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')) : null;
+  const hasManifest = await vfs.exists(manifestPath);
+  let manifest = hasManifest ? JSON.parse(await vfs.readFile(manifestPath, 'utf8')) : null;
 
-  const scriptFiles = collectScriptFiles(buildDir, manifest, verbose);
+  const scriptFiles = await collectScriptFiles(vfs, buildDir, manifest, verbose);
   if (!manifest) manifest = synthesizeManifest(scriptFiles);
   ensureTargetsForScripts(manifest, scriptFiles);
 
@@ -29,7 +32,7 @@ export async function packFromBuildDir({ buildDir, outSb3, verbose = false }) {
     const manifestTarget = findManifestTargetForDir(manifest, targetDir);
     if (!manifestTarget) continue;
     const manifestName = manifestTarget.name;
-    const content = fs.readFileSync(fPath, 'utf8');
+    const content = await vfs.readFile(fPath, 'utf8');
     totalScripts++;
 
     const headerInfo = parseHeaderInfo(content);
@@ -89,64 +92,19 @@ export async function packFromBuildDir({ buildDir, outSb3, verbose = false }) {
   }
 
   const newManifest = mergeIntoManifest(manifest, builtTargets);
-
-  const zip = new AdmZip();
-  const origin = hasManifest ? findOriginSb3() : null;
-
-  let wroteProject = false;
-  try {
-    if (origin) {
-      const originProject = JSON.parse(new AdmZip(origin).readAsText('project.json'));
-      if (deepEqual(originProject, newManifest)) {
-        if (verbose) console.log(`[pack] Reconstructed project.json matches origin exactly -> writing original bytes`);
-        const srcZip = new AdmZip(origin);
-        const entry = srcZip.getEntry('project.json');
-        if (entry) {
-          const buf = srcZip.readFile(entry);
-          if (buf) {
-            zip.addFile('project.json', buf);
-            wroteProject = true;
-          }
-        }
-      }
-    }
-  } catch {
-    // Handle error
-  }
-  if (!wroteProject) {
-    const text = JSON.stringify(newManifest);
-    if (verbose)
-      console.log(`[pack] Writing rebuilt project.json (${text.length} bytes); ${parsedScripts}/${totalScripts} scripts parsed`);
-    zip.addFile('project.json', Buffer.from(text));
-  }
-
-  try {
-    if (origin) {
-      const srcZip = new AdmZip(origin);
-      for (const entry of srcZip.getEntries()) {
-        if (entry.entryName === 'project.json') continue;
-        const data = srcZip.readFile(entry);
-        if (data) zip.addFile(entry.entryName, data);
-      }
-    }
-  } catch {
-    // Handle error
-  }
-  addMissingAssetFiles(zip, newManifest);
-  zip.writeZip(outSb3);
-  if (verbose) console.log(`Wrote ${outSb3}`);
+  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts };
 }
 
-function collectScriptFiles(buildDir, manifest, verbose) {
-  const fromIndex = collectScriptFilesFromIndexes(buildDir);
-  const files = fromIndex.length ? fromIndex : scanScriptFiles(buildDir, manifest);
+async function collectScriptFiles(vfs, buildDir, manifest, verbose) {
+  const fromIndex = await collectScriptFilesFromIndexes(vfs, buildDir);
+  const files = fromIndex.length ? fromIndex : await scanScriptFiles(vfs, buildDir, manifest);
   const unique = [];
   const seen = new Set();
   for (const file of files) {
-    const key = path.resolve(file.fPath);
+    const key = path.normalizePath(file.fPath);
     if (seen.has(key)) continue;
     seen.add(key);
-    if (isIgnoredScript(buildDir, file.fPath)) {
+    if (await isIgnoredScript(vfs, buildDir, file.fPath)) {
       if (verbose) console.log(`[pack] Ignoring ${path.relative(buildDir, file.fPath)}`);
       continue;
     }
@@ -155,35 +113,35 @@ function collectScriptFiles(buildDir, manifest, verbose) {
   return unique;
 }
 
-function collectScriptFilesFromIndexes(buildDir) {
+async function collectScriptFilesFromIndexes(vfs, buildDir) {
   const rootIndex = path.join(buildDir, 'index.fractch');
-  if (fs.existsSync(rootIndex)) {
-    const files = collectImportsFromIndex(rootIndex, buildDir);
+  if (await vfs.exists(rootIndex)) {
+    const files = await collectImportsFromIndex(vfs, rootIndex, buildDir);
     if (files.length) return files;
   }
 
   const files = [];
-  for (const dirName of safeListDir(buildDir)) {
+  for (const dirName of await safeListDir(vfs, buildDir)) {
     const tPath = path.join(buildDir, dirName);
-    if (!isDirectory(tPath) || isReservedBuildDir(dirName)) continue;
+    if (!(await vfs.isDirectory(tPath)) || isReservedBuildDir(dirName)) continue;
     const targetIndex = path.join(tPath, 'index.fractch');
-    if (fs.existsSync(targetIndex)) files.push(...collectImportsFromIndex(targetIndex, buildDir));
+    if (await vfs.exists(targetIndex)) files.push(...(await collectImportsFromIndex(vfs, targetIndex, buildDir)));
   }
   return files;
 }
 
-function collectImportsFromIndex(indexPath, buildDir, seenIndexes = new Set()) {
-  const resolvedIndex = path.resolve(indexPath);
+async function collectImportsFromIndex(vfs, indexPath, buildDir, seenIndexes = new Set()) {
+  const resolvedIndex = path.normalizePath(indexPath);
   if (seenIndexes.has(resolvedIndex)) return [];
   seenIndexes.add(resolvedIndex);
 
   const files = [];
-  const text = fs.readFileSync(indexPath, 'utf8');
+  const text = await vfs.readFile(indexPath, 'utf8');
   for (const imported of extractImports(text)) {
-    const abs = path.resolve(path.dirname(indexPath), imported);
-    if (!isInside(abs, buildDir) || !fs.existsSync(abs) || !abs.endsWith('.fractch')) continue;
+    const abs = path.resolveFrom(path.dirname(indexPath), imported);
+    if (!isInside(abs, buildDir) || !(await vfs.exists(abs)) || !abs.endsWith('.fractch')) continue;
     if (path.basename(abs) === 'index.fractch') {
-      files.push(...collectImportsFromIndex(abs, buildDir, seenIndexes));
+      files.push(...(await collectImportsFromIndex(vfs, abs, buildDir, seenIndexes)));
       continue;
     }
     const info = scriptPathInfo(buildDir, abs);
@@ -203,16 +161,16 @@ function extractImports(text) {
   return imports;
 }
 
-function scanScriptFiles(buildDir, manifest) {
+async function scanScriptFiles(vfs, buildDir, manifest) {
   const files = [];
-  for (const dirName of safeListDir(buildDir)) {
+  for (const dirName of await safeListDir(vfs, buildDir)) {
     const tPath = path.join(buildDir, dirName);
-    if (!isDirectory(tPath) || isReservedBuildDir(dirName)) continue;
+    if (!(await vfs.isDirectory(tPath)) || isReservedBuildDir(dirName)) continue;
     if (manifest && !findManifestTargetForDir(manifest, dirName)) continue;
-    for (const hatDir of safeListDir(tPath)) {
+    for (const hatDir of await safeListDir(vfs, tPath)) {
       const hPath = path.join(tPath, hatDir);
-      if (!isDirectory(hPath)) continue;
-      for (const file of safeListDir(hPath)) {
+      if (!(await vfs.isDirectory(hPath))) continue;
+      for (const file of await safeListDir(vfs, hPath)) {
         if (!file.endsWith('.fractch') || file === 'index.fractch') continue;
         const info = scriptPathInfo(buildDir, path.join(hPath, file));
         if (info) files.push(info);
@@ -225,20 +183,20 @@ function scanScriptFiles(buildDir, manifest) {
 function scriptPathInfo(buildDir, fPath) {
   const rel = path.relative(buildDir, fPath);
   if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
-  const parts = rel.split(path.sep);
+  const parts = rel.split('/');
   if (parts.length < 3) return null;
   const [targetDir, hatDir] = parts;
   if (!targetDir || !hatDir || isReservedBuildDir(targetDir)) return null;
   return { fPath, targetDir, hatDir };
 }
 
-function isIgnoredScript(buildDir, fPath) {
+async function isIgnoredScript(vfs, buildDir, fPath) {
   const base = path.basename(fPath);
   if (base.endsWith('.ignore.fractch')) return true;
-  const parts = path.relative(buildDir, fPath).split(path.sep);
+  const parts = path.relative(buildDir, fPath).split('/');
   if (parts.some((p) => p.startsWith('.'))) return true;
   try {
-    const head = fs.readFileSync(fPath, 'utf8').slice(0, 512);
+    const head = String(await vfs.readFile(fPath, 'utf8')).slice(0, 512);
     return /\bfractch:ignore\b/.test(head);
   } catch {
     return false;
@@ -249,16 +207,8 @@ function isReservedBuildDir(dirName) {
   return dirName === 'assets' || dirName === 'extensions' || dirName.startsWith('.');
 }
 
-function isDirectory(p) {
-  try {
-    return fs.statSync(p).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
 function isInside(absPath, dir) {
-  const rel = path.relative(path.resolve(dir), path.resolve(absPath));
+  const rel = path.relative(dir, absPath);
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
@@ -341,9 +291,6 @@ function makeTarget(name, index) {
   return target;
 }
 
-const BLANK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><rect width="100%" height="100%" fill="white"/></svg>';
-const BLANK_SVG_ID = crypto.createHash('md5').update(BLANK_SVG).digest('hex');
-
 function defaultCostume(isStage) {
   return {
     name: isStage ? 'backdrop1' : 'costume1',
@@ -354,20 +301,6 @@ function defaultCostume(isStage) {
     rotationCenterX: isStage ? 240 : 0,
     rotationCenterY: isStage ? 180 : 0,
   };
-}
-
-function addMissingAssetFiles(zip, manifest) {
-  const present = new Set(zip.getEntries().map((e) => e.entryName));
-  for (const t of manifest.targets || []) {
-    for (const costume of t.costumes || []) {
-      const name = costume.md5ext || (costume.assetId && `${costume.assetId}.${costume.dataFormat || 'svg'}`);
-      if (!name || present.has(name)) continue;
-      if (name === `${BLANK_SVG_ID}.svg`) {
-        zip.addFile(name, Buffer.from(BLANK_SVG));
-        present.add(name);
-      }
-    }
-  }
 }
 
 function collectNamesIntoManifest(target, calls) {
@@ -470,21 +403,12 @@ function buildNameIdMap(dict) {
   return map;
 }
 
-function safeListDir(dir) {
+async function safeListDir(vfs, dir) {
   try {
-    return fs.readdirSync(dir);
+    return await vfs.readdir(dir);
   } catch {
     return [];
   }
-}
-
-function findOriginSb3() {
-  const cwd = process.cwd();
-  const preferred = path.join(cwd, 'originv6.0.0.sb3');
-  if (fs.existsSync(preferred)) return preferred;
-  const candidates = fs.readdirSync(cwd).filter((f) => f.endsWith('.sb3'));
-  if (candidates.length) return path.join(cwd, candidates[0]);
-  return null;
 }
 
 function findManifestTargetForDir(manifest, dirName) {
@@ -518,7 +442,7 @@ function parseHeaderInfo(text) {
   }
 }
 
-function deepEqual(a, b) {
+export function deepEqual(a, b) {
   if (a === b) return true;
   if (typeof a !== 'object' || typeof b !== 'object' || a == null || b == null) return false;
   if (Array.isArray(a) !== Array.isArray(b)) return false;

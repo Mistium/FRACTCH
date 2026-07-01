@@ -720,7 +720,7 @@ const BINARY_OPCODES = {
   '>': ['operator_gt', 'OPERAND1', 'OPERAND2'],
   '&&': ['operator_and', 'OPERAND1', 'OPERAND2'],
   '||': ['operator_or', 'OPERAND1', 'OPERAND2'],
-};s
+};
 const NEGATED_OPCODES = { '!=': '==', '<=': '>', '>=': '<' };
 
 function combineBinary(left, op, right) {

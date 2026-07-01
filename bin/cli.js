@@ -1,15 +1,40 @@
 #!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
-import AdmZip from 'adm-zip';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { writeExtensions } from '../src/extensions.js';
-import { writeAssets } from '../src/assets.js';
-import { convertProject } from '../src/convert.js';
-import { packFromBuildDir } from '../src/pack.js';
+import { unpackSb3, packSb3 } from '../src/index.js';
 
-const argv = yargs(hideBin(process.argv))
+function translateWordSyntax(args) {
+  const flags = [];
+  const words = [];
+  for (const a of args) (a.startsWith('-') ? flags : words).push(a);
+  if (!words.length) return args;
+
+  if (words[0] === 'from' && words[1]) {
+    const input = words[1];
+    const out =
+      words[2] === 'to' && words[3]
+        ? words[3]
+        : path.join('.', path.basename(input).replace(/\.sb3$/i, '') || 'build');
+    return ['--input', input, '--out', out, ...flags];
+  }
+
+  const sb3At = words[0] === 'to' ? 1 : 0;
+  if (words[sb3At] && words[sb3At + 1] === 'from' && words[sb3At + 2]) {
+    return ['--pack', '--outSb3', words[sb3At], '--out', words[sb3At + 2], ...flags];
+  }
+
+  return args;
+}
+
+const argv = yargs(translateWordSyntax(hideBin(process.argv)))
+  .usage(
+    'Usage:\n' +
+      '  fractch from <project.sb3> [to <dir>]   unpack an .sb3 into .fractch text\n' +
+      '  fractch [to] <project.sb3> from <dir>   pack a build dir into an .sb3\n' +
+      '  fractch --input <sb3> --out <dir>       flag form (same as `from ... to ...`)'
+  )
   .option('input', {
     alias: 'i',
     type: 'string',
@@ -50,44 +75,26 @@ const argv = yargs(hideBin(process.argv))
 
 (async () => {
   const verbose = argv.verbose;
-  if (argv.pack) {
-    const outDir = path.resolve(argv.out);
-    const outSb3 = path.resolve(argv.outSb3 || path.join(process.cwd(), 'out.sb3'));
-    await packFromBuildDir({
-      buildDir: outDir,
-      outSb3,
-      verbose,
-    });
-    process.exit(0);
-  }
-  const sb3Path = path.resolve(argv.input);
-  const outDir = path.resolve(argv.out);
+  try {
+    if (argv.pack) {
+      await packSb3({
+        buildDir: path.resolve(argv.out),
+        outSb3: path.resolve(argv.outSb3 || path.join(process.cwd(), 'out.sb3')),
+        verbose,
+      });
+      process.exit(0);
+    }
 
-  if (!fs.existsSync(sb3Path)) {
-    console.error(`Input not found: ${sb3Path}`);
+    const sb3Path = path.resolve(argv.input);
+    if (!fs.existsSync(sb3Path)) {
+      console.error(`Input not found: ${sb3Path}`);
+      process.exit(1);
+    }
+    if (verbose) console.log(`Reading sb3: ${sb3Path}`);
+    const result = await unpackSb3({ input: sb3Path, outDir: path.resolve(argv.out), verbose });
+    if (verbose) console.log(`Wrote ${result.filesWritten} files to ${argv.out}`);
+  } catch (e) {
+    console.error(e.message);
     process.exit(1);
   }
-
-  fs.mkdirSync(outDir, { recursive: true });
-
-  if (verbose) console.log(`Reading sb3: ${sb3Path}`);
-  const zip = new AdmZip(sb3Path);
-  const entry = zip.getEntry('project.json');
-  if (!entry) {
-    console.error('project.json not found inside sb3');
-    process.exit(1);
-  }
-  const projectJson = JSON.parse(zip.readAsText(entry));
-
-  if (verbose) console.log(`Converting project with ${projectJson.targets?.length || 0} targets...`);
-  const result = convertProject(projectJson, { outDir, verbose });
-
-  fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(result.manifest, null, 2));
-  fs.writeFileSync(path.join(outDir, 'index.fractch'), result.indexContent);
-
-  writeAssets(zip, projectJson, outDir, { verbose });
-  const ext = await writeExtensions(projectJson, outDir, { verbose });
-  if (verbose && ext) console.log(`Extensions: ${ext.fetched||0}/${ext.count||0} sources fetched`);
-
-  if (verbose) console.log(`Wrote ${result.filesWritten} files to ${outDir}`);
 })();

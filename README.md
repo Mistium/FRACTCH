@@ -91,6 +91,19 @@ When no index imports are present, pack scans all `build/<Target>/<hatOpcode>/*.
 ## CLI
 
 ```sh
+npm install -g fractch
+```
+
+```sh
+fractch from project.sb3 to ./project    # unpack .sb3 -> .fractch text
+fractch from project.sb3                 # same, defaults to ./project
+fractch project.sb3 from ./project      # pack a build dir -> .sb3
+fractch to project.sb3 from ./project   # same, if you like symmetry
+```
+
+The flag form does the same thing:
+
+```sh
 fractch --input ./originv6.0.0.sb3 --out ./build --verbose
 fractch --pack --out ./build --outSb3 ./repacked.sb3 --verbose
 ```
@@ -101,7 +114,62 @@ Options:
 - `--out` output directory (or build directory to pack, with `--pack`)
 - `--pack` reverse conversion: build directory → `.sb3`
 - `--outSb3` output `.sb3` path when using `--pack`
-- `--verbose` extra logs
+- `--verbose` extra logs (works with the word syntax too)
+
+## Programmatic use
+
+```sh
+npm install fractch
+```
+
+```js
+import { unpackSb3, packSb3 } from 'fractch';
+
+await unpackSb3({ input: './project.sb3', outDir: './project' });
+await packSb3({ buildDir: './project', outSb3: './repacked.sb3' });
+```
+
+`packSb3` accepts an optional `originSb3` path for the project whose non-block
+assets (costumes, sounds) should be carried into the repack; without it the
+current working directory is searched, matching the CLI.
+
+### In the browser
+
+The `fractch` import resolves to a browser-safe build (no `fs`, `path`,
+`adm-zip`, or other Node built-ins) via the package's `browser` export
+condition; `fractch/browser` imports it explicitly. Every function takes an
+`fs` option accepting any node-style or promises-style fs — an in-memory one
+like [lightning-fs](https://github.com/isomorphic-git/lightning-fs) works
+directly:
+
+```js
+import LightningFS from '@isomorphic-git/lightning-fs';
+import { convertProject, buildProjectFromBuildDir } from 'fractch';
+
+const fs = new LightningFS('fractch');
+
+// projectJson is the parsed project.json from an .sb3 (unzip with e.g. fflate/jszip)
+await convertProject(projectJson, { outDir: '/project', fs });
+
+// ...edit the .fractch files in the in-memory fs...
+
+const { manifest } = await buildProjectFromBuildDir({ buildDir: '/project', fs });
+// `manifest` is a complete project.json object - zip it together with the
+// assets to produce the .sb3. `BLANK_SVG` / `BLANK_SVG_ID` are exported for
+// the default costume that synthesized manifests reference.
+```
+
+Zip handling stays outside the browser core on purpose: reading and writing
+`.sb3` archives is left to whatever zip library the host app already uses.
+In Node, `unpackSb3` / `packSb3` wrap the same core with adm-zip and the real
+filesystem.
+
+Lower-level pieces are exported too, for tools that operate on `.fractch` text
+or Scratch block JSON directly rather than through the filesystem pipeline:
+`parseFractch` (text → call tree), `buildBlocksFromCalls` (call tree → Scratch
+block JSON), `convertProject` (project.json → build dir), `checkFractch` /
+`assertValidFractch` (lint), `emitScriptFile` / `stringifyBlockCall` (blocks →
+DSL text), `mergeIntoManifest`, `cleanIdent`, `buildProcByCode`.
 
 ## Notes
 
