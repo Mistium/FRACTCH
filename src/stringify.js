@@ -1,6 +1,23 @@
+let CTX = {};
+export function setContext(c) { CTX = c || {}; }
+
 export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}) {
   const opcode = block.opcode;
   const jsonMode = cfg?.dsl?.json ?? 'minimal'; // 'none' | 'minimal' | 'full'
+
+  if (opcode === 'procedures_call') {
+    const code = block.mutation?.proccode;
+    const info = code && CTX.procByCode?.get(code);
+    if (info) {
+      const args = info.params.map((p) => {
+        const inp = block.inputs?.[p.id];
+        const val = Array.isArray(inp) ? getInputExpr(inp, subgraph) : 'null';
+        return `${p.ident}= ${val}`;
+      });
+      const call = `${info.ident}(${args.join(', ')})`;
+      return inline ? call : call + ';';
+    }
+  }
 
   if (opcode === 'data_variable') {
     const name = block.fields?.VARIABLE?.[0] ?? '';
@@ -42,13 +59,39 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
 
   if (opcode === 'control_forever') {
-    const bodyId = block.inputs?.SUBSTACK && Array.isArray(block.inputs.SUBSTACK) ? block.inputs.SUBSTACK[1] : null;
-    const bodyStr = bodyId
-      ? linearizeWithIds(subgraph, bodyId)
-          .map((cid) => stringifyBlockCall(subgraph[cid], subgraph, cid))
-          .join('\n')
-      : '';
-    return `forever {\n${indent(bodyStr)}\n}`;
+    return `forever ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
+  if (opcode === 'control_repeat') {
+    const n = getInputExpr(block.inputs?.TIMES, subgraph);
+    return `repeat ${n} ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
+  if (opcode === 'control_repeat_until') {
+    const c = Array.isArray(block.inputs?.CONDITION) ? getInputExpr(block.inputs.CONDITION, subgraph) : 'null';
+    return `until ${c} ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
+  if (opcode === 'control_while') {
+    const c = Array.isArray(block.inputs?.CONDITION) ? getInputExpr(block.inputs.CONDITION, subgraph) : 'null';
+    return `while ${c} ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
+  if (opcode === 'control_wait') {
+    return `wait ${getInputExpr(block.inputs?.DURATION, subgraph)};`;
+  }
+  if (opcode === 'control_wait_until') {
+    const c = Array.isArray(block.inputs?.CONDITION) ? getInputExpr(block.inputs.CONDITION, subgraph) : 'null';
+    return `wait_until ${c};`;
+  }
+  if (opcode === 'control_stop') {
+    const opt = block.fields?.STOP_OPTION?.[0] ?? 'all';
+    return `stop ${JSON.stringify(opt)};`;
+  }
+  if (opcode === 'procedures_return' || opcode === 'control_return') {
+    const v = block.inputs?.VALUE ? getInputExpr(block.inputs.VALUE, subgraph) : '';
+    return `return${v ? ' ' + v : ''};`;
+  }
+  if (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') {
+    const name = getInputExpr(block.inputs?.BROADCAST_INPUT, subgraph);
+    const w = opcode === 'event_broadcastandwait' ? 'broadcast_wait' : 'broadcast';
+    return `${w} ${name};`;
   }
 
   const opExpr = tryOperatorExpression(block, subgraph);
@@ -61,9 +104,6 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   const argParts = [];
   if (inputsStr) argParts.push(inputsStr);
   if (fieldsStr) argParts.push(fieldsStr);
-  if (jsonMode !== 'none' && !inline) {
-    argParts.push('');
-  }
   const call = `${opcode}(${argParts.join(', ')})`;
   return inline ? call : call + ';';
 }
@@ -142,6 +182,17 @@ function indent(str, spaces = 2) {
     .split('\n')
     .map((l) => (l ? ' '.repeat(spaces) + l : l))
     .join('\n');
+}
+
+function branch(block, key, subgraph) {
+  const arr = block.inputs?.[key];
+  const bid = Array.isArray(arr) ? arr[1] : null;
+  const body = bid
+    ? linearizeWithIds(subgraph, bid)
+        .map((cid) => stringifyBlockCall(subgraph[cid], subgraph, cid))
+        .join('\n')
+    : '';
+  return `{\n${indent(body)}\n}`;
 }
 
 function formatArgKey(name) {

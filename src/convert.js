@@ -10,6 +10,7 @@ export function convertProject(projectJson, { outDir }) {
   const broadcastMap = new Map(); // name -> [{ targetName, topBlockId }]
   const proceduresMap = new Map(); // targetName -> Map(proccode -> defTopBlockId)
   const procedureDefsByTarget = new Map(); // targetName -> Map(defTopBlockId -> proccode)
+  const procByCode = buildProcByCode(targets); // proccode -> { ident, params: [{id, ident}] }
 
   for (const target of targets) {
     const pMap = new Map();
@@ -72,7 +73,7 @@ export function convertProject(projectJson, { outDir }) {
         script,
         subgraph,
         index: idx++,
-        context: { broadcastMap, proceduresMap },
+        context: { broadcastMap, proceduresMap, procByCode },
       });
       fs.writeFileSync(filePath, content);
       const rel = `./${sanitize(target.name)}/${sanitize(hatOpcode || 'nohat')}/${filename}`;
@@ -101,4 +102,29 @@ export function convertProject(projectJson, { outDir }) {
 
 function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
+}
+
+function cleanIdent(label) {
+  const stripped = String(label).replace(/%[snb]/g, ' ').replace(/\s+/g, ' ').trim();
+  const id = stripped.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return id || 'proc';
+}
+
+export function buildProcByCode(targets) {
+  const map = new Map();
+  for (const target of targets) {
+    const blocks = target.blocks || {};
+    for (const b of Object.values(blocks)) {
+      if (!b || b.opcode !== 'procedures_prototype') continue;
+      const proccode = b.mutation?.proccode;
+      if (!proccode || map.has(proccode)) continue;
+      let ids = [];
+      let names = [];
+      try { ids = JSON.parse(b.mutation?.argumentids || '[]'); } catch {}
+      try { names = JSON.parse(b.mutation?.argumentnames || '[]'); } catch {}
+      const params = ids.map((id, i) => ({ id, ident: cleanIdent(names[i] ?? `arg${i}`) }));
+      map.set(proccode, { ident: cleanIdent(proccode), params, label: proccode });
+    }
+  }
+  return map;
 }

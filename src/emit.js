@@ -1,4 +1,4 @@
-import { stringifyBlockCall } from './stringify.js';
+import { stringifyBlockCall, setContext } from './stringify.js';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -7,13 +7,19 @@ export function emitScriptFile({ target, script, subgraph, index, context }) {
   const { topBlockId, hatOpcode } = script;
   const blocksArr = linearize(subgraph, topBlockId);
 
-  const bodyLines = [];
   const cfg = readConfig();
-  for (const id of idsFromLinear(subgraph, topBlockId)) {
-    bodyLines.push(stringifyBlockCall(subgraph[id], subgraph, id, /*inline*/ false, cfg));
-  }
+  setContext(context);
 
-  const body = bodyLines.join('\n');
+  const ids = idsFromLinear(subgraph, topBlockId);
+  let body;
+  if (hatOpcode === 'procedures_definition' && context?.procByCode) {
+    const sig = defSignature(subgraph[topBlockId], subgraph, context);
+    const innerIds = ids.slice(1);
+    const inner = innerIds.map((id) => stringifyBlockCall(subgraph[id], subgraph, id, false, cfg)).join('\n');
+    body = inner ? `${sig} {\n${indentBlock(inner)}\n}` : `${sig} {}`;
+  } else {
+    body = ids.map((id) => stringifyBlockCall(subgraph[id], subgraph, id, false, cfg)).join('\n');
+  }
 
   const dslBodyHash = sha256(body);
   const header =
@@ -119,6 +125,21 @@ function deriveImports(blocksArr, context) {
 
 function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
+}
+
+function defSignature(defBlock, subgraph, context) {
+  const protoId = defBlock?.inputs?.custom_block?.[1];
+  const proto = protoId ? subgraph[protoId] : undefined;
+  const code = proto?.mutation?.proccode;
+  const info = code && context.procByCode?.get(code);
+  if (!info) return `def proc()`;
+  const params = info.params.map((p) => p.ident).join(', ');
+  return `def ${info.ident}(${params})`;
+}
+
+function indentBlock(str, spaces = 2) {
+  if (!str) return '';
+  return str.split('\n').map((l) => (l ? ' '.repeat(spaces) + l : l)).join('\n');
 }
 
 function escapeLabel(s) {
