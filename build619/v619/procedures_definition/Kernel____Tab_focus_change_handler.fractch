@@ -7,12 +7,12 @@
  */
 
 def @Kernel_Tab_focus_change_handler() "Kernel // Tab focus change handler" warp=false {
-  mistsutils_patchcommand(A= "const focused = document.hasFocus()");
-  mistsutils_patchcommand(A= "if (focused === origin.focused) return");
-  mistsutils_patchcommand(A= "origin.focused = focused");
-  if mistsutils_patchboolean(A= "typeof origin.keyboard === \"object\"") {
-    mistsutils_patchcommand(A= "origin.keyboard.keysObj = {}");
-    mistsutils_patchcommand(A= "origin.keyboard.keysDown = []");
+  mistsutils_patchcommand(A: "const focused = document.hasFocus()");
+  mistsutils_patchcommand(A: "if (focused === origin.focused) return");
+  mistsutils_patchcommand(A: "origin.focused = focused");
+  if mistsutils_patchboolean(A: "typeof origin.keyboard === \"object\"") {
+    mistsutils_patchcommand(A: "origin.keyboard.keysObj = {}");
+    mistsutils_patchcommand(A: "origin.keyboard.keysDown = []");
   }
-  mistsutils_patchcommand2(A= "if (origin.clipboard) origin.clipboard.contents = ", B= clipboard_clipboard());
+  mistsutils_patchcommand2(A: "if (origin.clipboard) origin.clipboard.contents = ", B: clipboard_clipboard());
 }

@@ -7,11 +7,11 @@
  */
 
 clipboard_whenPasted();
-mistsutils_patchcommand(A= "if (target.isOriginal) {");
-mistsutils_patchcommand2(A= "origin.clipboard.contents = ", B= clipboard_clipboard());
-mistsutils_patchcommand(A= "} else {");
-mistsutils_patchcommand(A= "const idx = origin.windows.ids.indexOf(target.window.id) + 1");
-if ((vars["Process // Type"] == "App") && ((vars["Window // Top Index"] == mistsutils_patchreporter(A= "idx")) || mistsutils_patchboolean(A= "idx === 1"))) {
-  @originWM_Send_global_Msg(arr= mistsutils_patchreporter(A= "[\"event\", target.window.id, \"paste\", origin.clipboard.contents]"));
+mistsutils_patchcommand(A: "if (target.isOriginal) {");
+mistsutils_patchcommand2(A: "origin.clipboard.contents = ", B: clipboard_clipboard());
+mistsutils_patchcommand(A: "} else {");
+mistsutils_patchcommand(A: "const idx = origin.windows.ids.indexOf(target.window.id) + 1");
+if ((vars["Process // Type"] == "App") && ((vars["Window // Top Index"] == mistsutils_patchreporter(A: "idx")) || mistsutils_patchboolean(A: "idx === 1"))) {
+  @originWM_Send_global_Msg(arr: mistsutils_patchreporter(A: "[\"event\", target.window.id, \"paste\", origin.clipboard.contents]"));
 }
-mistsutils_patchcommand(A= "}");
+mistsutils_patchcommand(A: "}");

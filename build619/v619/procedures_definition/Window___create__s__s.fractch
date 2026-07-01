@@ -7,14 +7,14 @@
  */
 
 def @Window_create(name, window_data("window data")) "Window// create %s %s" warp=true {
-  mistsutils_patchcommand(A= "if (p0[0] === \"@\") p0 = origin.apps.defaults.current[p0.slice(1)]");
-  mistsutils_patchcommand2(A= "const next_id = ", B= (vars["Window ID Count"] + 1));
-  mistsutils_patchcommand(A= "try {");
-  mistsutils_patchcommand3(A= "const con = osl_clone[", B= vars["WIndow // ID"], C= "] ?? {}");
-  mistsutils_patchcommand(A= "con.data = p1.get_obj === true ? (window.osl_clone[next_id] = Object.create(null)) : next_id");
-  data_addtolist(ITEM= name, LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes"));
-  data_addtolist(ITEM= window_data, LIST: list("Windows // Create Data", "^Yp.PtD#1oxNqza?z{+A"));
-  data_addtolist(ITEM= mistsutils_patchreporter(A= "con"), LIST: list("Windows // Create Parent", "1C9e)ePY1onuWFVxH:@$"));
-  mistsutils_patchcommand(A= "} catch(e) { console.error(\"Error opening window\", e) }");
-  return mistsutils_patchreporter(A= "next_id");
+  mistsutils_patchcommand(A: "if (p0[0] === \"@\") p0 = origin.apps.defaults.current[p0.slice(1)]");
+  mistsutils_patchcommand2(A: "const next_id = ", B: (vars["Window ID Count"] + 1));
+  mistsutils_patchcommand(A: "try {");
+  mistsutils_patchcommand3(A: "const con = osl_clone[", B: vars["WIndow // ID"], C: "] ?? {}");
+  mistsutils_patchcommand(A: "con.data = p1.get_obj === true ? (window.osl_clone[next_id] = Object.create(null)) : next_id");
+  data_addtolist(ITEM: name, field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes"));
+  data_addtolist(ITEM: window_data, field LIST: list("Windows // Create Data", "^Yp.PtD#1oxNqza?z{+A"));
+  data_addtolist(ITEM: mistsutils_patchreporter(A: "con"), field LIST: list("Windows // Create Parent", "1C9e)ePY1onuWFVxH:@$"));
+  mistsutils_patchcommand(A: "} catch(e) { console.error(\"Error opening window\", e) }");
+  return mistsutils_patchreporter(A: "next_id");
 }

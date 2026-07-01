@@ -29,8 +29,8 @@ Outputs will be written to `./build` with:
 
 ## Fractch DSL overview
 
-- Blocks are encoded as calls where the function name is the Scratch `opcode`: `opcode(key= inputValue, field: fieldValue)`. `=` marks an input (may nest another block), `:` marks a field (variable/list/broadcast reference or a raw dropdown value).
-- Common control-flow blocks get readable sugar instead of the generic call form: `if cond { ... }`, `if cond { ... } else { ... }`, `forever { ... }`, `repeat n { ... }`, `until cond { ... }`, `while cond { ... }`, `switch v { case x { ... } case y fallthrough { ... } default { ... } }`, `wait n;`, `wait_until cond;`, `stop "all";`, `return v;`, `broadcast "name";`, `broadcast_wait "name";`, `vars["name"] = value;`.
+- Blocks are encoded as calls where the function name is the Scratch `opcode`: `opcode(inputName: inputValue, field dropdownName: fieldValue)`. Plain `name: value` arguments are Scratch inputs and may nest reporter blocks. `field name: value` arguments are Scratch fields, such as dropdowns or variable/list/broadcast references. The older `name= value` input form is still accepted for handwritten files.
+- Common control-flow blocks get readable sugar instead of the generic call form: `if cond { ... }`, `if cond { ... } else { ... }`, `forever { ... }`, `repeat n { ... }`, `until cond { ... }`, `while cond { ... }`, `switch v { case x { ... } case y fallthrough { ... } default { ... } }`, `wait n;`, `wait_until cond;`, `stop "all";`, `return v;`, `broadcast "name";`, `broadcast_wait "name";`, `vars["name"] = value;`, `vars["name"] += value;`.
 - Arithmetic/logic operators get infix sugar: `(a + b)`, `(a - b)`, `(a * b)`, `(a / b)`, `(a % b)`, string concat `(a .. b)` (deliberately distinct from `+` since `operator_add`/`operator_join` are different opcodes), `(a == b)`, `(a < b)`, `(a > b)`, `(a && b)`, `(a || b)`, `not(a)`, `round(a)`, and math-op functions (`abs`, `floor`, `sqrt`, `sin`, `exp`, ...).
 - Custom blocks: `def @Name(param1, param2) "Original Proccode %s %s" warp=true { ... }` defines a custom block — the quoted string and `warp` flag preserve exact fidelity even though `@Name` is a cleaned-up identifier. Call sites use `@Name(param1= value, param2= value)`. A param whose display name doesn't match its identifier (e.g. contains spaces) is written `ident("Original Name")` in the signature.
 - Extension "C-block" opcodes (custom blocks with a body slot that aren't one of the hardcoded keywords above) still get their body: `some_extension_opcode(args) { ... }`.
@@ -62,7 +62,7 @@ my-project/
 
 ```txt
 event_whenflagclicked();
-looks_say(MESSAGE= "hello from fractch");
+looks_say(MESSAGE: "hello from fractch");
 ```
 
 Pack it with:

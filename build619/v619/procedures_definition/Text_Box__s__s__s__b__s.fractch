@@ -10,50 +10,50 @@ import "../procedures_definition/___Go_To_Location_Of_Window__s__s__s__s.fractch
 import "../procedures_definition/OSL____Parse_and_Run__s.fractch";
 import "../procedures_definition/___Draw_Square__s__s__s__s__s__s.fractch";
 def @Text_Box(id, content, text_colour("text colour"), focused, parameters) "Text Box %s %s %s %b %s" warp=false {
-  mistsutils_patchcommand(A= "let changed = false;");
-  mistsutils_patchcommand(A= "const appData = target.variables[\"IM@5kK4sMM=*Wu!`#VFF\"]");
-  if (mistsutils_patchreporter(A= "appData.value.length") < "1") {
-    mistsutils_patchcommand(A= "appData.value.push(\"\")");
-    mistsutils_patchcommand(A= "changed = true");
+  mistsutils_patchcommand(A: "let changed = false;");
+  mistsutils_patchcommand(A: "const appData = target.variables[\"IM@5kK4sMM=*Wu!`#VFF\"]");
+  if (mistsutils_patchreporter(A: "appData.value.length") < "1") {
+    mistsutils_patchcommand(A: "appData.value.push(\"\")");
+    mistsutils_patchcommand(A: "changed = true");
   }
-  mistsutils_patchcommand(A= "p2 = p4.text_colour ?? p2");
-  mistsutils_patchcommand(A= "if (p4.default_text && !p3) { p2 = p4?.default_text?.colour ?? p2; appData.value = [p4?.default_text?.data ?? \"\"] }");
-  mistsutils_patchcommand2(A= "let sel_colour = p4.sel_colour ?? ", B= @OSL_Vars_Get(Varname= "global_accent"));
-  mistsutils_patchcommand2(A= "let sqr_clickable_temp = ", B= vars["SYSTEM // Squares Clickable"]);
-  vars["Text // Boldness"] = mistsutils_patchreporter(A= "p4.boldness ?? 0");
-  mistsutils_patchcommand(A= "if (\"\"+p4.readonly === \"true\") { p7 = false;");
+  mistsutils_patchcommand(A: "p2 = p4.text_colour ?? p2");
+  mistsutils_patchcommand(A: "if (p4.default_text && !p3) { p2 = p4?.default_text?.colour ?? p2; appData.value = [p4?.default_text?.data ?? \"\"] }");
+  mistsutils_patchcommand2(A: "let sel_colour = p4.sel_colour ?? ", B: @OSL_Vars_Get(Varname: "global_accent"));
+  mistsutils_patchcommand2(A: "let sqr_clickable_temp = ", B: vars["SYSTEM // Squares Clickable"]);
+  vars["Text // Boldness"] = mistsutils_patchreporter(A: "p4.boldness ?? 0");
+  mistsutils_patchcommand(A: "if (\"\"+p4.readonly === \"true\") { p7 = false;");
   vars["SYSTEM // Squares Clickable"] = "false";
-  mistsutils_patchcommand(A= "}");
-  mistsutils_patchcommand(A= "if (p4.ohf) {");
-  mistsutils_patchcommand(A= "const obj = {}");
-  mistsutils_patchcommand(A= "const func_parse = p4.ohf?.parser?.type === \"function\"");
-  mistsutils_patchcommand(A= "const func_highlight = p4.ohf?.highlighter?.type === \"function\"");
-  mistsutils_patchcommand(A= "if (func_parse || func_highlight) {");
-  if @Permissions_Has(perm= "javascript") {
-    mistsutils_patchcommand(A= "if (func_parse) { p4.ohf.parser.fn = new Function(\"code\", p4.ohf.parser?.data ?? \"return code\").bind(obj) };");
-    mistsutils_patchcommand(A= "if (func_highlight) { p4.ohf.highlighter.fn = new Function(\"token\", p4.ohf.highlighter?.data ?? \"return '#fff'\").bind(obj) };");
+  mistsutils_patchcommand(A: "}");
+  mistsutils_patchcommand(A: "if (p4.ohf) {");
+  mistsutils_patchcommand(A: "const obj = {}");
+  mistsutils_patchcommand(A: "const func_parse = p4.ohf?.parser?.type === \"function\"");
+  mistsutils_patchcommand(A: "const func_highlight = p4.ohf?.highlighter?.type === \"function\"");
+  mistsutils_patchcommand(A: "if (func_parse || func_highlight) {");
+  if @Permissions_Has(perm: "javascript") {
+    mistsutils_patchcommand(A: "if (func_parse) { p4.ohf.parser.fn = new Function(\"code\", p4.ohf.parser?.data ?? \"return code\").bind(obj) };");
+    mistsutils_patchcommand(A: "if (func_highlight) { p4.ohf.highlighter.fn = new Function(\"token\", p4.ohf.highlighter?.data ?? \"return '#fff'\").bind(obj) };");
   } else {
-    @Log_Error(Data= "Missing JS permission, unable to highlight with javascript functions", Type= "Permission");
+    @Log_Error(Data: "Missing JS permission, unable to highlight with javascript functions", Type: "Permission");
   }
-  mistsutils_patchcommand(A= "}}");
-  mistsutils_patchcommand(A= "let line_numbers = String(p4.line_numbers ?? \"true\") != \"false\"");
-  vars["Studio // OHF"] = mistsutils_patchreporter(A= "p4.ohf ?? \"\"");
-  @Go_To_Location_Of_Window(X= "999", Y= "2", X_2= "30", Y_2= "0");
-  mistsutils_patchcommand2(A= "const middle_temp = ", B= (motion_xposition() - vars["Frame // X"]));
-  @Go_To_Location_Of_Window(X= "2", Y= "2", X_2= "0", Y_2= "0");
-  mistsutils_patchcommand2(A= "const left_temp =", B= (motion_xposition() - vars["Frame // X"]));
-  mistsutils_patchcommand2(A= "const osl_current_this = ", B= "target.osl_this");
-  mistsutils_patchcommand2(A= "const total_count = ", B= operator_length(STRING= data_lengthoflist(LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))));
-  mistsutils_patchcommand(A= "if (line_numbers)");
-  motion_changexby(DX= mistsutils_patchreporter(A= "total_count * 8 - 30"));
-  @OSL_Parse_and_Run(Run= "x_temp = x_position");
-  @OSL_Parse_and_Run(Run= ("loc 999 2 20 15 - temp + " .. vars["Scroll// Y"]));
-  mistsutils_patchcommand(A= "let line_height = p4.line_height ?? 23");
-  mistsutils_patchcommand(A= "if (!line_numbers)");
-  @OSL_Parse_and_Run(Run= "x_temp -= 47");
-  mistsutils_patchcommand(A= "let lower = 0, upper = 0, select = false;");
-  mistsutils_patchcommand2(A= "const start_cursor = ", B= vars["Inputs // Cursor Position"]);
-  mistsutils_patchcommand2(A= "let x_temp = ", B= @OSL_Vars_Get(Varname= "x_temp"));
+  mistsutils_patchcommand(A: "}}");
+  mistsutils_patchcommand(A: "let line_numbers = String(p4.line_numbers ?? \"true\") != \"false\"");
+  vars["Studio // OHF"] = mistsutils_patchreporter(A: "p4.ohf ?? \"\"");
+  @Go_To_Location_Of_Window(X: "999", Y: "2", X_2: "30", Y_2: "0");
+  mistsutils_patchcommand2(A: "const middle_temp = ", B: (motion_xposition() - vars["Frame // X"]));
+  @Go_To_Location_Of_Window(X: "2", Y: "2", X_2: "0", Y_2: "0");
+  mistsutils_patchcommand2(A: "const left_temp =", B: (motion_xposition() - vars["Frame // X"]));
+  mistsutils_patchcommand2(A: "const osl_current_this = ", B: "target.osl_this");
+  mistsutils_patchcommand2(A: "const total_count = ", B: operator_length(STRING: data_lengthoflist(field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))));
+  mistsutils_patchcommand(A: "if (line_numbers)");
+  motion_changexby(DX: mistsutils_patchreporter(A: "total_count * 8 - 30"));
+  @OSL_Parse_and_Run(Run: "x_temp = x_position");
+  @OSL_Parse_and_Run(Run: ("loc 999 2 20 15 - temp + " .. vars["Scroll// Y"]));
+  mistsutils_patchcommand(A: "let line_height = p4.line_height ?? 23");
+  mistsutils_patchcommand(A: "if (!line_numbers)");
+  @OSL_Parse_and_Run(Run: "x_temp -= 47");
+  mistsutils_patchcommand(A: "let lower = 0, upper = 0, select = false;");
+  mistsutils_patchcommand2(A: "const start_cursor = ", B: vars["Inputs // Cursor Position"]);
+  mistsutils_patchcommand2(A: "let x_temp = ", B: @OSL_Vars_Get(Varname: "x_temp"));
   if focused {
     if (vars["Inputs // Current Line"] < "0") {
       vars["Inputs // Current Line"] = "0";
@@ -61,195 +61,195 @@ def @Text_Box(id, content, text_colour("text colour"), focused, parameters) "Tex
     if (vars["Inputs // Start Line"] < "0") {
       vars["Inputs // Start Line"] = "0";
     }
-    mistsutils_patchcommand(A= "const isMac = osl.system_os === \"macOS\"");
-    if ((mistsutils_patchboolean(A= "isMac") && @Is_pressed(key= "Meta")) || (mistsutils_patchboolean(A= "!isMac") && @Is_pressed(key= "Control"))) {
-      if @Is_pressed(key= "A") {
+    mistsutils_patchcommand(A: "const isMac = osl.system_os === \"macOS\"");
+    if ((mistsutils_patchboolean(A: "isMac") && @Is_pressed(key: "Meta")) || (mistsutils_patchboolean(A: "!isMac") && @Is_pressed(key: "Control"))) {
+      if @Is_pressed(key: "A") {
         vars["Inputs // Start Line"] = "1";
         vars["Inputs // Start Letter Pos"] = "0";
-        vars["Inputs // Cursor Position"] = operator_length(STRING= data_itemoflist(INDEX= "last", LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")));
-        vars["Inputs // Current Line"] = data_lengthoflist(LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+        vars["Inputs // Cursor Position"] = operator_length(STRING: data_itemoflist(INDEX: "last", field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")));
+        vars["Inputs // Current Line"] = data_lengthoflist(field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
       }
     }
     if (vars["Inputs // Start Line"] == vars["Inputs // Current Line"]) {
-      mistsutils_patchcommand(A= "select = false");
-      mistsutils_patchcommand2(A= "const line = -1 + ", B= vars["Inputs // Current Line"]);
-      if @is_hit(key= "tab") {
-        if @Is_pressed(key= "shift") {
-          if mistsutils_starts(A= data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), B= "  ") {
-            data_changevariableby(VALUE= -2, VARIABLE: var("Inputs // Cursor Position", "qq"));
-            mistsutils_patchcommand(A= "appData.value[line] = appData.value[line].slice(2)");
+      mistsutils_patchcommand(A: "select = false");
+      mistsutils_patchcommand2(A: "const line = -1 + ", B: vars["Inputs // Current Line"]);
+      if @is_hit(key: "tab") {
+        if @Is_pressed(key: "shift") {
+          if mistsutils_starts(A: data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), B: "  ") {
+            vars["Inputs // Cursor Position"] += -2;
+            mistsutils_patchcommand(A: "appData.value[line] = appData.value[line].slice(2)");
           }
         } else {
-          data_changevariableby(VALUE= 2, VARIABLE: var("Inputs // Cursor Position", "qq"));
-          mistsutils_patchcommand(A= "appData.value[line] = \"  \" + appData.value[line]");
+          vars["Inputs // Cursor Position"] += 2;
+          mistsutils_patchcommand(A: "appData.value[line] = \"  \" + appData.value[line]");
         }
         vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
-        mistsutils_patchcommand(A= "changed = true");
+        mistsutils_patchcommand(A: "changed = true");
       }
     } else {
-      mistsutils_patchcommand(A= "select = true");
-      if (not(mistsutils_patchreporter(A= "osl.mouse_left")) && (vars["Inputs // Start Line"] > vars["Inputs // Current Line"])) {
-        mistsutils_patchcommand2(A= "let temp = ", B= vars["Inputs // Start Line"]);
+      mistsutils_patchcommand(A: "select = true");
+      if (not(mistsutils_patchreporter(A: "osl.mouse_left")) && (vars["Inputs // Start Line"] > vars["Inputs // Current Line"])) {
+        mistsutils_patchcommand2(A: "let temp = ", B: vars["Inputs // Start Line"]);
         vars["Inputs // Start Line"] = vars["Inputs // Current Line"];
-        vars["Inputs // Current Line"] = mistsutils_patchreporter(A= "temp");
-        mistsutils_patchcommand2(A= "temp = ", B= vars["Inputs // Start Letter Pos"]);
+        vars["Inputs // Current Line"] = mistsutils_patchreporter(A: "temp");
+        mistsutils_patchcommand2(A: "temp = ", B: vars["Inputs // Start Letter Pos"]);
         vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
-        vars["Inputs // Cursor Position"] = mistsutils_patchreporter(A= "temp");
+        vars["Inputs // Cursor Position"] = mistsutils_patchreporter(A: "temp");
       }
-      mistsutils_patchcommand2(A= "lower = ", B= mistsutils_min(A= vars["Inputs // Start Line"], B= vars["Inputs // Current Line"]));
-      mistsutils_patchcommand2(A= "upper = ", B= mistsutils_max(A= vars["Inputs // Start Line"], B= vars["Inputs // Current Line"]));
-      if mistsutils_patchboolean(A= "select") {
-        mistsutils_patchcommand(A= "lower --");
-        mistsutils_patchcommand(A= "upper ++");
+      mistsutils_patchcommand2(A: "lower = ", B: mistsutils_min(A: vars["Inputs // Start Line"], B: vars["Inputs // Current Line"]));
+      mistsutils_patchcommand2(A: "upper = ", B: mistsutils_max(A: vars["Inputs // Start Line"], B: vars["Inputs // Current Line"]));
+      if mistsutils_patchboolean(A: "select") {
+        mistsutils_patchcommand(A: "lower --");
+        mistsutils_patchcommand(A: "upper ++");
       }
-      if @is_hit(key= "tab") {
-        if @Is_pressed(key= "shift") {
-          if mistsutils_starts(A= data_itemoflist(INDEX= vars["Inputs // Start Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), B= "  ") {
-            data_changevariableby(VALUE= -2, VARIABLE: var("Inputs // Start Letter Pos", "Aq"));
+      if @is_hit(key: "tab") {
+        if @Is_pressed(key: "shift") {
+          if mistsutils_starts(A: data_itemoflist(INDEX: vars["Inputs // Start Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), B: "  ") {
+            vars["Inputs // Start Letter Pos"] += -2;
           }
-          if mistsutils_starts(A= data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), B= "  ") {
-            data_changevariableby(VALUE= -2, VARIABLE: var("Inputs // Cursor Position", "qq"));
+          if mistsutils_starts(A: data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), B: "  ") {
+            vars["Inputs // Cursor Position"] += -2;
           }
-          mistsutils_patchcommand(A= "const arr = appData.value; for (let i = lower; i < upper - 1 && i < arr.length; i++) { const str = arr[i]; if (str.startsWith(\"  \")) arr[i] = str.slice(2); }");
+          mistsutils_patchcommand(A: "const arr = appData.value; for (let i = lower; i < upper - 1 && i < arr.length; i++) { const str = arr[i]; if (str.startsWith(\"  \")) arr[i] = str.slice(2); }");
         } else {
-          data_changevariableby(VALUE= 2, VARIABLE: var("Inputs // Cursor Position", "qq"));
-          data_changevariableby(VALUE= 2, VARIABLE: var("Inputs // Start Letter Pos", "Aq"));
-          mistsutils_patchcommand(A= "const arr = appData.value; for (let i = lower; i < upper - 1 && i < arr.length; i++) { arr[i] = \"  \" + arr[i]; }");
+          vars["Inputs // Cursor Position"] += 2;
+          vars["Inputs // Start Letter Pos"] += 2;
+          mistsutils_patchcommand(A: "const arr = appData.value; for (let i = lower; i < upper - 1 && i < arr.length; i++) { arr[i] = \"  \" + arr[i]; }");
         }
-        mistsutils_patchcommand(A= "changed = true");
+        mistsutils_patchcommand(A: "changed = true");
       }
     }
   }
-  mistsutils_patchcommand2(A= "let start_count = ", B= (round((vars["Scroll// Y"] / mistsutils_patchreporter(A= "line_height"))) - 1));
-  mistsutils_patchcommand2(A= "let loops = ", B= (round((vars["Frame // Height"] / mistsutils_patchreporter(A= "line_height"))) + 2));
-  vars["Studio // Content Width"] = mistsutils_max(A= vars["Frame // Width"], B= vars["Studio // Content Width"]);
-  mistsutils_patchcommand(A= "let i = Math.max(0, start_count)");
-  mistsutils_patchcommand(A= "let selected_text = \"\";");
-  repeat mistsutils_patchreporter(A= "loops") {
-    mistsutils_patchcommand(A= "i ++");
-    if (mistsutils_patchreporter(A= "i") < (data_lengthoflist(LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")) + 1)) {
-      mistsutils_patchcommand2(A= "let temp = ", B= (mistsutils_patchreporter(A= "i") * mistsutils_patchreporter(A= "line_height")));
-      @OSL_Parse_and_Run(Run= ("temp = " .. mistsutils_patchreporter(A= "temp")));
-      vars["temp"] = mistsutils_patchreporter(A= "appData.value[i-1]");
-      mistsutils_patchcommand(A= "let text_size = 10");
-      mistsutils_patchcommand(A= "let val = 0");
+  mistsutils_patchcommand2(A: "let start_count = ", B: (round((vars["Scroll// Y"] / mistsutils_patchreporter(A: "line_height"))) - 1));
+  mistsutils_patchcommand2(A: "let loops = ", B: (round((vars["Frame // Height"] / mistsutils_patchreporter(A: "line_height"))) + 2));
+  vars["Studio // Content Width"] = mistsutils_max(A: vars["Frame // Width"], B: vars["Studio // Content Width"]);
+  mistsutils_patchcommand(A: "let i = Math.max(0, start_count)");
+  mistsutils_patchcommand(A: "let selected_text = \"\";");
+  repeat mistsutils_patchreporter(A: "loops") {
+    mistsutils_patchcommand(A: "i ++");
+    if (mistsutils_patchreporter(A: "i") < (data_lengthoflist(field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")) + 1)) {
+      mistsutils_patchcommand2(A: "let temp = ", B: (mistsutils_patchreporter(A: "i") * mistsutils_patchreporter(A: "line_height")));
+      @OSL_Parse_and_Run(Run: ("temp = " .. mistsutils_patchreporter(A: "temp")));
+      vars["temp"] = mistsutils_patchreporter(A: "appData.value[i-1]");
+      mistsutils_patchcommand(A: "let text_size = 10");
+      mistsutils_patchcommand(A: "let val = 0");
       vars["Inputs // Output Data"] = temp;
-      if (((mistsutils_patchreporter(A= "i") < mistsutils_patchreporter(A= "upper")) && (mistsutils_patchreporter(A= "lower") < mistsutils_patchreporter(A= "i"))) && not(((vars["Inputs // Current Line"] == "0") || (vars["Inputs // Start Line"] == "0")))) {
-        mistsutils_patchcommand2(A= "let len = ", B= operator_length(STRING= temp));
-        mistsutils_patchcommand2(A= "let w = ", B= (mistsutils_patchreporter(A= "len") * mistsutils_patchreporter(A= "text_size")));
-        @Go_To_Location_Of_Window(X= "99999", Y= "2", X_2= (mistsutils_patchreporter(A= "x_temp + (text_size + 1.5) * 4.5") - vars["Scroll // X"]), Y_2= (mistsutils_patchreporter(A= "12 - temp") + vars["Scroll// Y"]));
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "sel_colour"));
-        mistsutils_patchcommand2(A= "let topHeavy = ", B= (vars["Inputs // Start Line"] < vars["Inputs // Current Line"]));
-        if (mistsutils_patchreporter(A= "lower + 1") == mistsutils_patchreporter(A= "i")) {
-          mistsutils_patchcommand2(A= "if (topHeavy) val = ", B= vars["Inputs // Start Letter Pos"]);
-          mistsutils_patchcommand2(A= "else val = ", B= vars["Inputs // Cursor Position"]);
-          mistsutils_patchcommand2(A= "let offset = ", B= (mistsutils_patchreporter(A= "val") * mistsutils_patchreporter(A= "text_size")));
-          mistsutils_patchcommand2(A= "let w2 = ", B= (mistsutils_patchreporter(A= "w") - mistsutils_patchreporter(A= "offset")));
-          motion_changexby(DX= mistsutils_patchreporter(A= "w2 / -2"));
-          @Draw_Square(X= (motion_xposition() + mistsutils_patchreporter(A= "w - 1")), Y= motion_yposition(), Width= mistsutils_patchreporter(A= "w2 + 2"), Height= mistsutils_patchreporter(A= "line_height"), Line_Width= "0", Invisible= "");
+      if (((mistsutils_patchreporter(A: "i") < mistsutils_patchreporter(A: "upper")) && (mistsutils_patchreporter(A: "lower") < mistsutils_patchreporter(A: "i"))) && not(((vars["Inputs // Current Line"] == "0") || (vars["Inputs // Start Line"] == "0")))) {
+        mistsutils_patchcommand2(A: "let len = ", B: operator_length(STRING: temp));
+        mistsutils_patchcommand2(A: "let w = ", B: (mistsutils_patchreporter(A: "len") * mistsutils_patchreporter(A: "text_size")));
+        @Go_To_Location_Of_Window(X: "99999", Y: "2", X_2: (mistsutils_patchreporter(A: "x_temp + (text_size + 1.5) * 4.5") - vars["Scroll // X"]), Y_2: (mistsutils_patchreporter(A: "12 - temp") + vars["Scroll// Y"]));
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "sel_colour"));
+        mistsutils_patchcommand2(A: "let topHeavy = ", B: (vars["Inputs // Start Line"] < vars["Inputs // Current Line"]));
+        if (mistsutils_patchreporter(A: "lower + 1") == mistsutils_patchreporter(A: "i")) {
+          mistsutils_patchcommand2(A: "if (topHeavy) val = ", B: vars["Inputs // Start Letter Pos"]);
+          mistsutils_patchcommand2(A: "else val = ", B: vars["Inputs // Cursor Position"]);
+          mistsutils_patchcommand2(A: "let offset = ", B: (mistsutils_patchreporter(A: "val") * mistsutils_patchreporter(A: "text_size")));
+          mistsutils_patchcommand2(A: "let w2 = ", B: (mistsutils_patchreporter(A: "w") - mistsutils_patchreporter(A: "offset")));
+          motion_changexby(DX: mistsutils_patchreporter(A: "w2 / -2"));
+          @Draw_Square(X: (motion_xposition() + mistsutils_patchreporter(A: "w - 1")), Y: motion_yposition(), Width: mistsutils_patchreporter(A: "w2 + 2"), Height: mistsutils_patchreporter(A: "line_height"), Line_Width: "0", Invisible: "");
         } else {
-          if (mistsutils_patchreporter(A= "upper - 1") == mistsutils_patchreporter(A= "i")) {
-            mistsutils_patchcommand2(A= "if (!topHeavy) val = ", B= vars["Inputs // Start Letter Pos"]);
-            mistsutils_patchcommand2(A= "else val = ", B= vars["Inputs // Cursor Position"]);
-            mistsutils_patchcommand2(A= "let offset = ", B= (mistsutils_patchreporter(A= "val + 1") * mistsutils_patchreporter(A= "text_size")));
-            @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= mistsutils_patchreporter(A= "(offset - text_size) * 2"), Height= mistsutils_patchreporter(A= "line_height"), Line_Width= "0", Invisible= "");
+          if (mistsutils_patchreporter(A: "upper - 1") == mistsutils_patchreporter(A: "i")) {
+            mistsutils_patchcommand2(A: "if (!topHeavy) val = ", B: vars["Inputs // Start Letter Pos"]);
+            mistsutils_patchcommand2(A: "else val = ", B: vars["Inputs // Cursor Position"]);
+            mistsutils_patchcommand2(A: "let offset = ", B: (mistsutils_patchreporter(A: "val + 1") * mistsutils_patchreporter(A: "text_size")));
+            @Draw_Square(X: motion_xposition(), Y: motion_yposition(), Width: mistsutils_patchreporter(A: "(offset - text_size) * 2"), Height: mistsutils_patchreporter(A: "line_height"), Line_Width: "0", Invisible: "");
           } else {
-            @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= mistsutils_patchreporter(A= "w * 2"), Height= mistsutils_patchreporter(A= "line_height"), Line_Width= "0", Invisible= "");
+            @Draw_Square(X: motion_xposition(), Y: motion_yposition(), Width: mistsutils_patchreporter(A: "w * 2"), Height: mistsutils_patchreporter(A: "line_height"), Line_Width: "0", Invisible: "");
           }
         }
-        mistsutils_patchcommand(A= "if (target.osl_vars.clicked !== true)");
-        @RightClick(Data_Rightclicked= mistsutils_patchreporter(A= "[\"Cut\",\"Copy\",\"Paste\"]"), X= sensing_mousex(), Y= sensing_mousey(), current_file= vars["Inputs // Selected String"]);
+        mistsutils_patchcommand(A: "if (target.osl_vars.clicked !== true)");
+        @RightClick(Data_Rightclicked: mistsutils_patchreporter(A: "[\"Cut\",\"Copy\",\"Paste\"]"), X: sensing_mousex(), Y: sensing_mousey(), current_file: vars["Inputs // Selected String"]);
       }
-      @Go_To_Location_Of_Window(X= "9999", Y= "2", X_2= (mistsutils_patchreporter(A= "x_temp") + ((60 - vars["Scroll // X"]) + (vars["Studio // Content Width"] / 2))), Y_2= (mistsutils_patchreporter(A= "12 - temp") + vars["Scroll// Y"]));
-      pen_setPenColorParamTo(COLOR_PARAM= pen_menu_colorParam(colorParam: ["transparency",null]), VALUE= 100);
-      @Inputs_draw_Rounding_ID_text_size(data_value= temp, width= (vars["Studio // Content Width"] + 20), height= mistsutils_patchreporter(A= "line_height * 2"), default_text= mistsutils_ifthen(A= (mistsutils_patchreporter(A= "i") == "1"), B= mistsutils_patchreporter(A= "p4.default_text"), C= ""), selected= ((vars["Inputs // Current Line"] == mistsutils_patchreporter(A= "i")) && focused), Text_colour= text_colour, Rounding= "0", type= "", ID= mistsutils_patchreporter(A= "i"), draw_text= not((vars["Studio // OHF"] == "")), txt_size= ((30 - mistsutils_patchreporter(A= "line_height * 2")) / mistsutils_patchreporter(A= "line_height * 2")), sel_colour= mistsutils_patchreporter(A= "sel_colour"));
+      @Go_To_Location_Of_Window(X: "9999", Y: "2", X_2: (mistsutils_patchreporter(A: "x_temp") + ((60 - vars["Scroll // X"]) + (vars["Studio // Content Width"] / 2))), Y_2: (mistsutils_patchreporter(A: "12 - temp") + vars["Scroll// Y"]));
+      pen_setPenColorParamTo(COLOR_PARAM: pen_menu_colorParam(field colorParam: ["transparency",null]), VALUE: 100);
+      @Inputs_draw_Rounding_ID_text_size(data_value: temp, width: (vars["Studio // Content Width"] + 20), height: mistsutils_patchreporter(A: "line_height * 2"), default_text: mistsutils_ifthen(A: (mistsutils_patchreporter(A: "i") == "1"), B: mistsutils_patchreporter(A: "p4.default_text"), C: ""), selected: ((vars["Inputs // Current Line"] == mistsutils_patchreporter(A: "i")) && focused), Text_colour: text_colour, Rounding: "0", type: "", ID: mistsutils_patchreporter(A: "i"), draw_text: not((vars["Studio // OHF"] == "")), txt_size: ((30 - mistsutils_patchreporter(A: "line_height * 2")) / mistsutils_patchreporter(A: "line_height * 2")), sel_colour: mistsutils_patchreporter(A: "sel_colour"));
       if focused {
-        @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= (vars["Studio // Content Width"] + 50), Height= mistsutils_patchreporter(A= "line_height"), Line_Width= "5", Invisible= "1");
-        if (vars["Inputs // Current Line"] == mistsutils_patchreporter(A= "i")) {
-          if operator_contains(STRING1= vars["Inputs // Output Data"], STRING2= newline) {
-            mistsutils_patchcommand3(A= "const insert = ", B= vars["Inputs // Output Data"], C= ".split(\"\\n\")");
-            mistsutils_patchcommand2(A= "const pos = -1 + ", B= vars["Inputs // Current Line"]);
-            mistsutils_patchcommand(A= "appData.value[pos] = insert.shift()");
-            data_changevariableby(VALUE= mistsutils_patchreporter(A= "insert.length"), VARIABLE: var("Inputs // Current Line", "{"));
-            mistsutils_patchcommand(A= "appData.value.splice(pos + 1, 0, ...insert)");
-            vars["Inputs // Output Data"] = data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-            vars["Inputs // Cursor Position"] = operator_length(STRING= vars["Inputs // Output Data"]);
+        @Draw_Square(X: motion_xposition(), Y: motion_yposition(), Width: (vars["Studio // Content Width"] + 50), Height: mistsutils_patchreporter(A: "line_height"), Line_Width: "5", Invisible: "1");
+        if (vars["Inputs // Current Line"] == mistsutils_patchreporter(A: "i")) {
+          if operator_contains(STRING1: vars["Inputs // Output Data"], STRING2: newline) {
+            mistsutils_patchcommand3(A: "const insert = ", B: vars["Inputs // Output Data"], C: ".split(\"\\n\")");
+            mistsutils_patchcommand2(A: "const pos = -1 + ", B: vars["Inputs // Current Line"]);
+            mistsutils_patchcommand(A: "appData.value[pos] = insert.shift()");
+            vars["Inputs // Current Line"] += mistsutils_patchreporter(A: "insert.length");
+            mistsutils_patchcommand(A: "appData.value.splice(pos + 1, 0, ...insert)");
+            vars["Inputs // Output Data"] = data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+            vars["Inputs // Cursor Position"] = operator_length(STRING: vars["Inputs // Output Data"]);
             vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
             vars["Inputs // Start Line"] = vars["Inputs // Current Line"];
-            mistsutils_patchcommand(A= "changed = true");
+            mistsutils_patchcommand(A: "changed = true");
           }
-          if mistsutils_notequals(A= data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), B= vars["Inputs // Output Data"]) {
-            data_replaceitemoflist(INDEX= vars["Inputs // Current Line"], ITEM= vars["Inputs // Output Data"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-            if (mistsutils_patchboolean(A= "osl.mouse_left") && ((vars["Inputs // Selecting"] == "false") && mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true"))) {
+          if mistsutils_notequals(A: data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), B: vars["Inputs // Output Data"]) {
+            data_replaceitemoflist(INDEX: vars["Inputs // Current Line"], ITEM: vars["Inputs // Output Data"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+            if (mistsutils_patchboolean(A: "osl.mouse_left") && ((vars["Inputs // Selecting"] == "false") && mistsutils_patchboolean(A: "target.osl_vars.mouse_touching === true"))) {
               vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
               vars["Inputs // Start Line"] = vars["Inputs // Current Line"];
             }
-            mistsutils_patchcommand(A= "changed = true");
+            mistsutils_patchcommand(A: "changed = true");
           }
         } else {
-          if mistsutils_patchboolean(A= "target.osl_vars.clicked === true") {
+          if mistsutils_patchboolean(A: "target.osl_vars.clicked === true") {
             MistKeyHistoryExtension_deleteAllKeys();
-            vars["Inputs // Current Line"] = mistsutils_patchreporter(A= "i");
+            vars["Inputs // Current Line"] = mistsutils_patchreporter(A: "i");
             vars["Inputs // Output Data"] = temp;
             if (vars["Inputs // Selecting"] == "false") {
               vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
               vars["Inputs // Selected String"] = "";
-              vars["Inputs // Start Line"] = mistsutils_patchreporter(A= "i");
+              vars["Inputs // Start Line"] = mistsutils_patchreporter(A: "i");
             }
           }
         }
       }
-      @OSL_Parse_and_Run(Run= ("goto x_temp + " .. ((50 - vars["Scroll // X"]) .. " y_position")));
+      @OSL_Parse_and_Run(Run: ("goto x_temp + " .. ((50 - vars["Scroll // X"]) .. " y_position")));
       if (vars["Studio // OHF"] == "") {
-        @Draw_Text(Text= data_itemoflist(INDEX= mistsutils_patchreporter(A= "i"), LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), X= motion_xposition(), Y= motion_yposition(), Size= "10", Markdown_Enabled= "");
+        @Draw_Text(Text: data_itemoflist(INDEX: mistsutils_patchreporter(A: "i"), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), X: motion_xposition(), Y: motion_yposition(), Size: "10", Markdown_Enabled: "");
       } else {
-        @Studio_Render_Highlighted_OSL(OSL= data_itemoflist(INDEX= mistsutils_patchreporter(A= "i"), LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), Parsed= "", text_colour= text_colour);
+        @Studio_Render_Highlighted_OSL(OSL: data_itemoflist(INDEX: mistsutils_patchreporter(A: "i"), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), Parsed: "", text_colour: text_colour);
       }
     }
   }
-  mistsutils_patchcommand(A= "if (line_numbers) {");
-  vars["Studio // Content Width"] = mistsutils_max(A= vars["Frame // Width"], B= vars["Studio // Content Width"]);
-  @OSL_Parse_and_Run(Run= "goto frame.left + 10 0");
-  @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "`c ${p4?.line_numbers?.bg_colour ?? \"#333\"}`"));
-  @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= mistsutils_patchreporter(A= "total_count * 16 + 10"), Height= mistsutils_squarebrackets(A= data_itemoflist(INDEX= 1, LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")), B= "height"), Line_Width= "0", Invisible= "");
-  vars["App // Count1"] = mistsutils_patchreporter(A= "start_count");
-  @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "`c ${p4?.line_numbers?.text_colour ?? \"#fff\"}`"));
-  repeat mistsutils_patchreporter(A= "loops") {
-    data_changevariableby(VALUE= 1, VARIABLE: var("App // Count1", "!q"));
-    if ((vars["App // Count1"] < (data_lengthoflist(LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")) + 1)) && ("0" < vars["App // Count1"])) {
-      @OSL_Parse_and_Run(Run= ("temp = " .. ((vars["App // Count1"] * mistsutils_patchreporter(A= "line_height")) + 0)));
-      @OSL_Parse_and_Run(Run= ("loc 2 2 10 12 - temp + " .. vars["Scroll// Y"]));
-      mistsutils_patchcommand3(A= "const count = `${", B= vars["App // Count1"], C= "}`.padStart(osl_current_this.total_count, \" \")");
-      @Draw_Text(Text= mistsutils_patchreporter(A= "count"), X= motion_xposition(), Y= motion_yposition(), Size= "8", Markdown_Enabled= "");
+  mistsutils_patchcommand(A: "if (line_numbers) {");
+  vars["Studio // Content Width"] = mistsutils_max(A: vars["Frame // Width"], B: vars["Studio // Content Width"]);
+  @OSL_Parse_and_Run(Run: "goto frame.left + 10 0");
+  @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "`c ${p4?.line_numbers?.bg_colour ?? \"#333\"}`"));
+  @Draw_Square(X: motion_xposition(), Y: motion_yposition(), Width: mistsutils_patchreporter(A: "total_count * 16 + 10"), Height: mistsutils_squarebrackets(A: data_itemoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")), B: "height"), Line_Width: "0", Invisible: "");
+  vars["App // Count1"] = mistsutils_patchreporter(A: "start_count");
+  @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "`c ${p4?.line_numbers?.text_colour ?? \"#fff\"}`"));
+  repeat mistsutils_patchreporter(A: "loops") {
+    vars["App // Count1"] += 1;
+    if ((vars["App // Count1"] < (data_lengthoflist(field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")) + 1)) && ("0" < vars["App // Count1"])) {
+      @OSL_Parse_and_Run(Run: ("temp = " .. ((vars["App // Count1"] * mistsutils_patchreporter(A: "line_height")) + 0)));
+      @OSL_Parse_and_Run(Run: ("loc 2 2 10 12 - temp + " .. vars["Scroll// Y"]));
+      mistsutils_patchcommand3(A: "const count = `${", B: vars["App // Count1"], C: "}`.padStart(osl_current_this.total_count, \" \")");
+      @Draw_Text(Text: mistsutils_patchreporter(A: "count"), X: motion_xposition(), Y: motion_yposition(), Size: "8", Markdown_Enabled: "");
     }
   }
-  mistsutils_patchcommand(A= "}");
+  mistsutils_patchcommand(A: "}");
   if focused {
-    mistsutils_patchcommand(A= "try {");
-    if (mistsutils_patchboolean(A= "select == true") && mistsutils_patchreporter(A= "upper > -1 && lower > -1")) {
-      mistsutils_patchcommand2(A= "const topHeavy = ", B= (vars["Inputs // Start Line"] < vars["Inputs // Current Line"]));
-      mistsutils_patchcommand2(A= "let arr = ", B= "appData");
-      mistsutils_patchcommand(A= "let selected_text = arr.value.slice(lower + 1, upper - 2)");
-      mistsutils_patchcommand(A= "let val;");
-      mistsutils_patchcommand(A= "if (arr?.value?.length === 1) { lower = 0; upper = 2}");
-      mistsutils_patchcommand(A= "len = arr.value?.[lower]?.length ?? 0");
-      mistsutils_patchcommand2(A= "let start = ", B= vars["Inputs // Start Letter Pos"]);
-      mistsutils_patchcommand2(A= "let current = ", B= vars["Inputs // Cursor Position"]);
-      mistsutils_patchcommand(A= "val = topHeavy ? start : current");
-      mistsutils_patchcommand3(A= "selected_text.unshift(", B= "arr.value[lower]", C= ".substr(-(len - val), len - val))");
-      mistsutils_patchcommand(A= "len = arr.value?.[upper-2]?.length ?? 0");
-      mistsutils_patchcommand(A= "val = !topHeavy ? start : current");
-      mistsutils_patchcommand3(A= "selected_text.push(", B= "arr.value[upper-2]", C= ".substr(0, val))");
-      vars["Inputs // Selected String"] = mistsutils_patchreporter(A= "selected_text.join(\"\\n\")");
-      mistsutils_patchcommand2(A= "const ctrlx = ", B= (@Is_pressed(key= "Control") && @Is_pressed(key= "X")));
-      mistsutils_patchcommand2(A= "const ctrlv = ", B= (@Is_pressed(key= "Control") && @Is_pressed(key= "X")));
-      if (mistsutils_patchboolean(A= "ctrlx || ctrlv") || (((operator_length(STRING= vars["Key// Current Pressed"]) == "1") && not((@Is_pressed(key= "control") || @Is_pressed(key= "meta")))) || ((vars["Key// Current Pressed"] == "Enter") || (vars["Key// Current Pressed"] == "Backspace")))) {
-        if mistsutils_patchboolean(A= "ctrlx") {
-          @Kernel_Copy(value= vars["Inputs // Selected String"]);
+    mistsutils_patchcommand(A: "try {");
+    if (mistsutils_patchboolean(A: "select == true") && mistsutils_patchreporter(A: "upper > -1 && lower > -1")) {
+      mistsutils_patchcommand2(A: "const topHeavy = ", B: (vars["Inputs // Start Line"] < vars["Inputs // Current Line"]));
+      mistsutils_patchcommand2(A: "let arr = ", B: "appData");
+      mistsutils_patchcommand(A: "let selected_text = arr.value.slice(lower + 1, upper - 2)");
+      mistsutils_patchcommand(A: "let val;");
+      mistsutils_patchcommand(A: "if (arr?.value?.length === 1) { lower = 0; upper = 2}");
+      mistsutils_patchcommand(A: "len = arr.value?.[lower]?.length ?? 0");
+      mistsutils_patchcommand2(A: "let start = ", B: vars["Inputs // Start Letter Pos"]);
+      mistsutils_patchcommand2(A: "let current = ", B: vars["Inputs // Cursor Position"]);
+      mistsutils_patchcommand(A: "val = topHeavy ? start : current");
+      mistsutils_patchcommand3(A: "selected_text.unshift(", B: "arr.value[lower]", C: ".substr(-(len - val), len - val))");
+      mistsutils_patchcommand(A: "len = arr.value?.[upper-2]?.length ?? 0");
+      mistsutils_patchcommand(A: "val = !topHeavy ? start : current");
+      mistsutils_patchcommand3(A: "selected_text.push(", B: "arr.value[upper-2]", C: ".substr(0, val))");
+      vars["Inputs // Selected String"] = mistsutils_patchreporter(A: "selected_text.join(\"\\n\")");
+      mistsutils_patchcommand2(A: "const ctrlx = ", B: (@Is_pressed(key: "Control") && @Is_pressed(key: "X")));
+      mistsutils_patchcommand2(A: "const ctrlv = ", B: (@Is_pressed(key: "Control") && @Is_pressed(key: "X")));
+      if (mistsutils_patchboolean(A: "ctrlx || ctrlv") || (((operator_length(STRING: vars["Key// Current Pressed"]) == "1") && not((@Is_pressed(key: "control") || @Is_pressed(key: "meta")))) || ((vars["Key// Current Pressed"] == "Enter") || (vars["Key// Current Pressed"] == "Backspace")))) {
+        if mistsutils_patchboolean(A: "ctrlx") {
+          @Kernel_Copy(value: vars["Inputs // Selected String"]);
         }
-        @Inputs_Delete_text_from_to_and_replace_it_with(line= vars["Inputs // Start Line"], char= vars["Inputs // Start Letter Pos"], line2= vars["Inputs // Current Line"], char2= vars["Inputs // Cursor Position"], replace= mistsutils_ifthen(A= (operator_length(STRING= vars["Key// Current Pressed"]) == "1"), B= vars["Key// Current Pressed"], C= ""));
-        mistsutils_patchcommand(A= "changed = true");
-        if mistsutils_patchreporter(A= "topHeavy") {
+        @Inputs_Delete_text_from_to_and_replace_it_with(line: vars["Inputs // Start Line"], char: vars["Inputs // Start Letter Pos"], line2: vars["Inputs // Current Line"], char2: vars["Inputs // Cursor Position"], replace: mistsutils_ifthen(A: (operator_length(STRING: vars["Key// Current Pressed"]) == "1"), B: vars["Key// Current Pressed"], C: ""));
+        mistsutils_patchcommand(A: "changed = true");
+        if mistsutils_patchreporter(A: "topHeavy") {
           vars["Inputs // Current Line"] = vars["Inputs // Start Line"];
           vars["Inputs // Cursor Position"] = vars["Inputs // Start Letter Pos"];
         } else {
@@ -259,8 +259,8 @@ def @Text_Box(id, content, text_colour("text colour"), focused, parameters) "Tex
       }
       stop "this script";
     } else {
-      if HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) {
-        if not(@Check_Collision_in_square_at_of_dimensions(x= sensing_mousex(), y= sensing_mousey(), x2= vars["Frame // X"], y2= vars["Frame // Y"], w= vars["Frame // Width"], h= vars["Frame // Height"])) {
+      if HyperSenseSP_mouseClick(BUTTON: HyperSenseSP_menu_mouseButtons(field mouseButtons: ["0",null])) {
+        if not(@Check_Collision_in_square_at_of_dimensions(x: sensing_mousex(), y: sensing_mousey(), x2: vars["Frame // X"], y2: vars["Frame // Y"], w: vars["Frame // Width"], h: vars["Frame // Height"])) {
           vars["Inputs // Current Selected"] = "0";
           vars["Inputs // Start Line"] = "0";
           vars["Inputs // Current Line"] = "0";
@@ -269,85 +269,85 @@ def @Text_Box(id, content, text_colour("text colour"), focused, parameters) "Tex
         }
       }
     }
-    mistsutils_patchcommand(A= "} catch {}");
-    mistsutils_patchcommand2(A= "const line = ", B= data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")));
-    mistsutils_patchcommand(A= "let line_arr;");
-    mistsutils_patchcommand(A= "let special = true");
+    mistsutils_patchcommand(A: "} catch {}");
+    mistsutils_patchcommand2(A: "const line = ", B: data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")));
+    mistsutils_patchcommand(A: "let line_arr;");
+    mistsutils_patchcommand(A: "let special = true");
     if not((vars["Key// Current Pressed"] == "")) {
       switch vars["Key// Current Pressed"] {
         case "Enter" {
-          mistsutils_patchcommand(A= "line_arr = [...line]");
+          mistsutils_patchcommand(A: "line_arr = [...line]");
           vars["Inputs // Output Data"] = "";
-          data_changevariableby(VALUE= 1, VARIABLE: var("Inputs // Current Line", "{"));
-          mistsutils_patchcommand3(A= "let temp = ", B= @items_to_of(start= "1", end= vars["Inputs // Cursor Position"], array= mistsutils_patchreporter(A= "line_arr")), C= ".join(\"\")");
-          vars["temp2"] = mistsutils_patchreporter(A= "`${line ?? \"\"}`.match(/^ +/i)?.[0] ?? \"\"");
-          data_insertatlist(ITEM= (temp2 .. mistsutils_patchreporter2(A= @items_to_of(start= (vars["Inputs // Cursor Position"] + 1), end= "-1", array= mistsutils_patchreporter(A= "line_arr")), B= ".join(\"\")")), INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-          data_replaceitemoflist(INDEX= (vars["Inputs // Current Line"] - 1), ITEM= mistsutils_patchreporter(A= "temp"), LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-          vars["Inputs // Cursor Position"] = operator_length(STRING= temp2);
-          if (vars["Inputs // Current Line"] > mistsutils_patchreporter(A= "start_count + loops")) {
-            data_changevariableby(VALUE= -100, VARIABLE: var("Scroll// Y", "?q"));
+          vars["Inputs // Current Line"] += 1;
+          mistsutils_patchcommand3(A: "let temp = ", B: @items_to_of(start: "1", end: vars["Inputs // Cursor Position"], array: mistsutils_patchreporter(A: "line_arr")), C: ".join(\"\")");
+          vars["temp2"] = mistsutils_patchreporter(A: "`${line ?? \"\"}`.match(/^ +/i)?.[0] ?? \"\"");
+          data_insertatlist(ITEM: (temp2 .. mistsutils_patchreporter2(A: @items_to_of(start: (vars["Inputs // Cursor Position"] + 1), end: "-1", array: mistsutils_patchreporter(A: "line_arr")), B: ".join(\"\")")), INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+          data_replaceitemoflist(INDEX: (vars["Inputs // Current Line"] - 1), ITEM: mistsutils_patchreporter(A: "temp"), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+          vars["Inputs // Cursor Position"] = operator_length(STRING: temp2);
+          if (vars["Inputs // Current Line"] > mistsutils_patchreporter(A: "start_count + loops")) {
+            vars["Scroll// Y"] += -100;
           }
-          mistsutils_patchcommand(A= "special = false");
-          mistsutils_patchcommand(A= "changed = true");
-          @Inputs_Move_Cursor_To(line= vars["Inputs // Current Line"], char= vars["Inputs // Cursor Position"]);
+          mistsutils_patchcommand(A: "special = false");
+          mistsutils_patchcommand(A: "changed = true");
+          @Inputs_Move_Cursor_To(line: vars["Inputs // Current Line"], char: vars["Inputs // Cursor Position"]);
         }
         case "Backspace" {
-          if (mistsutils_patchreporter(A= "start_cursor") == "0") {
+          if (mistsutils_patchreporter(A: "start_cursor") == "0") {
             if not((vars["Inputs // Current Line"] == "1")) {
-              vars["Inputs // Cursor Position"] = operator_length(STRING= data_itemoflist(INDEX= (vars["Inputs // Current Line"] - 1), LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")));
+              vars["Inputs // Cursor Position"] = operator_length(STRING: data_itemoflist(INDEX: (vars["Inputs // Current Line"] - 1), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")));
               vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
-              data_replaceitemoflist(INDEX= (vars["Inputs // Current Line"] - 1), ITEM= (data_itemoflist(INDEX= (vars["Inputs // Current Line"] - 1), LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")) .. data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))), LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-              data_deleteoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-              data_changevariableby(VALUE= -1, VARIABLE: var("Inputs // Current Line", "{"));
+              data_replaceitemoflist(INDEX: (vars["Inputs // Current Line"] - 1), ITEM: (data_itemoflist(INDEX: (vars["Inputs // Current Line"] - 1), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")) .. data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+              data_deleteoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+              vars["Inputs // Current Line"] += -1;
             }
           }
-          mistsutils_patchcommand(A= "special = false");
-          mistsutils_patchcommand(A= "changed = true");
-          @Inputs_Move_Cursor_To(line= vars["Inputs // Current Line"], char= vars["Inputs // Cursor Position"]);
+          mistsutils_patchcommand(A: "special = false");
+          mistsutils_patchcommand(A: "changed = true");
+          @Inputs_Move_Cursor_To(line: vars["Inputs // Current Line"], char: vars["Inputs // Cursor Position"]);
         }
         case "ArrowLeft" {
-          if ((mistsutils_patchreporter(A= "start_cursor") == "0") && (vars["Inputs // Current Line"] > "1")) {
-            vars["Inputs // Output Data"] = data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-            data_changevariableby(VALUE= -1, VARIABLE: var("Inputs // Current Line", "{"));
-            vars["Inputs // Cursor Position"] = mistsutils_patchreporter3(A= "[...", B= data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), C= "].length");
+          if ((mistsutils_patchreporter(A: "start_cursor") == "0") && (vars["Inputs // Current Line"] > "1")) {
+            vars["Inputs // Output Data"] = data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+            vars["Inputs // Current Line"] += -1;
+            vars["Inputs // Cursor Position"] = mistsutils_patchreporter3(A: "[...", B: data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), C: "].length");
           }
         }
         case "ArrowRight" {
-          if (mistsutils_patchreporter(A= "start_cursor") == mistsutils_patchreporter(A= "[...line].length")) {
-            vars["Inputs // Output Data"] = data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-            data_changevariableby(VALUE= 1, VARIABLE: var("Inputs // Current Line", "{"));
+          if (mistsutils_patchreporter(A: "start_cursor") == mistsutils_patchreporter(A: "[...line].length")) {
+            vars["Inputs // Output Data"] = data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+            vars["Inputs // Current Line"] += 1;
             vars["Inputs // Cursor Position"] = "0";
           }
         }
         case "ArrowUp" {
           if (vars["Inputs // Current Line"] > "1") {
-            vars["Inputs // Output Data"] = data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-            data_changevariableby(VALUE= -1, VARIABLE: var("Inputs // Current Line", "{"));
-            @Inputs_Move_Cursor_To(line= vars["Inputs // Current Line"], char= vars["Inputs // Cursor Position"]);
+            vars["Inputs // Output Data"] = data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+            vars["Inputs // Current Line"] += -1;
+            @Inputs_Move_Cursor_To(line: vars["Inputs // Current Line"], char: vars["Inputs // Cursor Position"]);
           }
         }
         case "ArrowDown" {
-          if (vars["Inputs // Current Line"] < data_lengthoflist(LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))) {
-            vars["Inputs // Output Data"] = data_itemoflist(INDEX= vars["Inputs // Current Line"], LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-            data_changevariableby(VALUE= 1, VARIABLE: var("Inputs // Current Line", "{"));
-            @Inputs_Move_Cursor_To(line= vars["Inputs // Current Line"], char= vars["Inputs // Cursor Position"]);
+          if (vars["Inputs // Current Line"] < data_lengthoflist(field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))) {
+            vars["Inputs // Output Data"] = data_itemoflist(INDEX: vars["Inputs // Current Line"], field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+            vars["Inputs // Current Line"] += 1;
+            @Inputs_Move_Cursor_To(line: vars["Inputs // Current Line"], char: vars["Inputs // Cursor Position"]);
           }
         }
         default {
-          mistsutils_patchcommand(A= "special = false");
+          mistsutils_patchcommand(A: "special = false");
         }
       }
-      if ((not(@Is_pressed(key= "shift")) && mistsutils_patchboolean(A= "special === true")) && not((@Is_pressed(key= "meta") || @Is_pressed(key= "control")))) {
-        @Inputs_Move_Cursor_To(line= vars["Inputs // Current Line"], char= vars["Inputs // Cursor Position"]);
+      if ((not(@Is_pressed(key: "shift")) && mistsutils_patchboolean(A: "special === true")) && not((@Is_pressed(key: "meta") || @Is_pressed(key: "control")))) {
+        @Inputs_Move_Cursor_To(line: vars["Inputs // Current Line"], char: vars["Inputs // Cursor Position"]);
       }
     }
   }
-  @Draw_Square(X= vars["Frame // X"], Y= vars["Frame // Y"], Width= vars["Frame // Width"], Height= vars["Frame // Height"], Line_Width= "0", Invisible= "1");
+  @Draw_Square(X: vars["Frame // X"], Y: vars["Frame // Y"], Width: vars["Frame // Width"], Height: vars["Frame // Height"], Line_Width: "0", Invisible: "1");
   if (vars["Right Clicked?"] == "true") {
-    vars["Inputs // Current Selected"] = (mistsutils_patchreporter(A= "p0 + \",\"") .. vars["WIndow // ID"]);
-    mistsutils_patchcommand(A= "if (target.osl_vars.clicked !== true)");
-    @RightClick(Data_Rightclicked= mistsutils_patchreporter(A= "[\"Cut\",\"Copy\",\"Paste\"]"), X= sensing_mousex(), Y= sensing_mousey(), current_file= vars["Inputs // Selected String"]);
+    vars["Inputs // Current Selected"] = (mistsutils_patchreporter(A: "p0 + \",\"") .. vars["WIndow // ID"]);
+    mistsutils_patchcommand(A: "if (target.osl_vars.clicked !== true)");
+    @RightClick(Data_Rightclicked: mistsutils_patchreporter(A: "[\"Cut\",\"Copy\",\"Paste\"]"), X: sensing_mousex(), Y: sensing_mousey(), current_file: vars["Inputs // Selected String"]);
   }
-  mistsutils_patchcommand2(A= vars["SYSTEM // Squares Clickable"], B= " = sqr_clickable_temp");
-  mistsutils_patchcommand(A= "return changed");
+  mistsutils_patchcommand2(A: vars["SYSTEM // Squares Clickable"], B: " = sqr_clickable_temp");
+  mistsutils_patchcommand(A: "return changed");
 }

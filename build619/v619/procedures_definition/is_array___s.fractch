@@ -7,5 +7,5 @@
  */
 
 def @is_array(input) "is array? %s" warp=false {
-  return mistsutils_patchboolean(A= "Array.isArray(p0)");
+  return mistsutils_patchboolean(A: "Array.isArray(p0)");
 }

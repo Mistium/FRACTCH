@@ -10,18 +10,18 @@ event_whenflagclicked();
 until not((vars["Account// Current"] == "")) {
   wait "0";
 }
-mistsutils_patchcommand(A= "origin.network ??= {}");
-mistsutils_patchcommand(A= "origin.network.updates ??= []");
-mistsutils_patchcommand(A= "origin.warnTabClose = false");
+mistsutils_patchcommand(A: "origin.network ??= {}");
+mistsutils_patchcommand(A: "origin.network.updates ??= []");
+mistsutils_patchcommand(A: "origin.warnTabClose = false");
 forever {
-  if mistsutils_patchboolean(A= "origin.network.updates.length > 0") {
-    mistsutils_patchcommand(A= "origin.warnTabClose = true");
-    if (cloudlink_checkForID(ID= vars["Server // Name"]) && mistsutils_patchboolean(A= "navigator.onLine")) {
+  if mistsutils_patchboolean(A: "origin.network.updates.length > 0") {
+    mistsutils_patchcommand(A: "origin.warnTabClose = true");
+    if (cloudlink_checkForID(ID: vars["Server // Name"]) && mistsutils_patchboolean(A: "navigator.onLine")) {
       @originFS_Handle_network_updates();
     }
     wait "2";
   } else {
-    mistsutils_patchcommand(A= "origin.warnTabClose = false");
+    mistsutils_patchcommand(A: "origin.warnTabClose = false");
   }
   wait "0";
 }

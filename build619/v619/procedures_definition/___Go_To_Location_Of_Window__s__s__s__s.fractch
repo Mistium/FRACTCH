@@ -7,5 +7,5 @@
  */
 
 def @Go_To_Location_Of_Window(X, Y, X_2("+X"), Y_2("+Y")) "// Go To Location Of Window %s %s %s %s" warp=false {
-  motion_gotoxy(X= (vars["Frame // X"] - (vars["Renderer // Scale"] * ((vars["Frame // Width"] / X) - X_2))), Y= (vars["Frame // Y"] + (vars["Renderer // Scale"] * ((vars["Frame // Height"] / Y) + Y_2))));
+  motion_gotoxy(X: (vars["Frame // X"] - (vars["Renderer // Scale"] * ((vars["Frame // Width"] / X) - X_2))), Y: (vars["Frame // Y"] + (vars["Renderer // Scale"] * ((vars["Frame // Height"] / Y) + Y_2))));
 }

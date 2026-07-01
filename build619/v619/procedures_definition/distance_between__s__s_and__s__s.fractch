@@ -7,6 +7,6 @@
  */
 
 def @distance_between_and(x, y, x2, y2) "distance between %s %s and %s %s" warp=false {
-  mistsutils_patchcommand(A= "const a = p0 - p2, b = p1 - p3; return Math.hypot( a, b )");
+  mistsutils_patchcommand(A: "const a = p0 - p2, b = p1 - p3; return Math.hypot( a, b )");
   return "";
 }

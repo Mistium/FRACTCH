@@ -7,66 +7,66 @@
  */
 
 def @originFS_Exec_at_with_data_File_UUID(Command, Index, Data, Uuid) "originFS // __Exec__ %s at %s with data %s File UUID: %s" warp=true {
-  mistsutils_patchcommand(A= "let cloud_path = \"origin/(c) users\"");
-  mistsutils_patchcommand(A= "const updates = origin.network.updates");
-  mistsutils_patchcommand(A= "const update_ids = origin.network.update_ids");
+  mistsutils_patchcommand(A: "let cloud_path = \"origin/(c) users\"");
+  mistsutils_patchcommand(A: "const updates = origin.network.updates");
+  mistsutils_patchcommand(A: "const update_ids = origin.network.update_ids");
   if (Uuid == "") {
     if (Command == "append") {
-      @Kernel_Log(Thing= "originFS", Value= mistsutils_patchreporter3(A= "`add ${formatFileSize(", B= operator_length(STRING= Data), C= ")}`"));
-      mistsutils_patchcommand(A= "if (`${p3}`[0] === \"~\") return");
-      mistsutils_patchcommand2(A= "const loc = ", B= skyhigh173JSON_json_array_get(item= 3, json= Data));
+      @Kernel_Log(Thing: "originFS", Value: mistsutils_patchreporter3(A: "`add ${formatFileSize(", B: operator_length(STRING: Data), C: ")}`"));
+      mistsutils_patchcommand(A: "if (`${p3}`[0] === \"~\") return");
+      mistsutils_patchcommand2(A: "const loc = ", B: skyhigh173JSON_json_array_get(item: 3, json: Data));
       if not((vars["Account// Current"] == "")) {
-        if mistsutils_patchboolean(A= "String(loc).toLowerCase().startsWith(cloud_path)") {
-          mistsutils_patchcommand3(A= "updates.push(", B= skyhigh173JSON_json_set(item= "dta", json= skyhigh173JSON_json_set(item= "uuid", json= "{\"command\":\"UUIDa\"}", value= skyhigh173JSON_json_array_get(item= 14, json= Data)), value= Data), C= ")");
-          mistsutils_patchcommand(A= "update_ids.push(\"\")");
+        if mistsutils_patchboolean(A: "String(loc).toLowerCase().startsWith(cloud_path)") {
+          mistsutils_patchcommand3(A: "updates.push(", B: skyhigh173JSON_json_set(item: "dta", json: skyhigh173JSON_json_set(item: "uuid", json: "{\"command\":\"UUIDa\"}", value: skyhigh173JSON_json_array_get(item: 14, json: Data)), value: Data), C: ")");
+          mistsutils_patchcommand(A: "update_ids.push(\"\")");
           vars["Network // Files Update Timeout"] = sensing_timer();
         }
       }
     }
     stop "this script";
   } else {
-    mistsutils_patchcommand2(A= "let index = ", B= @originFS_UUID_ID(UUID= Uuid));
+    mistsutils_patchcommand2(A: "let index = ", B: @originFS_UUID_ID(UUID: Uuid));
     if (Command == "delete") {
-      @Kernel_Log(Thing= "originFS", Value= ("del " .. Uuid));
-      mistsutils_patchcommand(A= "if (`${p3}`[0] === \"~\") return");
-      mistsutils_patchcommand2(A= "const loc = ", B= data_itemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= "3"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
-      if mistsutils_patchboolean(A= "String(loc).toLowerCase().startsWith(cloud_path)") {
-        mistsutils_patchcommand3(A= "updates.push(", B= skyhigh173JSON_json_set(item= "uuid", json= "{\"command\":\"UUIDd\"}", value= Uuid), C= ")");
-        mistsutils_patchcommand(A= "update_ids.push(\"\")");
-        if (data_itemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= "1"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")) == ".folder") {
-          mistsutils_patchcommand(A= "try {");
-          mistsutils_patchcommand2(A= "let arr = ", B= @Files_List_all_uuids_recursively_in(path= data_itemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= "14"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"))));
-          mistsutils_patchcommand(A= "arr.shift()");
-          mistsutils_patchcommand(A= "const queue = arr.slice()");
-          mistsutils_patchcommand(A= "const obj = {files: queue, header: \"Deleting Files\", total: queue.length, message: `Deleting ${queue.length} files`}");
-          mistsutils_patchcommand2(A= "obj.target = ", B= @originFS_ID_Path(id= mistsutils_patchreporter(A= "index")));
-          @Kernel_Log(Thing= "originFS", Value= mistsutils_patchreporter(A= "`del_queued (total: ${obj.total}) ${obj.target}`"));
-          mistsutils_patchcommand(A= "origin.files.processes.push(obj)");
-          mistsutils_patchcommand(A= "} catch(e) { console.error(e) }");
+      @Kernel_Log(Thing: "originFS", Value: ("del " .. Uuid));
+      mistsutils_patchcommand(A: "if (`${p3}`[0] === \"~\") return");
+      mistsutils_patchcommand2(A: "const loc = ", B: data_itemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: "3"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+      if mistsutils_patchboolean(A: "String(loc).toLowerCase().startsWith(cloud_path)") {
+        mistsutils_patchcommand3(A: "updates.push(", B: skyhigh173JSON_json_set(item: "uuid", json: "{\"command\":\"UUIDd\"}", value: Uuid), C: ")");
+        mistsutils_patchcommand(A: "update_ids.push(\"\")");
+        if (data_itemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: "1"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")) == ".folder") {
+          mistsutils_patchcommand(A: "try {");
+          mistsutils_patchcommand2(A: "let arr = ", B: @Files_List_all_uuids_recursively_in(path: data_itemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: "14"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"))));
+          mistsutils_patchcommand(A: "arr.shift()");
+          mistsutils_patchcommand(A: "const queue = arr.slice()");
+          mistsutils_patchcommand(A: "const obj = {files: queue, header: \"Deleting Files\", total: queue.length, message: `Deleting ${queue.length} files`}");
+          mistsutils_patchcommand2(A: "obj.target = ", B: @originFS_ID_Path(id: mistsutils_patchreporter(A: "index")));
+          @Kernel_Log(Thing: "originFS", Value: mistsutils_patchreporter(A: "`del_queued (total: ${obj.total}) ${obj.target}`"));
+          mistsutils_patchcommand(A: "origin.files.processes.push(obj)");
+          mistsutils_patchcommand(A: "} catch(e) { console.error(e) }");
         }
       }
       repeat 14 {
-        data_deleteoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= "1"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+        data_deleteoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: "1"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
       }
-      data_deleteoflist(INDEX= mistsutils_patchreporter(A= "index"), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-      data_deleteoflist(INDEX= mistsutils_patchreporter(A= "index"), LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+      data_deleteoflist(INDEX: mistsutils_patchreporter(A: "index"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+      data_deleteoflist(INDEX: mistsutils_patchreporter(A: "index"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
       @originFS_Generate_window_origin_index();
     } else {
-      if mistsutils_notequals(A= data_itemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= Index), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), B= Data) {
+      if mistsutils_notequals(A: data_itemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: Index), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), B: Data) {
         if (Command == "replace") {
-          mistsutils_patchcommand3(A= "const name = `${", B= data_itemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= "2"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C= mistsutils_patchreporter3(A= "}${", B= data_itemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= "1"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C= "}`"));
-          @Kernel_Log(Thing= "originFS", Value= mistsutils_patchreporter3(A= "`set ${name} item ${p1}: ${formatFileSize(", B= operator_length(STRING= Data), C= ")}`"));
-          mistsutils_patchcommand(A= "if (`${p3}`[0] === \"~\") return");
-          data_replaceitemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= Index), ITEM= Data, LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
-          mistsutils_patchcommand2(A= "const loc = ", B= data_itemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "index"), num= "3"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
-          if (not((vars["Account// Current"] == "")) && mistsutils_patchboolean(A= "String(loc).toLowerCase().startsWith(cloud_path)")) {
-            mistsutils_patchcommand2(A= "let id = ", B= (Uuid .. ("-" .. Index)));
-            mistsutils_patchcommand2(A= "let obj = ", B= skyhigh173JSON_json_set(item= "dta", json= skyhigh173JSON_json_set(item= "uuid", json= skyhigh173JSON_json_set(item= "idx", json= "{\"command\":\"UUIDr\"}", value= Index), value= Uuid), value= Data));
-            if mistsutils_patchboolean(A= "update_ids.includes(id)") {
-              mistsutils_patchcommand(A= "updates[update_ids.indexOf(id)] = obj");
+          mistsutils_patchcommand3(A: "const name = `${", B: data_itemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: "2"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: mistsutils_patchreporter3(A: "}${", B: data_itemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: "1"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: "}`"));
+          @Kernel_Log(Thing: "originFS", Value: mistsutils_patchreporter3(A: "`set ${name} item ${p1}: ${formatFileSize(", B: operator_length(STRING: Data), C: ")}`"));
+          mistsutils_patchcommand(A: "if (`${p3}`[0] === \"~\") return");
+          data_replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: Index), ITEM: Data, field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+          mistsutils_patchcommand2(A: "const loc = ", B: data_itemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "index"), num: "3"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+          if (not((vars["Account// Current"] == "")) && mistsutils_patchboolean(A: "String(loc).toLowerCase().startsWith(cloud_path)")) {
+            mistsutils_patchcommand2(A: "let id = ", B: (Uuid .. ("-" .. Index)));
+            mistsutils_patchcommand2(A: "let obj = ", B: skyhigh173JSON_json_set(item: "dta", json: skyhigh173JSON_json_set(item: "uuid", json: skyhigh173JSON_json_set(item: "idx", json: "{\"command\":\"UUIDr\"}", value: Index), value: Uuid), value: Data));
+            if mistsutils_patchboolean(A: "update_ids.includes(id)") {
+              mistsutils_patchcommand(A: "updates[update_ids.indexOf(id)] = obj");
             } else {
-              mistsutils_patchcommand(A= "updates.push(obj)");
-              mistsutils_patchcommand(A= "update_ids.push(id)");
+              mistsutils_patchcommand(A: "updates.push(obj)");
+              mistsutils_patchcommand(A: "update_ids.push(id)");
             }
           }
         }

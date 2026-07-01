@@ -8,10 +8,10 @@
 
 event_whenflagclicked();
 forever {
-  mistsutils_patchcommand(A= "const tra = window?.origin?.sudoTransmit");
-  mistsutils_patchcommand(A= "if (!tra?.length) { yield; continue }");
-  mistsutils_patchcommand(A= "for (let i = 0; i < tra.length; i ++) {");
-  vars["SYSTEM // Global Message"] = mistsutils_patchreporter(A= "tra.shift().data");
+  mistsutils_patchcommand(A: "const tra = window?.origin?.sudoTransmit");
+  mistsutils_patchcommand(A: "if (!tra?.length) { yield; continue }");
+  mistsutils_patchcommand(A: "for (let i = 0; i < tra.length; i ++) {");
+  vars["SYSTEM // Global Message"] = mistsutils_patchreporter(A: "tra.shift().data");
   broadcast_wait "Send Global Message";
-  mistsutils_patchcommand(A= "}");
+  mistsutils_patchcommand(A: "}");
 }

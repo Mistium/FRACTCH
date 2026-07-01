@@ -7,13 +7,13 @@
  */
 
 def @Find_Unique_Name_For(path, name, type) "Find Unique Name For %s / %s . %s" warp=true {
-  mistsutils_patchcommand(A= "const index = origin.files.index.value");
-  if mistsutils_patchreporter(A= "index.indexOf(`${p0}/${p1}.${p2}`.toLowerCase()) !== -1") {
-    mistsutils_patchcommand(A= "let i = 1");
-    until mistsutils_patchreporter(A= "index.indexOf(`${p0}/${p1} (${i}).${p2}`.toLowerCase()) === -1") {
-      mistsutils_patchcommand(A= "i ++");
+  mistsutils_patchcommand(A: "const index = origin.files.index.value");
+  if mistsutils_patchreporter(A: "index.indexOf(`${p0}/${p1}.${p2}`.toLowerCase()) !== -1") {
+    mistsutils_patchcommand(A: "let i = 1");
+    until mistsutils_patchreporter(A: "index.indexOf(`${p0}/${p1} (${i}).${p2}`.toLowerCase()) === -1") {
+      mistsutils_patchcommand(A: "i ++");
     }
-    return mistsutils_patchreporter(A= "`${p1} (${i}).${p2}`");
+    return mistsutils_patchreporter(A: "`${p1} (${i}).${p2}`");
   } else {
     return (name .. ("." .. type));
   }

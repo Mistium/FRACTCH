@@ -9,17 +9,17 @@
 import "../procedures_definition/destring__s__s.fractch";
 import "../procedures_definition/Draw_Icon__s__s__s__s__s__s_boldness__s.fractch";
 def @OSL_Draw_Icon_size(data, size) "OSL // Draw Icon %s size: %s" warp=false {
-  mistsutils_patchcommand2(A= "let size = +", B= size);
+  mistsutils_patchcommand2(A: "let size = +", B: size);
   if (vars["Window // Interactable?"] == "true") {
-    @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= (size * 30), Height= (size * 30), Line_Width= "10", Invisible= "1");
-    if (mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true") && not((vars["OSL // Hover_Size"] == ""))) {
-      mistsutils_patchcommand2(A= "size = ", B= (size * vars["OSL // Hover_Size"]));
+    @Draw_Square(X: motion_xposition(), Y: motion_yposition(), Width: (size * 30), Height: (size * 30), Line_Width: "10", Invisible: "1");
+    if (mistsutils_patchboolean(A: "target.osl_vars.mouse_touching === true") && not((vars["OSL // Hover_Size"] == ""))) {
+      mistsutils_patchcommand2(A: "size = ", B: (size * vars["OSL // Hover_Size"]));
     }
   }
-  @destring(Text= data, remove= "\"");
-  if not((operator_contains(STRING1= vars["DeString // out"], STRING2= " ") || mistsutils_patchboolean(A= "p0[0] === \"[\""))) {
-    mistsutils_patchcommand3(A= "const name = ", B= mistsutils_tostring(A= vars["DeString // out"]), C= ".toLowerCase() + \".icn\"");
-    vars["DeString // out"] = mistsutils_patchreporter2(A= vars["Icons // All System"], B= "[name] ?? \"\"");
+  @destring(Text: data, remove: "\"");
+  if not((operator_contains(STRING1: vars["DeString // out"], STRING2: " ") || mistsutils_patchboolean(A: "p0[0] === \"[\""))) {
+    mistsutils_patchcommand3(A: "const name = ", B: mistsutils_tostring(A: vars["DeString // out"]), C: ".toLowerCase() + \".icn\"");
+    vars["DeString // out"] = mistsutils_patchreporter2(A: vars["Icons // All System"], B: "[name] ?? \"\"");
   }
-  @Draw_Icon_boldness(Code= vars["DeString // out"], Size= mistsutils_patchreporter(A= "size"), setsize= "", x= "", y= "", direction= motion_direction(), boldness= "");
+  @Draw_Icon_boldness(Code: vars["DeString // out"], Size: mistsutils_patchreporter(A: "size"), setsize: "", x: "", y: "", direction: motion_direction(), boldness: "");
 }

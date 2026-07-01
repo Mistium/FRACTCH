@@ -7,5 +7,5 @@
  */
 
 def @Smooth_To_With_Div_Of(X, Target, Divider) "Smooth %s To %s With Div Of %s" warp=false {
-  return (X + (((Target - X) * mistsutils_clamp(A= dtbyxeroname_dt(), B= 0.01, C= 0.09)) / Divider));
+  return (X + (((Target - X) * mistsutils_clamp(A: dtbyxeroname_dt(), B: 0.01, C: 0.09)) / Divider));
 }

@@ -8,31 +8,31 @@
 
 import "../procedures_definition/OSL___Vars__Set__s__s__s.fractch";
 def @Account_Update_Local_Key_To(Key, Value) "Account // Update Local Key %s To %s" warp=true {
-  mistsutils_patchcommand2(A= "let old_acc = ", B= mistsutils_jsonparse(A= vars["Account// Current"]));
-  vars["Account// Current"] = skyhigh173JSON_json_set(item= Key, json= vars["Account// Current"], value= Value);
-  @OSL_Vars_Set(name= "user", data= mistsutils_jsonparse(A= vars["Account// Current"]), current_command= "global");
-  if mistsutils_patchboolean(A= "p0 === \"pfp\"") {
-    @OSL_Vars_Set(name= "user_icon", data= Value, current_command= "global");
-    mistsutils_patchcommand2(A= "const skins = ", B= mistsutils_jsonparse(A= mistSkins_getSkins()));
-    mistsutils_patchcommand(A= "for (let i = 0; i < skins.length; i ++) { if (skins[i].startsWith(`https://avatars.rotur.dev/${old_acc.username}`)) {");
-    mistSkins_deleteSkin(NAME= mistsutils_patchreporter(A= "skins[i]"));
-    mistsutils_patchcommand(A= "}}");
+  mistsutils_patchcommand2(A: "let old_acc = ", B: mistsutils_jsonparse(A: vars["Account// Current"]));
+  vars["Account// Current"] = skyhigh173JSON_json_set(item: Key, json: vars["Account// Current"], value: Value);
+  @OSL_Vars_Set(name: "user", data: mistsutils_jsonparse(A: vars["Account// Current"]), current_command: "global");
+  if mistsutils_patchboolean(A: "p0 === \"pfp\"") {
+    @OSL_Vars_Set(name: "user_icon", data: Value, current_command: "global");
+    mistsutils_patchcommand2(A: "const skins = ", B: mistsutils_jsonparse(A: mistSkins_getSkins()));
+    mistsutils_patchcommand(A: "for (let i = 0; i < skins.length; i ++) { if (skins[i].startsWith(`https://avatars.rotur.dev/${old_acc.username}`)) {");
+    mistSkins_deleteSkin(NAME: mistsutils_patchreporter(A: "skins[i]"));
+    mistsutils_patchcommand(A: "}}");
   }
-  if mistsutils_patchboolean(A= "p0 === \"sys.banner\"") {
-    mistsutils_patchcommand2(A= "const skins = ", B= mistsutils_jsonparse(A= mistSkins_getSkins()));
-    mistsutils_patchcommand(A= "for (let i = 0; i < skins.length; i ++) { if (skins[i].startsWith(`https://avatars.rotur.dev/.banners/${old_acc.username}`)) {");
-    mistSkins_deleteSkin(NAME= mistsutils_patchreporter(A= "skins[i]"));
-    mistsutils_patchcommand(A= "}}");
+  if mistsutils_patchboolean(A: "p0 === \"sys.banner\"") {
+    mistsutils_patchcommand2(A: "const skins = ", B: mistsutils_jsonparse(A: mistSkins_getSkins()));
+    mistsutils_patchcommand(A: "for (let i = 0; i < skins.length; i ++) { if (skins[i].startsWith(`https://avatars.rotur.dev/.banners/${old_acc.username}`)) {");
+    mistSkins_deleteSkin(NAME: mistsutils_patchreporter(A: "skins[i]"));
+    mistsutils_patchcommand(A: "}}");
   }
-  if mistsutils_patchboolean(A= "p0 === \"wallpaper\"") {
-    mistsutils_patchcommand(A= "origin.wallpaper.next = p1");
+  if mistsutils_patchboolean(A: "p0 === \"wallpaper\"") {
+    mistsutils_patchcommand(A: "origin.wallpaper.next = p1");
   }
-  if mistsutils_patchboolean(A= "p0 === \"theme\"") {
-    @OSL_Vars_Set(name= "global_accent", data= mistsutils_patchreporter(A= "p1.accent"), current_command= "global");
+  if mistsutils_patchboolean(A: "p0 === \"theme\"") {
+    @OSL_Vars_Set(name: "global_accent", data: mistsutils_patchreporter(A: "p1.accent"), current_command: "global");
     @Generate_Theme_Colours_From_User();
   }
-  if (mistsutils_patchboolean(A= "p0 === \"sys.requests\"") && mistsutils_patchboolean(A= "p1.length > old_acc[\"sys.requests\"].length")) {
-    mistsutils_patchcommand(A= "let name = p1[p1.length - 1]");
-    @Show_Notification(Icon= mistsutils_patchreporter(A= "`image https://avatars.rotur.dev/${name}?radius=256 20`"), Title= mistsutils_patchreporter(A= "name + \" sent you a friend request\""), Text= "", Style= "puck", Action= "osl \"/(A) System/User Applications/Contacts.osl\"");
+  if (mistsutils_patchboolean(A: "p0 === \"sys.requests\"") && mistsutils_patchboolean(A: "p1.length > old_acc[\"sys.requests\"].length")) {
+    mistsutils_patchcommand(A: "let name = p1[p1.length - 1]");
+    @Show_Notification(Icon: mistsutils_patchreporter(A: "`image https://avatars.rotur.dev/${name}?radius=256 20`"), Title: mistsutils_patchreporter(A: "name + \" sent you a friend request\""), Text: "", Style: "puck", Action: "osl \"/(A) System/User Applications/Contacts.osl\"");
   }
 }

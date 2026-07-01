@@ -6,18 +6,18 @@
  * threadIndex: 85
  */
 
-event_whenbroadcastreceived(BROADCAST_OPTION: broadcast("Refresh GUI", "o$"));
+event_whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Refresh GUI", "o$"));
 if (vars["Process // Type"] == "App") {
-  if mistsutils_patchboolean(A= "!target.isOriginal") {
-    @Window_Close(message= "Gui Refresh");
+  if mistsutils_patchboolean(A: "!target.isOriginal") {
+    @Window_Close(message: "Gui Refresh");
   } else {
-    data_deletealloflist(LIST: list("Windows // Create Data", "^Yp.PtD#1oxNqza?z{+A"));
-    data_deletealloflist(LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes"));
-    data_deletealloflist(LIST: list("Windows // Create Parent", "1C9e)ePY1onuWFVxH:@$"));
-    mistsutils_patchcommand2(A= "let onboot = ", B= "osl.user.onboot");
-    repeat mistsutils_patchreporter(A= "onboot.length") {
+    data_deletealloflist(field LIST: list("Windows // Create Data", "^Yp.PtD#1oxNqza?z{+A"));
+    data_deletealloflist(field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes"));
+    data_deletealloflist(field LIST: list("Windows // Create Parent", "1C9e)ePY1onuWFVxH:@$"));
+    mistsutils_patchcommand2(A: "let onboot = ", B: "osl.user.onboot");
+    repeat mistsutils_patchreporter(A: "onboot.length") {
       vars["WIndow // ID"] = "-1";
-      @Window_create(name= mistsutils_patchreporter(A= "onboot.shift()"), window_data= "SYS.onboot");
+      @Window_create(name: mistsutils_patchreporter(A: "onboot.shift()"), window_data: "SYS.onboot");
     }
   }
 }

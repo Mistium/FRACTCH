@@ -7,8 +7,8 @@
  */
 
 def @Renderer_Load_Queue(item) "Renderer // Load Queue %s" warp=false {
-  vars["Redraw // Window Left"] = mistsutils_patchreporter(A= "p0[0] - 30");
-  vars["Redraw // Window Top"] = mistsutils_patchreporter(A= "p0[1] + 30");
-  vars["Redraw // Window Right"] = mistsutils_patchreporter(A= "p0[2] + 30");
-  vars["Redraw // Window Bottom"] = mistsutils_patchreporter(A= "p0[3] - 30");
+  vars["Redraw // Window Left"] = mistsutils_patchreporter(A: "p0[0] - 30");
+  vars["Redraw // Window Top"] = mistsutils_patchreporter(A: "p0[1] + 30");
+  vars["Redraw // Window Right"] = mistsutils_patchreporter(A: "p0[2] + 30");
+  vars["Redraw // Window Bottom"] = mistsutils_patchreporter(A: "p0[3] - 30");
 }

@@ -7,9 +7,9 @@
  */
 
 def @Add_Popup_with_type_ontop_of(Title, Subtext, type, object) "Add Popup %s %s with type %s ontop of %s" warp=false {
-  mistsutils_patchcommand2(A= "const popup = ", B= skyhigh173JSON_json_set(item= "app", json= skyhigh173JSON_json_set(item= "body", json= skyhigh173JSON_json_set(item= "title", json= skyhigh173JSON_json_set(item= "type", json= object, value= type), value= Title), value= @Stringify(json= Subtext)), value= vars["Window // UUID"]));
-  if mistsutils_patchboolean(A= "!origin.desktop.popups.includes(popup)") {
+  mistsutils_patchcommand2(A: "const popup = ", B: skyhigh173JSON_json_set(item: "app", json: skyhigh173JSON_json_set(item: "body", json: skyhigh173JSON_json_set(item: "title", json: skyhigh173JSON_json_set(item: "type", json: object, value: type), value: Title), value: @Stringify(json: Subtext)), value: vars["Window // UUID"]));
+  if mistsutils_patchboolean(A: "!origin.desktop.popups.includes(popup)") {
     vars["Kernel // Alert Close"] = "false";
-    mistsutils_patchcommand(A= "origin.desktop.popups.push(popup)");
+    mistsutils_patchcommand(A: "origin.desktop.popups.push(popup)");
   }
 }

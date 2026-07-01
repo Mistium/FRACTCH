@@ -7,5 +7,5 @@
  */
 
 def @OSL_Window(name, data) "OSL // Window[ %s ] =  %s" warp=false {
-  mistsutils_patchcommand2(A= "target.window", B= "[p0] = p1");
+  mistsutils_patchcommand2(A: "target.window", B: "[p0] = p1");
 }

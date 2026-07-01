@@ -7,6 +7,6 @@
  */
 
 def @Files_Name_And_Type_From(Data) "Files // Name And Type From %s" warp=false {
-  mistsutils_patchcommand(A= "let name = p0.split(\".\")");
-  return mistsutils_patchreporter(A= "[name.slice(0,name.length-1).join(\".\"),name[name.length-1]]");
+  mistsutils_patchcommand(A: "let name = p0.split(\".\")");
+  return mistsutils_patchreporter(A: "[name.slice(0,name.length-1).join(\".\"),name[name.length-1]]");
 }

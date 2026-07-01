@@ -7,5 +7,5 @@
  */
 
 def @OSL_Vars_Get(Varname) "OSL// Vars: Get %s" warp=true {
-  return mistsutils_patchreporter(A= "target.getOSLvar(p0, target)");
+  return mistsutils_patchreporter(A: "target.getOSLvar(p0, target)");
 }

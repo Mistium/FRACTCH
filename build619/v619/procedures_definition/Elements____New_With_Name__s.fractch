@@ -7,10 +7,10 @@
  */
 
 def @Elements_New_With_Name(name) "Elements // New With Name %s" warp=false {
-  mistsutils_patchcommand(A= "let temp = document.createElement(\"div\")");
-  mistsutils_patchcommand(A= "temp.id = p0 + \"_OSLoverlay\"");
-  mistsutils_patchcommand(A= "temp.style.display = \"none\"");
-  mistsutils_patchcommand(A= "temp.style.position = \"absolute\"");
-  mistsutils_patchcommand(A= "origin.elements[p0] = temp;");
-  mistsutils_patchcommand(A= "vm.renderer.addOverlay(temp);");
+  mistsutils_patchcommand(A: "let temp = document.createElement(\"div\")");
+  mistsutils_patchcommand(A: "temp.id = p0 + \"_OSLoverlay\"");
+  mistsutils_patchcommand(A: "temp.style.display = \"none\"");
+  mistsutils_patchcommand(A: "temp.style.position = \"absolute\"");
+  mistsutils_patchcommand(A: "origin.elements[p0] = temp;");
+  mistsutils_patchcommand(A: "vm.renderer.addOverlay(temp);");
 }

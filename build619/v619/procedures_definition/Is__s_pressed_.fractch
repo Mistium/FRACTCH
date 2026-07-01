@@ -7,7 +7,7 @@
  */
 
 def @Is_pressed(key) "Is %s pressed?" warp=false {
-  mistsutils_patchcommand(A= "if (p0 === \"space\") p0 = \" \"");
-  mistsutils_patchcommand3(A= "return ", B= vars["Inputs // Keys Down"], C= ".indexOf((p0+\"\").toLowerCase()) !== -1");
+  mistsutils_patchcommand(A: "if (p0 === \"space\") p0 = \" \"");
+  mistsutils_patchcommand3(A: "return ", B: vars["Inputs // Keys Down"], C: ".indexOf((p0+\"\").toLowerCase()) !== -1");
   return mistsutils_false();
 }

@@ -7,16 +7,16 @@
  */
 
 def @File_Interact(File_ID("File ID")) "File Interact %s" warp=false {
-  mistsutils_patchcommand2(A= "const hovering = ", B= "target.osl_vars.mouse_touching");
-  if mistsutils_patchboolean(A= "hovering === true") {
+  mistsutils_patchcommand2(A: "const hovering = ", B: "target.osl_vars.mouse_touching");
+  if mistsutils_patchboolean(A: "hovering === true") {
     vars["System // Cursor"] = "pointer";
   }
-  if ((vars["Files // Current Dragging"] == "0") && ((vars["Files // Drag id"] == "0") && (mistsutils_patchboolean(A= "target.osl_vars.clicked === true") && (vars["Scroll// Dragging?"] == "false")))) {
+  if ((vars["Files // Current Dragging"] == "0") && ((vars["Files // Drag id"] == "0") && (mistsutils_patchboolean(A: "target.osl_vars.clicked === true") && (vars["Scroll// Dragging?"] == "false")))) {
     vars["Files // Drag id"] = File_ID;
   } else {
-    if ((vars["Files // Drag id"] == File_ID) && ((File_ID > "0") && (mistsutils_patchboolean(A= "!osl.mouse_down") || mistsutils_patchboolean(A= "hovering !== true")))) {
+    if ((vars["Files // Drag id"] == File_ID) && ((File_ID > "0") && (mistsutils_patchboolean(A: "!osl.mouse_down") || mistsutils_patchboolean(A: "hovering !== true")))) {
       vars["Files // Drag id"] = "0";
-      if mistsutils_patchboolean(A= "hovering === true") {
+      if mistsutils_patchboolean(A: "hovering === true") {
         return "open";
       } else {
         vars["Files // Current Dragging"] = File_ID;

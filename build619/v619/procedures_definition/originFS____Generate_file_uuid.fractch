@@ -7,5 +7,5 @@
  */
 
 def @originFS_Generate_file_uuid() "originFS // Generate file uuid" warp=false {
-  return mistsutils_patchreporter3(A= "md5(`${randomString(16)}${Date.now()}${", B= vars["Account// Current"], C= "}`)");
+  return mistsutils_patchreporter3(A: "md5(`${randomString(16)}${Date.now()}${", B: vars["Account// Current"], C: "}`)");
 }

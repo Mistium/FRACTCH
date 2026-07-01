@@ -7,36 +7,36 @@
  */
 
 def @RightClick(Data_Rightclicked("Data - Rightclicked"), X, Y, current_file("current file")) "RightClick %s %s %s %s" warp=true {
-  mistsutils_patchcommand(A= "const menu = vm.runtime.getTargetForStage().variables[\"shgJ[!T-Mw;C6gtV1bEu\"]");
+  mistsutils_patchcommand(A: "const menu = vm.runtime.getTargetForStage().variables[\"shgJ[!T-Mw;C6gtV1bEu\"]");
   if (vars["Right Clicked?"] == "true") {
     vars["DeString // out"] = current_file;
-    if @is_array(input= vars["DeString // out"]) {
+    if @is_array(input: vars["DeString // out"]) {
       vars["Files// Selected ID"] = vars["DeString // out"];
     } else {
-      vars["Files// Selected ID"] = mistsutils_patchreporter3(A= "[", B= vars["DeString // out"], C= "]");
+      vars["Files// Selected ID"] = mistsutils_patchreporter3(A: "[", B: vars["DeString // out"], C: "]");
     }
-    vars["RightClick// Type"] = @destring(Text= Data_Rightclicked, remove= "\"");
-    data_deletealloflist(LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?"));
-    data_deletealloflist(LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+    vars["RightClick// Type"] = @destring(Text: Data_Rightclicked, remove: "\"");
+    data_deletealloflist(field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?"));
+    data_deletealloflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
     vars["RightClickClosable"] = mistsutils_false();
-    data_addtolist(ITEM= X, LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-    data_addtolist(ITEM= Y, LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+    data_addtolist(ITEM: X, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+    data_addtolist(ITEM: Y, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
     vars["Right Click Target Data"] = vars["Files// Selected ID"];
-    data_addtolist(ITEM= vars["Files// Selected ID"], LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-    data_addtolist(ITEM= vars["WIndow // ID"], LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-    if @is_array(input= Data_Rightclicked) {
-      mistsutils_patchcommand(A= "menu.value = menu.value.concat(p0)");
+    data_addtolist(ITEM: vars["Files// Selected ID"], field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+    data_addtolist(ITEM: vars["WIndow // ID"], field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+    if @is_array(input: Data_Rightclicked) {
+      mistsutils_patchcommand(A: "menu.value = menu.value.concat(p0)");
       vars["//return"] = "4";
-      repeat (data_lengthoflist(LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) - 4) {
-        data_changevariableby(VALUE= 1, VARIABLE: var("//return", "y"));
-        data_replaceitemoflist(INDEX= vars["//return"], ITEM= @parse(json= data_itemoflist(INDEX= vars["//return"], LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"))), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+      repeat (data_lengthoflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) - 4) {
+        vars["//return"] += 1;
+        data_replaceitemoflist(INDEX: vars["//return"], ITEM: @parse(json: data_itemoflist(INDEX: vars["//return"], field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"))), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
       }
       vars["Rightclick// File Is System"] = "false";
     } else {
-      mistsutils_patchcommand2(A= "const file_id = ", B= mistsutils_squarebrackets(A= vars["Files// Selected ID"], B= "0"));
-      if (mistsutils_length(A= vars["Files// Selected ID"]) == "1") {
-        vars["Rightclick// File Is System"] = operator_contains(STRING1= @File_get_item(id= mistsutils_patchreporter(A= "file_id"), item= "13"), STRING2= "\"System\"");
-        if sensing_keypressed(KEY_OPTION= ("shift" .. "")) {
+      mistsutils_patchcommand2(A: "const file_id = ", B: mistsutils_squarebrackets(A: vars["Files// Selected ID"], B: "0"));
+      if (mistsutils_length(A: vars["Files// Selected ID"]) == "1") {
+        vars["Rightclick// File Is System"] = operator_contains(STRING1: @File_get_item(id: mistsutils_patchreporter(A: "file_id"), item: "13"), STRING2: "\"System\"");
+        if sensing_keypressed(KEY_OPTION: ("shift" .. "")) {
           vars["Rightclick// File Is System"] = "false";
         } else {
           if (Data_Rightclicked == "Desktop") {
@@ -44,56 +44,56 @@ def @RightClick(Data_Rightclicked("Data - Rightclicked"), X, Y, current_file("cu
           }
         }
         vars["//return"] = vars["SYSTEM // Right Click Data"];
-        mistsutils_patchcommand2(A= "const type = ", B= @File_get_item(id= mistsutils_patchreporter(A= "file_id"), item= "1"));
-        mistsutils_patchcommand2(A= "const uuid = ", B= @File_get_item(id= mistsutils_patchreporter(A= "file_id"), item= "14"));
-        mistsutils_patchcommand(A= "console.log(file_id)");
-        mistsutils_patchcommand(A= "let menu2 = [\"-\"]");
-        mistsutils_patchcommand3(A= "menu2.unshift(", B= ("> " .. @originFS_UUID_ID(UUID= mistsutils_patchreporter(A= "uuid"))), C= ")");
-        switch mistsutils_patchreporter(A= "type") {
-          mistsutils_patchcommand(A= "case \".folder\": menu2 = menu2.concat([[\"Open In\", {\"New Files Window\": target.osl_func(`window.create(\"files\", ${JSON.stringify(uuid)})`)}, {\"New Terminal\": target.osl_func(`window.create(\"terminal\", {passed_data: {type: \"cd\", location: open(${JSON.stringify(uuid)}, [\"location\", \"name\"]).join(\"/\").replace(\"origin\",\"\") }})`)}],\"-\",\"Move To Bin\",\"-\",[ \"New In This Folder\", \"Folder\", \"File\" ], [\"Shortcuts\", \"New Shortcut Here\", \"New Shortcut On Dock\"], \"Info\", \"Rename\", \"Duplicate\", \"-\", \"Export ZIP\", \"Copy\", \"Paste\", \"Copy Path\"]); break");
-          mistsutils_patchcommand(A= "case \".osl\": menu2 = menu2.concat([\"Open\",\"Edit\",\"View Contents\",\"-\",\"Move To Bin\",\"-\", [\"Shortcuts\", \"New Shortcut Here\", \"New Shortcut On Dock\"],\"Info\",\"Rename\",\"Duplicate\",\"-\",\"Compress\",\"Copy\",\"Paste\",\"Copy Path\",\"Copy Link To Script\"]); break");
-          mistsutils_patchcommand3(A= "default: const types = ", B= mistsutils_squarebrackets(A= vars["SYSTEM // Right Click Data"], B= vars["RightClick// Type"]), C= "; menu2 = menu2.concat(types[type] ?? types.other)");
+        mistsutils_patchcommand2(A: "const type = ", B: @File_get_item(id: mistsutils_patchreporter(A: "file_id"), item: "1"));
+        mistsutils_patchcommand2(A: "const uuid = ", B: @File_get_item(id: mistsutils_patchreporter(A: "file_id"), item: "14"));
+        mistsutils_patchcommand(A: "console.log(file_id)");
+        mistsutils_patchcommand(A: "let menu2 = [\"-\"]");
+        mistsutils_patchcommand3(A: "menu2.unshift(", B: ("> " .. @originFS_UUID_ID(UUID: mistsutils_patchreporter(A: "uuid"))), C: ")");
+        switch mistsutils_patchreporter(A: "type") {
+          mistsutils_patchcommand(A: "case \".folder\": menu2 = menu2.concat([[\"Open In\", {\"New Files Window\": target.osl_func(`window.create(\"files\", ${JSON.stringify(uuid)})`)}, {\"New Terminal\": target.osl_func(`window.create(\"terminal\", {passed_data: {type: \"cd\", location: open(${JSON.stringify(uuid)}, [\"location\", \"name\"]).join(\"/\").replace(\"origin\",\"\") }})`)}],\"-\",\"Move To Bin\",\"-\",[ \"New In This Folder\", \"Folder\", \"File\" ], [\"Shortcuts\", \"New Shortcut Here\", \"New Shortcut On Dock\"], \"Info\", \"Rename\", \"Duplicate\", \"-\", \"Export ZIP\", \"Copy\", \"Paste\", \"Copy Path\"]); break");
+          mistsutils_patchcommand(A: "case \".osl\": menu2 = menu2.concat([\"Open\",\"Edit\",\"View Contents\",\"-\",\"Move To Bin\",\"-\", [\"Shortcuts\", \"New Shortcut Here\", \"New Shortcut On Dock\"],\"Info\",\"Rename\",\"Duplicate\",\"-\",\"Compress\",\"Copy\",\"Paste\",\"Copy Path\",\"Copy Link To Script\"]); break");
+          mistsutils_patchcommand3(A: "default: const types = ", B: mistsutils_squarebrackets(A: vars["SYSTEM // Right Click Data"], B: vars["RightClick// Type"]), C: "; menu2 = menu2.concat(types[type] ?? types.other)");
         }
-        mistsutils_patchcommand(A= "menu.value = menu.value.concat(menu2)");
+        mistsutils_patchcommand(A: "menu.value = menu.value.concat(menu2)");
         if (Data_Rightclicked == "File") {
-          if not(skyhigh173JSON_json_has_value(json= "[\".folder\", \".shortcut\", \".osl\"]", value= mistsutils_patchreporter(A= "type"))) {
-            data_insertatlist(ITEM= mistsutils_patchreporter(A= "[\"Shortcuts\", \"New Shortcut Here\", \"New Shortcut On Dock\"]"), INDEX= 12, LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          if not(skyhigh173JSON_json_has_value(json: "[\".folder\", \".shortcut\", \".osl\"]", value: mistsutils_patchreporter(A: "type"))) {
+            data_insertatlist(ITEM: mistsutils_patchreporter(A: "[\"Shortcuts\", \"New Shortcut Here\", \"New Shortcut On Dock\"]"), INDEX: 12, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
           }
-          mistsutils_patchcommand(A= "try {");
-          mistsutils_patchcommand3(A= "const openWith = Object.clone(", B= "window.osl_filetypes[type]", C= "?.[2] ?? [])");
-          if mistsutils_patchboolean(A= "openWith.length > 1 && type !== \".folder\"") {
-            mistsutils_patchcommand2(A= "for (let i = 0; i < openWith.length; i ++) openWith[i] = ", B= ("> " .. @originFS_Path_ID(Path= mistsutils_patchreporter(A= "openWith[i]"))));
-            data_insertatlist(ITEM= mistsutils_patchreporter(A= "(openWith.unshift(\"Open With\"), openWith)"), INDEX= (data_itemnumoflist(ITEM= "Open", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) + 1), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          mistsutils_patchcommand(A: "try {");
+          mistsutils_patchcommand3(A: "const openWith = Object.clone(", B: "window.osl_filetypes[type]", C: "?.[2] ?? [])");
+          if mistsutils_patchboolean(A: "openWith.length > 1 && type !== \".folder\"") {
+            mistsutils_patchcommand2(A: "for (let i = 0; i < openWith.length; i ++) openWith[i] = ", B: ("> " .. @originFS_Path_ID(Path: mistsutils_patchreporter(A: "openWith[i]"))));
+            data_insertatlist(ITEM: mistsutils_patchreporter(A: "(openWith.unshift(\"Open With\"), openWith)"), INDEX: (data_itemnumoflist(ITEM: "Open", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) + 1), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
           }
-          mistsutils_patchcommand(A= "} catch(e) {console.log(e)}");
-          data_addtolist(ITEM= "-", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-          data_addtolist(ITEM= mistsutils_patchreporter(A= "[\"Advanced\", \"Copy File As JSON\", \"Download To My Computer\"]"), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          mistsutils_patchcommand(A: "} catch(e) {console.log(e)}");
+          data_addtolist(ITEM: "-", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          data_addtolist(ITEM: mistsutils_patchreporter(A: "[\"Advanced\", \"Copy File As JSON\", \"Download To My Computer\"]"), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
         }
         if (vars["Rightclick// File Is System"] == "true") {
-          if data_listcontainsitem(ITEM= "Move To Bin", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) {
-            data_deleteoflist(INDEX= (data_itemnumoflist(ITEM= "Move To Bin", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) + 1), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-            data_deleteoflist(INDEX= data_itemnumoflist(ITEM= "Move To Bin", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          if data_listcontainsitem(ITEM: "Move To Bin", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) {
+            data_deleteoflist(INDEX: (data_itemnumoflist(ITEM: "Move To Bin", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) + 1), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+            data_deleteoflist(INDEX: data_itemnumoflist(ITEM: "Move To Bin", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
           }
-          data_deleteoflist(INDEX= data_itemnumoflist(ITEM= "Remove Folder", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-          data_deleteoflist(INDEX= data_itemnumoflist(ITEM= "Rename", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-          data_deleteoflist(INDEX= data_itemnumoflist(ITEM= "Duplicate", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-          data_deleteoflist(INDEX= data_itemnumoflist(ITEM= "Compress", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          data_deleteoflist(INDEX: data_itemnumoflist(ITEM: "Remove Folder", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          data_deleteoflist(INDEX: data_itemnumoflist(ITEM: "Rename", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          data_deleteoflist(INDEX: data_itemnumoflist(ITEM: "Duplicate", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+          data_deleteoflist(INDEX: data_itemnumoflist(ITEM: "Compress", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
         }
       } else {
         if (vars["Rightclick// File Is System"] == "true") {
-          mistsutils_patchcommand(A= "menu.value = menu.value.concat([\"Open All\",\"-\",\"Copy\",\"Paste\"])");
+          mistsutils_patchcommand(A: "menu.value = menu.value.concat([\"Open All\",\"-\",\"Copy\",\"Paste\"])");
         } else {
-          mistsutils_patchcommand(A= "menu.value = menu.value.concat([\"New Folder With Selection\",\"Open All\",\"-\",\"Move To Bin\",\"-\",\"Copy\",\"Paste\"])");
+          mistsutils_patchcommand(A: "menu.value = menu.value.concat([\"New Folder With Selection\",\"Open All\",\"-\",\"Move To Bin\",\"-\",\"Copy\",\"Paste\"])");
         }
       }
-      if (@File_get_item(id= mistsutils_patchreporter(A= "file_id"), item= "3") == @Find_Directory(Directory= "user/bin")) {
-        data_replaceitemoflist(INDEX= data_itemnumoflist(ITEM= "Move To Bin", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), ITEM= "Delete Immediately", LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+      if (@File_get_item(id: mistsutils_patchreporter(A: "file_id"), item: "3") == @Find_Directory(Directory: "user/bin")) {
+        data_replaceitemoflist(INDEX: data_itemnumoflist(ITEM: "Move To Bin", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), ITEM: "Delete Immediately", field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
       }
     }
   }
   vars["//return"] = "5";
-  repeat (data_lengthoflist(LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) - 5) {
-    data_changevariableby(VALUE= 1, VARIABLE: var("//return", "y"));
-    data_replaceitemoflist(INDEX= vars["//return"], ITEM= @parse(json= data_itemoflist(INDEX= vars["//return"], LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"))), LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+  repeat (data_lengthoflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) - 5) {
+    vars["//return"] += 1;
+    data_replaceitemoflist(INDEX: vars["//return"], ITEM: @parse(json: data_itemoflist(INDEX: vars["//return"], field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"))), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
   }
 }

@@ -8,21 +8,21 @@
 
 def @Window_Set_Frame(min_x("min-x"), max_y("max-y"), max_x("max-x"), min_y("min-y"), id, focusable) "Window// Set Frame %s %s %s %s %s %b" warp=true {
   if ((min_x .. max_x) == "") {
-    xeltallivclipblend_setClipbox(X1= (vars["Window // Low X"] + 6), Y1= (vars["Window // High Y"] - 6), X2= (vars["Window // High X"] - 6), Y2= (vars["Window // Low Y"] + 6));
+    xeltallivclipblend_setClipbox(X1: (vars["Window // Low X"] + 6), Y1: (vars["Window // High Y"] - 6), X2: (vars["Window // High X"] - 6), Y2: (vars["Window // Low Y"] + 6));
   }
-  mistsutils_patchcommand2(A= "const min_x = ", B= xeltallivclipblend_getClipbox(PROP= xeltallivclipblend_menu_props(props: ["min x",null])));
-  mistsutils_patchcommand2(A= "const min_y = ", B= xeltallivclipblend_getClipbox(PROP= xeltallivclipblend_menu_props(props: ["min y",null])));
-  mistsutils_patchcommand2(A= "const max_x = ", B= xeltallivclipblend_getClipbox(PROP= xeltallivclipblend_menu_props(props: ["max x",null])));
-  mistsutils_patchcommand2(A= "const max_y = ", B= xeltallivclipblend_getClipbox(PROP= xeltallivclipblend_menu_props(props: ["max y",null])));
+  mistsutils_patchcommand2(A: "const min_x = ", B: xeltallivclipblend_getClipbox(PROP: xeltallivclipblend_menu_props(field props: ["min x",null])));
+  mistsutils_patchcommand2(A: "const min_y = ", B: xeltallivclipblend_getClipbox(PROP: xeltallivclipblend_menu_props(field props: ["min y",null])));
+  mistsutils_patchcommand2(A: "const max_x = ", B: xeltallivclipblend_getClipbox(PROP: xeltallivclipblend_menu_props(field props: ["max x",null])));
+  mistsutils_patchcommand2(A: "const max_y = ", B: xeltallivclipblend_getClipbox(PROP: xeltallivclipblend_menu_props(field props: ["max y",null])));
   if ((min_x .. max_x) == "") {
     vars["//return"] = "0";
-    vars["Frame // Min X"] = mistsutils_patchreporter(A= "min_x");
-    vars["Frame // Min Y"] = mistsutils_patchreporter(A= "min_y");
-    vars["Frame // Max X"] = mistsutils_patchreporter(A= "max_x");
-    vars["Frame // Max Y"] = mistsutils_patchreporter(A= "max_y");
+    vars["Frame // Min X"] = mistsutils_patchreporter(A: "min_x");
+    vars["Frame // Min Y"] = mistsutils_patchreporter(A: "min_y");
+    vars["Frame // Max X"] = mistsutils_patchreporter(A: "max_x");
+    vars["Frame // Max Y"] = mistsutils_patchreporter(A: "max_y");
   } else {
-    mistsutils_patchcommand(A= "if (p0 > p2) { let temp = p0; p0 = p2; p2 = temp; }");
-    mistsutils_patchcommand(A= "if (p3 > p1) { let temp = p1; p1 = p3; p3 = temp; }");
+    mistsutils_patchcommand(A: "if (p0 > p2) { let temp = p0; p0 = p2; p2 = temp; }");
+    mistsutils_patchcommand(A: "if (p3 > p1) { let temp = p1; p1 = p3; p3 = temp; }");
     vars["Frame // Min X"] = min_x;
     vars["Frame // Min Y"] = min_y;
     vars["Frame // Max X"] = max_x;
@@ -32,49 +32,49 @@ def @Window_Set_Frame(min_x("min-x"), max_y("max-y"), max_x("max-x"), min_y("min
   vars["Frame // Height"] = abs((vars["Frame // Min Y"] - vars["Frame // Max Y"]));
   vars["Frame // X"] = (vars["Frame // Min X"] + (vars["Frame // Width"] / 2));
   vars["Frame // Y"] = (vars["Frame // Min Y"] + (vars["Frame // Height"] / 2));
-  vars["Frame // Interactable"] = mistsutils_patchreporter3(A= id, B= " === ", C= vars["Frame // Current"]);
+  vars["Frame // Interactable"] = mistsutils_patchreporter3(A: id, B: " === ", C: vars["Frame // Current"]);
   vars["Renderer // Frame Max Y"] = vars["Frame // Max Y"];
   vars["Renderer // Frame Min Y"] = vars["Frame // Min Y"];
-  mistsutils_patchcommand2(A= "const mouse_touching = ", B= (@Check_Collision_in_square_at_of_dimensions(x= sensing_mousex(), y= sensing_mousey(), x2= vars["Frame // X"], y2= vars["Frame // Y"], w= vars["Frame // Width"], h= vars["Frame // Height"]) && focusable));
+  mistsutils_patchcommand2(A: "const mouse_touching = ", B: (@Check_Collision_in_square_at_of_dimensions(x: sensing_mousex(), y: sensing_mousey(), x2: vars["Frame // X"], y2: vars["Frame // Y"], w: vars["Frame // Width"], h: vars["Frame // Height"]) && focusable));
   if not(((min_x .. max_x) == "")) {
-    if mistsutils_patchboolean(A= "mouse_touching") {
+    if mistsutils_patchboolean(A: "mouse_touching") {
       vars["Frame // Next Current"] = id;
     }
   } else {
     vars["Frame // Interactable"] = "true";
   }
-  mistsutils_patchcommand(A= "let left, top, right, bottom;");
-  mistsutils_patchcommand2(A= "top = ", B= vars["Frame // Max Y"]);
-  mistsutils_patchcommand2(A= "bottom = ", B= vars["Frame // Min Y"]);
-  mistsutils_patchcommand2(A= "left = ", B= vars["Frame // Min X"]);
-  mistsutils_patchcommand2(A= "right = ", B= vars["Frame // Max X"]);
-  data_changevariableby(VALUE= 20, VARIABLE: var("Renderer // Frame Max Y", "yr"));
-  data_changevariableby(VALUE= -20, VARIABLE: var("Renderer // Frame Min Y", "ur"));
-  mistsutils_patchcommand(A= "let obj = {");
-  mistsutils_patchcommand3(A= "width: (+", B= vars["Frame // Width"], C= "|| 0),");
-  mistsutils_patchcommand3(A= "height: (+", B= vars["Frame // Height"], C= "|| 0),");
-  mistsutils_patchcommand3(A= "x: (+", B= vars["Frame // X"], C= "|| 0),");
-  mistsutils_patchcommand3(A= "y: (+", B= vars["Frame // Y"], C= "|| 0),");
-  mistsutils_patchcommand3(A= "scroll_h: (+", B= vars["Scroll // X"], C= "|| 0),");
-  mistsutils_patchcommand3(A= "scroll: (+", B= vars["Scroll// Y"], C= "|| 0),");
-  mistsutils_patchcommand3(A= "id: ", B= id, C= ",");
-  mistsutils_patchcommand(A= "scrollMax: {}, mouse_touching}");
-  mistsutils_patchcommand(A= "obj.left = obj.width / -2");
-  mistsutils_patchcommand(A= "obj.right = obj.width / 2");
-  mistsutils_patchcommand(A= "obj.top = obj.height / 2");
-  mistsutils_patchcommand(A= "obj.bottom = obj.height / -2");
-  mistsutils_patchcommand2(A= "obj.lim_left = ", B= mistsutils_max(A= mistsutils_patchreporter(A= "left"), B= mistsutils_patchreporter(A= "min_x")));
-  mistsutils_patchcommand2(A= "obj.lim_top = ", B= mistsutils_min(A= mistsutils_patchreporter(A= "top"), B= mistsutils_patchreporter(A= "max_y")));
-  mistsutils_patchcommand2(A= "obj.lim_right = ", B= mistsutils_min(A= mistsutils_patchreporter(A= "right"), B= mistsutils_patchreporter(A= "max_x")));
-  mistsutils_patchcommand2(A= "obj.lim_bottom = ", B= mistsutils_max(A= mistsutils_patchreporter(A= "bottom"), B= mistsutils_patchreporter(A= "min_y")));
-  mistsutils_patchcommand2(A= "obj.scrollMax.width = ", B= vars["Scroll // MaxX"]);
-  mistsutils_patchcommand2(A= "obj.scrollMax.height = ", B= vars["Scroll // MaxY"]);
-  mistsutils_patchcommand2(A= "obj.interactable = ", B= vars["Frame // Interactable"]);
-  if mistsutils_patchreporter(A= "obj.lim_top > obj.lim_bottom && obj.lim_left < obj.lim_right") {
-    xeltallivclipblend_setClipbox(X1= mistsutils_patchreporter(A= "obj.lim_left"), Y1= mistsutils_patchreporter(A= "obj.lim_top"), X2= mistsutils_patchreporter(A= "obj.lim_right"), Y2= mistsutils_patchreporter(A= "obj.lim_bottom"));
+  mistsutils_patchcommand(A: "let left, top, right, bottom;");
+  mistsutils_patchcommand2(A: "top = ", B: vars["Frame // Max Y"]);
+  mistsutils_patchcommand2(A: "bottom = ", B: vars["Frame // Min Y"]);
+  mistsutils_patchcommand2(A: "left = ", B: vars["Frame // Min X"]);
+  mistsutils_patchcommand2(A: "right = ", B: vars["Frame // Max X"]);
+  vars["Renderer // Frame Max Y"] += 20;
+  vars["Renderer // Frame Min Y"] += -20;
+  mistsutils_patchcommand(A: "let obj = {");
+  mistsutils_patchcommand3(A: "width: (+", B: vars["Frame // Width"], C: "|| 0),");
+  mistsutils_patchcommand3(A: "height: (+", B: vars["Frame // Height"], C: "|| 0),");
+  mistsutils_patchcommand3(A: "x: (+", B: vars["Frame // X"], C: "|| 0),");
+  mistsutils_patchcommand3(A: "y: (+", B: vars["Frame // Y"], C: "|| 0),");
+  mistsutils_patchcommand3(A: "scroll_h: (+", B: vars["Scroll // X"], C: "|| 0),");
+  mistsutils_patchcommand3(A: "scroll: (+", B: vars["Scroll// Y"], C: "|| 0),");
+  mistsutils_patchcommand3(A: "id: ", B: id, C: ",");
+  mistsutils_patchcommand(A: "scrollMax: {}, mouse_touching}");
+  mistsutils_patchcommand(A: "obj.left = obj.width / -2");
+  mistsutils_patchcommand(A: "obj.right = obj.width / 2");
+  mistsutils_patchcommand(A: "obj.top = obj.height / 2");
+  mistsutils_patchcommand(A: "obj.bottom = obj.height / -2");
+  mistsutils_patchcommand2(A: "obj.lim_left = ", B: mistsutils_max(A: mistsutils_patchreporter(A: "left"), B: mistsutils_patchreporter(A: "min_x")));
+  mistsutils_patchcommand2(A: "obj.lim_top = ", B: mistsutils_min(A: mistsutils_patchreporter(A: "top"), B: mistsutils_patchreporter(A: "max_y")));
+  mistsutils_patchcommand2(A: "obj.lim_right = ", B: mistsutils_min(A: mistsutils_patchreporter(A: "right"), B: mistsutils_patchreporter(A: "max_x")));
+  mistsutils_patchcommand2(A: "obj.lim_bottom = ", B: mistsutils_max(A: mistsutils_patchreporter(A: "bottom"), B: mistsutils_patchreporter(A: "min_y")));
+  mistsutils_patchcommand2(A: "obj.scrollMax.width = ", B: vars["Scroll // MaxX"]);
+  mistsutils_patchcommand2(A: "obj.scrollMax.height = ", B: vars["Scroll // MaxY"]);
+  mistsutils_patchcommand2(A: "obj.interactable = ", B: vars["Frame // Interactable"]);
+  if mistsutils_patchreporter(A: "obj.lim_top > obj.lim_bottom && obj.lim_left < obj.lim_right") {
+    xeltallivclipblend_setClipbox(X1: mistsutils_patchreporter(A: "obj.lim_left"), Y1: mistsutils_patchreporter(A: "obj.lim_top"), X2: mistsutils_patchreporter(A: "obj.lim_right"), Y2: mistsutils_patchreporter(A: "obj.lim_bottom"));
   } else {
-    xeltallivclipblend_setClipbox(X1= 0, Y1= 0, X2= 0, Y2= 0);
+    xeltallivclipblend_setClipbox(X1: 0, Y1: 0, X2: 0, Y2: 0);
   }
-  motion_gotoxy(X= mistsutils_patchreporter(A= "obj.x"), Y= mistsutils_patchreporter(A= "obj.y"));
-  vars["OSL // Frame"] = mistsutils_patchreporter(A= "obj");
+  motion_gotoxy(X: mistsutils_patchreporter(A: "obj.x"), Y: mistsutils_patchreporter(A: "obj.y"));
+  vars["OSL // Frame"] = mistsutils_patchreporter(A: "obj");
 }

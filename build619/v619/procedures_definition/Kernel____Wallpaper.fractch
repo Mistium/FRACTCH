@@ -9,110 +9,110 @@
 def @Kernel_Wallpaper() "Kernel // Wallpaper" warp=false {
   vars["SYSTEM // Disk Reads Per Second"] = (vars["SYSTEM // Total Disk Reads"] - vars["SYSTEM // Total Disk Reads Last Frame"]);
   vars["SYSTEM // Total Disk Reads Last Frame"] = vars["SYSTEM // Total Disk Reads"];
-  mistsutils_patchcommand(A= "let queue = origin.renderer.queue");
-  mistsutils_patchcommand(A= "let bg = origin.wallpaper");
-  mistsutils_patchcommand(A= "let last_tr = Math.round(bg.transparency)");
-  mistsutils_patchcommand2(A= "bg.transparency_target = +", B= mistsutils_ifthen(A= (vars["Window // Any Fullscreened?"] == "true"), B= "90", C= "0"));
-  mistsutils_patchcommand(A= "bg.transparency += (bg.transparency_target - bg.transparency) / 10");
-  if not((mistsutils_patchreporter(A= "last_tr") == mistsutils_patchreporter(A= "Math.round(bg.transparency)"))) {
+  mistsutils_patchcommand(A: "let queue = origin.renderer.queue");
+  mistsutils_patchcommand(A: "let bg = origin.wallpaper");
+  mistsutils_patchcommand(A: "let last_tr = Math.round(bg.transparency)");
+  mistsutils_patchcommand2(A: "bg.transparency_target = +", B: mistsutils_ifthen(A: (vars["Window // Any Fullscreened?"] == "true"), B: "90", C: "0"));
+  mistsutils_patchcommand(A: "bg.transparency += (bg.transparency_target - bg.transparency) / 10");
+  if not((mistsutils_patchreporter(A: "last_tr") == mistsutils_patchreporter(A: "Math.round(bg.transparency)"))) {
     @Window_Reset_Redraw_Box();
     @Renderer_Call_ReRender();
   }
-  if (((mistsutils_patchboolean(A= "queue.length > 0") || mistsutils_patchboolean(A= "origin.wallpaper.current !== origin.wallpaper.next")) || mistsutils_patchboolean(A= "origin.wallpaper.current.endsWith(\".mp3\")")) && (vars["Server // User Info"] == "")) {
-    data_changevariableby(VALUE= 1, VARIABLE: var("Renderer // Wallpaper Redraws", "H%"));
-    stretch_setStretch(X= 100, Y= 100);
+  if (((mistsutils_patchboolean(A: "queue.length > 0") || mistsutils_patchboolean(A: "origin.wallpaper.current !== origin.wallpaper.next")) || mistsutils_patchboolean(A: "origin.wallpaper.current.endsWith(\".mp3\")")) && (vars["Server // User Info"] == "")) {
+    vars["Renderer // Wallpaper Redraws"] += 1;
+    stretch_setStretch(X: 100, Y: 100);
     xeltallivclipblend_clearClipbox();
-    motion_pointindirection(DIRECTION= "90");
-    motion_gotoxy(X= 0, Y= 0);
-    if mistsutils_patchboolean(A= "origin.wallpaper.current !== origin.wallpaper.next && !target.wallpaper_to_load") {
-      mistsutils_patchcommand(A= "let wallpaper_data = origin.wallpaper.next");
-      @Renderer_Load_Wallpaper(url= mistsutils_patchreporter(A= "wallpaper_data"));
+    motion_pointindirection(DIRECTION: "90");
+    motion_gotoxy(X: 0, Y: 0);
+    if mistsutils_patchboolean(A: "origin.wallpaper.current !== origin.wallpaper.next && !target.wallpaper_to_load") {
+      mistsutils_patchcommand(A: "let wallpaper_data = origin.wallpaper.next");
+      @Renderer_Load_Wallpaper(url: mistsutils_patchreporter(A: "wallpaper_data"));
     }
-    if mistsutils_ends(A= mistsutils_patchreporter(A= "origin.wallpaper.current"), B= ".mp4") {
-      vars["SYSTEM // Background Width"] = (lmsVideo_getAttribute(NAME= "wallpaper", ATTRIBUTE: ["width",null]) / 100);
-      vars["SYSTEM // Background Height"] = (lmsVideo_getAttribute(NAME= "wallpaper", ATTRIBUTE: ["height",null]) / 100);
+    if mistsutils_ends(A: mistsutils_patchreporter(A: "origin.wallpaper.current"), B: ".mp4") {
+      vars["SYSTEM // Background Width"] = (lmsVideo_getAttribute(NAME: "wallpaper", field ATTRIBUTE: ["width",null]) / 100);
+      vars["SYSTEM // Background Height"] = (lmsVideo_getAttribute(NAME: "wallpaper", field ATTRIBUTE: ["height",null]) / 100);
     } else {
-      vars["SYSTEM // Background Width"] = (mistSkins_getSkinAttribute(ATTRIBUTE= mistSkins_menu_skinAttributes(skinAttributes: ["width",null]), NAME= "wallpaper") / 100);
-      vars["SYSTEM // Background Height"] = (mistSkins_getSkinAttribute(ATTRIBUTE= mistSkins_menu_skinAttributes(skinAttributes: ["height",null]), NAME= "wallpaper") / 100);
+      vars["SYSTEM // Background Width"] = (mistSkins_getSkinAttribute(ATTRIBUTE: mistSkins_menu_skinAttributes(field skinAttributes: ["width",null]), NAME: "wallpaper") / 100);
+      vars["SYSTEM // Background Height"] = (mistSkins_getSkinAttribute(ATTRIBUTE: mistSkins_menu_skinAttributes(field skinAttributes: ["height",null]), NAME: "wallpaper") / 100);
     }
     vars["temp"] = (vars["Screen Size X"] / vars["SYSTEM // Background Width"]);
     vars["temp2"] = (vars["Screen Size Y"] / vars["SYSTEM // Background Height"]);
-    switch mistsutils_patchreporter2(A= "String(window.origin.wallpaper.mode)", B= ".toLowerCase()") {
+    switch mistsutils_patchreporter2(A: "String(window.origin.wallpaper.mode)", B: ".toLowerCase()") {
       case "" fallthrough {
 
       }
       case "fill" {
         if (temp2 > temp) {
-          looks_setsizeto(SIZE= temp2);
+          looks_setsizeto(SIZE: temp2);
         } else {
-          looks_setsizeto(SIZE= temp);
+          looks_setsizeto(SIZE: temp);
         }
       }
       case "center" {
-        looks_setsizeto(SIZE= 100);
+        looks_setsizeto(SIZE: 100);
       }
       case "fit" {
         if (temp2 > temp) {
-          looks_setsizeto(SIZE= temp);
+          looks_setsizeto(SIZE: temp);
         } else {
-          looks_setsizeto(SIZE= temp2);
+          looks_setsizeto(SIZE: temp2);
         }
       }
       case "stretch" {
-        looks_setsizeto(SIZE= 100);
-        stretch_setStretch(X= temp, Y= temp2);
+        looks_setsizeto(SIZE: 100);
+        stretch_setStretch(X: temp, Y: temp2);
       }
     }
-    if (mistsutils_patchreporter2(A= "String(window.origin.wallpaper.mode)", B= ".toLowerCase()") == "stretch") {
-      @OSL_Vars_Set(name= "background_width", data= vars["Screen Size X"], current_command= "global");
-      @OSL_Vars_Set(name= "background_height", data= vars["Screen Size Y"], current_command= "global");
+    if (mistsutils_patchreporter2(A: "String(window.origin.wallpaper.mode)", B: ".toLowerCase()") == "stretch") {
+      @OSL_Vars_Set(name: "background_width", data: vars["Screen Size X"], current_command: "global");
+      @OSL_Vars_Set(name: "background_height", data: vars["Screen Size Y"], current_command: "global");
     } else {
-      @OSL_Vars_Set(name= "background_width", data= (looks_size() * vars["SYSTEM // Background Width"]), current_command= "global");
-      @OSL_Vars_Set(name= "background_height", data= (looks_size() * vars["SYSTEM // Background Height"]), current_command= "global");
+      @OSL_Vars_Set(name: "background_width", data: (looks_size() * vars["SYSTEM // Background Width"]), current_command: "global");
+      @OSL_Vars_Set(name: "background_height", data: (looks_size() * vars["SYSTEM // Background Height"]), current_command: "global");
     }
-    if mistsutils_ends(A= mistsutils_patchreporter(A= "origin.wallpaper.current"), B= ".mp4") {
-      lmsVideo_showVideo(NAME= "wallpaper", TARGET= lmsVideo_menu_targets(targets: ["_myself_",null]));
-      mistsutils_patchcommand(A= "queue = [[-10000, 10000, 10000, -10000]]");
-      mistsutils_patchcommand(A= "origin.renderer.queue = queue");
+    if mistsutils_ends(A: mistsutils_patchreporter(A: "origin.wallpaper.current"), B: ".mp4") {
+      lmsVideo_showVideo(NAME: "wallpaper", TARGET: lmsVideo_menu_targets(field targets: ["_myself_",null]));
+      mistsutils_patchcommand(A: "queue = [[-10000, 10000, 10000, -10000]]");
+      mistsutils_patchcommand(A: "origin.renderer.queue = queue");
     } else {
-      mistSkins_setSkin(TARGET= mistSkins_menu_targetMenu(targetMenu: ["_myself_",null]), NAME= "wallpaper");
+      mistSkins_setSkin(TARGET: mistSkins_menu_targetMenu(field targetMenu: ["_myself_",null]), NAME: "wallpaper");
     }
-    pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl?.user?.theme?.background ?? \"#000\""));
-    pen_setPenSizeTo(SIZE= (mistsutils_stagewidth() + mistsutils_stageheight()));
+    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl?.user?.theme?.background ?? \"#000\""));
+    pen_setPenSizeTo(SIZE: (mistsutils_stagewidth() + mistsutils_stageheight()));
     xeltallivclipblend_clearClipbox();
     looks_cleargraphiceffects();
-    looks_seteffectto(VALUE= mistsutils_patchreporter(A= "bg.transparency"), EFFECT: ["GHOST",null]);
-    mistsutils_patchcommand(A= "const mul = +origin.desktop.multiplier || 0");
-    if mistsutils_patchboolean(A= "Math.round(mul * 10) / 10 === mul") {
-      mistsutils_patchcommand(A= "let i = 0");
-      mistsutils_patchcommand(A= "origin.renderer.queue_total_frame_calls = queue.length");
-      mistsutils_patchcommand(A= "origin.renderer.last = queue.slice()");
-      mistsutils_patchcommand(A= "for (let _ = 0; _ < queue.length; _ ++) {");
-      @Renderer_Load_Queue(item= mistsutils_patchreporter(A= "queue[i++]"));
-      xeltallivclipblend_setClipbox(X1= vars["Redraw // Window Left"], Y1= vars["Redraw // Window Top"], X2= vars["Redraw // Window Right"], Y2= vars["Redraw // Window Bottom"]);
+    looks_seteffectto(VALUE: mistsutils_patchreporter(A: "bg.transparency"), field EFFECT: ["GHOST",null]);
+    mistsutils_patchcommand(A: "const mul = +origin.desktop.multiplier || 0");
+    if mistsutils_patchboolean(A: "Math.round(mul * 10) / 10 === mul") {
+      mistsutils_patchcommand(A: "let i = 0");
+      mistsutils_patchcommand(A: "origin.renderer.queue_total_frame_calls = queue.length");
+      mistsutils_patchcommand(A: "origin.renderer.last = queue.slice()");
+      mistsutils_patchcommand(A: "for (let _ = 0; _ < queue.length; _ ++) {");
+      @Renderer_Load_Queue(item: mistsutils_patchreporter(A: "queue[i++]"));
+      xeltallivclipblend_setClipbox(X1: vars["Redraw // Window Left"], Y1: vars["Redraw // Window Top"], X2: vars["Redraw // Window Right"], Y2: vars["Redraw // Window Bottom"]);
       pen_penDown();
       pen_penUp();
       pen_stamp();
-      mistsutils_patchcommand(A= "}");
+      mistsutils_patchcommand(A: "}");
       xeltallivclipblend_clearClipbox();
     } else {
       pen_penDown();
       pen_penUp();
-      motion_gotoxy(X= ((mistsutils_stagewidth() * -1.2) * (mistsutils_patchreporter(A= "mul") % 1)), Y= 0);
-      mistsutils_patchcommand(A= "for (let _ = 0; _ < 2; _ ++) {");
-      xeltallivclipblend_setClipbox(X1= (motion_xposition() - (vars["Screen Size X"] / 2)), Y1= (vars["Screen Size Y"] / -2), X2= (motion_xposition() + (vars["Screen Size X"] / 2)), Y2= (vars["Screen Size Y"] / 2));
+      motion_gotoxy(X: ((mistsutils_stagewidth() * -1.2) * (mistsutils_patchreporter(A: "mul") % 1)), Y: 0);
+      mistsutils_patchcommand(A: "for (let _ = 0; _ < 2; _ ++) {");
+      xeltallivclipblend_setClipbox(X1: (motion_xposition() - (vars["Screen Size X"] / 2)), Y1: (vars["Screen Size Y"] / -2), X2: (motion_xposition() + (vars["Screen Size X"] / 2)), Y2: (vars["Screen Size Y"] / 2));
       pen_stamp();
-      motion_changexby(DX= (mistsutils_stagewidth() * 1.2));
-      mistsutils_patchcommand(A= "}");
+      motion_changexby(DX: (mistsutils_stagewidth() * 1.2));
+      mistsutils_patchcommand(A: "}");
       xeltallivclipblend_clearClipbox();
     }
     looks_cleargraphiceffects();
-    mistsutils_patchcommand(A= "origin.wallpaper.redrawn = true");
-    mistsutils_patchcommand(A= "origin.renderer.queue = []");
+    mistsutils_patchcommand(A: "origin.wallpaper.redrawn = true");
+    mistsutils_patchcommand(A: "origin.renderer.queue = []");
   } else {
-    mistsutils_patchcommand(A= "origin.wallpaper.redrawn = false");
-    mistsutils_patchcommand(A= "origin.renderer.last = []");
-    mistsutils_patchcommand(A= "origin.renderer.queue = []");
+    mistsutils_patchcommand(A: "origin.wallpaper.redrawn = false");
+    mistsutils_patchcommand(A: "origin.renderer.last = []");
+    mistsutils_patchcommand(A: "origin.renderer.queue = []");
   }
-  looks_seteffectto(VALUE= 100, EFFECT: ["GHOST",null]);
+  looks_seteffectto(VALUE: 100, field EFFECT: ["GHOST",null]);
 }

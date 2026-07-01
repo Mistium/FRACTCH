@@ -8,34 +8,34 @@
 
 import "../procedures_definition/Log_Error__s__s.fractch";
 def @Run_Command_Object(params, command_object("command object"), value) "Run Command Object %s %s %s" warp=false {
-  mistsutils_patchcommand(A= "if (typeof p1 !== \"object\" || p1 === null)");
-  @Log_Error(Data= mistsutils_patchreporter(A= "`Tried to call value of type: ${typeof p1}`"), Type= "Unknown");
-  if mistsutils_patchboolean(A= "p1._symbol !== origin.symbols.function") {
-    mistsutils_patchcommand(A= "const inst = Object.create(p1)");
-    mistsutils_patchcommand3(A= "if (p1.init) return ", B= @Run_Command_Object(params= params, command_object= mistsutils_patchreporter(A= "p1.init"), value= mistsutils_patchreporter(A= "inst")), C= " ?? inst");
-    return mistsutils_patchreporter(A= "inst");
+  mistsutils_patchcommand(A: "if (typeof p1 !== \"object\" || p1 === null)");
+  @Log_Error(Data: mistsutils_patchreporter(A: "`Tried to call value of type: ${typeof p1}`"), Type: "Unknown");
+  if mistsutils_patchboolean(A: "p1._symbol !== origin.symbols.function") {
+    mistsutils_patchcommand(A: "const inst = Object.create(p1)");
+    mistsutils_patchcommand3(A: "if (p1.init) return ", B: @Run_Command_Object(params: params, command_object: mistsutils_patchreporter(A: "p1.init"), value: mistsutils_patchreporter(A: "inst")), C: " ?? inst");
+    return mistsutils_patchreporter(A: "inst");
   }
-  mistsutils_patchcommand(A= "const con = target.osl_vars");
-  mistsutils_patchcommand(A= "let out = null;");
-  mistsutils_patchcommand(A= "const self = con.__self__");
-  mistsutils_patchcommand(A= "if (p2 !== undefined) con.__self__ = p2;");
-  mistsutils_patchcommand(A= "if (p1._self) con.__self__ = p1._self;");
-  if mistsutils_patchboolean(A= "typeof p1?.code === \"function\"") {
-    mistsutils_patchcommand(A= "const new_scope = p1.inherit_scope !== true");
-    mistsutils_patchcommand(A= "p1.__self__ = con.__self__");
-    mistsutils_patchcommand(A= "p1.__target__ = target");
-    mistsutils_patchcommand(A= "if (new_scope)");
-    @OSL_Thread_Open(Name= mistsutils_patchreporter(A= "(p1.name ?? \"unknown\") + \"()\""));
-    mistsutils_patchcommand3(A= "out = p1.code(...", B= params, C= ")");
-    mistsutils_patchcommand(A= "if (p1?.generator) out = yield* out;");
-    mistsutils_patchcommand(A= "p1.__target__ = null");
-    mistsutils_patchcommand(A= "if (new_scope && thread.procedures !== null)");
+  mistsutils_patchcommand(A: "const con = target.osl_vars");
+  mistsutils_patchcommand(A: "let out = null;");
+  mistsutils_patchcommand(A: "const self = con.__self__");
+  mistsutils_patchcommand(A: "if (p2 !== undefined) con.__self__ = p2;");
+  mistsutils_patchcommand(A: "if (p1._self) con.__self__ = p1._self;");
+  if mistsutils_patchboolean(A: "typeof p1?.code === \"function\"") {
+    mistsutils_patchcommand(A: "const new_scope = p1.inherit_scope !== true");
+    mistsutils_patchcommand(A: "p1.__self__ = con.__self__");
+    mistsutils_patchcommand(A: "p1.__target__ = target");
+    mistsutils_patchcommand(A: "if (new_scope)");
+    @OSL_Thread_Open(Name: mistsutils_patchreporter(A: "(p1.name ?? \"unknown\") + \"()\""));
+    mistsutils_patchcommand3(A: "out = p1.code(...", B: params, C: ")");
+    mistsutils_patchcommand(A: "if (p1?.generator) out = yield* out;");
+    mistsutils_patchcommand(A: "p1.__target__ = null");
+    mistsutils_patchcommand(A: "if (new_scope && thread.procedures !== null)");
     @OSL_Thread_Close();
   } else {
-    mistsutils_patchcommand(A= "if (p1.code === null) ");
-    @Log_Error(Data= mistsutils_patchreporter(A= "`Function code appears to be null`"), Type= "Unknown");
-    mistsutils_patchcommand2(A= "out = ", B= @Run_Method(command_obj= mistsutils_patchreporter(A= "p1"), command= "", params= params));
+    mistsutils_patchcommand(A: "if (p1.code === null) ");
+    @Log_Error(Data: mistsutils_patchreporter(A: "`Function code appears to be null`"), Type: "Unknown");
+    mistsutils_patchcommand2(A: "out = ", B: @Run_Method(command_obj: mistsutils_patchreporter(A: "p1"), command: "", params: params));
   }
-  mistsutils_patchcommand(A= "con.__self__ = self");
-  return mistsutils_patchreporter(A= "out ?? null");
+  mistsutils_patchcommand(A: "con.__self__ = self");
+  return mistsutils_patchreporter(A: "out ?? null");
 }

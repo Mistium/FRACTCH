@@ -7,19 +7,19 @@
  */
 
 def @Generate_Theme_Colours_From_User() "Generate Theme Colours From User" warp=false {
-  mistsutils_patchcommand(A= "try {");
-  mistsutils_patchcommand2(A= "let theme = ", B= "osl.user.theme");
-  mistsutils_patchcommand(A= "function hexToHSL(t){let x=0,e=0,h=0;4==t.length?(x=\"0x\"+t[1]+t[1],e=\"0x\"+t[2]+t[2],h=\"0x\"+t[3]+t[3]):7==t.length&&(x=\"0x\"+t[1]+t[2],e=\"0x\"+t[3]+t[4],h=\"0x\"+t[5]+t[6]),x/=255,e/=255,h/=255;let n=Math.min(x,e,h),a=Math.max(x,e,h),l=a-n,o=0,i=0,M=0;return o=0==l?0:a==x?(e-h)/l%6:a==e?(h-x)/l+2:(x-e)/l+4,o=Math.round(60*o),o<0&&(o+=360),M=(a+n)/2,i=0==l?0:l/(1-Math.abs(2*M-1)),i=+(100*i).toFixed(1),M=+(100*M).toFixed(1),{h:o,s:i,l:M}}");
-  mistsutils_patchcommand(A= "function HSLToHex(t,n,h){n/=100,h/=100;let o=(1-Math.abs(2*h-1))*n,r=o*(1-Math.abs(t/60%2-1)),a=h-o/2,e=0,g=0,u=0;return 0<=t&&t<60?(e=o,g=r,u=0):60<=t&&t<120?(e=r,g=o,u=0):120<=t&&t<180?(e=0,g=o,u=r):180<=t&&t<240?(e=0,g=r,u=o):240<=t&&t<300?(e=r,g=0,u=o):300<=t&&t<360&&(e=o,g=0,u=r),e=Math.round(255*(e+a)).toString(16),g=Math.round(255*(g+a)).toString(16),u=Math.round(255*(u+a)).toString(16),1==e.length&&(e=\"0\"+e),1==g.length&&(g=\"0\"+g),1==u.length&&(u=\"0\"+u),\"#\"+e+g+u}");
-  mistsutils_patchcommand(A= "function generateThemeColors(baseColor) { const {h, s, l} = hexToHSL(baseColor); const lighterColor = HSLToHex(h, s, Math.min(l + 20, 100)); const darkerColor = HSLToHex(h, s, Math.max(l - 20, 0)); const complementaryColor = HSLToHex((h + 180) % 360, s, l); return { lighterColor, darkerColor, complementaryColor }; }");
-  mistsutils_patchcommand(A= "let out_theme = {}");
-  mistsutils_patchcommand(A= "for (let key of Object.keys(theme)) {");
-  mistsutils_patchcommand(A= "let gen = generateThemeColors(theme[key])");
-  mistsutils_patchcommand(A= "out_theme[key] = theme[key]");
-  mistsutils_patchcommand(A= "out_theme[key + \"-dark\"] = gen.darkerColor");
-  mistsutils_patchcommand(A= "out_theme[key + \"-light\"] = gen.lighterColor");
-  mistsutils_patchcommand(A= "out_theme[key + \"-comp\"] = gen.complementaryColor ");
-  mistsutils_patchcommand(A= "}");
-  mistsutils_patchcommand(A= "osl.theme = out_theme");
-  mistsutils_patchcommand(A= "} catch(e) { console.error(e) }");
+  mistsutils_patchcommand(A: "try {");
+  mistsutils_patchcommand2(A: "let theme = ", B: "osl.user.theme");
+  mistsutils_patchcommand(A: "function hexToHSL(t){let x=0,e=0,h=0;4==t.length?(x=\"0x\"+t[1]+t[1],e=\"0x\"+t[2]+t[2],h=\"0x\"+t[3]+t[3]):7==t.length&&(x=\"0x\"+t[1]+t[2],e=\"0x\"+t[3]+t[4],h=\"0x\"+t[5]+t[6]),x/=255,e/=255,h/=255;let n=Math.min(x,e,h),a=Math.max(x,e,h),l=a-n,o=0,i=0,M=0;return o=0==l?0:a==x?(e-h)/l%6:a==e?(h-x)/l+2:(x-e)/l+4,o=Math.round(60*o),o<0&&(o+=360),M=(a+n)/2,i=0==l?0:l/(1-Math.abs(2*M-1)),i=+(100*i).toFixed(1),M=+(100*M).toFixed(1),{h:o,s:i,l:M}}");
+  mistsutils_patchcommand(A: "function HSLToHex(t,n,h){n/=100,h/=100;let o=(1-Math.abs(2*h-1))*n,r=o*(1-Math.abs(t/60%2-1)),a=h-o/2,e=0,g=0,u=0;return 0<=t&&t<60?(e=o,g=r,u=0):60<=t&&t<120?(e=r,g=o,u=0):120<=t&&t<180?(e=0,g=o,u=r):180<=t&&t<240?(e=0,g=r,u=o):240<=t&&t<300?(e=r,g=0,u=o):300<=t&&t<360&&(e=o,g=0,u=r),e=Math.round(255*(e+a)).toString(16),g=Math.round(255*(g+a)).toString(16),u=Math.round(255*(u+a)).toString(16),1==e.length&&(e=\"0\"+e),1==g.length&&(g=\"0\"+g),1==u.length&&(u=\"0\"+u),\"#\"+e+g+u}");
+  mistsutils_patchcommand(A: "function generateThemeColors(baseColor) { const {h, s, l} = hexToHSL(baseColor); const lighterColor = HSLToHex(h, s, Math.min(l + 20, 100)); const darkerColor = HSLToHex(h, s, Math.max(l - 20, 0)); const complementaryColor = HSLToHex((h + 180) % 360, s, l); return { lighterColor, darkerColor, complementaryColor }; }");
+  mistsutils_patchcommand(A: "let out_theme = {}");
+  mistsutils_patchcommand(A: "for (let key of Object.keys(theme)) {");
+  mistsutils_patchcommand(A: "let gen = generateThemeColors(theme[key])");
+  mistsutils_patchcommand(A: "out_theme[key] = theme[key]");
+  mistsutils_patchcommand(A: "out_theme[key + \"-dark\"] = gen.darkerColor");
+  mistsutils_patchcommand(A: "out_theme[key + \"-light\"] = gen.lighterColor");
+  mistsutils_patchcommand(A: "out_theme[key + \"-comp\"] = gen.complementaryColor ");
+  mistsutils_patchcommand(A: "}");
+  mistsutils_patchcommand(A: "osl.theme = out_theme");
+  mistsutils_patchcommand(A: "} catch(e) { console.error(e) }");
 }

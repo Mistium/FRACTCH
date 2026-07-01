@@ -7,6 +7,6 @@
  */
 
 def @OSL_Set_Data_Var_To(data) "OSL // Set Data Var To %s" warp=false {
-  mistsutils_patchcommand3(A= "const con = window.osl_clone[", B= vars["WIndow // ID"], C= "]");
-  mistsutils_patchcommand(A= "if (con) con.data = p0");
+  mistsutils_patchcommand3(A: "const con = window.osl_clone[", B: vars["WIndow // ID"], C: "]");
+  mistsutils_patchcommand(A: "if (con) con.data = p0");
 }

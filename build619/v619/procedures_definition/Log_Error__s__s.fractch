@@ -7,11 +7,11 @@
  */
 
 def @Log_Error(Data, Type) "Log Error %s %s" warp=false {
-  mistsutils_patchcommand2(A= "let osl_window = ", B= "target.window");
-  mistsutils_patchcommand(A= "target.osl_local_scopes ??= [{name: \"Anonymous\"}]");
-  mistsutils_patchcommand(A= "let line = \"\"+(window.osl_current_command?.[0]?.line ?? 0)");
-  mistsutils_patchcommand(A= "let code = String(window.osl_current_command?.[0]?.source ?? \"Empty\").split(\"\\n\", 1)[0]");
-  mistsutils_patchcommand(A= "let pad = \" \".repeat(line.length)");
-  mistsutils_patchcommand(A= "let error = `${p1}: ${p0}\\n  ${line} | ${code}\\n  ${pad} |\\n\\nin: ${osl_window?.title ?? \"Unknown\"}.osl\\n → ${target.osl_local_scopes.map(v => v.name).join(\"\\n → \")}`");
-  mistsutils_patchcommand(A= "throw {_m: \"OSL ERROR\", error: p0, type: p1, code: code, full: error, line: line, stack: Object.clone(target.osl_local_scope) }");
+  mistsutils_patchcommand2(A: "let osl_window = ", B: "target.window");
+  mistsutils_patchcommand(A: "target.osl_local_scopes ??= [{name: \"Anonymous\"}]");
+  mistsutils_patchcommand(A: "let line = \"\"+(window.osl_current_command?.[0]?.line ?? 0)");
+  mistsutils_patchcommand(A: "let code = String(window.osl_current_command?.[0]?.source ?? \"Empty\").split(\"\\n\", 1)[0]");
+  mistsutils_patchcommand(A: "let pad = \" \".repeat(line.length)");
+  mistsutils_patchcommand(A: "let error = `${p1}: ${p0}\\n  ${line} | ${code}\\n  ${pad} |\\n\\nin: ${osl_window?.title ?? \"Unknown\"}.osl\\n → ${target.osl_local_scopes.map(v => v.name).join(\"\\n → \")}`");
+  mistsutils_patchcommand(A: "throw {_m: \"OSL ERROR\", error: p0, type: p1, code: code, full: error, line: line, stack: Object.clone(target.osl_local_scope) }");
 }

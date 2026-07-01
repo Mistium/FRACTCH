@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeExtensions } from '../src/extensions.js';
 import { checkFractch } from '../src/lint.js';
+import { parseFractch } from '../src/parse.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SB3 = 'originv6.0.0.sb3';
@@ -118,6 +119,39 @@ test('no trailing-comma noise in emitted calls', () => {
     const body = fs.readFileSync(f, 'utf8').split('*/').pop();
     assert.ok(!/,\s*\)/.test(body), `trailing comma in ${path.basename(f)}`);
   }
+});
+
+test('emitted calls use readable colon inputs and explicit field arguments', () => {
+  const hasColonInput = walk(outDir).some((f) => {
+    if (!f.endsWith('.fractch')) return false;
+    const text = fs.readFileSync(f, 'utf8');
+    return /mistsutils_patchcommand2\(A:/.test(text);
+  });
+  const hasExplicitField = walk(outDir).some((f) => {
+    if (!f.endsWith('.fractch')) return false;
+    const text = fs.readFileSync(f, 'utf8');
+    return /field BROADCAST_OPTION: broadcast\(/.test(text);
+  });
+  assert.ok(hasColonInput, 'no readable colon input syntax found');
+  assert.ok(hasExplicitField, 'no explicit field syntax found');
+
+  const parsed = parseFractch('data_changevariableby(VALUE: 1, field VARIABLE: var("score", "id"));\n').calls[0];
+  assert.strictEqual(parsed.args[0].sep, 'input');
+  assert.strictEqual(parsed.args[1].sep, 'field');
+
+  const legacy = parseFractch('data_changevariableby(VALUE= 1, VARIABLE: var("score", "id"));\n').calls[0];
+  assert.strictEqual(legacy.args[0].sep, 'input');
+  assert.strictEqual(legacy.args[1].sep, 'field');
+});
+
+test('variable changes render as vars assignment sugar', () => {
+  const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /vars\[[^\]]+\] \+= /.test(fs.readFileSync(f, 'utf8')));
+  assert.ok(hit, 'no vars += sugar found');
+
+  const parsed = parseFractch('vars["score"] += 1;\n').calls[0];
+  assert.strictEqual(parsed.callee.name, 'data_changevariableby');
+  assert.strictEqual(parsed.args[0].sep, 'field');
+  assert.strictEqual(parsed.args[1].sep, 'input');
 });
 
 test('switch/case blocks render as readable switch statements', () => {

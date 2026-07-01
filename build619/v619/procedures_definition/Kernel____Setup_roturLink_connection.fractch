@@ -7,31 +7,31 @@
  */
 
 def @Kernel_Setup_roturLink_connection() "Kernel // Setup roturLink connection" warp=false {
-  mistsutils_patchcommand(A= "const origin = window.origin");
-  mistsutils_patchcommand(A= "const connect = () => {");
-  mistsutils_patchcommand(A= "origin.roturLink.ws = new WebSocket(\"ws://127.0.0.1:5002\")");
-  mistsutils_patchcommand(A= "origin.roturLink.ws.onopen = function(){ origin.roturLink.enabled = true }");
-  mistsutils_patchcommand(A= "origin.roturLink.ws.onmessage = function(msg) {");
-  mistsutils_patchcommand(A= "const json = JSON.parse(msg.data); if (!origin.roturLink.enabled) return;");
-  mistsutils_patchcommand(A= "console.log(json)");
-  switch mistsutils_patchreporter(A= "json.cmd") {
+  mistsutils_patchcommand(A: "const origin = window.origin");
+  mistsutils_patchcommand(A: "const connect = () => {");
+  mistsutils_patchcommand(A: "origin.roturLink.ws = new WebSocket(\"ws://127.0.0.1:5002\")");
+  mistsutils_patchcommand(A: "origin.roturLink.ws.onopen = function(){ origin.roturLink.enabled = true }");
+  mistsutils_patchcommand(A: "origin.roturLink.ws.onmessage = function(msg) {");
+  mistsutils_patchcommand(A: "const json = JSON.parse(msg.data); if (!origin.roturLink.enabled) return;");
+  mistsutils_patchcommand(A: "console.log(json)");
+  switch mistsutils_patchreporter(A: "json.cmd") {
     case "handshake" {
-      if mistsutils_patchboolean(A= "typeof window.scaffolding === 'undefined'") {
+      if mistsutils_patchboolean(A: "typeof window.scaffolding === 'undefined'") {
         vars["Embed Mode"] = "1";
-        mistsutils_patchcommand(A= "origin.roturLink.mode = json.mode;");
-        mistsutils_patchcommand(A= "origin.roturLink.queue = []");
+        mistsutils_patchcommand(A: "origin.roturLink.mode = json.mode;");
+        mistsutils_patchcommand(A: "origin.roturLink.queue = []");
       }
     }
     case "test" {
-      if mistsutils_patchboolean(A= "origin.roturLink.mode === 'test'") {
-        mistsutils_patchcommand(A= "origin.roturLink.queue.push(json)");
+      if mistsutils_patchboolean(A: "origin.roturLink.mode === 'test'") {
+        mistsutils_patchcommand(A: "origin.roturLink.queue.push(json)");
       }
     }
     default {
-      mistsutils_patchcommand(A= "origin.roturLink = ({...origin.roturLink, ...json.val})");
+      mistsutils_patchcommand(A: "origin.roturLink = ({...origin.roturLink, ...json.val})");
     }
   }
-  mistsutils_patchcommand(A= "}");
-  mistsutils_patchcommand(A= "}");
-  return mistsutils_patchreporter(A= "connect");
+  mistsutils_patchcommand(A: "}");
+  mistsutils_patchcommand(A: "}");
+  return mistsutils_patchreporter(A: "connect");
 }

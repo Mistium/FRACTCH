@@ -7,243 +7,243 @@
  */
 
 def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" warp=false {
-  mistsutils_patchcommand(A= "if (p0 === null || typeof p0 !== \"object\") return p0;");
-  mistsutils_patchcommand(A= "const num = p0.num");
-  if mistsutils_patchboolean(A= "p0.tried_compile !== true") {
-    mistsutils_patchcommand(A= "p0.fn = 0");
-    mistsutils_patchcommand(A= "try {");
-    mistsutils_patchcommand(A= "thread.vars = {}");
-    switch mistsutils_patchreporter(A= "num") {
-      mistsutils_patchcommand(A= "case osl_tkn.str: case osl_tkn.num: case osl_tkn.cmd: case osl_tkn.unk: case osl_tkn.evl: case osl_tkn.raw: p0.static = true; break");
-      mistsutils_patchcommand(A= "case osl_tkn.bsl: p0.type = p0.otype");
-      mistsutils_patchcommand(A= "case osl_tkn.blk: case osl_tkn.mod: break");
+  mistsutils_patchcommand(A: "if (p0 === null || typeof p0 !== \"object\") return p0;");
+  mistsutils_patchcommand(A: "const num = p0.num");
+  if mistsutils_patchboolean(A: "p0.tried_compile !== true") {
+    mistsutils_patchcommand(A: "p0.fn = 0");
+    mistsutils_patchcommand(A: "try {");
+    mistsutils_patchcommand(A: "thread.vars = {}");
+    switch mistsutils_patchreporter(A: "num") {
+      mistsutils_patchcommand(A: "case osl_tkn.str: case osl_tkn.num: case osl_tkn.cmd: case osl_tkn.unk: case osl_tkn.evl: case osl_tkn.raw: p0.static = true; break");
+      mistsutils_patchcommand(A: "case osl_tkn.bsl: p0.type = p0.otype");
+      mistsutils_patchcommand(A: "case osl_tkn.blk: case osl_tkn.mod: break");
       default {
-        mistsutils_patchcommand2(A= "const code = ", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "p0")));
-        mistsutils_patchcommand(A= "p0.fn = new Function(\"target\", `const getVar = target.getOSLvar; const __self__ = this.__self__ return (${code})`)");
-        mistsutils_patchcommand(A= "// console.log(\"compiled:\", p0.source, \"as:\", code)");
+        mistsutils_patchcommand2(A: "const code = ", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "p0")));
+        mistsutils_patchcommand(A: "p0.fn = new Function(\"target\", `const getVar = target.getOSLvar; const __self__ = this.__self__ return (${code})`)");
+        mistsutils_patchcommand(A: "// console.log(\"compiled:\", p0.source, \"as:\", code)");
       }
     }
-    mistsutils_patchcommand(A= "} catch(e) { p0.nocomp_reason = e; /* console.error(\"failed compile:\", p0.source, \"because:\", e) */ }");
-    mistsutils_patchcommand(A= "p0.tried_compile = true");
+    mistsutils_patchcommand(A: "} catch(e) { p0.nocomp_reason = e; /* console.error(\"failed compile:\", p0.source, \"because:\", e) */ }");
+    mistsutils_patchcommand(A: "p0.tried_compile = true");
   }
-  if mistsutils_patchboolean(A= "p0.static === true") {
-    mistsutils_patchcommand(A= "return p0.data");
+  if mistsutils_patchboolean(A: "p0.static === true") {
+    mistsutils_patchcommand(A: "return p0.data");
   }
-  if mistsutils_patchboolean(A= "p0.fn !== 0") {
-    mistsutils_patchcommand(A= "try { p0.__self__ = target.osl_vars.__self__; return p0.fn(target) }");
-    mistsutils_patchcommand(A= "catch(e) { p0.fn = 0; p0.nocomp_reason = e }");
+  if mistsutils_patchboolean(A: "p0.fn !== 0") {
+    mistsutils_patchcommand(A: "try { p0.__self__ = target.osl_vars.__self__; return p0.fn(target) }");
+    mistsutils_patchcommand(A: "catch(e) { p0.fn = 0; p0.nocomp_reason = e }");
   }
-  mistsutils_patchcommand(A= "const tkn = osl_tkn");
-  mistsutils_patchcommand(A= "const oe = thread.evalToken");
-  mistsutils_patchcommand(A= "const data = p0.data");
-  switch mistsutils_patchreporter(A= "num") {
-    mistsutils_patchcommand(A= "case tkn.blk: return p0;");
-    mistsutils_patchcommand(A= "case tkn.bit: return osl_bitwise(yield* oe(p0.left), data, yield* oe(p0.right))");
-    case mistsutils_patchreporter(A= "tkn.var") {
-      mistsutils_patchcommand(A= "if (p0.local === true) { const val = target.osl_this[target.getThisIdx(target, data)]; if (val !== undefined) return val }");
-      mistsutils_patchcommand(A= "const ret = target.getOSLvar(data, target)");
-      mistsutils_patchcommand(A= "if (p0.quickReturn === true) return ret");
-      mistsutils_patchcommand(A= "if (ret === null || ret === undefined) return null");
-      mistsutils_patchcommand2(A= "if (ret._get && ret !== target.osl_vars.__self__) return ", B= @Run_Command_Object(params= mistsutils_patchreporter(A= "[]"), command_object= mistsutils_patchreporter(A= "ret._get"), value= mistsutils_patchreporter(A= "ret")));
-      mistsutils_patchcommand(A= "return ret");
+  mistsutils_patchcommand(A: "const tkn = osl_tkn");
+  mistsutils_patchcommand(A: "const oe = thread.evalToken");
+  mistsutils_patchcommand(A: "const data = p0.data");
+  switch mistsutils_patchreporter(A: "num") {
+    mistsutils_patchcommand(A: "case tkn.blk: return p0;");
+    mistsutils_patchcommand(A: "case tkn.bit: return osl_bitwise(yield* oe(p0.left), data, yield* oe(p0.right))");
+    case mistsutils_patchreporter(A: "tkn.var") {
+      mistsutils_patchcommand(A: "if (p0.local === true) { const val = target.osl_this[target.getThisIdx(target, data)]; if (val !== undefined) return val }");
+      mistsutils_patchcommand(A: "const ret = target.getOSLvar(data, target)");
+      mistsutils_patchcommand(A: "if (p0.quickReturn === true) return ret");
+      mistsutils_patchcommand(A: "if (ret === null || ret === undefined) return null");
+      mistsutils_patchcommand2(A: "if (ret._get && ret !== target.osl_vars.__self__) return ", B: @Run_Command_Object(params: mistsutils_patchreporter(A: "[]"), command_object: mistsutils_patchreporter(A: "ret._get"), value: mistsutils_patchreporter(A: "ret")));
+      mistsutils_patchcommand(A: "return ret");
     }
-    case mistsutils_patchreporter(A= "tkn.opr") {
-      mistsutils_patchcommand(A= "const l = p0.left, r = p0.right");
-      mistsutils_patchcommand2(A= "if (data === \"|>\") return ", B= @Run_Command_Object(params= mistsutils_patchreporter(A= "l.type === \"spr\" ? yield* oe(l.data) : [yield* oe(l)]"), command_object= mistsutils_patchreporter(A= "yield* oe(r)"), value= mistsutils_patchreporter(A= "undefined")));
-      mistsutils_patchcommand(A= "const left = yield* oe(l), tleft = typeof left");
-      mistsutils_patchcommand(A= "const right = yield* oe(r), tright = typeof right");
-      mistsutils_patchcommand(A= "if ((l.num === tkn.num || tleft === \"number\") && (r.num == tkn.num || tright === \"number\")) { switch(osl_opr[data]) { case 0: return left + right; case 1: return left - right; case 2: return left * right; case 3: return left / right; case 4: return left % right; case 5: return left ** right; case 6: return `${left}${right}` } }");
-      mistsutils_patchcommand(A= "return osl_maths(left, data, right)");
+    case mistsutils_patchreporter(A: "tkn.opr") {
+      mistsutils_patchcommand(A: "const l = p0.left, r = p0.right");
+      mistsutils_patchcommand2(A: "if (data === \"|>\") return ", B: @Run_Command_Object(params: mistsutils_patchreporter(A: "l.type === \"spr\" ? yield* oe(l.data) : [yield* oe(l)]"), command_object: mistsutils_patchreporter(A: "yield* oe(r)"), value: mistsutils_patchreporter(A: "undefined")));
+      mistsutils_patchcommand(A: "const left = yield* oe(l), tleft = typeof left");
+      mistsutils_patchcommand(A: "const right = yield* oe(r), tright = typeof right");
+      mistsutils_patchcommand(A: "if ((l.num === tkn.num || tleft === \"number\") && (r.num == tkn.num || tright === \"number\")) { switch(osl_opr[data]) { case 0: return left + right; case 1: return left - right; case 2: return left * right; case 3: return left / right; case 4: return left % right; case 5: return left ** right; case 6: return `${left}${right}` } }");
+      mistsutils_patchcommand(A: "return osl_maths(left, data, right)");
     }
-    case mistsutils_patchreporter(A= "tkn.cmp") {
-      mistsutils_patchcommand(A= "const left = yield* oe(p0.left)");
-      mistsutils_patchcommand(A= "const right = yield* oe(p0.right)");
-      switch mistsutils_patchreporter(A= "data") {
-        mistsutils_patchcommand(A= "case \"in\": return osl_contains(right, left)");
-        mistsutils_patchcommand(A= "case \"==\": return left === right || osl_eq(left, right)");
-        mistsutils_patchcommand(A= "case \"!=\": return osl_neq(left, right)");
-        mistsutils_patchcommand(A= "case \"===\": return left === right");
-        mistsutils_patchcommand(A= "case \"!==\": return left !== right");
-        mistsutils_patchcommand2(A= "case \">\": return ", B= (mistsutils_patchreporter(A= "left") > mistsutils_patchreporter(A= "right")));
-        mistsutils_patchcommand2(A= "case \"<\": return ", B= (mistsutils_patchreporter(A= "left") < mistsutils_patchreporter(A= "right")));
-        mistsutils_patchcommand2(A= "case \"!>\": case \"<=\": return ", B= not((mistsutils_patchreporter(A= "left") > mistsutils_patchreporter(A= "right"))));
-        mistsutils_patchcommand2(A= "case \"!<\": case \">=\": return ", B= not((mistsutils_patchreporter(A= "left") < mistsutils_patchreporter(A= "right"))));
-        mistsutils_patchcommand(A= "default: ");
-        @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown comparison operator: ${data}`"), Type= "Unknown");
+    case mistsutils_patchreporter(A: "tkn.cmp") {
+      mistsutils_patchcommand(A: "const left = yield* oe(p0.left)");
+      mistsutils_patchcommand(A: "const right = yield* oe(p0.right)");
+      switch mistsutils_patchreporter(A: "data") {
+        mistsutils_patchcommand(A: "case \"in\": return osl_contains(right, left)");
+        mistsutils_patchcommand(A: "case \"==\": return left === right || osl_eq(left, right)");
+        mistsutils_patchcommand(A: "case \"!=\": return osl_neq(left, right)");
+        mistsutils_patchcommand(A: "case \"===\": return left === right");
+        mistsutils_patchcommand(A: "case \"!==\": return left !== right");
+        mistsutils_patchcommand2(A: "case \">\": return ", B: (mistsutils_patchreporter(A: "left") > mistsutils_patchreporter(A: "right")));
+        mistsutils_patchcommand2(A: "case \"<\": return ", B: (mistsutils_patchreporter(A: "left") < mistsutils_patchreporter(A: "right")));
+        mistsutils_patchcommand2(A: "case \"!>\": case \"<=\": return ", B: not((mistsutils_patchreporter(A: "left") > mistsutils_patchreporter(A: "right"))));
+        mistsutils_patchcommand2(A: "case \"!<\": case \">=\": return ", B: not((mistsutils_patchreporter(A: "left") < mistsutils_patchreporter(A: "right"))));
+        mistsutils_patchcommand(A: "default: ");
+        @Log_Error(Data: mistsutils_patchreporter(A: "`Unknown comparison operator: ${data}`"), Type: "Unknown");
       }
     }
-    case mistsutils_patchreporter(A= "tkn.log") {
-      mistsutils_patchcommand(A= "// we need to keep the left and right stuff in there cos of short-circuits");
-      switch mistsutils_patchreporter(A= "data") {
-        mistsutils_patchcommand(A= "case \"and\": return (yield* oe(p0.left)) && (yield* oe(p0.right))");
-        mistsutils_patchcommand(A= "case \"or\": return (yield* oe(p0.left)) || (yield* oe(p0.right))");
-        mistsutils_patchcommand(A= "case \"nor\": return !((yield* oe(p0.left)) || (yield* oe(p0.right)))");
-        mistsutils_patchcommand(A= "case \"nand\": return !((yield* oe(p0.left)) && (yield* oe(p0.right)))");
+    case mistsutils_patchreporter(A: "tkn.log") {
+      mistsutils_patchcommand(A: "// we need to keep the left and right stuff in there cos of short-circuits");
+      switch mistsutils_patchreporter(A: "data") {
+        mistsutils_patchcommand(A: "case \"and\": return (yield* oe(p0.left)) && (yield* oe(p0.right))");
+        mistsutils_patchcommand(A: "case \"or\": return (yield* oe(p0.left)) || (yield* oe(p0.right))");
+        mistsutils_patchcommand(A: "case \"nor\": return !((yield* oe(p0.left)) || (yield* oe(p0.right)))");
+        mistsutils_patchcommand(A: "case \"nand\": return !((yield* oe(p0.left)) && (yield* oe(p0.right)))");
         case "xor" {
-          mistsutils_patchcommand(A= "const left = yield* oe(p0.left), right = yield* oe(p0.right)");
-          mistsutils_patchcommand(A= "return !((left === true) !== (right === true))");
+          mistsutils_patchcommand(A: "const left = yield* oe(p0.left), right = yield* oe(p0.right)");
+          mistsutils_patchcommand(A: "return !((left === true) !== (right === true))");
         }
         case "xnor" {
-          mistsutils_patchcommand(A= "const left = yield* oe(p0.left), right = yield* oe(p0.right)");
-          mistsutils_patchcommand(A= "return !((left === true) === (right === true))");
+          mistsutils_patchcommand(A: "const left = yield* oe(p0.left), right = yield* oe(p0.right)");
+          mistsutils_patchcommand(A: "return !((left === true) === (right === true))");
         }
-        mistsutils_patchcommand(A= "default:");
-        @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown logical operator: ${data}`"), Type= "Unknown");
+        mistsutils_patchcommand(A: "default:");
+        @Log_Error(Data: mistsutils_patchreporter(A: "`Unknown logical operator: ${data}`"), Type: "Unknown");
       }
     }
-    mistsutils_patchcommand3(A= "case tkn.qst: return yield* oe(", B= @Evaluate_OSL_Token(Token_Obj= mistsutils_patchreporter(A= "p0.left")), C= " === true ? p0.right : p0.right2)");
-    case mistsutils_patchreporter(A= "tkn.ury") {
-      switch mistsutils_patchreporter(A= "data") {
-        mistsutils_patchcommand(A= "case \"~\": return ~(yield* oe(p0.right))");
-        mistsutils_patchcommand(A= "case \"-\": return -(+(yield* oe(p0.right)) || 0)");
-        mistsutils_patchcommand(A= "case \"!\": return ((yield* oe(p0.right)) === false)");
+    mistsutils_patchcommand3(A: "case tkn.qst: return yield* oe(", B: @Evaluate_OSL_Token(Token_Obj: mistsutils_patchreporter(A: "p0.left")), C: " === true ? p0.right : p0.right2)");
+    case mistsutils_patchreporter(A: "tkn.ury") {
+      switch mistsutils_patchreporter(A: "data") {
+        mistsutils_patchcommand(A: "case \"~\": return ~(yield* oe(p0.right))");
+        mistsutils_patchcommand(A: "case \"-\": return -(+(yield* oe(p0.right)) || 0)");
+        mistsutils_patchcommand(A: "case \"!\": return ((yield* oe(p0.right)) === false)");
         case "?" {
-          mistsutils_patchcommand(A= "const glob = Object.getPrototypeOf(target.osl_vars)");
-          mistsutils_patchcommand(A= "try {");
-          mistsutils_patchcommand(A= "return glob.result.ok.code(yield* oe(p0.right))");
-          mistsutils_patchcommand(A= "} catch (e) {");
-          mistsutils_patchcommand(A= "return glob.result.err.code(e.error ?? e.message)");
-          mistsutils_patchcommand(A= "}");
+          mistsutils_patchcommand(A: "const glob = Object.getPrototypeOf(target.osl_vars)");
+          mistsutils_patchcommand(A: "try {");
+          mistsutils_patchcommand(A: "return glob.result.ok.code(yield* oe(p0.right))");
+          mistsutils_patchcommand(A: "} catch (e) {");
+          mistsutils_patchcommand(A: "return glob.result.err.code(e.error ?? e.message)");
+          mistsutils_patchcommand(A: "}");
         }
       }
-      @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown unary operator: ${data}`"), Type= "Unknown");
+      @Log_Error(Data: mistsutils_patchreporter(A: "`Unknown unary operator: ${data}`"), Type: "Unknown");
     }
-    case mistsutils_patchreporter(A= "tkn.fnc") {
-      mistsutils_patchcommand(A= "let params = p0?.parameters");
-      mistsutils_patchcommand(A= "let fnc;");
-      mistsutils_patchcommand(A= "if (p0.isStatic) fnc = p0.static");
-      mistsutils_patchcommand(A= "else { fnc = []");
-      mistsutils_patchcommand(A= "for (let i = 0; i < params.length; i ++) {");
-      mistsutils_patchcommand(A= "if (params[i]?.num === tkn.spr) for (let j = 0, value = yield* oe(params[i].data); j < value.length; j ++) fnc.push(value[j]);");
-      mistsutils_patchcommand(A= "else fnc.push(yield* oe(params[i]))");
-      mistsutils_patchcommand2(A= "}} return ", B= @run_func(command= mistsutils_patchreporter(A= "data"), params= mistsutils_patchreporter(A= "fnc")));
+    case mistsutils_patchreporter(A: "tkn.fnc") {
+      mistsutils_patchcommand(A: "let params = p0?.parameters");
+      mistsutils_patchcommand(A: "let fnc;");
+      mistsutils_patchcommand(A: "if (p0.isStatic) fnc = p0.static");
+      mistsutils_patchcommand(A: "else { fnc = []");
+      mistsutils_patchcommand(A: "for (let i = 0; i < params.length; i ++) {");
+      mistsutils_patchcommand(A: "if (params[i]?.num === tkn.spr) for (let j = 0, value = yield* oe(params[i].data); j < value.length; j ++) fnc.push(value[j]);");
+      mistsutils_patchcommand(A: "else fnc.push(yield* oe(params[i]))");
+      mistsutils_patchcommand2(A: "}} return ", B: @run_func(command: mistsutils_patchreporter(A: "data"), params: mistsutils_patchreporter(A: "fnc")));
     }
-    case mistsutils_patchreporter(A= "tkn.mtd") {
-      mistsutils_patchcommand(A= "let temp = yield* oe(data[0])");
-      mistsutils_patchcommand(A= "for (let i = 1; i < data.length; i++) {");
-      mistsutils_patchcommand(A= "const cur = data[i]");
-      mistsutils_patchcommand(A= "const params = cur?.parameters");
-      mistsutils_patchcommand(A= "let name = cur?.data");
-      if mistsutils_patchboolean(A= "params === undefined") {
-        mistsutils_patchcommand(A= "if (cur.num === tkn.ury) { if (name === \"!\") { name = cur.right.data; if (!(name in temp))");
-        @Log_Error(Data= mistsutils_patchreporter(A= "`${name} is not in object`"), Type= "Property Access");
-        mistsutils_patchcommand(A= "}}");
-        switch mistsutils_patchreporter(A= "name") {
-          mistsutils_patchcommand(A= "case \"len\": if (temp === null) temp = 0; else if (typeof temp === \"object\") temp = temp?.length ?? Object.keys(temp).length; else temp = String(temp).length; continue");
-          mistsutils_patchcommand(A= "case \"destr\": temp = JSON.safeParse(temp); continue");
-          mistsutils_patchcommand(A= "case \"not\": temp = `${temp}`.toLowerCase() === \"false\"; continue");
-          mistsutils_patchcommand(A= "case \"__proto__\": temp = null; continue");
+    case mistsutils_patchreporter(A: "tkn.mtd") {
+      mistsutils_patchcommand(A: "let temp = yield* oe(data[0])");
+      mistsutils_patchcommand(A: "for (let i = 1; i < data.length; i++) {");
+      mistsutils_patchcommand(A: "const cur = data[i]");
+      mistsutils_patchcommand(A: "const params = cur?.parameters");
+      mistsutils_patchcommand(A: "let name = cur?.data");
+      if mistsutils_patchboolean(A: "params === undefined") {
+        mistsutils_patchcommand(A: "if (cur.num === tkn.ury) { if (name === \"!\") { name = cur.right.data; if (!(name in temp))");
+        @Log_Error(Data: mistsutils_patchreporter(A: "`${name} is not in object`"), Type: "Property Access");
+        mistsutils_patchcommand(A: "}}");
+        switch mistsutils_patchreporter(A: "name") {
+          mistsutils_patchcommand(A: "case \"len\": if (temp === null) temp = 0; else if (typeof temp === \"object\") temp = temp?.length ?? Object.keys(temp).length; else temp = String(temp).length; continue");
+          mistsutils_patchcommand(A: "case \"destr\": temp = JSON.safeParse(temp); continue");
+          mistsutils_patchcommand(A: "case \"not\": temp = `${temp}`.toLowerCase() === \"false\"; continue");
+          mistsutils_patchcommand(A: "case \"__proto__\": temp = null; continue");
           default {
-            if mistsutils_patchboolean(A= "temp === target.osl_this && typeof name !== \"number\"") {
-              mistsutils_patchcommand(A= "cur.data = target.osl_local_map[name]");
-              mistsutils_patchcommand(A= "if (cur.data === undefined) console.log(name, \"is undefined\")");
-              mistsutils_patchcommand(A= "name = cur.data");
+            if mistsutils_patchboolean(A: "temp === target.osl_this && typeof name !== \"number\"") {
+              mistsutils_patchcommand(A: "cur.data = target.osl_local_map[name]");
+              mistsutils_patchcommand(A: "if (cur.data === undefined) console.log(name, \"is undefined\")");
+              mistsutils_patchcommand(A: "name = cur.data");
             }
-            mistsutils_patchcommand(A= "if (typeof temp !== \"object\" || temp === null) { temp = null; continue };");
-            mistsutils_patchcommand(A= "if (typeof name !== \"number\" && temp.length !== undefined && Array.isArray(temp))");
-            @Log_Error(Data= mistsutils_patchreporter(A= "`Cannot access property: \"${name}\" on type: array`"), Type= "Property Access");
-            mistsutils_patchcommand(A= "const first = `${name}`[0]");
-            mistsutils_patchcommand(A= "if (first === \"_\" && temp !== osl_clone[target.window.id].__self__) { temp = null; continue };");
-            mistsutils_patchcommand(A= "let out = temp[name];");
-            mistsutils_patchcommand(A= "if (out === null || out === undefined) { temp = null; continue }");
-            mistsutils_patchcommand(A= "const get = out._get");
-            mistsutils_patchcommand2(A= "if (get !== undefined && get !== null) out = ", B= @Run_Command_Object(params= "", command_object= mistsutils_patchreporter(A= "get"), value= mistsutils_patchreporter(A= "temp")));
-            mistsutils_patchcommand(A= "if (typeof out === \"function\") out = null");
-            mistsutils_patchcommand(A= "temp = out; continue");
+            mistsutils_patchcommand(A: "if (typeof temp !== \"object\" || temp === null) { temp = null; continue };");
+            mistsutils_patchcommand(A: "if (typeof name !== \"number\" && temp.length !== undefined && Array.isArray(temp))");
+            @Log_Error(Data: mistsutils_patchreporter(A: "`Cannot access property: \"${name}\" on type: array`"), Type: "Property Access");
+            mistsutils_patchcommand(A: "const first = `${name}`[0]");
+            mistsutils_patchcommand(A: "if (first === \"_\" && temp !== osl_clone[target.window.id].__self__) { temp = null; continue };");
+            mistsutils_patchcommand(A: "let out = temp[name];");
+            mistsutils_patchcommand(A: "if (out === null || out === undefined) { temp = null; continue }");
+            mistsutils_patchcommand(A: "const get = out._get");
+            mistsutils_patchcommand2(A: "if (get !== undefined && get !== null) out = ", B: @Run_Command_Object(params: "", command_object: mistsutils_patchreporter(A: "get"), value: mistsutils_patchreporter(A: "temp")));
+            mistsutils_patchcommand(A: "if (typeof out === \"function\") out = null");
+            mistsutils_patchcommand(A: "temp = out; continue");
           }
         }
       }
-      if mistsutils_patchboolean(A= "params") {
-        mistsutils_patchcommand(A= "const mtd = p0.isStatic ? p0.static : []");
-        mistsutils_patchcommand(A= "if (!p0.isStatic) for (let j = 0; j < params.length; j ++) {");
-        mistsutils_patchcommand(A= "if (params[j].num === tkn.spr) for (let i = 0, value = yield* oe(params[j].data); i < value.length; i ++) mtd.push(value[i]);");
-        mistsutils_patchcommand(A= "else mtd.push(yield* oe(params[j]));");
-        mistsutils_patchcommand(A= "}");
-        switch mistsutils_patchreporter(A= "name") {
-          mistsutils_patchcommand3(A= "case \"not\": temp = ", B= "`${temp}`.toLowerCase() === \"false\"", C= "; continue");
-          mistsutils_patchcommand3(A= "case \"sin\": temp = ", B= sin(mistsutils_patchreporter(A= "temp")), C= "; continue");
-          mistsutils_patchcommand3(A= "case \"cos\": temp = ", B= cos(mistsutils_patchreporter(A= "temp")), C= "; continue");
-          mistsutils_patchcommand3(A= "case \"tan\": temp = ", B= tan(mistsutils_patchreporter(A= "temp")), C= "; continue");
-          mistsutils_patchcommand3(A= "case \"JsonClean\": temp = ", B= @parse(json= mistsutils_patchreporter(A= "temp")), C= "; continue");
-          mistsutils_patchcommand(A= "case \"item\": temp = window.osl_item(temp, mtd[0], target); continue");
-          mistsutils_patchcommand2(A= "default: temp = ", B= @Find_And_Run_Method(input= mistsutils_patchreporter(A= "temp"), command= mistsutils_patchreporter(A= "`${name}()`"), params= mistsutils_patchreporter(A= "mtd")));
+      if mistsutils_patchboolean(A: "params") {
+        mistsutils_patchcommand(A: "const mtd = p0.isStatic ? p0.static : []");
+        mistsutils_patchcommand(A: "if (!p0.isStatic) for (let j = 0; j < params.length; j ++) {");
+        mistsutils_patchcommand(A: "if (params[j].num === tkn.spr) for (let i = 0, value = yield* oe(params[j].data); i < value.length; i ++) mtd.push(value[i]);");
+        mistsutils_patchcommand(A: "else mtd.push(yield* oe(params[j]));");
+        mistsutils_patchcommand(A: "}");
+        switch mistsutils_patchreporter(A: "name") {
+          mistsutils_patchcommand3(A: "case \"not\": temp = ", B: "`${temp}`.toLowerCase() === \"false\"", C: "; continue");
+          mistsutils_patchcommand3(A: "case \"sin\": temp = ", B: sin(mistsutils_patchreporter(A: "temp")), C: "; continue");
+          mistsutils_patchcommand3(A: "case \"cos\": temp = ", B: cos(mistsutils_patchreporter(A: "temp")), C: "; continue");
+          mistsutils_patchcommand3(A: "case \"tan\": temp = ", B: tan(mistsutils_patchreporter(A: "temp")), C: "; continue");
+          mistsutils_patchcommand3(A: "case \"JsonClean\": temp = ", B: @parse(json: mistsutils_patchreporter(A: "temp")), C: "; continue");
+          mistsutils_patchcommand(A: "case \"item\": temp = window.osl_item(temp, mtd[0], target); continue");
+          mistsutils_patchcommand2(A: "default: temp = ", B: @Find_And_Run_Method(input: mistsutils_patchreporter(A: "temp"), command: mistsutils_patchreporter(A: "`${name}()`"), params: mistsutils_patchreporter(A: "mtd")));
         }
       }
-      mistsutils_patchcommand(A= "}");
-      mistsutils_patchcommand(A= "return temp ?? null");
+      mistsutils_patchcommand(A: "}");
+      mistsutils_patchcommand(A: "return temp ?? null");
     }
-    case mistsutils_patchreporter(A= "tkn.spr") {
-      @Log_Error(Data= "Can't use the spread operator here", Type= "Spread");
+    case mistsutils_patchreporter(A: "tkn.spr") {
+      @Log_Error(Data: "Can't use the spread operator here", Type: "Spread");
     }
-    case mistsutils_patchreporter(A= "tkn.arr") {
-      mistsutils_patchcommand(A= "if (data.isStatic) return data.static.slice()");
-      mistsutils_patchcommand(A= "let arr = []");
-      mistsutils_patchcommand(A= "for (let i = 0; i < data.length; i++) {");
-      mistsutils_patchcommand(A= "if (data[i].type === \"spr\") arr.push(...yield* oe(data[i].data));");
-      mistsutils_patchcommand(A= "else arr.push(yield* oe(data[i]) ?? null);");
-      mistsutils_patchcommand(A= "}");
-      mistsutils_patchcommand(A= "return arr");
+    case mistsutils_patchreporter(A: "tkn.arr") {
+      mistsutils_patchcommand(A: "if (data.isStatic) return data.static.slice()");
+      mistsutils_patchcommand(A: "let arr = []");
+      mistsutils_patchcommand(A: "for (let i = 0; i < data.length; i++) {");
+      mistsutils_patchcommand(A: "if (data[i].type === \"spr\") arr.push(...yield* oe(data[i].data));");
+      mistsutils_patchcommand(A: "else arr.push(yield* oe(data[i]) ?? null);");
+      mistsutils_patchcommand(A: "}");
+      mistsutils_patchcommand(A: "return arr");
     }
-    case mistsutils_patchreporter(A= "tkn.tsr") {
-      mistsutils_patchcommand(A= "let tsr = \"\";");
-      mistsutils_patchcommand(A= "for (let i = 0; i < data.length; i++) tsr += `${(yield* oe(data[i]) ?? null)}`");
-      mistsutils_patchcommand(A= "return tsr");
+    case mistsutils_patchreporter(A: "tkn.tsr") {
+      mistsutils_patchcommand(A: "let tsr = \"\";");
+      mistsutils_patchcommand(A: "for (let i = 0; i < data.length; i++) tsr += `${(yield* oe(data[i]) ?? null)}`");
+      mistsutils_patchcommand(A: "return tsr");
     }
-    case mistsutils_patchreporter(A= "tkn.obj") {
-      mistsutils_patchcommand(A= "let obj = Object.create(null)");
-      mistsutils_patchcommand(A= "obj[Symbol.toPrimitive] = () => '[Object object]'");
-      mistsutils_patchcommand(A= "for (let i = 0; i < data.length; i++) {");
-      mistsutils_patchcommand(A= "if (data[i][0]?.type === \"spr\") Object.assign(obj, yield* oe(data[i][0].data));");
-      mistsutils_patchcommand(A= "else obj[yield* oe(data[i][0]) ?? null] = yield* oe(data[i][1]) ?? null;");
-      mistsutils_patchcommand(A= "}");
-      mistsutils_patchcommand(A= "return obj");
+    case mistsutils_patchreporter(A: "tkn.obj") {
+      mistsutils_patchcommand(A: "let obj = Object.create(null)");
+      mistsutils_patchcommand(A: "obj[Symbol.toPrimitive] = () => '[Object object]'");
+      mistsutils_patchcommand(A: "for (let i = 0; i < data.length; i++) {");
+      mistsutils_patchcommand(A: "if (data[i][0]?.type === \"spr\") Object.assign(obj, yield* oe(data[i][0].data));");
+      mistsutils_patchcommand(A: "else obj[yield* oe(data[i][0]) ?? null] = yield* oe(data[i][1]) ?? null;");
+      mistsutils_patchcommand(A: "}");
+      mistsutils_patchcommand(A: "return obj");
     }
-    case mistsutils_patchreporter(A= "tkn.mod") {
-      mistsutils_patchcommand(A= "let dat = data[1].data;");
-      mistsutils_patchcommand3(A= "try { dat = `${(", B= @Evaluate_OSL_Token(Token_Obj= mistsutils_patchreporter(A= "data[1]")), C= " ?? dat)}` } catch {}");
-      switch mistsutils_patchreporter(A= "data[0]") {
+    case mistsutils_patchreporter(A: "tkn.mod") {
+      mistsutils_patchcommand(A: "let dat = data[1].data;");
+      mistsutils_patchcommand3(A: "try { dat = `${(", B: @Evaluate_OSL_Token(Token_Obj: mistsutils_patchreporter(A: "data[1]")), C: " ?? dat)}` } catch {}");
+      switch mistsutils_patchreporter(A: "data[0]") {
         case "chx" {
-          @OSL_Find_And_Run(command= "change_x", input2= mistsutils_patchreporter(A= "dat"), tokens= "");
+          @OSL_Find_And_Run(command: "change_x", input2: mistsutils_patchreporter(A: "dat"), tokens: "");
         }
         case "chy" {
-          @OSL_Find_And_Run(command= "change_y", input2= mistsutils_patchreporter(A= "dat"), tokens= "");
+          @OSL_Find_And_Run(command: "change_y", input2: mistsutils_patchreporter(A: "dat"), tokens: "");
         }
         case "c" {
-          mistsutils_patchcommand(A= "if (!dat.startsWith(\"#\")) dat = \"#\" + dat");
-          @OSL_Find_And_Run(command= "c", input2= mistsutils_patchreporter(A= "dat"), tokens= "");
+          mistsutils_patchcommand(A: "if (!dat.startsWith(\"#\")) dat = \"#\" + dat");
+          @OSL_Find_And_Run(command: "c", input2: mistsutils_patchreporter(A: "dat"), tokens: "");
         }
         case "o" {
-          pen_setPenColorParamTo(COLOR_PARAM= pen_menu_colorParam(colorParam: ["transparency",null]), VALUE= mistsutils_patchreporter(A= "100 - (+dat || 0)"));
+          pen_setPenColorParamTo(COLOR_PARAM: pen_menu_colorParam(field colorParam: ["transparency",null]), VALUE: mistsutils_patchreporter(A: "100 - (+dat || 0)"));
         }
         case "w" {
-          pen_setPenSizeTo(SIZE= mistsutils_patchreporter(A= "dat"));
+          pen_setPenSizeTo(SIZE: mistsutils_patchreporter(A: "dat"));
         }
         case "hover_c" {
-          mistsutils_patchcommand(A= "if (!dat.startsWith(\"#\")) dat = \"#\" + dat");
-          @OSL_Find_And_Run(command= "hc", input2= mistsutils_patchreporter(A= "dat"), tokens= "");
+          mistsutils_patchcommand(A: "if (!dat.startsWith(\"#\")) dat = \"#\" + dat");
+          @OSL_Find_And_Run(command: "hc", input2: mistsutils_patchreporter(A: "dat"), tokens: "");
         }
         case "click_c" {
-          if (mistsutils_patchreporter(A= "`${osl.mouse_down}`") == "true") {
-            mistsutils_patchcommand(A= "if (!dat.startsWith(\"#\")) dat = \"#\" + dat");
-            @OSL_Find_And_Run(command= "hc", input2= mistsutils_patchreporter(A= "dat"), tokens= "");
+          if (mistsutils_patchreporter(A: "`${osl.mouse_down}`") == "true") {
+            mistsutils_patchcommand(A: "if (!dat.startsWith(\"#\")) dat = \"#\" + dat");
+            @OSL_Find_And_Run(command: "hc", input2: mistsutils_patchreporter(A: "dat"), tokens: "");
           }
         }
         case "hover_size" {
-          @OSL_Find_And_Run(command= "hs", input2= mistsutils_patchreporter(A= "dat"), tokens= "");
+          @OSL_Find_And_Run(command: "hs", input2: mistsutils_patchreporter(A: "dat"), tokens: "");
         }
         case "click_size" {
-          if (mistsutils_patchreporter(A= "`${osl.mouse_down}`") == "true") {
-            @OSL_Find_And_Run(command= "hs", input2= mistsutils_patchreporter(A= "dat"), tokens= "");
+          if (mistsutils_patchreporter(A: "`${osl.mouse_down}`") == "true") {
+            @OSL_Find_And_Run(command: "hs", input2: mistsutils_patchreporter(A: "dat"), tokens: "");
           }
         }
         case "tooltip" {
-          @OSL_Find_And_Run(command= "tooltip", input2= mistsutils_patchreporter(A= "dat"), tokens= "");
+          @OSL_Find_And_Run(command: "tooltip", input2: mistsutils_patchreporter(A: "dat"), tokens: "");
         }
       }
     }
     default {
-      @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown Type: ${p0?.type} in: ${JSON.stringify(p0)}`"), Type= "Parse");
-      mistsutils_patchcommand(A= "if (!p0) p0 = {type: \"undefined\"}");
+      @Log_Error(Data: mistsutils_patchreporter(A: "`Unknown Type: ${p0?.type} in: ${JSON.stringify(p0)}`"), Type: "Parse");
+      mistsutils_patchcommand(A: "if (!p0) p0 = {type: \"undefined\"}");
     }
   }
   return "";

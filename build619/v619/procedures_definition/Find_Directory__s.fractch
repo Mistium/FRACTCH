@@ -7,11 +7,11 @@
  */
 
 def @Find_Directory(Directory) "Find Directory %s" warp=false {
-  mistsutils_patchcommand(A= "p0 = (\"\"+p0).toLowerCase()");
-  mistsutils_patchcommand(A= "if (String(p0).startsWith(\"origin/\")) return p0");
-  mistsutils_patchcommand(A= "if (String(p0).startsWith(\"/\")) return `origin${p0}`");
-  if mistsutils_starts(A= Directory, B= "user/") {
-    return (mistsutils_patchreporter(A= "`${osl.user_folder}/`") .. @letters_to_of(start= "6", end= "-1", text= Directory));
+  mistsutils_patchcommand(A: "p0 = (\"\"+p0).toLowerCase()");
+  mistsutils_patchcommand(A: "if (String(p0).startsWith(\"origin/\")) return p0");
+  mistsutils_patchcommand(A: "if (String(p0).startsWith(\"/\")) return `origin${p0}`");
+  if mistsutils_starts(A: Directory, B: "user/") {
+    return (mistsutils_patchreporter(A: "`${osl.user_folder}/`") .. @letters_to_of(start: "6", end: "-1", text: Directory));
   }
-  return @Parse_Directory(directory= Directory);
+  return @Parse_Directory(directory: Directory);
 }

@@ -7,41 +7,41 @@
  */
 
 def @File_get_item(id, item) "File// get %s item %s" warp=true {
-  if mistsutils_patchboolean(A= "typeof p0 === \"number\" || !isNaN(+p0)") {
+  if mistsutils_patchboolean(A: "typeof p0 === \"number\" || !isNaN(+p0)") {
     vars["Files // Get Count"] = id;
   } else {
-    if operator_contains(STRING1= id, STRING2= "/") {
-      vars["Files // Get Count"] = @originFS_Path_ID(Path= id);
+    if operator_contains(STRING1: id, STRING2: "/") {
+      vars["Files // Get Count"] = @originFS_Path_ID(Path: id);
     } else {
-      vars["Files // Get Count"] = @originFS_UUID_ID(UUID= id);
+      vars["Files // Get Count"] = @originFS_UUID_ID(UUID: id);
     }
   }
-  vars["Files // Get Count"] = @file_item_of_num(index= vars["Files // Get Count"], num= "0");
+  vars["Files // Get Count"] = @file_item_of_num(index: vars["Files // Get Count"], num: "0");
   if (item == "") {
-    data_deletealloflist(LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
-    mistsutils_patchcommand(A= "for (let i = 1; i <= 14; i ++) {");
-    data_changevariableby(VALUE= 1, VARIABLE: var("Files // Get Count", "4e"));
-    mistsutils_patchcommand2(A= "let val = ", B= data_itemoflist(INDEX= vars["Files // Get Count"], LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
-    if mistsutils_patchboolean(A= "+i === 4 && val === false") {
-      mistsutils_patchcommand3(A= "val = yield* window.origin.getFile(", B= data_itemoflist(INDEX= (vars["Files // Get Count"] + 10), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C= ")");
-      data_replaceitemoflist(INDEX= vars["Files // Get Count"], ITEM= mistsutils_patchreporter(A= "val"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+    data_deletealloflist(field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
+    mistsutils_patchcommand(A: "for (let i = 1; i <= 14; i ++) {");
+    vars["Files // Get Count"] += 1;
+    mistsutils_patchcommand2(A: "let val = ", B: data_itemoflist(INDEX: vars["Files // Get Count"], field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+    if mistsutils_patchboolean(A: "+i === 4 && val === false") {
+      mistsutils_patchcommand3(A: "val = yield* window.origin.getFile(", B: data_itemoflist(INDEX: (vars["Files // Get Count"] + 10), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: ")");
+      data_replaceitemoflist(INDEX: vars["Files // Get Count"], ITEM: mistsutils_patchreporter(A: "val"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
     }
-    data_changevariableby(VALUE= 1, VARIABLE: var("SYSTEM // Total Disk Reads", "uFezuuy1}i5$FTMm^DyD"));
-    data_addtolist(ITEM= mistsutils_patchreporter(A= "val"), LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
-    mistsutils_patchcommand(A= "}");
+    vars["SYSTEM // Total Disk Reads"] += 1;
+    data_addtolist(ITEM: mistsutils_patchreporter(A: "val"), field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
+    mistsutils_patchcommand(A: "}");
   } else {
-    mistsutils_patchcommand2(A= "const idx = ", B= mistsutils_ifthen(A= mistsutils_patchboolean(A= "typeof p1 === \"number\""), B= item, C= mistsutils_patchreporter3(A= "origin.files.entryLabels.indexOf(", B= item, C= ") + 1")));
-    data_changevariableby(VALUE= mistsutils_patchreporter(A= "idx"), VARIABLE: var("Files // Get Count", "4e"));
-    mistsutils_patchcommand2(A= "let val = ", B= data_itemoflist(INDEX= vars["Files // Get Count"], LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
-    if mistsutils_patchboolean(A= "+idx === 4 && val === false") {
-      mistsutils_patchcommand3(A= "val = yield* window.origin.getFile(", B= data_itemoflist(INDEX= (vars["Files // Get Count"] + 10), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C= ")");
-      data_replaceitemoflist(INDEX= vars["Files // Get Count"], ITEM= mistsutils_patchreporter(A= "val"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+    mistsutils_patchcommand2(A: "const idx = ", B: mistsutils_ifthen(A: mistsutils_patchboolean(A: "typeof p1 === \"number\""), B: item, C: mistsutils_patchreporter3(A: "origin.files.entryLabels.indexOf(", B: item, C: ") + 1")));
+    vars["Files // Get Count"] += mistsutils_patchreporter(A: "idx");
+    mistsutils_patchcommand2(A: "let val = ", B: data_itemoflist(INDEX: vars["Files // Get Count"], field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+    if mistsutils_patchboolean(A: "+idx === 4 && val === false") {
+      mistsutils_patchcommand3(A: "val = yield* window.origin.getFile(", B: data_itemoflist(INDEX: (vars["Files // Get Count"] + 10), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: ")");
+      data_replaceitemoflist(INDEX: vars["Files // Get Count"], ITEM: mistsutils_patchreporter(A: "val"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
     }
-    vars["//return"] = mistsutils_patchreporter(A= "val");
-    data_changevariableby(VALUE= 1, VARIABLE: var("SYSTEM // Total Disk Reads", "uFezuuy1}i5$FTMm^DyD"));
+    vars["//return"] = mistsutils_patchreporter(A: "val");
+    vars["SYSTEM // Total Disk Reads"] += 1;
     return vars["//return"];
   }
-  mistsutils_patchcommand(A= "/*");
+  mistsutils_patchcommand(A: "/*");
   broadcast_wait "// right click";
-  mistsutils_patchcommand(A= "*/");
+  mistsutils_patchcommand(A: "*/");
 }

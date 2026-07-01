@@ -10,5 +10,5 @@ import "../procedures_definition/OSL____Parse_and_Run__s.fractch";
 def @Inputs_Unfocus() "Inputs // Unfocus" warp=false {
   vars["Inputs // Current Selected"] = "0";
   vars["Inputs // Selected String"] = "";
-  @OSL_Parse_and_Run(Run= "inputs.selected = null");
+  @OSL_Parse_and_Run(Run: "inputs.selected = null");
 }

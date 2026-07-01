@@ -7,15 +7,15 @@
  */
 
 def @originNM_Log_Request_Payload_Recipient_Received(Payload, Recipient, received) "originNM // Log Request. Payload: %s Recipient: %s Received?: %b" warp=false {
-  mistsutils_patchcommand(A= "let obj = {}");
-  mistsutils_patchcommand2(A= "obj.timestamp = ", B= "Date.now()");
-  mistsutils_patchcommand2(A= "obj.payload = ", B= @letters_to_of(start= "1", end= "99", text= Payload));
+  mistsutils_patchcommand(A: "let obj = {}");
+  mistsutils_patchcommand2(A: "obj.timestamp = ", B: "Date.now()");
+  mistsutils_patchcommand2(A: "obj.payload = ", B: @letters_to_of(start: "1", end: "99", text: Payload));
   if received {
-    mistsutils_patchcommand2(A= "obj.source = ", B= Recipient);
+    mistsutils_patchcommand2(A: "obj.source = ", B: Recipient);
   } else {
-    mistsutils_patchcommand2(A= "obj.recipient = ", B= Recipient);
-    mistsutils_patchcommand2(A= "obj.network_identifier = ", B= vars["Window // Network ID"]);
+    mistsutils_patchcommand2(A: "obj.recipient = ", B: Recipient);
+    mistsutils_patchcommand2(A: "obj.network_identifier = ", B: vars["Window // Network ID"]);
   }
-  mistsutils_patchcommand(A= "origin.network.logs.unshift(obj)");
-  mistsutils_patchcommand(A= "origin.network.logs.splice(100,1)");
+  mistsutils_patchcommand(A: "origin.network.logs.unshift(obj)");
+  mistsutils_patchcommand(A: "origin.network.logs.splice(100,1)");
 }

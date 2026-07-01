@@ -9,15 +9,15 @@
 def @Account_Request_using_and(mode, Key, Value) "Account // Request %s using %s and %s" warp=false {
   switch mode {
     case "update" {
-      if mistsutils_notequals(A= mistsutils_patchreporter3(A= "osl.user[", B= Key, C= "]"), B= Value) {
-        data_changevariableby(VALUE= mistsutils_patchreporter(A= "`${p1}${p2}`.length"), VARIABLE: var("Network // Upload", "(x"));
-        mistsutils_patchcommand(A= "origin.account.update(p1,p2)");
-        @Account_Update_Local_Key_To(Key= Key, Value= Value);
+      if mistsutils_notequals(A: mistsutils_patchreporter3(A: "osl.user[", B: Key, C: "]"), B: Value) {
+        vars["Network // Upload"] += mistsutils_patchreporter(A: "`${p1}${p2}`.length");
+        mistsutils_patchcommand(A: "origin.account.update(p1,p2)");
+        @Account_Update_Local_Key_To(Key: Key, Value: Value);
       }
     }
     case "delete" {
-      data_addtolist(ITEM= skyhigh173JSON_json_set(item= "command", json= skyhigh173JSON_json_set(item= "payload", json= skyhigh173JSON_json_set(item= "source", json= vars["Server// Base Payload"], value= vars["Window // Network ID"]), value= Key), value= "delete"), LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
-      @Account_Remove_Local_Key(Key= Key);
+      data_addtolist(ITEM: skyhigh173JSON_json_set(item: "command", json: skyhigh173JSON_json_set(item: "payload", json: skyhigh173JSON_json_set(item: "source", json: vars["Server// Base Payload"], value: vars["Window // Network ID"]), value: Key), value: "delete"), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+      @Account_Remove_Local_Key(Key: Key);
     }
   }
 }

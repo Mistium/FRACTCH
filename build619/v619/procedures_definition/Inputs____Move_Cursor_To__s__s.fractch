@@ -8,5 +8,5 @@
 
 import "../procedures_definition/Inputs____Select_From__s__s_to__s__s.fractch";
 def @Inputs_Move_Cursor_To(line, char) "Inputs // Move Cursor To %s %s" warp=false {
-  @Inputs_Select_From_to(line= line, char= char, line2= line, char2= char);
+  @Inputs_Select_From_to(line: line, char: char, line2: line, char2: char);
 }

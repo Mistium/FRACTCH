@@ -7,16 +7,16 @@
  */
 
 def @Window_Update_My_Global_Data() "Window // Update My Global Data" warp=false {
-  mistsutils_patchcommand2(A= "const window_id_index = -1 + ", B= vars["Window // ID_Index"]);
-  mistsutils_patchcommand(A= "origin.windows.shown[window_id_index] = String(target.window.shown) == \"true\"");
-  mistsutils_patchcommand(A= "origin.windows.icns[window_id_index] = target.icn");
-  mistsutils_patchcommand(A= "origin.windows.render[window_id_index] = [Math.round((performance.now() - target?.render_start) * 10) / 10]");
-  mistsutils_patchcommand2(A= "origin.windows.ids[window_id_index] =", B= vars["WIndow // ID"]);
-  mistsutils_patchcommand2(A= "origin.windows.names[window_id_index] =", B= "target.window.title");
-  mistsutils_patchcommand2(A= "origin.windows.network_ids[window_id_index] =", B= vars["Window // Network ID"]);
-  mistsutils_patchcommand2(A= "origin.windows.snapping[window_id_index] =", B= "target.window.tile");
-  mistsutils_patchcommand2(A= "origin.windows.positions[window_id_index] =", B= @join(_1= "[", _2= vars["Window // Low X"], _3= ",", _4= vars["Window // High Y"], _5= ",", _6= vars["Window // High X"], _7= ",", _8= vars["Window // Low Y"], _9= "]", _10= "", _11= ""));
-  if (data_lengthoflist(LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny")) > "0") {
-    mistsutils_patchcommand(A= "origin.windows.render[window_id_index].push(target.variables[\"_nDk?DcJ%M`dL*cXe-Ny\"].value)");
+  mistsutils_patchcommand2(A: "const window_id_index = -1 + ", B: vars["Window // ID_Index"]);
+  mistsutils_patchcommand(A: "origin.windows.shown[window_id_index] = String(target.window.shown) == \"true\"");
+  mistsutils_patchcommand(A: "origin.windows.icns[window_id_index] = target.icn");
+  mistsutils_patchcommand(A: "origin.windows.render[window_id_index] = [Math.round((performance.now() - target?.render_start) * 10) / 10]");
+  mistsutils_patchcommand2(A: "origin.windows.ids[window_id_index] =", B: vars["WIndow // ID"]);
+  mistsutils_patchcommand2(A: "origin.windows.names[window_id_index] =", B: "target.window.title");
+  mistsutils_patchcommand2(A: "origin.windows.network_ids[window_id_index] =", B: vars["Window // Network ID"]);
+  mistsutils_patchcommand2(A: "origin.windows.snapping[window_id_index] =", B: "target.window.tile");
+  mistsutils_patchcommand2(A: "origin.windows.positions[window_id_index] =", B: @join(_1: "[", _2: vars["Window // Low X"], _3: ",", _4: vars["Window // High Y"], _5: ",", _6: vars["Window // High X"], _7: ",", _8: vars["Window // Low Y"], _9: "]", _10: "", _11: ""));
+  if (data_lengthoflist(field LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny")) > "0") {
+    mistsutils_patchcommand(A: "origin.windows.render[window_id_index].push(target.variables[\"_nDk?DcJ%M`dL*cXe-Ny\"].value)");
   }
 }

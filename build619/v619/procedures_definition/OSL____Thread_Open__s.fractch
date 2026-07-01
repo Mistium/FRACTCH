@@ -7,5 +7,5 @@
  */
 
 def @OSL_Thread_Open(Name) "OSL // Thread Open %s" warp=false {
-  mistsutils_patchcommand(A= "target.openOSLThread(p0, target)");
+  mistsutils_patchcommand(A: "target.openOSLThread(p0, target)");
 }

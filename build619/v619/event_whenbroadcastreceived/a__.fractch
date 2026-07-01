@@ -6,42 +6,42 @@
  * threadIndex: 47
  */
 
-event_whenbroadcastreceived(BROADCAST_OPTION: broadcast("Send Global Message", "Ar"));
+event_whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Send Global Message", "Ar"));
 if (vars["Process // Type"] == "App") {
-  mistsutils_patchcommand(A= "try {");
-  if mistsutils_patchboolean(A= "!target.isOriginal") {
-    mistsutils_patchcommand2(A= "let globalMsg = ", B= vars["SYSTEM // Global Message"]);
-    mistsutils_patchcommand(A= "const cmd = String(globalMsg[0]).toLowerCase()");
-    mistsutils_patchcommand(A= "const id = parseInt(String(globalMsg[1]))");
-    if (mistsutils_patchreporter(A= "id") == vars["WIndow // ID"]) {
-      vars["SYSTEM // Global Message"] = mistsutils_patchreporter(A= "null");
-      switch mistsutils_patchreporter(A= "cmd") {
+  mistsutils_patchcommand(A: "try {");
+  if mistsutils_patchboolean(A: "!target.isOriginal") {
+    mistsutils_patchcommand2(A: "let globalMsg = ", B: vars["SYSTEM // Global Message"]);
+    mistsutils_patchcommand(A: "const cmd = String(globalMsg[0]).toLowerCase()");
+    mistsutils_patchcommand(A: "const id = parseInt(String(globalMsg[1]))");
+    if (mistsutils_patchreporter(A: "id") == vars["WIndow // ID"]) {
+      vars["SYSTEM // Global Message"] = mistsutils_patchreporter(A: "null");
+      switch mistsutils_patchreporter(A: "cmd") {
         case "close" {
-          @Window_Close(message= "Force quit");
+          @Window_Close(message: "Force quit");
         }
         case "event" {
-          @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "`window.emit(${JSON.stringify(globalMsg[2])}, ${JSON.stringify(globalMsg[3])})`"));
+          @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "`window.emit(${JSON.stringify(globalMsg[2])}, ${JSON.stringify(globalMsg[3])})`"));
         }
         case "set_directory" {
-          vars["Window // Save Directory"] = mistsutils_patchreporter(A= "globalMsg[2]");
+          vars["Window // Save Directory"] = mistsutils_patchreporter(A: "globalMsg[2]");
         }
         case "rundef" {
-          mistsutils_patchcommand(A= "let cmd = globalMsg[2]");
-          mistsutils_patchcommand2(A= "const params = ", B= "globalMsg[3].slice()");
-          if mistsutils_patchboolean(A= "typeof cmd === \"object\"") {
-            @run_func(command= mistsutils_patchreporter(A= "cmd"), params= mistsutils_patchreporter(A= "params"));
+          mistsutils_patchcommand(A: "let cmd = globalMsg[2]");
+          mistsutils_patchcommand2(A: "const params = ", B: "globalMsg[3].slice()");
+          if mistsutils_patchboolean(A: "typeof cmd === \"object\"") {
+            @run_func(command: mistsutils_patchreporter(A: "cmd"), params: mistsutils_patchreporter(A: "params"));
           } else {
-            mistsutils_patchcommand3(A= "let command_obj = ", B= "target.osl_globals", C= ".commands[name]");
-            if mistsutils_patchboolean(A= "typeof command_obj === \"object\"") {
-              @Run_Definition(command_obj= mistsutils_patchreporter(A= "command_obj"));
+            mistsutils_patchcommand3(A: "let command_obj = ", B: "target.osl_globals", C: ".commands[name]");
+            if mistsutils_patchboolean(A: "typeof command_obj === \"object\"") {
+              @Run_Definition(command_obj: mistsutils_patchreporter(A: "command_obj"));
             }
           }
         }
         default {
-          @RUSH_execute(Command= mistsutils_patchreporter(A= "globalMsg[0]"));
+          @RUSH_execute(Command: mistsutils_patchreporter(A: "globalMsg[0]"));
         }
       }
     }
   }
-  mistsutils_patchcommand(A= "} catch(e) {}");
+  mistsutils_patchcommand(A: "} catch(e) {}");
 }

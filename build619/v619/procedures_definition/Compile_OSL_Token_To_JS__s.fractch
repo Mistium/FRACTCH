@@ -7,316 +7,316 @@
  */
 
 def @Compile_OSL_Token_To_JS(token) "Compile OSL Token To JS %s" warp=false {
-  mistsutils_patchcommand2(A= "// ", B= @OSL_Vars_Get(Varname= ""));
-  mistsutils_patchcommand(A= "const data = p0.data");
-  mistsutils_patchcommand(A= "thread.compToken = thread.procedures[\"WCompile OSL Token To JS %s\"];");
-  mistsutils_patchcommand(A= "if ([\"true\",\"false\",\"True\",\"False\"].includes(data)) return data.toLowerCase()");
-  switch mistsutils_patchreporter(A= "p0?.type") {
-    mistsutils_patchcommand(A= "case \"num\": case \"unk\": return data; case \"str\": case \"raw\": return JSON.stringify(data)");
-    mistsutils_patchcommand3(A= "case \"qst\": return `((${", B= mistsutils_patchreporter3(A= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "p0.left")), B= "} == true) ? ${", C= mistsutils_patchreporter3(A= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "p0.right")), B= "} : ${", C= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "p0.right2")))), C= "})`;");
+  mistsutils_patchcommand2(A: "// ", B: @OSL_Vars_Get(Varname: ""));
+  mistsutils_patchcommand(A: "const data = p0.data");
+  mistsutils_patchcommand(A: "thread.compToken = thread.procedures[\"WCompile OSL Token To JS %s\"];");
+  mistsutils_patchcommand(A: "if ([\"true\",\"false\",\"True\",\"False\"].includes(data)) return data.toLowerCase()");
+  switch mistsutils_patchreporter(A: "p0?.type") {
+    mistsutils_patchcommand(A: "case \"num\": case \"unk\": return data; case \"str\": case \"raw\": return JSON.stringify(data)");
+    mistsutils_patchcommand3(A: "case \"qst\": return `((${", B: mistsutils_patchreporter3(A: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "p0.left")), B: "} == true) ? ${", C: mistsutils_patchreporter3(A: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "p0.right")), B: "} : ${", C: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "p0.right2")))), C: "})`;");
     case "bit" {
-      mistsutils_patchcommand(A= "const left = thread.compToken(p0.left)");
-      mistsutils_patchcommand(A= "const right = thread.compToken(p0.right)");
-      if mistsutils_patchboolean(A= "p0.left.inferredType === \"number\" && p0.right.inferredType === \"number\"") {
-        switch mistsutils_patchreporter(A= "data") {
-          mistsutils_patchcommand(A= "case \">>\": case \"<<\": case \">>>\": case \"&\": case \"|\": return `(${left} ${data} ${right})`");
-          mistsutils_patchcommand(A= "case \"^^\": return `(${left} ^ ${right})`");
+      mistsutils_patchcommand(A: "const left = thread.compToken(p0.left)");
+      mistsutils_patchcommand(A: "const right = thread.compToken(p0.right)");
+      if mistsutils_patchboolean(A: "p0.left.inferredType === \"number\" && p0.right.inferredType === \"number\"") {
+        switch mistsutils_patchreporter(A: "data") {
+          mistsutils_patchcommand(A: "case \">>\": case \"<<\": case \">>>\": case \"&\": case \"|\": return `(${left} ${data} ${right})`");
+          mistsutils_patchcommand(A: "case \"^^\": return `(${left} ^ ${right})`");
         }
       }
-      mistsutils_patchcommand(A= "return `osl_bitwise(${left}, \"${data}\", ${right})`");
+      mistsutils_patchcommand(A: "return `osl_bitwise(${left}, \"${data}\", ${right})`");
     }
     case "opr" {
-      mistsutils_patchcommand(A= "const left = thread.compToken(p0.left)");
-      mistsutils_patchcommand(A= "const right = thread.compToken(p0.right)");
-      mistsutils_patchcommand(A= "const ltype = p0.left.inferredType");
-      mistsutils_patchcommand(A= "const rtype = p0.right.inferredType");
-      if mistsutils_patchboolean(A= "ltype === \"string\" && rtype === \"string\"") {
-        mistsutils_patchcommand(A= "const l = p0.left.type === \"str\" ? p0.left.data : \"${\" + left + \"}\"");
-        mistsutils_patchcommand(A= "const r = p0.right.type === \"str\" ? p0.right.data : \"${\" + right + \"}\"");
-        switch mistsutils_patchreporter(A= "data") {
-          mistsutils_patchcommand(A= "case \"+\": return \"(`\" + l + \" \" + r + \"`)\"");
-          mistsutils_patchcommand(A= "case \"++\": return \"(`\" + l + r + \"`)\"");
+      mistsutils_patchcommand(A: "const left = thread.compToken(p0.left)");
+      mistsutils_patchcommand(A: "const right = thread.compToken(p0.right)");
+      mistsutils_patchcommand(A: "const ltype = p0.left.inferredType");
+      mistsutils_patchcommand(A: "const rtype = p0.right.inferredType");
+      if mistsutils_patchboolean(A: "ltype === \"string\" && rtype === \"string\"") {
+        mistsutils_patchcommand(A: "const l = p0.left.type === \"str\" ? p0.left.data : \"${\" + left + \"}\"");
+        mistsutils_patchcommand(A: "const r = p0.right.type === \"str\" ? p0.right.data : \"${\" + right + \"}\"");
+        switch mistsutils_patchreporter(A: "data") {
+          mistsutils_patchcommand(A: "case \"+\": return \"(`\" + l + \" \" + r + \"`)\"");
+          mistsutils_patchcommand(A: "case \"++\": return \"(`\" + l + r + \"`)\"");
         }
       }
-      if mistsutils_patchboolean(A= "ltype === \"number\" && rtype === \"number\"") {
-        switch mistsutils_patchreporter(A= "data") {
-          mistsutils_patchcommand(A= "case \"+\": case \"-\": case \"/\": case \"*\": case \"%\": return `(${left} ${data} ${right})`");
-          mistsutils_patchcommand(A= "case \"^\": return `(${left} ** ${right})`");
-          mistsutils_patchcommand(A= "case \"++\": return `(\\${${left}}\\${${right}})`");
+      if mistsutils_patchboolean(A: "ltype === \"number\" && rtype === \"number\"") {
+        switch mistsutils_patchreporter(A: "data") {
+          mistsutils_patchcommand(A: "case \"+\": case \"-\": case \"/\": case \"*\": case \"%\": return `(${left} ${data} ${right})`");
+          mistsutils_patchcommand(A: "case \"^\": return `(${left} ** ${right})`");
+          mistsutils_patchcommand(A: "case \"++\": return `(\\${${left}}\\${${right}})`");
         }
       }
-      if mistsutils_patchboolean(A= "ltype === \"string\" && rtype === \"number\"") {
-        switch mistsutils_patchreporter(A= "data") {
-          mistsutils_patchcommand(A= "case \"*\": return `(${left}).repeat(${right})`");
+      if mistsutils_patchboolean(A: "ltype === \"string\" && rtype === \"number\"") {
+        switch mistsutils_patchreporter(A: "data") {
+          mistsutils_patchcommand(A: "case \"*\": return `(${left}).repeat(${right})`");
         }
       }
-      mistsutils_patchcommand(A= "if (data === \"|>\") throw new Error(\"cannot compile pipe operator\")");
-      mistsutils_patchcommand(A= "if (data === \"to\") return `window.osl_to(${left}, ${right})`");
-      mistsutils_patchcommand(A= "return `osl_maths(${left}, \"${data}\", ${right})`");
+      mistsutils_patchcommand(A: "if (data === \"|>\") throw new Error(\"cannot compile pipe operator\")");
+      mistsutils_patchcommand(A: "if (data === \"to\") return `window.osl_to(${left}, ${right})`");
+      mistsutils_patchcommand(A: "return `osl_maths(${left}, \"${data}\", ${right})`");
     }
     case "log" {
-      mistsutils_patchcommand(A= "const left = thread.compToken(p0.left)");
-      mistsutils_patchcommand(A= "const right = thread.compToken(p0.right)");
-      switch mistsutils_patchreporter(A= "data") {
-        mistsutils_patchcommand(A= "case \"and\": return `(${left} && ${right})`");
-        mistsutils_patchcommand(A= "case \"or\": return `(${left} || ${right})`");
-        mistsutils_patchcommand(A= "case \"nor\": return `(!(${left} || ${right}))`");
-        mistsutils_patchcommand(A= "default: throw new Error(`Uncompilable: ${p0.data}`)");
+      mistsutils_patchcommand(A: "const left = thread.compToken(p0.left)");
+      mistsutils_patchcommand(A: "const right = thread.compToken(p0.right)");
+      switch mistsutils_patchreporter(A: "data") {
+        mistsutils_patchcommand(A: "case \"and\": return `(${left} && ${right})`");
+        mistsutils_patchcommand(A: "case \"or\": return `(${left} || ${right})`");
+        mistsutils_patchcommand(A: "case \"nor\": return `(!(${left} || ${right}))`");
+        mistsutils_patchcommand(A: "default: throw new Error(`Uncompilable: ${p0.data}`)");
       }
     }
     case "ury" {
-      mistsutils_patchcommand(A= "const right = thread.compToken(p0.right)");
-      switch mistsutils_patchreporter(A= "data") {
-        mistsutils_patchcommand(A= "case \"~\": return `~(${right})`;");
-        mistsutils_patchcommand(A= "case \"-\": return `-(${right})`;");
-        mistsutils_patchcommand(A= "case \"!\": return `((${right}) === false)`;");
-        mistsutils_patchcommand(A= "default: throw new Error(`Uncompilable: ${p0.data}`)");
+      mistsutils_patchcommand(A: "const right = thread.compToken(p0.right)");
+      switch mistsutils_patchreporter(A: "data") {
+        mistsutils_patchcommand(A: "case \"~\": return `~(${right})`;");
+        mistsutils_patchcommand(A: "case \"-\": return `-(${right})`;");
+        mistsutils_patchcommand(A: "case \"!\": return `((${right}) === false)`;");
+        mistsutils_patchcommand(A: "default: throw new Error(`Uncompilable: ${p0.data}`)");
       }
     }
     case "cmp" {
-      mistsutils_patchcommand(A= "const left = thread.compToken(p0.left)");
-      mistsutils_patchcommand(A= "const right = thread.compToken(p0.right)");
-      mistsutils_patchcommand(A= "const ltype = p0.left.inferredType, rtype = p0.right.inferredType");
-      if mistsutils_patchboolean(A= "ltype === \"number\" && rtype === \"number\"") {
-        switch mistsutils_patchreporter(A= "data") {
-          mistsutils_patchcommand(A= "case \"in\": return `String(${right}).includes(${left})`");
-          mistsutils_patchcommand(A= "case \"==\": case \"===\": return `(${left} === ${right})`");
-          mistsutils_patchcommand(A= "case \"!=\": case \"!==\": return `(${left} !== ${right})`");
-          mistsutils_patchcommand(A= "case \">\": return `(${left} > ${right})`");
-          mistsutils_patchcommand(A= "case \"<\": return `(${left} < ${right})`");
-          mistsutils_patchcommand(A= "case \">=\": case \"!<\": return `(${left} >= ${right})`");
-          mistsutils_patchcommand(A= "case \"<=\": case \"!>\": return `(${left} <= ${right})`");
+      mistsutils_patchcommand(A: "const left = thread.compToken(p0.left)");
+      mistsutils_patchcommand(A: "const right = thread.compToken(p0.right)");
+      mistsutils_patchcommand(A: "const ltype = p0.left.inferredType, rtype = p0.right.inferredType");
+      if mistsutils_patchboolean(A: "ltype === \"number\" && rtype === \"number\"") {
+        switch mistsutils_patchreporter(A: "data") {
+          mistsutils_patchcommand(A: "case \"in\": return `String(${right}).includes(${left})`");
+          mistsutils_patchcommand(A: "case \"==\": case \"===\": return `(${left} === ${right})`");
+          mistsutils_patchcommand(A: "case \"!=\": case \"!==\": return `(${left} !== ${right})`");
+          mistsutils_patchcommand(A: "case \">\": return `(${left} > ${right})`");
+          mistsutils_patchcommand(A: "case \"<\": return `(${left} < ${right})`");
+          mistsutils_patchcommand(A: "case \">=\": case \"!<\": return `(${left} >= ${right})`");
+          mistsutils_patchcommand(A: "case \"<=\": case \"!>\": return `(${left} <= ${right})`");
         }
       }
-      if mistsutils_patchboolean(A= "data === \"==\" || data === \"!=\"") {
-        mistsutils_patchcommand(A= "if (ltype === \"null\" || rtype === \"null\") return `(${left} ${data}= ${right})`");
+      if mistsutils_patchboolean(A: "data === \"==\" || data === \"!=\"") {
+        mistsutils_patchcommand(A: "if (ltype === \"null\" || rtype === \"null\") return `(${left} ${data}= ${right})`");
       }
-      switch mistsutils_patchreporter(A= "data") {
-        mistsutils_patchcommand(A= "case \"in\": return `osl_contains(${right}, ${left})`");
-        mistsutils_patchcommand(A= "case \"==\": return `osl_eq(${left}, ${right})`");
-        mistsutils_patchcommand(A= "case \"!=\": return `osl_neq(${left}, ${right})`");
-        mistsutils_patchcommand(A= "case \">\": return `compareGreaterThan(${left}, ${right})`");
-        mistsutils_patchcommand(A= "case \"<\": return `compareLessThan(${left}, ${right})`");
-        mistsutils_patchcommand(A= "case \">=\": case \"!<\": return `!compareLessThan(${left}, ${right})`");
-        mistsutils_patchcommand(A= "case \"<=\": case \"!>\": return `!compareGreaterThan(${left}, ${right})`");
-        mistsutils_patchcommand(A= "case \"===\": return `(${left} === ${right})`");
-        mistsutils_patchcommand(A= "case \"!==\": return `(${left} !== ${right})`");
-        mistsutils_patchcommand(A= "default: throw new Error(`Uncompilable: ${p0.data}`)");
+      switch mistsutils_patchreporter(A: "data") {
+        mistsutils_patchcommand(A: "case \"in\": return `osl_contains(${right}, ${left})`");
+        mistsutils_patchcommand(A: "case \"==\": return `osl_eq(${left}, ${right})`");
+        mistsutils_patchcommand(A: "case \"!=\": return `osl_neq(${left}, ${right})`");
+        mistsutils_patchcommand(A: "case \">\": return `compareGreaterThan(${left}, ${right})`");
+        mistsutils_patchcommand(A: "case \"<\": return `compareLessThan(${left}, ${right})`");
+        mistsutils_patchcommand(A: "case \">=\": case \"!<\": return `!compareLessThan(${left}, ${right})`");
+        mistsutils_patchcommand(A: "case \"<=\": case \"!>\": return `!compareGreaterThan(${left}, ${right})`");
+        mistsutils_patchcommand(A: "case \"===\": return `(${left} === ${right})`");
+        mistsutils_patchcommand(A: "case \"!==\": return `(${left} !== ${right})`");
+        mistsutils_patchcommand(A: "default: throw new Error(`Uncompilable: ${p0.data}`)");
       }
     }
     case "blk" {
-      mistsutils_patchcommand(A= "let out = \"\"");
-      mistsutils_patchcommand(A= "for (let i = 0; i < data.length; i ++) {");
-      mistsutils_patchcommand3(A= "out += `${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "data[i][0]")), C= "}\\n`");
-      mistsutils_patchcommand(A= "}");
-      mistsutils_patchcommand(A= "return `{\\n${out}${p0.compileYield ? \"\\nif ((runCalls++) > 500 && (Date.now() - 500 > lastRun)) { yield; lastRun = Date.now(); runCalls = 0 }\" : \"\"}}`;");
+      mistsutils_patchcommand(A: "let out = \"\"");
+      mistsutils_patchcommand(A: "for (let i = 0; i < data.length; i ++) {");
+      mistsutils_patchcommand3(A: "out += `${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "data[i][0]")), C: "}\\n`");
+      mistsutils_patchcommand(A: "}");
+      mistsutils_patchcommand(A: "return `{\\n${out}${p0.compileYield ? \"\\nif ((runCalls++) > 500 && (Date.now() - 500 > lastRun)) { yield; lastRun = Date.now(); runCalls = 0 }\" : \"\"}}`;");
     }
     case "cmd" {
-      mistsutils_patchcommand(A= "console.log(\"cmd\", p0)");
-      mistsutils_patchcommand(A= "const inp = p0.inputs");
-      switch mistsutils_patchreporter(A= "data") {
-        mistsutils_patchcommand3(A= "case \"void\": return `${data} ${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "}`;");
-        mistsutils_patchcommand3(A= "case \"case\": return `case ${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "}:`;");
-        mistsutils_patchcommand3(A= "case \"log\": case \"warn\": case \"error\":  return `target.log(\"${data}\", ${", B= "inp.map(v => thread.compToken(v)).join(\",\")", C= "})`;");
-        mistsutils_patchcommand(A= "case \"defer\": return `yield;`");
-        mistsutils_patchcommand(A= "case \"break\": return `break;`");
-        mistsutils_patchcommand(A= "case \"default\": return `default:`");
-        mistsutils_patchcommand(A= "case \"eval\": return `if (target.window.permission.includes(\"javascript\")) eval(${thread.compToken(inp[0])})`");
-        mistsutils_patchcommand(A= "case \"exit\": throw new Error(`Uncompilable: ${p0.data}`)");
-        mistsutils_patchcommand3(A= "case \"change_x\": return `target.setXY(target.x + (${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "}), target.y)`");
-        mistsutils_patchcommand3(A= "case \"change_y\": return `target.setXY(target.x, target.y + (${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "}))`");
-        mistsutils_patchcommand3(A= "case \"movefileloc\": return `target.window.drop_location = ${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "}`");
+      mistsutils_patchcommand(A: "console.log(\"cmd\", p0)");
+      mistsutils_patchcommand(A: "const inp = p0.inputs");
+      switch mistsutils_patchreporter(A: "data") {
+        mistsutils_patchcommand3(A: "case \"void\": return `${data} ${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "}`;");
+        mistsutils_patchcommand3(A: "case \"case\": return `case ${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "}:`;");
+        mistsutils_patchcommand3(A: "case \"log\": case \"warn\": case \"error\":  return `target.log(\"${data}\", ${", B: "inp.map(v => thread.compToken(v)).join(\",\")", C: "})`;");
+        mistsutils_patchcommand(A: "case \"defer\": return `yield;`");
+        mistsutils_patchcommand(A: "case \"break\": return `break;`");
+        mistsutils_patchcommand(A: "case \"default\": return `default:`");
+        mistsutils_patchcommand(A: "case \"eval\": return `if (target.window.permission.includes(\"javascript\")) eval(${thread.compToken(inp[0])})`");
+        mistsutils_patchcommand(A: "case \"exit\": throw new Error(`Uncompilable: ${p0.data}`)");
+        mistsutils_patchcommand3(A: "case \"change_x\": return `target.setXY(target.x + (${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "}), target.y)`");
+        mistsutils_patchcommand3(A: "case \"change_y\": return `target.setXY(target.x, target.y + (${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "}))`");
+        mistsutils_patchcommand3(A: "case \"movefileloc\": return `target.window.drop_location = ${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "}`");
         case "return" {
-          mistsutils_patchcommand(A= "if (inp.length === 0) return `return null`");
-          mistsutils_patchcommand2(A= "let val = ", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")));
-          mistsutils_patchcommand(A= "return `return (${val}) ?? null`");
+          mistsutils_patchcommand(A: "if (inp.length === 0) return `return null`");
+          mistsutils_patchcommand2(A: "let val = ", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")));
+          mistsutils_patchcommand(A: "return `return (${val}) ?? null`");
         }
         case "if" {
-          mistsutils_patchcommand(A= "let out = \"\"");
-          if mistsutils_patchboolean(A= "inp[0]?.inferredType === \"boolean\"") {
-            mistsutils_patchcommand3(A= "out = `if (${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "})`;");
+          mistsutils_patchcommand(A: "let out = \"\"");
+          if mistsutils_patchboolean(A: "inp[0]?.inferredType === \"boolean\"") {
+            mistsutils_patchcommand3(A: "out = `if (${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "})`;");
           } else {
-            mistsutils_patchcommand3(A= "out = `if ((${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "}) === true)`;");
+            mistsutils_patchcommand3(A: "out = `if ((${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "}) === true)`;");
           }
-          mistsutils_patchcommand3(A= "out += `${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[1]")), C= "}`;");
-          mistsutils_patchcommand(A= "for (let i = 2; i < inp.length; i ++) {");
-          mistsutils_patchcommand(A= "const cur = inp[i].data");
-          mistsutils_patchcommand(A= "if (cur === \"else\") {");
-          mistsutils_patchcommand(A= "if (inp[i + 1].data === \"if\") {");
-          if mistsutils_patchboolean(A= "inp[i + 2]?.inferredType === \"boolean\"") {
-            mistsutils_patchcommand3(A= "out += `else if (${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[i + 2]")), C= "})`;");
+          mistsutils_patchcommand3(A: "out += `${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[1]")), C: "}`;");
+          mistsutils_patchcommand(A: "for (let i = 2; i < inp.length; i ++) {");
+          mistsutils_patchcommand(A: "const cur = inp[i].data");
+          mistsutils_patchcommand(A: "if (cur === \"else\") {");
+          mistsutils_patchcommand(A: "if (inp[i + 1].data === \"if\") {");
+          if mistsutils_patchboolean(A: "inp[i + 2]?.inferredType === \"boolean\"") {
+            mistsutils_patchcommand3(A: "out += `else if (${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[i + 2]")), C: "})`;");
           } else {
-            mistsutils_patchcommand3(A= "out += `else if ((${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[i + 2]")), C= "}) === true)`;");
+            mistsutils_patchcommand3(A: "out += `else if ((${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[i + 2]")), C: "}) === true)`;");
           }
-          mistsutils_patchcommand3(A= "out += `${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[i + 3]")), C= "}`; i += 3");
-          mistsutils_patchcommand3(A= "} else { out += `else${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[i + 1]")), C= "}`; i += 1 };");
-          mistsutils_patchcommand(A= "} else throw new Error(\"invalid if statement token: \" + inp[i + 1].data)");
-          mistsutils_patchcommand(A= "}");
-          mistsutils_patchcommand(A= "return out");
+          mistsutils_patchcommand3(A: "out += `${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[i + 3]")), C: "}`; i += 3");
+          mistsutils_patchcommand3(A: "} else { out += `else${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[i + 1]")), C: "}`; i += 1 };");
+          mistsutils_patchcommand(A: "} else throw new Error(\"invalid if statement token: \" + inp[i + 1].data)");
+          mistsutils_patchcommand(A: "}");
+          mistsutils_patchcommand(A: "return out");
         }
         case "loop" {
-          mistsutils_patchcommand(A= "inp[1].compileYield = true");
-          mistsutils_patchcommand3(A= "let out = `for (let _=0,end=(${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "});_<end ;_++)`");
-          mistsutils_patchcommand3(A= "out += `${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[1]")), C= "}`;");
-          mistsutils_patchcommand(A= "return out");
+          mistsutils_patchcommand(A: "inp[1].compileYield = true");
+          mistsutils_patchcommand3(A: "let out = `for (let _=0,end=(${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "});_<end ;_++)`");
+          mistsutils_patchcommand3(A: "out += `${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[1]")), C: "}`;");
+          mistsutils_patchcommand(A: "return out");
         }
         case "for" {
-          mistsutils_patchcommand2(A= "const i = ", B= "inp[0].data");
-          mistsutils_patchcommand(A= "inp[2].compileYield = true");
-          mistsutils_patchcommand(A= "thread.vars[i] = \"number\"");
-          mistsutils_patchcommand3(A= "let out = `for (target.osl_this.${i}=1,end=(${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[1]")), C= "});target.osl_this.${i}<=end ;target.osl_this.${i}++)`");
-          mistsutils_patchcommand3(A= "out += `${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[2]")), C= "}`;");
-          mistsutils_patchcommand(A= "return out");
+          mistsutils_patchcommand2(A: "const i = ", B: "inp[0].data");
+          mistsutils_patchcommand(A: "inp[2].compileYield = true");
+          mistsutils_patchcommand(A: "thread.vars[i] = \"number\"");
+          mistsutils_patchcommand3(A: "let out = `for (target.osl_this.${i}=1,end=(${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[1]")), C: "});target.osl_this.${i}<=end ;target.osl_this.${i}++)`");
+          mistsutils_patchcommand3(A: "out += `${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[2]")), C: "}`;");
+          mistsutils_patchcommand(A: "return out");
         }
         case "while" {
-          mistsutils_patchcommand(A= "inp[1].compileYield = true");
-          mistsutils_patchcommand3(A= "let out = `while (${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0].data")), C= "})`");
-          mistsutils_patchcommand3(A= "out += `${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[1]")), C= "}`;");
-          mistsutils_patchcommand(A= "return out");
+          mistsutils_patchcommand(A: "inp[1].compileYield = true");
+          mistsutils_patchcommand3(A: "let out = `while (${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0].data")), C: "})`");
+          mistsutils_patchcommand3(A: "out += `${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[1]")), C: "}`;");
+          mistsutils_patchcommand(A: "return out");
         }
         case "switch" {
-          mistsutils_patchcommand(A= "if (p0.cases.type !== \"object\") throw new Error(`Uncompilable switch case, requires static values`)");
-          mistsutils_patchcommand3(A= "let out = `switch (${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "})`");
-          mistsutils_patchcommand3(A= "out += `${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[1]")), C= "}`;");
-          mistsutils_patchcommand(A= "return out");
+          mistsutils_patchcommand(A: "if (p0.cases.type !== \"object\") throw new Error(`Uncompilable switch case, requires static values`)");
+          mistsutils_patchcommand3(A: "let out = `switch (${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "})`");
+          mistsutils_patchcommand3(A: "out += `${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[1]")), C: "}`;");
+          mistsutils_patchcommand(A: "return out");
         }
         case "try" {
-          mistsutils_patchcommand3(A= "if (inp.length === 1) return `try ${", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "inp[0]")), C= "} catch {}`");
-          mistsutils_patchcommand(A= "throw new Error(`Uncompilable, try doesn't support catching yet`)");
+          mistsutils_patchcommand3(A: "if (inp.length === 1) return `try ${", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "inp[0]")), C: "} catch {}`");
+          mistsutils_patchcommand(A: "throw new Error(`Uncompilable, try doesn't support catching yet`)");
         }
         default {
-          mistsutils_patchcommand(A= "throw new Error(`Uncompilable, many commands break when compiled: ${data}`)");
+          mistsutils_patchcommand(A: "throw new Error(`Uncompilable, many commands break when compiled: ${data}`)");
         }
       }
     }
     case "obj" {
-      mistsutils_patchcommand(A= "if (data.length === 0) return \"(Object.create(null, {[Symbol.toPrimitive]: {value: () => '[Object object]'}}))\"");
-      mistsutils_patchcommand(A= "const compilable = data.every(v => v[0].type === \"str\" && [\"string\", \"number\", \"boolean\"].includes(v[1].inferredType))");
-      mistsutils_patchcommand(A= "if (!compilable) throw new Error(`Uncompilable: ${p0.type}, ${p0.data}`)");
-      mistsutils_patchcommand(A= "let out = \"{\"");
-      mistsutils_patchcommand(A= "for (let i = 0; i < data.length; i ++) {");
-      mistsutils_patchcommand(A= "out += `${data[i][0].source}: ${data[i][1].source},`");
-      mistsutils_patchcommand(A= "}");
-      mistsutils_patchcommand(A= "out += \"}\"");
-      mistsutils_patchcommand(A= "return out");
-      mistsutils_patchcommand(A= "return `yield* target._evaltkn(${JSON.stringify(p0)})`");
+      mistsutils_patchcommand(A: "if (data.length === 0) return \"(Object.create(null, {[Symbol.toPrimitive]: {value: () => '[Object object]'}}))\"");
+      mistsutils_patchcommand(A: "const compilable = data.every(v => v[0].type === \"str\" && [\"string\", \"number\", \"boolean\"].includes(v[1].inferredType))");
+      mistsutils_patchcommand(A: "if (!compilable) throw new Error(`Uncompilable: ${p0.type}, ${p0.data}`)");
+      mistsutils_patchcommand(A: "let out = \"{\"");
+      mistsutils_patchcommand(A: "for (let i = 0; i < data.length; i ++) {");
+      mistsutils_patchcommand(A: "out += `${data[i][0].source}: ${data[i][1].source},`");
+      mistsutils_patchcommand(A: "}");
+      mistsutils_patchcommand(A: "out += \"}\"");
+      mistsutils_patchcommand(A: "return out");
+      mistsutils_patchcommand(A: "return `yield* target._evaltkn(${JSON.stringify(p0)})`");
     }
     case "arr" fallthrough {
 
     }
-    mistsutils_patchcommand(A= "if (data.length === 0) return \"[]\"");
-    mistsutils_patchcommand(A= "return `[${data.map(v => thread.compToken(v)).join(\",\")}]`");
+    mistsutils_patchcommand(A: "if (data.length === 0) return \"[]\"");
+    mistsutils_patchcommand(A: "return `[${data.map(v => thread.compToken(v)).join(\",\")}]`");
     case "tsr" {
-      mistsutils_patchcommand(A= "if (data.length === 0) return \"``\"");
-      mistsutils_patchcommand(A= "let out = \"`\"");
-      mistsutils_patchcommand(A= "for (let i = 0; i < data.length; i ++) {");
-      mistsutils_patchcommand(A= "if (data[i].type === 'str') out += data[i].data");
-      mistsutils_patchcommand(A= "else out += `\\${${thread.compToken(data[i])}\\}`");
-      mistsutils_patchcommand(A= "}");
-      mistsutils_patchcommand(A= "return out + \"`\"");
+      mistsutils_patchcommand(A: "if (data.length === 0) return \"``\"");
+      mistsutils_patchcommand(A: "let out = \"`\"");
+      mistsutils_patchcommand(A: "for (let i = 0; i < data.length; i ++) {");
+      mistsutils_patchcommand(A: "if (data[i].type === 'str') out += data[i].data");
+      mistsutils_patchcommand(A: "else out += `\\${${thread.compToken(data[i])}\\}`");
+      mistsutils_patchcommand(A: "}");
+      mistsutils_patchcommand(A: "return out + \"`\"");
     }
     case "fnc" {
-      mistsutils_patchcommand(A= "let params = []");
-      if mistsutils_patchboolean(A= "p0.parameters") {
-        if mistsutils_patchboolean(A= "p0.data === \"function\"") {
-          mistsutils_patchcommand(A= "params = p0.parameters.map(v => v.type === \"blk\" ? (thread.astCache.set(thread.astCache.size, v), `this.code.astCache.get(${thread.astCache.size - 1})`) : thread.compToken(v))");
+      mistsutils_patchcommand(A: "let params = []");
+      if mistsutils_patchboolean(A: "p0.parameters") {
+        if mistsutils_patchboolean(A: "p0.data === \"function\"") {
+          mistsutils_patchcommand(A: "params = p0.parameters.map(v => v.type === \"blk\" ? (thread.astCache.set(thread.astCache.size, v), `this.code.astCache.get(${thread.astCache.size - 1})`) : thread.compToken(v))");
         } else {
-          mistsutils_patchcommand(A= "params = p0.parameters.map(v =>  thread.compToken(v))");
+          mistsutils_patchcommand(A: "params = p0.parameters.map(v =>  thread.compToken(v))");
         }
       }
-      mistsutils_patchcommand(A= "return `yield* target._function(osl_this.${p0.data} ?? ${JSON.stringify(p0.data)}, [${params.join(\",\")}])`;");
+      mistsutils_patchcommand(A: "return `yield* target._function(osl_this.${p0.data} ?? ${JSON.stringify(p0.data)}, [${params.join(\",\")}])`;");
     }
     case "mtd" {
-      mistsutils_patchcommand(A= "let out = \"\"+thread.compToken(data[0])");
-      mistsutils_patchcommand(A= "for (let i = 1; i < data.length; i ++) {");
-      mistsutils_patchcommand(A= "const cur = data[i];");
-      if mistsutils_patchreporter(A= "cur.parameters") {
-        mistsutils_patchcommand(A= "let params = cur.parameters.map(v => thread.compToken(v))");
-        mistsutils_patchcommand(A= "if (cur.parameters.length === 0) params = []");
-        switch mistsutils_patchreporter(A= "cur.data") {
-          mistsutils_patchcommand(A= "case \"not\": out = `(String(${out}).toLowerCase() === \"false\")`; continue");
-          mistsutils_patchcommand(A= "case \"sin\": out = `(Math.round(Math.sin((Math.PI * (+${out} || 0)) / 180) * 1e10) / 1e10)`; continue");
-          mistsutils_patchcommand(A= "case \"cos\": out = `(Math.round(Math.cos((Math.PI * (+${out} || 0)) / 180) * 1e10) / 1e10)`; continue");
-          mistsutils_patchcommand(A= "case \"tan\": out = `scratchTan(+${out} || 0)`; continue");
-          mistsutils_patchcommand(A= "case \"JsonClean\": out = `JSON.safeParse(${out})`; continue");
-          mistsutils_patchcommand(A= "case \"item\": out = `osl_item(${out}, ${params[0]}, target)`; continue");
-          mistsutils_patchcommand(A= "default: out = `(yield* target._method(${out}, \"${cur.data}()\", [${params.join(\", \")}]))`; continue");
+      mistsutils_patchcommand(A: "let out = \"\"+thread.compToken(data[0])");
+      mistsutils_patchcommand(A: "for (let i = 1; i < data.length; i ++) {");
+      mistsutils_patchcommand(A: "const cur = data[i];");
+      if mistsutils_patchreporter(A: "cur.parameters") {
+        mistsutils_patchcommand(A: "let params = cur.parameters.map(v => thread.compToken(v))");
+        mistsutils_patchcommand(A: "if (cur.parameters.length === 0) params = []");
+        switch mistsutils_patchreporter(A: "cur.data") {
+          mistsutils_patchcommand(A: "case \"not\": out = `(String(${out}).toLowerCase() === \"false\")`; continue");
+          mistsutils_patchcommand(A: "case \"sin\": out = `(Math.round(Math.sin((Math.PI * (+${out} || 0)) / 180) * 1e10) / 1e10)`; continue");
+          mistsutils_patchcommand(A: "case \"cos\": out = `(Math.round(Math.cos((Math.PI * (+${out} || 0)) / 180) * 1e10) / 1e10)`; continue");
+          mistsutils_patchcommand(A: "case \"tan\": out = `scratchTan(+${out} || 0)`; continue");
+          mistsutils_patchcommand(A: "case \"JsonClean\": out = `JSON.safeParse(${out})`; continue");
+          mistsutils_patchcommand(A: "case \"item\": out = `osl_item(${out}, ${params[0]}, target)`; continue");
+          mistsutils_patchcommand(A: "default: out = `(yield* target._method(${out}, \"${cur.data}()\", [${params.join(\", \")}]))`; continue");
         }
       } else {
-        switch mistsutils_patchreporter(A= "cur.data") {
-          mistsutils_patchcommand(A= "case \"len\": out = `osl_len(${out})`; continue");
-          mistsutils_patchcommand(A= "case \"destr\": out = `JSON.safeParse(${out})`; continue");
-          mistsutils_patchcommand(A= "case \"not\": out = `(String(${out}).toLowerCase() === \"false\")`; continue");
-          mistsutils_patchcommand(A= "case \"__proto__\": out = `null`; continue");
-          mistsutils_patchcommand(A= "default: throw new Error(`Property access not supported by compiler due to setters and getters`); out = `osl_item(${out}, \"${cur.data}\", target)`; continue");
+        switch mistsutils_patchreporter(A: "cur.data") {
+          mistsutils_patchcommand(A: "case \"len\": out = `osl_len(${out})`; continue");
+          mistsutils_patchcommand(A: "case \"destr\": out = `JSON.safeParse(${out})`; continue");
+          mistsutils_patchcommand(A: "case \"not\": out = `(String(${out}).toLowerCase() === \"false\")`; continue");
+          mistsutils_patchcommand(A: "case \"__proto__\": out = `null`; continue");
+          mistsutils_patchcommand(A: "default: throw new Error(`Property access not supported by compiler due to setters and getters`); out = `osl_item(${out}, \"${cur.data}\", target)`; continue");
         }
       }
-      mistsutils_patchcommand(A= "} return out;");
+      mistsutils_patchcommand(A: "} return out;");
     }
     case "var" {
-      switch mistsutils_patchreporter(A= "data") {
-        mistsutils_patchcommand(A= "case \"mouse_x\": return `((target.osl_vars.frame?.x || 0) - vm.runtime.ioDevices.mouse._scratchX)`");
-        mistsutils_patchcommand(A= "case \"mouse_y\": return `((target.osl_vars.frame?.y || 0) - vm.runtime.ioDevices.mouse._scratchY)`");
-        mistsutils_patchcommand(A= "case \"timestamp\": return \"(Date.now())\"");
-        mistsutils_patchcommand(A= "case \"performance\": return \"(performance.now())\"");
-        mistsutils_patchcommand(A= "case \"timer\": return \"(vm.runtime.ioDevices.clock.projectTimer())\"");
-        mistsutils_patchcommand(A= "case \"direction\": return \"(target.direction)\"");
-        mistsutils_patchcommand(A= "case \"infinity\": return \"(Infinity)\"");
-        mistsutils_patchcommand(A= "case \"this\": return \"(osl_this)\"");
-        mistsutils_patchcommand(A= "case \"self\": return \"(target.osl_vars.__self__)\"");
+      switch mistsutils_patchreporter(A: "data") {
+        mistsutils_patchcommand(A: "case \"mouse_x\": return `((target.osl_vars.frame?.x || 0) - vm.runtime.ioDevices.mouse._scratchX)`");
+        mistsutils_patchcommand(A: "case \"mouse_y\": return `((target.osl_vars.frame?.y || 0) - vm.runtime.ioDevices.mouse._scratchY)`");
+        mistsutils_patchcommand(A: "case \"timestamp\": return \"(Date.now())\"");
+        mistsutils_patchcommand(A: "case \"performance\": return \"(performance.now())\"");
+        mistsutils_patchcommand(A: "case \"timer\": return \"(vm.runtime.ioDevices.clock.projectTimer())\"");
+        mistsutils_patchcommand(A: "case \"direction\": return \"(target.direction)\"");
+        mistsutils_patchcommand(A: "case \"infinity\": return \"(Infinity)\"");
+        mistsutils_patchcommand(A: "case \"this\": return \"(osl_this)\"");
+        mistsutils_patchcommand(A: "case \"self\": return \"(target.osl_vars.__self__)\"");
       }
-      mistsutils_patchcommand(A= "if (data in thread.vars) return `osl_this.${data}`");
-      mistsutils_patchcommand(A= "if (p0.quickReturn) return `getVar(\"${data}\", target)`");
-      mistsutils_patchcommand(A= "throw new Error(`Variable \"${data}\" must be quick returnable`)");
+      mistsutils_patchcommand(A: "if (data in thread.vars) return `osl_this.${data}`");
+      mistsutils_patchcommand(A: "if (p0.quickReturn) return `getVar(\"${data}\", target)`");
+      mistsutils_patchcommand(A: "throw new Error(`Variable \"${data}\" must be quick returnable`)");
     }
     case "disabled_asi" {
-      mistsutils_patchcommand(A= "const node = p0");
-      mistsutils_patchcommand3(A= "// console.log('comp',", B= "p0", C= ")");
-      mistsutils_patchcommand(A= "let to, pre = \"\"");
-      mistsutils_patchcommand2(A= "const value = !p0.right ? \"\" : ", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "p0.right")));
-      mistsutils_patchcommand(A= "let valueType = p0.right?.inferredType");
-      mistsutils_patchcommand(A= "if ((!valueType || valueType === \"any\") && p0.right?.type === \"var\" && p0.right.data in thread.vars) valueType = thread.vars[p0.right.data]");
-      switch mistsutils_patchreporter(A= "node.left.type") {
+      mistsutils_patchcommand(A: "const node = p0");
+      mistsutils_patchcommand3(A: "// console.log('comp',", B: "p0", C: ")");
+      mistsutils_patchcommand(A: "let to, pre = \"\"");
+      mistsutils_patchcommand2(A: "const value = !p0.right ? \"\" : ", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "p0.right")));
+      mistsutils_patchcommand(A: "let valueType = p0.right?.inferredType");
+      mistsutils_patchcommand(A: "if ((!valueType || valueType === \"any\") && p0.right?.type === \"var\" && p0.right.data in thread.vars) valueType = thread.vars[p0.right.data]");
+      switch mistsutils_patchreporter(A: "node.left.type") {
         case "rmt" {
-          mistsutils_patchcommand2(A= "const path = ", B= @Compile_OSL_Token_To_JS(token= mistsutils_patchreporter(A= "{type: \"mtd\", data: p0.left.objPath}")));
-          mistsutils_patchcommand(A= "const final = p0.left.final");
-          switch mistsutils_patchreporter(A= "final.type") {
+          mistsutils_patchcommand2(A: "const path = ", B: @Compile_OSL_Token_To_JS(token: mistsutils_patchreporter(A: "{type: \"mtd\", data: p0.left.objPath}")));
+          mistsutils_patchcommand(A: "const final = p0.left.final");
+          switch mistsutils_patchreporter(A: "final.type") {
             case "mtv" {
-              mistsutils_patchcommand(A= "if (final.data !== \"item\") throw new Error(`Invalid left node type: ${final.type}, ${final.data}`)");
-              mistsutils_patchcommand(A= "pre = `const obj = ${path}; const prop = osl_prop(obj, ${thread.compToken(final.parameters[0])}); `");
-              mistsutils_patchcommand(A= "to = \"obj[prop]\"");
+              mistsutils_patchcommand(A: "if (final.data !== \"item\") throw new Error(`Invalid left node type: ${final.type}, ${final.data}`)");
+              mistsutils_patchcommand(A: "pre = `const obj = ${path}; const prop = osl_prop(obj, ${thread.compToken(final.parameters[0])}); `");
+              mistsutils_patchcommand(A: "to = \"obj[prop]\"");
             }
             case "var" {
-              mistsutils_patchcommand(A= "if (final.data === \"self\") { throw new Error(\"No self assignments\"); to = \"target.osl_vars.__self__\"; break }");
-              mistsutils_patchcommand(A= "to = `${path}.${final.data}`");
+              mistsutils_patchcommand(A: "if (final.data === \"self\") { throw new Error(\"No self assignments\"); to = \"target.osl_vars.__self__\"; break }");
+              mistsutils_patchcommand(A: "to = `${path}.${final.data}`");
             }
-            mistsutils_patchcommand(A= "default: throw new Error(`Unknown rmt final type: ${final.type}, ${final.data}`)");
+            mistsutils_patchcommand(A: "default: throw new Error(`Unknown rmt final type: ${final.type}, ${final.data}`)");
           }
         }
         case "var" {
-          mistsutils_patchcommand(A= "const name = p0.left.source");
-          mistsutils_patchcommand(A= "const type = p0.set_type || thread.vars[name]");
-          if mistsutils_patchboolean(A= "p0.set_type && p0.set_type !== \"any\"") {
-            mistsutils_patchcommand(A= "if (([\"string\", \"number\", \"boolean\"].includes(p0.set_type) && data === \"=\") || data === \"@=\") return `defineTypedProperty(osl_this, \"${name}\", ${value}, ${JSON.stringify(p0.set_type)}, target)`");
+          mistsutils_patchcommand(A: "const name = p0.left.source");
+          mistsutils_patchcommand(A: "const type = p0.set_type || thread.vars[name]");
+          if mistsutils_patchboolean(A: "p0.set_type && p0.set_type !== \"any\"") {
+            mistsutils_patchcommand(A: "if (([\"string\", \"number\", \"boolean\"].includes(p0.set_type) && data === \"=\") || data === \"@=\") return `defineTypedProperty(osl_this, \"${name}\", ${value}, ${JSON.stringify(p0.set_type)}, target)`");
           } else {
-            mistsutils_patchcommand(A= "throw new Error(`no vars`);");
+            mistsutils_patchcommand(A: "throw new Error(`no vars`);");
             control_break();
           }
-          mistsutils_patchcommand(A= "throw new Error(`Invalid left node type: ${p0.left.type}, ${data}`)");
+          mistsutils_patchcommand(A: "throw new Error(`Invalid left node type: ${p0.left.type}, ${data}`)");
         }
-        mistsutils_patchcommand(A= "default: throw new Error(`Invalid left node type: ${p0.left.type}, ${data}`)");
+        mistsutils_patchcommand(A: "default: throw new Error(`Invalid left node type: ${p0.left.type}, ${data}`)");
       }
-      switch mistsutils_patchreporter(A= "node.data") {
-        mistsutils_patchcommand(A= "case \"=\": if (![\"string\", \"number\", \"boolean\", \"null\"].includes(valueType)) return `{${pre}const value = ${value}; ${to} = (typeof value === \"object\" && value !== null) ? Object.clone(value) : value; }`");
-        mistsutils_patchcommand(A= "case \"@=\": return `{${pre}${to} = ${value}}`;");
-        mistsutils_patchcommand(A= "case \"++\": return `{${pre}${to} = (+${to} || 0) + 1}`;");
-        mistsutils_patchcommand(A= "case \"--\": return `{${pre}${to} = (+${to} || 0) - 1}`;");
-        mistsutils_patchcommand(A= "case \"=??\": return `{${pre}const value = ${value}; if ((value ?? \"\") !== \"\") ${to} = (typeof value === \"object\" && value !== null) ? Object.clone(value) : value }`;");
-        mistsutils_patchcommand(A= "default: return `{${pre}${to} = osl_maths(${to}, ${JSON.stringify(data.slice(0, -1))}, ${value})}`");
+      switch mistsutils_patchreporter(A: "node.data") {
+        mistsutils_patchcommand(A: "case \"=\": if (![\"string\", \"number\", \"boolean\", \"null\"].includes(valueType)) return `{${pre}const value = ${value}; ${to} = (typeof value === \"object\" && value !== null) ? Object.clone(value) : value; }`");
+        mistsutils_patchcommand(A: "case \"@=\": return `{${pre}${to} = ${value}}`;");
+        mistsutils_patchcommand(A: "case \"++\": return `{${pre}${to} = (+${to} || 0) + 1}`;");
+        mistsutils_patchcommand(A: "case \"--\": return `{${pre}${to} = (+${to} || 0) - 1}`;");
+        mistsutils_patchcommand(A: "case \"=??\": return `{${pre}const value = ${value}; if ((value ?? \"\") !== \"\") ${to} = (typeof value === \"object\" && value !== null) ? Object.clone(value) : value }`;");
+        mistsutils_patchcommand(A: "default: return `{${pre}${to} = osl_maths(${to}, ${JSON.stringify(data.slice(0, -1))}, ${value})}`");
       }
     }
-    mistsutils_patchcommand(A= "default: throw new Error(`Invalid token ${p0.type}, ${data}`)");
+    mistsutils_patchcommand(A: "default: throw new Error(`Invalid token ${p0.type}, ${data}`)");
   }
-  mistsutils_patchcommand(A= "throw new Error(`Uncompilable: ${p0.type}, ${data}`)");
+  mistsutils_patchcommand(A: "throw new Error(`Uncompilable: ${p0.type}, ${data}`)");
   return "";
 }

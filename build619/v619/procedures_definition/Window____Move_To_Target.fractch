@@ -7,44 +7,44 @@
  */
 
 def @Window_Move_To_Target() "Window // Move To Target" warp=false {
-  mistsutils_patchcommand(A= "const w = target.window");
-  if mistsutils_patchboolean(A= "w.target_x !== null") {
-    mistsutils_patchcommand(A= "w.target_x = Math.round(w.target_x)");
-    @OSL_Window(name= "x", data= @Smooth_To_With_Div_Of(X= mistsutils_patchreporter(A= "w.x"), Target= mistsutils_patchreporter(A= "w.target_x"), Divider= "0.07"));
+  mistsutils_patchcommand(A: "const w = target.window");
+  if mistsutils_patchboolean(A: "w.target_x !== null") {
+    mistsutils_patchcommand(A: "w.target_x = Math.round(w.target_x)");
+    @OSL_Window(name: "x", data: @Smooth_To_With_Div_Of(X: mistsutils_patchreporter(A: "w.x"), Target: mistsutils_patchreporter(A: "w.target_x"), Divider: "0.07"));
     vars["Windows // Any Moving"] = "1";
-    if (round(mistsutils_patchreporter(A= "w.x")) == mistsutils_patchreporter(A= "w.target_x")) {
-      @OSL_Window(name= "x", data= mistsutils_patchreporter(A= "w.target_x"));
-      mistsutils_patchcommand(A= "w.target_x = null");
+    if (round(mistsutils_patchreporter(A: "w.x")) == mistsutils_patchreporter(A: "w.target_x")) {
+      @OSL_Window(name: "x", data: mistsutils_patchreporter(A: "w.target_x"));
+      mistsutils_patchcommand(A: "w.target_x = null");
       vars["Windows // Any Moving"] = "0";
     }
   }
-  if mistsutils_patchboolean(A= "w.target_y !== null") {
-    mistsutils_patchcommand(A= "w.target_y = Math.round(w.target_y)");
-    @OSL_Window(name= "y", data= @Smooth_To_With_Div_Of(X= mistsutils_patchreporter(A= "w.y"), Target= mistsutils_patchreporter(A= "w.target_y"), Divider= "0.07"));
+  if mistsutils_patchboolean(A: "w.target_y !== null") {
+    mistsutils_patchcommand(A: "w.target_y = Math.round(w.target_y)");
+    @OSL_Window(name: "y", data: @Smooth_To_With_Div_Of(X: mistsutils_patchreporter(A: "w.y"), Target: mistsutils_patchreporter(A: "w.target_y"), Divider: "0.07"));
     vars["Windows // Any Moving"] = "1";
-    if (round(mistsutils_patchreporter(A= "w.y")) == mistsutils_patchreporter(A= "w.target_y")) {
-      @OSL_Window(name= "y", data= mistsutils_patchreporter(A= "w.target_y"));
-      mistsutils_patchcommand(A= "w.target_y = null");
+    if (round(mistsutils_patchreporter(A: "w.y")) == mistsutils_patchreporter(A: "w.target_y")) {
+      @OSL_Window(name: "y", data: mistsutils_patchreporter(A: "w.target_y"));
+      mistsutils_patchcommand(A: "w.target_y = null");
       vars["Windows // Any Moving"] = "0";
     }
   }
-  if mistsutils_patchboolean(A= "w.target_width !== null") {
-    mistsutils_patchcommand(A= "w.target_width = Math.round(w.target_width)");
-    @OSL_Window(name= "width", data= @Smooth_To_With_Div_Of(X= mistsutils_patchreporter(A= "w.width"), Target= mistsutils_patchreporter(A= "w.target_width"), Divider= "0.07"));
+  if mistsutils_patchboolean(A: "w.target_width !== null") {
+    mistsutils_patchcommand(A: "w.target_width = Math.round(w.target_width)");
+    @OSL_Window(name: "width", data: @Smooth_To_With_Div_Of(X: mistsutils_patchreporter(A: "w.width"), Target: mistsutils_patchreporter(A: "w.target_width"), Divider: "0.07"));
     vars["Windows // Any Resizing"] = "1";
-    if (round(mistsutils_patchreporter(A= "w.width")) == mistsutils_patchreporter(A= "w.target_width")) {
-      @OSL_Window(name= "width", data= mistsutils_patchreporter(A= "w.target_width"));
-      mistsutils_patchcommand(A= "w.target_width = null");
+    if (round(mistsutils_patchreporter(A: "w.width")) == mistsutils_patchreporter(A: "w.target_width")) {
+      @OSL_Window(name: "width", data: mistsutils_patchreporter(A: "w.target_width"));
+      mistsutils_patchcommand(A: "w.target_width = null");
       vars["Windows // Any Resizing"] = "0";
     }
   }
-  if mistsutils_patchboolean(A= "w.target_height !== null") {
-    mistsutils_patchcommand(A= "w.target_height = Math.round(w.target_height)");
-    @OSL_Window(name= "height", data= @Smooth_To_With_Div_Of(X= mistsutils_patchreporter(A= "target.window.height"), Target= mistsutils_patchreporter(A= "w.target_height"), Divider= "0.07"));
+  if mistsutils_patchboolean(A: "w.target_height !== null") {
+    mistsutils_patchcommand(A: "w.target_height = Math.round(w.target_height)");
+    @OSL_Window(name: "height", data: @Smooth_To_With_Div_Of(X: mistsutils_patchreporter(A: "target.window.height"), Target: mistsutils_patchreporter(A: "w.target_height"), Divider: "0.07"));
     vars["Windows // Any Resizing"] = "1";
-    if (round(mistsutils_patchreporter(A= "w.height")) == mistsutils_patchreporter(A= "w.target_height")) {
-      @OSL_Window(name= "height", data= mistsutils_patchreporter(A= "w.target_height"));
-      mistsutils_patchcommand(A= "w.target_height = null");
+    if (round(mistsutils_patchreporter(A: "w.height")) == mistsutils_patchreporter(A: "w.target_height")) {
+      @OSL_Window(name: "height", data: mistsutils_patchreporter(A: "w.target_height"));
+      mistsutils_patchcommand(A: "w.target_height = null");
       vars["Windows // Any Resizing"] = "0";
     }
   }

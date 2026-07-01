@@ -7,9 +7,9 @@
  */
 
 def @Setup_App_Data() "Setup // App Data" warp=true {
-  mistsutils_patchcommand(A= "const ad_dir = `${osl.user_folder}/application data`");
-  mistsutils_patchcommand2(A= "const dir = ", B= (mistsutils_patchreporter(A= "`${ad_dir}/`") .. vars["Window // Save Directory"]));
-  if not(data_listcontainsitem(ITEM= mistsutils_patchreporter(A= "`${dir}.folder`"), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"))) {
-    @File_add_Data_Icon_Perms(Location= mistsutils_patchreporter(A= "ad_dir"), Name= vars["Window // Save Directory"], Type= ".folder", Data= "[]", Icon= "", Perms= skyhigh173JSON_json_array_push(item= vars["Window // UUID"], json= "[]"));
+  mistsutils_patchcommand(A: "const ad_dir = `${osl.user_folder}/application data`");
+  mistsutils_patchcommand2(A: "const dir = ", B: (mistsutils_patchreporter(A: "`${ad_dir}/`") .. vars["Window // Save Directory"]));
+  if not(data_listcontainsitem(ITEM: mistsutils_patchreporter(A: "`${dir}.folder`"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"))) {
+    @File_add_Data_Icon_Perms(Location: mistsutils_patchreporter(A: "ad_dir"), Name: vars["Window // Save Directory"], Type: ".folder", Data: "[]", Icon: "", Perms: skyhigh173JSON_json_array_push(item: vars["Window // UUID"], json: "[]"));
   }
 }

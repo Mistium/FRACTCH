@@ -7,17 +7,17 @@
  */
 
 def @Parse_Directory(directory) "Parse Directory %s" warp=false {
-  mistsutils_patchcommand(A= "p0 = (\"\"+p0).toLowerCase().split(\"/\")");
-  mistsutils_patchcommand3(A= "let out = String(", B= "target.window.wd", C= ").toLowerCase()");
-  mistsutils_patchcommand(A= "if (p0[0] === \"\") out = \"origin\"");
-  mistsutils_patchcommand(A= "for (let i = 0; i < p0.length; i ++) {");
-  switch mistsutils_patchreporter(A= "p0[i]") {
-    mistsutils_patchcommand(A= "case \"..\": { out = out.split(\"/\"); out.pop(); out = out.join(\"/\"); break; }");
-    mistsutils_patchcommand3(A= "case \".\": { out = ", B= @OSL_Vars_Get(Varname= "my_location"), C= "; break; }");
-    mistsutils_patchcommand3(A= "case \"~\": { out = ", B= "osl.user_folder", C= "; break; }");
-    mistsutils_patchcommand(A= "case \"\": { break; }");
-    mistsutils_patchcommand(A= "default: { out += \"/\" + p0[i] }");
+  mistsutils_patchcommand(A: "p0 = (\"\"+p0).toLowerCase().split(\"/\")");
+  mistsutils_patchcommand3(A: "let out = String(", B: "target.window.wd", C: ").toLowerCase()");
+  mistsutils_patchcommand(A: "if (p0[0] === \"\") out = \"origin\"");
+  mistsutils_patchcommand(A: "for (let i = 0; i < p0.length; i ++) {");
+  switch mistsutils_patchreporter(A: "p0[i]") {
+    mistsutils_patchcommand(A: "case \"..\": { out = out.split(\"/\"); out.pop(); out = out.join(\"/\"); break; }");
+    mistsutils_patchcommand3(A: "case \".\": { out = ", B: @OSL_Vars_Get(Varname: "my_location"), C: "; break; }");
+    mistsutils_patchcommand3(A: "case \"~\": { out = ", B: "osl.user_folder", C: "; break; }");
+    mistsutils_patchcommand(A: "case \"\": { break; }");
+    mistsutils_patchcommand(A: "default: { out += \"/\" + p0[i] }");
   }
-  mistsutils_patchcommand(A= "}");
-  return mistsutils_patchreporter(A= "out.toLowerCase()");
+  mistsutils_patchcommand(A: "}");
+  return mistsutils_patchreporter(A: "out.toLowerCase()");
 }

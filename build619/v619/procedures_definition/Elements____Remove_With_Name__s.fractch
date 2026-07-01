@@ -7,11 +7,11 @@
  */
 
 def @Elements_Remove_With_Name(name) "Elements // Remove With Name %s" warp=false {
-  mistsutils_patchcommand(A= "try {");
-  mistsutils_patchcommand(A= "let temp = window.origin.elements[p0];");
-  mistsutils_patchcommand(A= "vm.renderer.removeOverlay(temp);");
-  mistsutils_patchcommand(A= "delete window.origin.elements[p0];");
-  mistsutils_patchcommand(A= "} catch {}");
-  mistsutils_patchcommand(A= "const overlay = document.getElementById(p0 + \"_OSLoverlay\")");
-  mistsutils_patchcommand(A= "if (overlay) { vm.renderer.removeOverlay(overlay); overlay.remove() }");
+  mistsutils_patchcommand(A: "try {");
+  mistsutils_patchcommand(A: "let temp = window.origin.elements[p0];");
+  mistsutils_patchcommand(A: "vm.renderer.removeOverlay(temp);");
+  mistsutils_patchcommand(A: "delete window.origin.elements[p0];");
+  mistsutils_patchcommand(A: "} catch {}");
+  mistsutils_patchcommand(A: "const overlay = document.getElementById(p0 + \"_OSLoverlay\")");
+  mistsutils_patchcommand(A: "if (overlay) { vm.renderer.removeOverlay(overlay); overlay.remove() }");
 }

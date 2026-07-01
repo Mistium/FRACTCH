@@ -7,36 +7,36 @@
  */
 
 def @OSL_Commands_Rotur() "OSL // Commands - Rotur" warp=true {
-  switch data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+  switch data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
     case "call" {
-      if @Permissions_Has(perm= "rvoice") {
-        data_addtolist(ITEM= skyhigh173JSON_json_set(item= "payload", json= skyhigh173JSON_json_set(item= "command", json= skyhigh173JSON_json_set(item= "peer", json= vars["Server// Base Payload"], value= @destring(Text= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"")), value= "call"), value= @destring(Text= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"")), LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+      if @Permissions_Has(perm: "rvoice") {
+        data_addtolist(ITEM: skyhigh173JSON_json_set(item: "payload", json: skyhigh173JSON_json_set(item: "command", json: skyhigh173JSON_json_set(item: "peer", json: vars["Server// Base Payload"], value: @destring(Text: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\"")), value: "call"), value: @destring(Text: data_itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\"")), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
       }
     }
     case "transfer" {
-      @OSL_Parse_and_Run(Run= mistsutils_patchreporter3(A= "`window.create(\"/(a) system/system apps/alert.osl\", { passed_data: { \"type\": \"transfer\", \"to\": ${JSON.stringify(", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= mistsutils_patchreporter3(A= ")}, \"amt\": ${+(", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ") || 0}, \"note\": \"\" }, child: true })`")));
+      @OSL_Parse_and_Run(Run: mistsutils_patchreporter3(A: "`window.create(\"/(a) system/system apps/alert.osl\", { passed_data: { \"type\": \"transfer\", \"to\": ${JSON.stringify(", B: data_itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C: mistsutils_patchreporter3(A: ")}, \"amt\": ${+(", B: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C: ") || 0}, \"note\": \"\" }, child: true })`")));
     }
     case "send_rmail" {
-      if @Permissions_Has(perm= "rmail") {
-        data_addtolist(ITEM= skyhigh173JSON_json_set(item= "payload", json= skyhigh173JSON_json_set(item= "target", json= skyhigh173JSON_json_set(item= "command", json= skyhigh173JSON_json_set(item= "source", json= vars["Server// Base Payload"], value= vars["Window // Network ID"]), value= "omail_send"), value= vars["Window // Network ID"]), value= skyhigh173JSON_json_set(item= "recipient", json= skyhigh173JSON_json_set(item= "body", json= skyhigh173JSON_json_set(item= "title", json= "{}", value= @destring(Text= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"")), value= @destring(Text= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"")), value= @destring(Text= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\""))), LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+      if @Permissions_Has(perm: "rmail") {
+        data_addtolist(ITEM: skyhigh173JSON_json_set(item: "payload", json: skyhigh173JSON_json_set(item: "target", json: skyhigh173JSON_json_set(item: "command", json: skyhigh173JSON_json_set(item: "source", json: vars["Server// Base Payload"], value: vars["Window // Network ID"]), value: "omail_send"), value: vars["Window // Network ID"]), value: skyhigh173JSON_json_set(item: "recipient", json: skyhigh173JSON_json_set(item: "body", json: skyhigh173JSON_json_set(item: "title", json: "{}", value: @destring(Text: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\"")), value: @destring(Text: data_itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\"")), value: @destring(Text: data_itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""))), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
       }
     }
     case "key_buy" {
-      mistsutils_patchcommand2(A= "let key_data_b = ", B= cloudlink_fetchURL(url= ("https://social.rotur.dev/keys/get/" .. data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))));
-      if skyhigh173JSON_json_is(json= mistsutils_patchreporter(A= "key_data_b"), types= skyhigh173JSON_menu_types(types: ["Object",null])) {
-        mistsutils_patchcommand(A= "const key_data = JSON.parse(key_data_b)");
-        @Add_Popup_with_type_ontop_of(Title= mistsutils_patchreporter(A= "`Buy ${key_data.name ?? key_data.id}`"), Subtext= mistsutils_patchreporter(A= "`By ${key_data.creator} for ${key_data.price + \" credit\" + (key_data.price === 1 ? \"\" : \"s\")}`"), type= "buy_key", object= skyhigh173JSON_json_set(item= "id", json= "{}", value= @destring(Text= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"")));
+      mistsutils_patchcommand2(A: "let key_data_b = ", B: cloudlink_fetchURL(url: ("https://social.rotur.dev/keys/get/" .. data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))));
+      if skyhigh173JSON_json_is(json: mistsutils_patchreporter(A: "key_data_b"), types: skyhigh173JSON_menu_types(field types: ["Object",null])) {
+        mistsutils_patchcommand(A: "const key_data = JSON.parse(key_data_b)");
+        @Add_Popup_with_type_ontop_of(Title: mistsutils_patchreporter(A: "`Buy ${key_data.name ?? key_data.id}`"), Subtext: mistsutils_patchreporter(A: "`By ${key_data.creator} for ${key_data.price + \" credit\" + (key_data.price === 1 ? \"\" : \"s\")}`"), type: "buy_key", object: skyhigh173JSON_json_set(item: "id", json: "{}", value: @destring(Text: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\"")));
       }
     }
     case "key_cancel" {
-      mistsutils_patchcommand2(A= "let key_data_c = ", B= cloudlink_fetchURL(url= ("https://social.rotur.dev/keys/get/" .. data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))));
-      if skyhigh173JSON_json_is(json= mistsutils_patchreporter(A= "key_data_c"), types= skyhigh173JSON_menu_types(types: ["Object",null])) {
-        mistsutils_patchcommand(A= "const key_data = JSON.parse(key_data_c)");
-        @Add_Popup_with_type_ontop_of(Title= mistsutils_patchreporter(A= "`Cancel ${key_data.name ?? key_data.id}`"), Subtext= mistsutils_patchreporter(A= "`Are you sure?`"), type= "cancel_key", object= skyhigh173JSON_json_set(item= "id", json= "{}", value= @destring(Text= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"")));
+      mistsutils_patchcommand2(A: "let key_data_c = ", B: cloudlink_fetchURL(url: ("https://social.rotur.dev/keys/get/" .. data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))));
+      if skyhigh173JSON_json_is(json: mistsutils_patchreporter(A: "key_data_c"), types: skyhigh173JSON_menu_types(field types: ["Object",null])) {
+        mistsutils_patchcommand(A: "const key_data = JSON.parse(key_data_c)");
+        @Add_Popup_with_type_ontop_of(Title: mistsutils_patchreporter(A: "`Cancel ${key_data.name ?? key_data.id}`"), Subtext: mistsutils_patchreporter(A: "`Are you sure?`"), type: "cancel_key", object: skyhigh173JSON_json_set(item: "id", json: "{}", value: @destring(Text: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\"")));
       }
     }
     default {
-      @Log_Error(Data= mistsutils_patchreporter3(A= "`Unknown rotur command: ${", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= "}`"), Type= "Unknown Command");
+      @Log_Error(Data: mistsutils_patchreporter3(A: "`Unknown rotur command: ${", B: data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C: "}`"), Type: "Unknown Command");
     }
   }
 }

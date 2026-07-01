@@ -7,13 +7,13 @@
  */
 
 def @ICN_Compile(value) "ICN // Compile %s" warp=true {
-  mistsutils_patchcommand(A= "const cmds = window.icn_cmds");
-  mistsutils_patchcommand(A= "for (let i = 0; i < p0.length; i ++) if (isFinite(p0[i])) p0[i] = (+p0[i] || 0)");
-  mistsutils_patchcommand(A= "for (let i = 0; i < p0.length; i ++) {");
-  mistsutils_patchcommand(A= "const cur = p0[i]");
-  mistsutils_patchcommand(A= "const cmd = cmds[cur] ?? [cur, 0]");
-  mistsutils_patchcommand(A= "p0[i] = cmd[0]");
-  mistsutils_patchcommand(A= "i += cmd[1]");
-  mistsutils_patchcommand(A= "}");
-  mistsutils_patchcommand(A= "return p0");
+  mistsutils_patchcommand(A: "const cmds = window.icn_cmds");
+  mistsutils_patchcommand(A: "for (let i = 0; i < p0.length; i ++) if (isFinite(p0[i])) p0[i] = (+p0[i] || 0)");
+  mistsutils_patchcommand(A: "for (let i = 0; i < p0.length; i ++) {");
+  mistsutils_patchcommand(A: "const cur = p0[i]");
+  mistsutils_patchcommand(A: "const cmd = cmds[cur] ?? [cur, 0]");
+  mistsutils_patchcommand(A: "p0[i] = cmd[0]");
+  mistsutils_patchcommand(A: "i += cmd[1]");
+  mistsutils_patchcommand(A: "}");
+  mistsutils_patchcommand(A: "return p0");
 }

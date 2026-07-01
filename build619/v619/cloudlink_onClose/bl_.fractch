@@ -8,4 +8,4 @@
 
 import "../procedures_definition/Show_Notification__s__s__s__s__s.fractch";
 cloudlink_onClose();
-@Show_Notification(Icon= "network", Title= "Rotur Connection Lost", Text= "", Style= "puck", Action= "");
+@Show_Notification(Icon: "network", Title: "Rotur Connection Lost", Text: "", Style: "puck", Action: "");

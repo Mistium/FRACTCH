@@ -8,336 +8,336 @@
 
 import "../procedures_definition/Log_Error__s__s.fractch";
 def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" warp=false {
-  mistsutils_patchcommand(A= "let destr = p0; if (p0 === null) destr = \"null\"; else if (typeof p0 === \"object\") destr = \"[object Object]\"; else destr = \"\"+p0;");
-  mistsutils_patchcommand(A= "const mtd = window.osl_methods");
-  mistsutils_patchcommand(A= "const params = p2 ?? []");
-  switch mistsutils_patchreporter(A= "mtd[p1]") {
-    mistsutils_patchcommand2(A= "case mtd[\"call()\"]: return ", B= @Run_Command_Object(params= mistsutils_patchreporter(A= "params"), command_object= input, value= mistsutils_patchreporter(A= "undefined")));
-    mistsutils_patchcommand2(A= "case mtd[\"apply()\"]: return ", B= @Run_Command_Object(params= mistsutils_patchreporter(A= "params[1]"), command_object= input, value= mistsutils_patchreporter(A= "params[0]")));
-    mistsutils_patchcommand3(A= "case mtd[\"eval()\"]: return ", B= @Permissions_Has(perm= "javascript"), C= mistsutils_patchreporter2(A= " ? eval(destr) : ", B= MistiumEval_restrictedReporterBlock(CODE= mistsutils_patchreporter(A= "destr"))));
-    mistsutils_patchcommand2(A= "case mtd[\"onKeyDown()\"]: return ", B= @is_hit(key= mistsutils_patchreporter(A= "destr")));
-    mistsutils_patchcommand2(A= "case mtd[\"isKeyDown()\"]: return ", B= @Is_pressed(key= mistsutils_patchreporter(A= "destr")));
-    mistsutils_patchcommand2(A= "case mtd[\"timeKeyDown()\"]: return ", B= HyperSenseSP_timeKeyPressed(KEY= mistsutils_patchreporter(A= "destr")));
-    case mistsutils_patchreporter(A= "mtd[\"getAsync()\"]") {
-      mistsutils_patchcommand(A= "if (typeof p0 !== \"string\") break");
-      mistsutils_patchcommand3(A= "let net_data = ", B= vars["NETWORK // Get Web Outputs"], C= "[destr]");
-      if mistsutils_patchboolean(A= "net_data") {
-        mistsutils_patchcommand3(A= "delete ", B= vars["NETWORK // Get Web Outputs"], C= "[destr]");
-        mistsutils_patchcommand(A= "if (typeof net_data === \"object\") return Object.clone(net_data)");
-        return mistsutils_patchreporter(A= "net_data");
+  mistsutils_patchcommand(A: "let destr = p0; if (p0 === null) destr = \"null\"; else if (typeof p0 === \"object\") destr = \"[object Object]\"; else destr = \"\"+p0;");
+  mistsutils_patchcommand(A: "const mtd = window.osl_methods");
+  mistsutils_patchcommand(A: "const params = p2 ?? []");
+  switch mistsutils_patchreporter(A: "mtd[p1]") {
+    mistsutils_patchcommand2(A: "case mtd[\"call()\"]: return ", B: @Run_Command_Object(params: mistsutils_patchreporter(A: "params"), command_object: input, value: mistsutils_patchreporter(A: "undefined")));
+    mistsutils_patchcommand2(A: "case mtd[\"apply()\"]: return ", B: @Run_Command_Object(params: mistsutils_patchreporter(A: "params[1]"), command_object: input, value: mistsutils_patchreporter(A: "params[0]")));
+    mistsutils_patchcommand3(A: "case mtd[\"eval()\"]: return ", B: @Permissions_Has(perm: "javascript"), C: mistsutils_patchreporter2(A: " ? eval(destr) : ", B: MistiumEval_restrictedReporterBlock(CODE: mistsutils_patchreporter(A: "destr"))));
+    mistsutils_patchcommand2(A: "case mtd[\"onKeyDown()\"]: return ", B: @is_hit(key: mistsutils_patchreporter(A: "destr")));
+    mistsutils_patchcommand2(A: "case mtd[\"isKeyDown()\"]: return ", B: @Is_pressed(key: mistsutils_patchreporter(A: "destr")));
+    mistsutils_patchcommand2(A: "case mtd[\"timeKeyDown()\"]: return ", B: HyperSenseSP_timeKeyPressed(KEY: mistsutils_patchreporter(A: "destr")));
+    case mistsutils_patchreporter(A: "mtd[\"getAsync()\"]") {
+      mistsutils_patchcommand(A: "if (typeof p0 !== \"string\") break");
+      mistsutils_patchcommand3(A: "let net_data = ", B: vars["NETWORK // Get Web Outputs"], C: "[destr]");
+      if mistsutils_patchboolean(A: "net_data") {
+        mistsutils_patchcommand3(A: "delete ", B: vars["NETWORK // Get Web Outputs"], C: "[destr]");
+        mistsutils_patchcommand(A: "if (typeof net_data === \"object\") return Object.clone(net_data)");
+        return mistsutils_patchreporter(A: "net_data");
       } else {
-        mistsutils_patchcommand(A= "const fetches = origin.fetches.web");
-        if not((mistsutils_patchboolean(A= "fetches.includes(destr)") || mistsutils_patchboolean(A= "origin.fetches.downloads.slice().map(val => val.url).includes(destr)"))) {
-          mistsutils_patchcommand(A= "fetches.push(destr)");
-          mistsutils_patchcommand2(A= vars["OSL // Web Cache"], B= ".push(destr)");
+        mistsutils_patchcommand(A: "const fetches = origin.fetches.web");
+        if not((mistsutils_patchboolean(A: "fetches.includes(destr)") || mistsutils_patchboolean(A: "origin.fetches.downloads.slice().map(val => val.url).includes(destr)"))) {
+          mistsutils_patchcommand(A: "fetches.push(destr)");
+          mistsutils_patchcommand2(A: vars["OSL // Web Cache"], B: ".push(destr)");
         }
         return "Loading";
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"roturConnect()\"]") {
-      vars["Window // Network ID"] = mistsutils_patchreporter(A= "destr");
+    case mistsutils_patchreporter(A: "mtd[\"roturConnect()\"]") {
+      vars["Window // Network ID"] = mistsutils_patchreporter(A: "destr");
       return input;
     }
-    mistsutils_patchcommand3(A= "case mtd[\"httpGet()\"]: return JSON.safeParse(", B= cloudlink_fetchURL(url= mistsutils_patchreporter(A= "destr")), C= ")");
-    mistsutils_patchcommand2(A= "case mtd[\"encodeUTF16()\"]: return ", B= shovellzcompress_compress(TEXT= mistsutils_patchreporter(A= "destr"), TYPE= shovellzcompress_menu_COMPRESSIONTYPES(COMPRESSIONTYPES: ["UTF16",null])));
-    mistsutils_patchcommand2(A= "case mtd[\"decodeUTF16()\"]: return ", B= shovellzcompress_decompress(TEXT= mistsutils_patchreporter(A= "destr"), TYPE= shovellzcompress_menu_COMPRESSIONTYPES(COMPRESSIONTYPES: ["UTF16",null])));
-    mistsutils_patchcommand3(A= "case mtd[\"newWebsocket()\"]: { const id = `${", B= webSocketPlus_connectSecure(URL= @item_of_split_by(int= "1", string= mistsutils_patchreporter(A= "destr"), delimiter= ":"), PORT= @item_of_split_by(int= "2", string= mistsutils_patchreporter(A= "destr"), delimiter= ":")), C= "}`; target.window.ws.push(id); return id }");
-    mistsutils_patchcommand2(A= "case mtd[\"wsHasnew()\"]: return ", B= webSocketPlus_hasNewMessages(ID= mistsutils_patchreporter(A= "destr")));
-    mistsutils_patchcommand2(A= "case mtd[\"wsGetall()\"]: return ", B= @parse(json= webSocketPlus_getAllMessages(ID= mistsutils_patchreporter(A= "destr"))));
-    mistsutils_patchcommand2(A= "case mtd[\"wsGetcount()\"]: return ", B= skyhigh173JSON_json_length(json= webSocketPlus_getAllMessages(ID= mistsutils_patchreporter(A= "destr"))));
-    case mistsutils_patchreporter(A= "mtd[\"wsGetnext()\"]") {
-      vars["//return"] = @parse(json= webSocketPlus_getNextMessage(ID= mistsutils_patchreporter(A= "destr")));
-      webSocketPlus_discardNextMessage(ID= mistsutils_patchreporter(A= "destr"));
+    mistsutils_patchcommand3(A: "case mtd[\"httpGet()\"]: return JSON.safeParse(", B: cloudlink_fetchURL(url: mistsutils_patchreporter(A: "destr")), C: ")");
+    mistsutils_patchcommand2(A: "case mtd[\"encodeUTF16()\"]: return ", B: shovellzcompress_compress(TEXT: mistsutils_patchreporter(A: "destr"), TYPE: shovellzcompress_menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: ["UTF16",null])));
+    mistsutils_patchcommand2(A: "case mtd[\"decodeUTF16()\"]: return ", B: shovellzcompress_decompress(TEXT: mistsutils_patchreporter(A: "destr"), TYPE: shovellzcompress_menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: ["UTF16",null])));
+    mistsutils_patchcommand3(A: "case mtd[\"newWebsocket()\"]: { const id = `${", B: webSocketPlus_connectSecure(URL: @item_of_split_by(int: "1", string: mistsutils_patchreporter(A: "destr"), delimiter: ":"), PORT: @item_of_split_by(int: "2", string: mistsutils_patchreporter(A: "destr"), delimiter: ":")), C: "}`; target.window.ws.push(id); return id }");
+    mistsutils_patchcommand2(A: "case mtd[\"wsHasnew()\"]: return ", B: webSocketPlus_hasNewMessages(ID: mistsutils_patchreporter(A: "destr")));
+    mistsutils_patchcommand2(A: "case mtd[\"wsGetall()\"]: return ", B: @parse(json: webSocketPlus_getAllMessages(ID: mistsutils_patchreporter(A: "destr"))));
+    mistsutils_patchcommand2(A: "case mtd[\"wsGetcount()\"]: return ", B: skyhigh173JSON_json_length(json: webSocketPlus_getAllMessages(ID: mistsutils_patchreporter(A: "destr"))));
+    case mistsutils_patchreporter(A: "mtd[\"wsGetnext()\"]") {
+      vars["//return"] = @parse(json: webSocketPlus_getNextMessage(ID: mistsutils_patchreporter(A: "destr")));
+      webSocketPlus_discardNextMessage(ID: mistsutils_patchreporter(A: "destr"));
       return vars["//return"];
     }
-    case mistsutils_patchreporter(A= "mtd[\"wsClose()\"]") {
-      webSocketPlus_disconnectFromConnection(ID= mistsutils_patchreporter(A= "destr"));
+    case mistsutils_patchreporter(A: "mtd[\"wsClose()\"]") {
+      webSocketPlus_disconnectFromConnection(ID: mistsutils_patchreporter(A: "destr"));
       return input;
     }
-    mistsutils_patchcommand2(A= "case mtd[\"wsOpen()\"]: return ", B= webSocketPlus_isConnected(ID= mistsutils_patchreporter(A= "destr")));
-    case mistsutils_patchreporter(A= "mtd[\"meshDelete()\"]") {
-      xeltallivSimple3D_deleteMesh(NAME= mistsutils_patchreporter(A= "destr"));
-      vars["3dr // All Meshes"] = skyhigh173JSON_json_array_remove_all(item= mistsutils_patchreporter(A= "destr"), json= vars["3dr // All Meshes"]);
+    mistsutils_patchcommand2(A: "case mtd[\"wsOpen()\"]: return ", B: webSocketPlus_isConnected(ID: mistsutils_patchreporter(A: "destr")));
+    case mistsutils_patchreporter(A: "mtd[\"meshDelete()\"]") {
+      xeltallivSimple3D_deleteMesh(NAME: mistsutils_patchreporter(A: "destr"));
+      vars["3dr // All Meshes"] = skyhigh173JSON_json_array_remove_all(item: mistsutils_patchreporter(A: "destr"), json: vars["3dr // All Meshes"]);
       return "";
     }
-    mistsutils_patchcommand2(A= "case mtd[\"meshExists()\"]: return ", B= xeltallivSimple3D_meshInfo(NAME= mistsutils_patchreporter(A= "destr"), PROP: ["exists",null]));
-    mistsutils_patchcommand2(A= "case mtd[\"meshHasTexture()\"]: return ", B= xeltallivSimple3D_meshInfo(NAME= mistsutils_patchreporter(A= "destr"), PROP: ["has texture",null]));
-    mistsutils_patchcommand2(A= "case mtd[\"meshIsDrawable()\"]: return ", B= xeltallivSimple3D_meshInfo(NAME= mistsutils_patchreporter(A= "destr"), PROP: ["is valid for drawing",null]));
-    case mistsutils_patchreporter(A= "mtd[\"getFolder()\"]") {
-      vars["DeString // out"] = @originFS_Path_ID(Path= (@Find_Directory(Directory= mistsutils_patchreporter(A= "destr")) .. ".folder"));
-      @Permissions_Can_i_view_file(File_To_Get= vars["DeString // out"]);
+    mistsutils_patchcommand2(A: "case mtd[\"meshExists()\"]: return ", B: xeltallivSimple3D_meshInfo(NAME: mistsutils_patchreporter(A: "destr"), field PROP: ["exists",null]));
+    mistsutils_patchcommand2(A: "case mtd[\"meshHasTexture()\"]: return ", B: xeltallivSimple3D_meshInfo(NAME: mistsutils_patchreporter(A: "destr"), field PROP: ["has texture",null]));
+    mistsutils_patchcommand2(A: "case mtd[\"meshIsDrawable()\"]: return ", B: xeltallivSimple3D_meshInfo(NAME: mistsutils_patchreporter(A: "destr"), field PROP: ["is valid for drawing",null]));
+    case mistsutils_patchreporter(A: "mtd[\"getFolder()\"]") {
+      vars["DeString // out"] = @originFS_Path_ID(Path: (@Find_Directory(Directory: mistsutils_patchreporter(A: "destr")) .. ".folder"));
+      @Permissions_Can_i_view_file(File_To_Get: vars["DeString // out"]);
       if (vars["OSL// Permission Output"] == "1") {
-        return @parse(json= @File_get_item(id= vars["DeString // out"], item= "4"));
+        return @parse(json: @File_get_item(id: vars["DeString // out"], item: "4"));
       } else {
-        @Log_Error(Data= ("[FCIF] getFolder() Denied To " .. input), Type= "Permission");
-        mistsutils_patchcommand(A= "return [\"Access Denied\"]");
+        @Log_Error(Data: ("[FCIF] getFolder() Denied To " .. input), Type: "Permission");
+        mistsutils_patchcommand(A: "return [\"Access Denied\"]");
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"listFolder()\"]") {
-      vars["DeString // out"] = @originFS_Path_ID(Path= (@Find_Directory(Directory= mistsutils_patchreporter(A= "destr")) .. ".folder"));
-      @Permissions_Can_i_view_file(File_To_Get= vars["DeString // out"]);
+    case mistsutils_patchreporter(A: "mtd[\"listFolder()\"]") {
+      vars["DeString // out"] = @originFS_Path_ID(Path: (@Find_Directory(Directory: mistsutils_patchreporter(A: "destr")) .. ".folder"));
+      @Permissions_Can_i_view_file(File_To_Get: vars["DeString // out"]);
       if (vars["OSL// Permission Output"] == "1") {
-        return @parse(json= @Get_Contents_Of_Folder_Path(Path= @Find_Directory(Directory= mistsutils_patchreporter(A= "destr")), Show_UUIDS= null, data_included= null, Only_UUIDS= null));
+        return @parse(json: @Get_Contents_Of_Folder_Path(Path: @Find_Directory(Directory: mistsutils_patchreporter(A: "destr")), Show_UUIDS: null, data_included: null, Only_UUIDS: null));
       } else {
-        @Log_Error(Data= ("[FCIF] getFolder() Denied To " .. input), Type= "Permission");
-        mistsutils_patchcommand(A= "return [\"Access Denied\"]");
+        @Log_Error(Data: ("[FCIF] getFolder() Denied To " .. input), Type: "Permission");
+        mistsutils_patchcommand(A: "return [\"Access Denied\"]");
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"fileExists()\"]") {
-      if operator_contains(STRING1= mistsutils_patchreporter(A= "destr"), STRING2= "/") {
-        mistsutils_patchcommand2(A= "return ", B= (@originFS_Path_ID(Path= mistsutils_patchreporter(A= "destr")) > "0"));
+    case mistsutils_patchreporter(A: "mtd[\"fileExists()\"]") {
+      if operator_contains(STRING1: mistsutils_patchreporter(A: "destr"), STRING2: "/") {
+        mistsutils_patchcommand2(A: "return ", B: (@originFS_Path_ID(Path: mistsutils_patchreporter(A: "destr")) > "0"));
       } else {
-        mistsutils_patchcommand2(A= "return ", B= (@originFS_UUID_ID(UUID= mistsutils_patchreporter(A= "destr")) > "0"));
+        mistsutils_patchcommand2(A: "return ", B: (@originFS_UUID_ID(UUID: mistsutils_patchreporter(A: "destr")) > "0"));
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"getFile()\"]") {
-      if mistsutils_patchboolean(A= "!window.OSLisNumber(destr)") {
-        if operator_contains(STRING1= mistsutils_patchreporter(A= "destr"), STRING2= "/") {
-          vars["DeString // out"] = @originFS_Path_ID(Path= mistsutils_patchreporter(A= "destr"));
+    case mistsutils_patchreporter(A: "mtd[\"getFile()\"]") {
+      if mistsutils_patchboolean(A: "!window.OSLisNumber(destr)") {
+        if operator_contains(STRING1: mistsutils_patchreporter(A: "destr"), STRING2: "/") {
+          vars["DeString // out"] = @originFS_Path_ID(Path: mistsutils_patchreporter(A: "destr"));
         } else {
-          vars["DeString // out"] = @originFS_UUID_ID(UUID= mistsutils_patchreporter(A= "destr"));
+          vars["DeString // out"] = @originFS_UUID_ID(UUID: mistsutils_patchreporter(A: "destr"));
         }
       }
-      @Permissions_Can_i_view_file(File_To_Get= vars["DeString // out"]);
+      @Permissions_Can_i_view_file(File_To_Get: vars["DeString // out"]);
       if (vars["OSL// Permission Output"] == "1") {
-        return @parse(json= @File_get_item(id= vars["DeString // out"], item= "4"));
+        return @parse(json: @File_get_item(id: vars["DeString // out"], item: "4"));
       } else {
-        @Log_Error(Data= ("[FCIF] getFile() Denied To " .. input), Type= "Permission");
+        @Log_Error(Data: ("[FCIF] getFile() Denied To " .. input), Type: "Permission");
         return "Access Denied";
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"saveExists()\"]") {
+    case mistsutils_patchreporter(A: "mtd[\"saveExists()\"]") {
       if (vars["Window // Save Directory"] == "") {
-        @Log_Error(Data= "[SDDU] No save directory set yet, use `save \"directory name that you want to use\" \"set_directory\"`", Type= "Unknown");
+        @Log_Error(Data: "[SDDU] No save directory set yet, use `save \"directory name that you want to use\" \"set_directory\"`", Type: "Unknown");
         return "";
       } else {
-        return data_listcontainsitem(ITEM= ((((@Parse_Directory(directory= "~/application data") .. "/") .. vars["Window // Save Directory"]) .. "/") .. mistsutils_patchreporter(A= "destr")), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+        return data_listcontainsitem(ITEM: ((((@Parse_Directory(directory: "~/application data") .. "/") .. vars["Window // Save Directory"]) .. "/") .. mistsutils_patchreporter(A: "destr")), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"saveGet()\"]") {
+    case mistsutils_patchreporter(A: "mtd[\"saveGet()\"]") {
       if (vars["Window // Save Directory"] == "") {
-        @Log_Error(Data= "[SDDU] No save directory set yet, use `save \"directory name that you want to use\" \"set_directory\"`", Type= "Unknown");
+        @Log_Error(Data: "[SDDU] No save directory set yet, use `save \"directory name that you want to use\" \"set_directory\"`", Type: "Unknown");
       } else {
-        vars["Temp"] = @originFS_Path_ID(Path= ((((@Parse_Directory(directory= "~/application data") .. "/") .. vars["Window // Save Directory"]) .. "/") .. mistsutils_patchreporter(A= "destr")));
+        vars["Temp"] = @originFS_Path_ID(Path: ((((@Parse_Directory(directory: "~/application data") .. "/") .. vars["Window // Save Directory"]) .. "/") .. mistsutils_patchreporter(A: "destr")));
         if (Temp > "0") {
-          return @parse(json= @File_get_item(id= Temp, item= mistsutils_patchreporter(A= "params.length === 0 ? 4 : +params[0]")));
+          return @parse(json: @File_get_item(id: Temp, item: mistsutils_patchreporter(A: "params.length === 0 ? 4 : +params[0]")));
         } else {
-          mistsutils_patchcommand(A= "return null");
+          mistsutils_patchcommand(A: "return null");
         }
       }
     }
-    mistsutils_patchcommand2(A= "case mtd[\"http()\"]: return ", B= cloudlink_requestURL(method= mistsutils_patchreporter(A= "params[0]"), url= mistsutils_patchreporter(A= "destr"), data= @Stringify(json= mistsutils_patchreporter(A= "params[1]")), headers= @Stringify(json= mistsutils_patchreporter(A= "params[2]"))));
-    mistsutils_patchcommand2(A= "case mtd[\"makeUrl()\"]: return ", B= URIUtilities_stringToDataURI(STRING= mistsutils_patchreporter(A= "destr"), TYPE= mistsutils_patchreporter(A= "params[0]")));
-    mistsutils_patchcommand2(A= "case mtd[\"test()\"]: case mtd[\"matchregex()\"]: return ", B= truefantomregexp_regexp_test_block(A= mistsutils_patchreporter(A= "destr"), B= mistsutils_patchreporter(A= "params[0]")));
-    case mistsutils_patchreporter(A= "mtd[\"regex()\"]") fallthrough {
+    mistsutils_patchcommand2(A: "case mtd[\"http()\"]: return ", B: cloudlink_requestURL(method: mistsutils_patchreporter(A: "params[0]"), url: mistsutils_patchreporter(A: "destr"), data: @Stringify(json: mistsutils_patchreporter(A: "params[1]")), headers: @Stringify(json: mistsutils_patchreporter(A: "params[2]"))));
+    mistsutils_patchcommand2(A: "case mtd[\"makeUrl()\"]: return ", B: URIUtilities_stringToDataURI(STRING: mistsutils_patchreporter(A: "destr"), TYPE: mistsutils_patchreporter(A: "params[0]")));
+    mistsutils_patchcommand2(A: "case mtd[\"test()\"]: case mtd[\"matchregex()\"]: return ", B: truefantomregexp_regexp_test_block(A: mistsutils_patchreporter(A: "destr"), B: mistsutils_patchreporter(A: "params[0]")));
+    case mistsutils_patchreporter(A: "mtd[\"regex()\"]") fallthrough {
 
     }
-    case mistsutils_patchreporter(A= "mtd[\"match()\"]") {
-      mistsutils_patchcommand(A= "const arr = /\\/(.*)\\/(.*)/.exec(params[0]);");
-      mistsutils_patchcommand(A= "return destr.match(new RegExp(arr[1], arr[2]))");
+    case mistsutils_patchreporter(A: "mtd[\"match()\"]") {
+      mistsutils_patchcommand(A: "const arr = /\\/(.*)\\/(.*)/.exec(params[0]);");
+      mistsutils_patchcommand(A: "return destr.match(new RegExp(arr[1], arr[2]))");
     }
-    mistsutils_patchcommand2(A= "case mtd[\"toBase()\"]: return ", B= @Numbers_from_base_to(input= mistsutils_patchreporter(A= "destr.toUpperCase()"), base= mistsutils_patchreporter(A= "params[0]"), new= mistsutils_patchreporter(A= "params[1]")));
-    case mistsutils_patchreporter(A= "mtd[\"delete()\"]") {
-      mistsutils_patchcommand(A= "if (p0 === null) return null");
-      mistsutils_patchcommand(A= "let temp = params[0]");
-      mistsutils_patchcommand(A= "if (typeof p0 === \"object\") {");
-      mistsutils_patchcommand(A= "if(Array.isArray(p0)){if(typeof temp!==\"number\"){for(let i=p0.length-1;i>=0;i--)if(p0[i]===temp)p0.splice(i,1)}else p0.splice(temp-1,1);return p0}");
-      mistsutils_patchcommand(A= "else { delete p0[temp]; return p0 } }");
-      mistsutils_patchcommand(A= "if (temp <= 0) return destr");
-      return (@letters_to_of(start= "1", end= (mistsutils_patchreporter(A= "temp") - 1), text= mistsutils_patchreporter(A= "destr")) .. @letters_to_of(start= (mistsutils_patchreporter(A= "temp") + 1), end= operator_length(STRING= mistsutils_patchreporter(A= "destr")), text= mistsutils_patchreporter(A= "destr")));
+    mistsutils_patchcommand2(A: "case mtd[\"toBase()\"]: return ", B: @Numbers_from_base_to(input: mistsutils_patchreporter(A: "destr.toUpperCase()"), base: mistsutils_patchreporter(A: "params[0]"), new: mistsutils_patchreporter(A: "params[1]")));
+    case mistsutils_patchreporter(A: "mtd[\"delete()\"]") {
+      mistsutils_patchcommand(A: "if (p0 === null) return null");
+      mistsutils_patchcommand(A: "let temp = params[0]");
+      mistsutils_patchcommand(A: "if (typeof p0 === \"object\") {");
+      mistsutils_patchcommand(A: "if(Array.isArray(p0)){if(typeof temp!==\"number\"){for(let i=p0.length-1;i>=0;i--)if(p0[i]===temp)p0.splice(i,1)}else p0.splice(temp-1,1);return p0}");
+      mistsutils_patchcommand(A: "else { delete p0[temp]; return p0 } }");
+      mistsutils_patchcommand(A: "if (temp <= 0) return destr");
+      return (@letters_to_of(start: "1", end: (mistsutils_patchreporter(A: "temp") - 1), text: mistsutils_patchreporter(A: "destr")) .. @letters_to_of(start: (mistsutils_patchreporter(A: "temp") + 1), end: operator_length(STRING: mistsutils_patchreporter(A: "destr")), text: mistsutils_patchreporter(A: "destr")));
     }
-    case mistsutils_patchreporter(A= "mtd[\"every()\"]") {
-      mistsutils_patchcommand(A= "const command_obj = params[0]");
-      if mistsutils_patchboolean(A= "typeof command_obj === \"object\" && p0 !== null") {
-        mistsutils_patchcommand(A= "if (typeof p0 === \"string\") p0 = destr");
-        mistsutils_patchcommand3(A= "for (let i = 0; i < p0.length; i ++) { if (String(", B= @run_func(command= mistsutils_patchreporter(A= "command_obj"), params= mistsutils_patchreporter(A= "[p0[i], i + 1]")), C= ") !== \"true\") return false }");
-        mistsutils_patchcommand(A= "return true;");
+    case mistsutils_patchreporter(A: "mtd[\"every()\"]") {
+      mistsutils_patchcommand(A: "const command_obj = params[0]");
+      if mistsutils_patchboolean(A: "typeof command_obj === \"object\" && p0 !== null") {
+        mistsutils_patchcommand(A: "if (typeof p0 === \"string\") p0 = destr");
+        mistsutils_patchcommand3(A: "for (let i = 0; i < p0.length; i ++) { if (String(", B: @run_func(command: mistsutils_patchreporter(A: "command_obj"), params: mistsutils_patchreporter(A: "[p0[i], i + 1]")), C: ") !== \"true\") return false }");
+        mistsutils_patchcommand(A: "return true;");
       }
-      mistsutils_patchcommand(A= "return false;");
+      mistsutils_patchcommand(A: "return false;");
     }
-    case mistsutils_patchreporter(A= "mtd[\"filter()\"]") {
-      mistsutils_patchcommand(A= "const command_obj = params[0]");
-      if mistsutils_patchboolean(A= "typeof command_obj === \"object\" && p0 !== null") {
-        mistsutils_patchcommand(A= "let output = []");
-        mistsutils_patchcommand3(A= "for (let i = 0; i < p0.length; i ++) if (\"\"+", B= @run_func(command= mistsutils_patchreporter(A= "command_obj"), params= mistsutils_patchreporter(A= "[p0[i], i + 1]")), C= " === \"true\") output.push(p0[i])");
-        return mistsutils_patchreporter(A= "typeof p0 === \"string\" ? output.join(\"\") : output");
+    case mistsutils_patchreporter(A: "mtd[\"filter()\"]") {
+      mistsutils_patchcommand(A: "const command_obj = params[0]");
+      if mistsutils_patchboolean(A: "typeof command_obj === \"object\" && p0 !== null") {
+        mistsutils_patchcommand(A: "let output = []");
+        mistsutils_patchcommand3(A: "for (let i = 0; i < p0.length; i ++) if (\"\"+", B: @run_func(command: mistsutils_patchreporter(A: "command_obj"), params: mistsutils_patchreporter(A: "[p0[i], i + 1]")), C: " === \"true\") output.push(p0[i])");
+        return mistsutils_patchreporter(A: "typeof p0 === \"string\" ? output.join(\"\") : output");
       } else {
-        mistsutils_patchcommand(A= "return null");
+        mistsutils_patchcommand(A: "return null");
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"findIndex()\"]") {
-      mistsutils_patchcommand(A= "const command_obj = params[0]");
-      if mistsutils_patchboolean(A= "typeof command_obj === \"object\" && p0 !== null") {
-        mistsutils_patchcommand3(A= "for (let i = 0; i < p0.length; i ++) if (\"\"+", B= @run_func(command= mistsutils_patchreporter(A= "command_obj"), params= mistsutils_patchreporter(A= "[p0[i], i + 1]")), C= " === \"true\") return i + 1");
-        mistsutils_patchcommand(A= "return 0");
+    case mistsutils_patchreporter(A: "mtd[\"findIndex()\"]") {
+      mistsutils_patchcommand(A: "const command_obj = params[0]");
+      if mistsutils_patchboolean(A: "typeof command_obj === \"object\" && p0 !== null") {
+        mistsutils_patchcommand3(A: "for (let i = 0; i < p0.length; i ++) if (\"\"+", B: @run_func(command: mistsutils_patchreporter(A: "command_obj"), params: mistsutils_patchreporter(A: "[p0[i], i + 1]")), C: " === \"true\") return i + 1");
+        mistsutils_patchcommand(A: "return 0");
       } else {
-        mistsutils_patchcommand(A= "return null");
+        mistsutils_patchcommand(A: "return null");
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"getall()\"]") {
-      mistsutils_patchcommand(A= "let key = params[0]");
-      switch mistsutils_patchreporter(A= "key") {
-        mistsutils_patchcommand2(A= "case \"extract-letters\": return ", B= HyperSenseSP_getAllString(TEXT= HyperSenseSP_menu_string_types(string_types: ["letters",null]), STRING= mistsutils_patchreporter(A= "destr")));
-        mistsutils_patchcommand2(A= "case \"extract-numbers\": return ", B= HyperSenseSP_getAllString(TEXT= HyperSenseSP_menu_string_types(string_types: ["numbers",null]), STRING= mistsutils_patchreporter(A= "destr")));
-        mistsutils_patchcommand2(A= "case \"extract-special\": return ", B= HyperSenseSP_getAllString(TEXT= HyperSenseSP_menu_string_types(string_types: ["special characters",null]), STRING= mistsutils_patchreporter(A= "destr")));
+    case mistsutils_patchreporter(A: "mtd[\"getall()\"]") {
+      mistsutils_patchcommand(A: "let key = params[0]");
+      switch mistsutils_patchreporter(A: "key") {
+        mistsutils_patchcommand2(A: "case \"extract-letters\": return ", B: HyperSenseSP_getAllString(TEXT: HyperSenseSP_menu_string_types(field string_types: ["letters",null]), STRING: mistsutils_patchreporter(A: "destr")));
+        mistsutils_patchcommand2(A: "case \"extract-numbers\": return ", B: HyperSenseSP_getAllString(TEXT: HyperSenseSP_menu_string_types(field string_types: ["numbers",null]), STRING: mistsutils_patchreporter(A: "destr")));
+        mistsutils_patchcommand2(A: "case \"extract-special\": return ", B: HyperSenseSP_getAllString(TEXT: HyperSenseSP_menu_string_types(field string_types: ["special characters",null]), STRING: mistsutils_patchreporter(A: "destr")));
       }
-      mistsutils_patchcommand(A= "if (typeof p0 === \"object\" && p0 !== null) {return p0.map(x => { let cur = x[key]; if (typeof cur !== \"undefined\") return cur; return null; })}");
-      if @is_array(input= input) {
-        return mistsutils_jsonparse(A= skyhigh173JSON_json_array_filter(key= vars["//return"], json= input));
+      mistsutils_patchcommand(A: "if (typeof p0 === \"object\" && p0 !== null) {return p0.map(x => { let cur = x[key]; if (typeof cur !== \"undefined\") return cur; return null; })}");
+      if @is_array(input: input) {
+        return mistsutils_jsonparse(A: skyhigh173JSON_json_array_filter(key: vars["//return"], json: input));
       }
-      @Log_Error(Data= "[MTII] invalid input for 'getall' method", Type= "Invalid Input");
-      mistsutils_patchcommand(A= "return []");
+      @Log_Error(Data: "[MTII] invalid input for 'getall' method", Type: "Invalid Input");
+      mistsutils_patchcommand(A: "return []");
     }
-    case mistsutils_patchreporter(A= "mtd[\"imageinfo()\"]") {
-      switch mistsutils_patchreporter(A= "params[0]") {
-        mistsutils_patchcommand2(A= "case \"loaded\": return ", B= mistSkins_getSkinLoaded(NAME= mistsutils_patchreporter(A= "destr")));
-        mistsutils_patchcommand2(A= "case \"loading\": return ", B= mistSkins_getSkinLoading(NAME= mistsutils_patchreporter(A= "destr")));
-        mistsutils_patchcommand2(A= "case \"width\": return ", B= mistSkins_getSkinAttribute(ATTRIBUTE= mistSkins_menu_skinAttributes(skinAttributes: ["width",null]), NAME= mistsutils_patchreporter(A= "destr")));
-        mistsutils_patchcommand2(A= "case \"height\": return ", B= mistSkins_getSkinAttribute(ATTRIBUTE= mistSkins_menu_skinAttributes(skinAttributes: ["height",null]), NAME= mistsutils_patchreporter(A= "destr")));
+    case mistsutils_patchreporter(A: "mtd[\"imageinfo()\"]") {
+      switch mistsutils_patchreporter(A: "params[0]") {
+        mistsutils_patchcommand2(A: "case \"loaded\": return ", B: mistSkins_getSkinLoaded(NAME: mistsutils_patchreporter(A: "destr")));
+        mistsutils_patchcommand2(A: "case \"loading\": return ", B: mistSkins_getSkinLoading(NAME: mistsutils_patchreporter(A: "destr")));
+        mistsutils_patchcommand2(A: "case \"width\": return ", B: mistSkins_getSkinAttribute(ATTRIBUTE: mistSkins_menu_skinAttributes(field skinAttributes: ["width",null]), NAME: mistsutils_patchreporter(A: "destr")));
+        mistsutils_patchcommand2(A: "case \"height\": return ", B: mistSkins_getSkinAttribute(ATTRIBUTE: mistSkins_menu_skinAttributes(field skinAttributes: ["height",null]), NAME: mistsutils_patchreporter(A: "destr")));
         default {
-          @Log_Error(Data= "[MTII] invalid input for 'imageinfo' method", Type= "Invalid Input");
+          @Log_Error(Data: "[MTII] invalid input for 'imageinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'imageinfo' method";
         }
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"map()\"]") {
-      mistsutils_patchcommand(A= "const command_obj = params[0]");
-      if mistsutils_patchboolean(A= "typeof command_obj === \"object\" && p0 !== null") {
-        mistsutils_patchcommand(A= "let output = new Array(p0.length)");
-        mistsutils_patchcommand3(A= "for (let i = 0; i < p0.length; i ++) output[i] = ", B= @run_func(command= mistsutils_patchreporter(A= "command_obj"), params= mistsutils_patchreporter(A= "[p0[i], i + 1]")), C= ";");
-        return mistsutils_patchreporter(A= "typeof p0 === \"string\" ? output.join(\"\") : output");
+    case mistsutils_patchreporter(A: "mtd[\"map()\"]") {
+      mistsutils_patchcommand(A: "const command_obj = params[0]");
+      if mistsutils_patchboolean(A: "typeof command_obj === \"object\" && p0 !== null") {
+        mistsutils_patchcommand(A: "let output = new Array(p0.length)");
+        mistsutils_patchcommand3(A: "for (let i = 0; i < p0.length; i ++) output[i] = ", B: @run_func(command: mistsutils_patchreporter(A: "command_obj"), params: mistsutils_patchreporter(A: "[p0[i], i + 1]")), C: ";");
+        return mistsutils_patchreporter(A: "typeof p0 === \"string\" ? output.join(\"\") : output");
       }
-      mistsutils_patchcommand(A= "return null");
+      mistsutils_patchcommand(A: "return null");
     }
-    case mistsutils_patchreporter(A= "mtd[\"ifOk()\"]") {
-      mistsutils_patchcommand(A= "if (Object.getPrototypeOf(p0) !== Object.getPrototypeOf(target.osl_vars).result) break");
-      mistsutils_patchcommand(A= "const command_obj = params[0]");
-      mistsutils_patchcommand(A= "if (!p0.isOk.code()) return p0");
-      mistsutils_patchcommand3(A= "p0._value = ", B= @run_func(command= mistsutils_patchreporter(A= "params[0]"), params= mistsutils_patchreporter(A= "[p0._value]")), C= ";");
-      mistsutils_patchcommand(A= "return p0");
+    case mistsutils_patchreporter(A: "mtd[\"ifOk()\"]") {
+      mistsutils_patchcommand(A: "if (Object.getPrototypeOf(p0) !== Object.getPrototypeOf(target.osl_vars).result) break");
+      mistsutils_patchcommand(A: "const command_obj = params[0]");
+      mistsutils_patchcommand(A: "if (!p0.isOk.code()) return p0");
+      mistsutils_patchcommand3(A: "p0._value = ", B: @run_func(command: mistsutils_patchreporter(A: "params[0]"), params: mistsutils_patchreporter(A: "[p0._value]")), C: ";");
+      mistsutils_patchcommand(A: "return p0");
     }
-    case mistsutils_patchreporter(A= "mtd[\"ifErr()\"]") {
-      mistsutils_patchcommand(A= "if (Object.getPrototypeOf(p0) !== Object.getPrototypeOf(target.osl_vars).result) break");
-      mistsutils_patchcommand(A= "const command_obj = params[0]");
-      mistsutils_patchcommand(A= "if (p0.isOk.code()) return p0");
-      mistsutils_patchcommand3(A= "p0._error = ", B= @run_func(command= mistsutils_patchreporter(A= "params[0]"), params= mistsutils_patchreporter(A= "[p0._error]")), C= ";");
-      mistsutils_patchcommand(A= "return p0");
+    case mistsutils_patchreporter(A: "mtd[\"ifErr()\"]") {
+      mistsutils_patchcommand(A: "if (Object.getPrototypeOf(p0) !== Object.getPrototypeOf(target.osl_vars).result) break");
+      mistsutils_patchcommand(A: "const command_obj = params[0]");
+      mistsutils_patchcommand(A: "if (p0.isOk.code()) return p0");
+      mistsutils_patchcommand3(A: "p0._error = ", B: @run_func(command: mistsutils_patchreporter(A: "params[0]"), params: mistsutils_patchreporter(A: "[p0._error]")), C: ";");
+      mistsutils_patchcommand(A: "return p0");
     }
-    case mistsutils_patchreporter(A= "mtd[\"roturSend()\"]") {
-      if not((mistsutils_patchreporter(A= "destr") == vars["Server // Name"])) {
-        data_addtolist(ITEM= skyhigh173JSON_json_set(item= "target_user", json= skyhigh173JSON_json_set(item= "payload", json= skyhigh173JSON_json_set(item= "target", json= skyhigh173JSON_json_set(item= "source", json= skyhigh173JSON_json_delete(item= "id", json= vars["Server// Base Payload"]), value= vars["Window // Network ID"]), value= @destring(Text= mistsutils_squarebrackets(A= params, B= "1"), remove= "\"")), value= @Stringify(json= mistsutils_squarebrackets(A= params, B= "0"))), value= @Find_User(Name= input, all= null)), LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+    case mistsutils_patchreporter(A: "mtd[\"roturSend()\"]") {
+      if not((mistsutils_patchreporter(A: "destr") == vars["Server // Name"])) {
+        data_addtolist(ITEM: skyhigh173JSON_json_set(item: "target_user", json: skyhigh173JSON_json_set(item: "payload", json: skyhigh173JSON_json_set(item: "target", json: skyhigh173JSON_json_set(item: "source", json: skyhigh173JSON_json_delete(item: "id", json: vars["Server// Base Payload"]), value: vars["Window // Network ID"]), value: @destring(Text: mistsutils_squarebrackets(A: params, B: "1"), remove: "\"")), value: @Stringify(json: mistsutils_squarebrackets(A: params, B: "0"))), value: @Find_User(Name: input, all: null)), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
       }
       return input;
     }
-    case mistsutils_patchreporter(A= "mtd[\"replace()\"]") {
-      mistsutils_patchcommand(A= "const temp1 = params[0] ?? \"\"");
-      mistsutils_patchcommand(A= "const temp2 = params[1] ?? \"\"");
-      if (mistsutils_patchboolean(A= "String(temp1).startsWith(\"/\")") && truefantomregexp_is_regexp_block(A= mistsutils_patchreporter(A= "temp1"))) {
-        return truefantomregexp_regexp_replace_block(A= mistsutils_patchreporter(A= "destr"), B= mistsutils_patchreporter(A= "temp1"), C= mistsutils_patchreporter(A= "temp2"));
+    case mistsutils_patchreporter(A: "mtd[\"replace()\"]") {
+      mistsutils_patchcommand(A: "const temp1 = params[0] ?? \"\"");
+      mistsutils_patchcommand(A: "const temp2 = params[1] ?? \"\"");
+      if (mistsutils_patchboolean(A: "String(temp1).startsWith(\"/\")") && truefantomregexp_is_regexp_block(A: mistsutils_patchreporter(A: "temp1"))) {
+        return truefantomregexp_regexp_replace_block(A: mistsutils_patchreporter(A: "destr"), B: mistsutils_patchreporter(A: "temp1"), C: mistsutils_patchreporter(A: "temp2"));
       }
-      return mistsutils_replaceall(C= mistsutils_patchreporter(A= "temp1"), A= mistsutils_patchreporter(A= "destr"), B= mistsutils_patchreporter(A= "temp2"));
+      return mistsutils_replaceall(C: mistsutils_patchreporter(A: "temp1"), A: mistsutils_patchreporter(A: "destr"), B: mistsutils_patchreporter(A: "temp2"));
     }
-    case mistsutils_patchreporter(A= "mtd[\"some()\"]") {
-      mistsutils_patchcommand(A= "const command_obj = params[0]");
-      if mistsutils_patchboolean(A= "typeof command_obj === \"object\" && p0 !== null") {
-        mistsutils_patchcommand(A= "if (typeof p0 === \"string\") p0 = destr");
-        mistsutils_patchcommand(A= "let output = []");
-        mistsutils_patchcommand3(A= "for (let i = 0; i < p0.length; i ++) if (\"\"+", B= @run_func(command= mistsutils_patchreporter(A= "command_obj"), params= mistsutils_patchreporter(A= "[p0[i], i]")), C= " === \"true\") return true;");
+    case mistsutils_patchreporter(A: "mtd[\"some()\"]") {
+      mistsutils_patchcommand(A: "const command_obj = params[0]");
+      if mistsutils_patchboolean(A: "typeof command_obj === \"object\" && p0 !== null") {
+        mistsutils_patchcommand(A: "if (typeof p0 === \"string\") p0 = destr");
+        mistsutils_patchcommand(A: "let output = []");
+        mistsutils_patchcommand3(A: "for (let i = 0; i < p0.length; i ++) if (\"\"+", B: @run_func(command: mistsutils_patchreporter(A: "command_obj"), params: mistsutils_patchreporter(A: "[p0[i], i]")), C: " === \"true\") return true;");
       }
-      mistsutils_patchcommand(A= "return false;");
+      mistsutils_patchcommand(A: "return false;");
     }
-    case mistsutils_patchreporter(A= "mtd[\"soundinfo()\"]") {
-      mistsutils_patchcommand2(A= "const input = ", B= (vars["WIndow // ID"] .. mistsutils_patchreporter(A= "`-${destr}`")));
-      switch mistsutils_patchreporter(A= "params[0]") {
-        mistsutils_patchcommand2(A= "case \"loaded\": return ", B= SPtuneShark_soundCheck(NAME= mistsutils_patchreporter(A= "input"), CONTROL: ["exists?",null]));
-        mistsutils_patchcommand2(A= "case \"speed\": return ", B= SPtuneShark_soundProperty(NAME= mistsutils_patchreporter(A= "input"), PROPERTY= SPtuneShark_menu_soundProperties(soundProperties: ["speed",null])));
-        mistsutils_patchcommand2(A= "case \"pitch\": return ", B= SPtuneShark_soundProperty(NAME= mistsutils_patchreporter(A= "input"), PROPERTY= SPtuneShark_menu_soundProperties(soundProperties: ["pitch",null])));
-        mistsutils_patchcommand2(A= "case \"current_time\": return ", B= SPtuneShark_currentSoundTime(NAME= mistsutils_patchreporter(A= "input")));
-        mistsutils_patchcommand2(A= "case \"duration\": return ", B= SPtuneShark_soundProperty(NAME= mistsutils_patchreporter(A= "input"), PROPERTY= SPtuneShark_menu_soundProperties(soundProperties: ["length",null])));
-        mistsutils_patchcommand2(A= "case \"volume\": return ", B= SPtuneShark_soundProperty(NAME= mistsutils_patchreporter(A= "input"), PROPERTY= SPtuneShark_menu_soundProperties(soundProperties: ["volume",null])));
-        mistsutils_patchcommand2(A= "case \"playing\": return ", B= SPtuneShark_soundCheck(NAME= mistsutils_patchreporter(A= "input"), CONTROL: ["playing?",null]));
-        mistsutils_patchcommand2(A= "case \"completion\": return ", B= (SPtuneShark_currentSoundTime(NAME= mistsutils_patchreporter(A= "input")) / SPtuneShark_soundProperty(NAME= mistsutils_patchreporter(A= "input"), PROPERTY= SPtuneShark_menu_soundProperties(soundProperties: ["length",null]))));
+    case mistsutils_patchreporter(A: "mtd[\"soundinfo()\"]") {
+      mistsutils_patchcommand2(A: "const input = ", B: (vars["WIndow // ID"] .. mistsutils_patchreporter(A: "`-${destr}`")));
+      switch mistsutils_patchreporter(A: "params[0]") {
+        mistsutils_patchcommand2(A: "case \"loaded\": return ", B: SPtuneShark_soundCheck(NAME: mistsutils_patchreporter(A: "input"), field CONTROL: ["exists?",null]));
+        mistsutils_patchcommand2(A: "case \"speed\": return ", B: SPtuneShark_soundProperty(NAME: mistsutils_patchreporter(A: "input"), PROPERTY: SPtuneShark_menu_soundProperties(field soundProperties: ["speed",null])));
+        mistsutils_patchcommand2(A: "case \"pitch\": return ", B: SPtuneShark_soundProperty(NAME: mistsutils_patchreporter(A: "input"), PROPERTY: SPtuneShark_menu_soundProperties(field soundProperties: ["pitch",null])));
+        mistsutils_patchcommand2(A: "case \"current_time\": return ", B: SPtuneShark_currentSoundTime(NAME: mistsutils_patchreporter(A: "input")));
+        mistsutils_patchcommand2(A: "case \"duration\": return ", B: SPtuneShark_soundProperty(NAME: mistsutils_patchreporter(A: "input"), PROPERTY: SPtuneShark_menu_soundProperties(field soundProperties: ["length",null])));
+        mistsutils_patchcommand2(A: "case \"volume\": return ", B: SPtuneShark_soundProperty(NAME: mistsutils_patchreporter(A: "input"), PROPERTY: SPtuneShark_menu_soundProperties(field soundProperties: ["volume",null])));
+        mistsutils_patchcommand2(A: "case \"playing\": return ", B: SPtuneShark_soundCheck(NAME: mistsutils_patchreporter(A: "input"), field CONTROL: ["playing?",null]));
+        mistsutils_patchcommand2(A: "case \"completion\": return ", B: (SPtuneShark_currentSoundTime(NAME: mistsutils_patchreporter(A: "input")) / SPtuneShark_soundProperty(NAME: mistsutils_patchreporter(A: "input"), PROPERTY: SPtuneShark_menu_soundProperties(field soundProperties: ["length",null]))));
         default {
-          @Log_Error(Data= "[MTII] invalid input for 'soundinfo' method", Type= "Invalid Input");
+          @Log_Error(Data: "[MTII] invalid input for 'soundinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'soundinfo' method";
         }
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"timestamp()\"]") {
-      switch mistsutils_patchreporter(A= "params[0]") {
-        mistsutils_patchcommand2(A= "case \"to-full\": case \"convert-full\": return ", B= sipctime_TimestampToTime(timestamp= mistsutils_patchreporter(A= "destr")));
-        mistsutils_patchcommand2(A= "case \"to-date\": case \"convert-date\": return ", B= @item_of_split_by(int= "1", string= sipctime_TimestampToTime(timestamp= mistsutils_patchreporter(A= "destr")), delimiter= " "));
-        mistsutils_patchcommand2(A= "case \"to-time\": case \"convert-time\": return ", B= @item_of_split_by(int= "2", string= sipctime_TimestampToTime(timestamp= mistsutils_patchreporter(A= "destr")), delimiter= " "));
-        mistsutils_patchcommand2(A= "case \"to-relative\": case \"convert-relative\": return ", B= @Timestamp_Convert(data= mistsutils_patchreporter(A= "destr")));
+    case mistsutils_patchreporter(A: "mtd[\"timestamp()\"]") {
+      switch mistsutils_patchreporter(A: "params[0]") {
+        mistsutils_patchcommand2(A: "case \"to-full\": case \"convert-full\": return ", B: sipctime_TimestampToTime(timestamp: mistsutils_patchreporter(A: "destr")));
+        mistsutils_patchcommand2(A: "case \"to-date\": case \"convert-date\": return ", B: @item_of_split_by(int: "1", string: sipctime_TimestampToTime(timestamp: mistsutils_patchreporter(A: "destr")), delimiter: " "));
+        mistsutils_patchcommand2(A: "case \"to-time\": case \"convert-time\": return ", B: @item_of_split_by(int: "2", string: sipctime_TimestampToTime(timestamp: mistsutils_patchreporter(A: "destr")), delimiter: " "));
+        mistsutils_patchcommand2(A: "case \"to-relative\": case \"convert-relative\": return ", B: @Timestamp_Convert(data: mistsutils_patchreporter(A: "destr")));
         default {
-          return sipctime_Timedata(Timedata= mistsutils_replace(C= "get-", A= mistsutils_patchreporter(A= "params[0]"), B= ""), timestamp= mistsutils_patchreporter(A= "destr"));
+          return sipctime_Timedata(Timedata: mistsutils_replace(C: "get-", A: mistsutils_patchreporter(A: "params[0]"), B: ""), timestamp: mistsutils_patchreporter(A: "destr"));
         }
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"trim()\"]") {
-      mistsutils_patchcommand2(A= "if (typeof p0 === \"object\" && p0 !== null) return ", B= @items_to_of(start= mistsutils_patchreporter(A= "params[0]"), end= mistsutils_patchreporter(A= "params[1]"), array= input));
-      return @letters_to_of(start= mistsutils_patchreporter(A= "params[0]"), end= mistsutils_patchreporter(A= "params[1]"), text= mistsutils_patchreporter(A= "destr"));
+    case mistsutils_patchreporter(A: "mtd[\"trim()\"]") {
+      mistsutils_patchcommand2(A: "if (typeof p0 === \"object\" && p0 !== null) return ", B: @items_to_of(start: mistsutils_patchreporter(A: "params[0]"), end: mistsutils_patchreporter(A: "params[1]"), array: input));
+      return @letters_to_of(start: mistsutils_patchreporter(A: "params[0]"), end: mistsutils_patchreporter(A: "params[1]"), text: mistsutils_patchreporter(A: "destr"));
     }
-    case mistsutils_patchreporter(A= "mtd[\"vrotate()\"]") {
-      return @Rotate_around_by_yaw_pitch_roll(arr1= input, arr2= mistsutils_patchreporter(A= "params.slice(0, 3)"), yaw= mistsutils_squarebrackets(A= params, B= "3"), pitch= mistsutils_squarebrackets(A= params, B= "4"), roll= mistsutils_squarebrackets(A= params, B= "5"));
+    case mistsutils_patchreporter(A: "mtd[\"vrotate()\"]") {
+      return @Rotate_around_by_yaw_pitch_roll(arr1: input, arr2: mistsutils_patchreporter(A: "params.slice(0, 3)"), yaw: mistsutils_squarebrackets(A: params, B: "3"), pitch: mistsutils_squarebrackets(A: params, B: "4"), roll: mistsutils_squarebrackets(A: params, B: "5"));
     }
-    case mistsutils_patchreporter(A= "mtd[\"videoinfo()\"]") {
-      mistsutils_patchcommand2(A= "destr = ", B= (vars["WIndow // ID"] .. mistsutils_patchreporter(A= "\"_\" + destr")));
-      switch mistsutils_patchreporter(A= "params[0]") {
-        mistsutils_patchcommand2(A= "case \"loaded\": return ", B= skyhigh173JSON_json_has_value(json= lmsVideo_getLoadedVideos(), value= mistsutils_patchreporter(A= "destr")));
-        mistsutils_patchcommand2(A= "case \"width\": return ", B= lmsVideo_getAttribute(NAME= mistsutils_patchreporter(A= "destr"), ATTRIBUTE: ["width",null]));
-        mistsutils_patchcommand2(A= "case \"height\": return ", B= lmsVideo_getAttribute(NAME= mistsutils_patchreporter(A= "destr"), ATTRIBUTE: ["height",null]));
-        mistsutils_patchcommand2(A= "case \"current_time\": return ", B= lmsVideo_getAttribute(NAME= mistsutils_patchreporter(A= "destr"), ATTRIBUTE: ["current time",null]));
-        mistsutils_patchcommand2(A= "case \"duration\": return ", B= lmsVideo_getAttribute(NAME= mistsutils_patchreporter(A= "destr"), ATTRIBUTE: ["duration",null]));
-        mistsutils_patchcommand2(A= "case \"volume\": return ", B= lmsVideo_getAttribute(NAME= mistsutils_patchreporter(A= "destr"), ATTRIBUTE: ["volume",null]));
-        mistsutils_patchcommand2(A= "case \"playing\": return ", B= lmsVideo_getState(NAME= mistsutils_patchreporter(A= "destr"), STATE= lmsVideo_menu_state(state: ["playing",null])));
+    case mistsutils_patchreporter(A: "mtd[\"videoinfo()\"]") {
+      mistsutils_patchcommand2(A: "destr = ", B: (vars["WIndow // ID"] .. mistsutils_patchreporter(A: "\"_\" + destr")));
+      switch mistsutils_patchreporter(A: "params[0]") {
+        mistsutils_patchcommand2(A: "case \"loaded\": return ", B: skyhigh173JSON_json_has_value(json: lmsVideo_getLoadedVideos(), value: mistsutils_patchreporter(A: "destr")));
+        mistsutils_patchcommand2(A: "case \"width\": return ", B: lmsVideo_getAttribute(NAME: mistsutils_patchreporter(A: "destr"), field ATTRIBUTE: ["width",null]));
+        mistsutils_patchcommand2(A: "case \"height\": return ", B: lmsVideo_getAttribute(NAME: mistsutils_patchreporter(A: "destr"), field ATTRIBUTE: ["height",null]));
+        mistsutils_patchcommand2(A: "case \"current_time\": return ", B: lmsVideo_getAttribute(NAME: mistsutils_patchreporter(A: "destr"), field ATTRIBUTE: ["current time",null]));
+        mistsutils_patchcommand2(A: "case \"duration\": return ", B: lmsVideo_getAttribute(NAME: mistsutils_patchreporter(A: "destr"), field ATTRIBUTE: ["duration",null]));
+        mistsutils_patchcommand2(A: "case \"volume\": return ", B: lmsVideo_getAttribute(NAME: mistsutils_patchreporter(A: "destr"), field ATTRIBUTE: ["volume",null]));
+        mistsutils_patchcommand2(A: "case \"playing\": return ", B: lmsVideo_getState(NAME: mistsutils_patchreporter(A: "destr"), STATE: lmsVideo_menu_state(field state: ["playing",null])));
         default {
-          @Log_Error(Data= "[MTII] invalid input for 'videoinfo' method", Type= "Invalid Input");
+          @Log_Error(Data: "[MTII] invalid input for 'videoinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'videoinfo' method";
         }
       }
     }
-    case mistsutils_patchreporter(A= "mtd[\"wsSend()\"]") {
-      mistsutils_patchcommand2(A= "const val = ", B= @Stringify(json= mistsutils_patchreporter(A= "params[0]")));
-      data_changevariableby(VALUE= mistsutils_patchreporter(A= "val.length"), VARIABLE: var("Network // Upload", "(x"));
-      webSocketPlus_send(MESSAGE= mistsutils_patchreporter(A= "val"), ID= mistsutils_patchreporter(A= "destr"));
-      return mistsutils_patchreporter(A= "null");
+    case mistsutils_patchreporter(A: "mtd[\"wsSend()\"]") {
+      mistsutils_patchcommand2(A: "const val = ", B: @Stringify(json: mistsutils_patchreporter(A: "params[0]")));
+      vars["Network // Upload"] += mistsutils_patchreporter(A: "val.length");
+      webSocketPlus_send(MESSAGE: mistsutils_patchreporter(A: "val"), ID: mistsutils_patchreporter(A: "destr"));
+      return mistsutils_patchreporter(A: "null");
     }
   }
-  mistsutils_patchcommand(A= "// } catch(e) { console.error(p0,p1,e); return \"\" }");
-  if (mistsutils_starts(A= command, B= "key(") || mistsutils_starts(A= command, B= "\"")) {
-    if @is_object(input= input) {
-      mistsutils_patchcommand2(A= "let temp = ", B= mistsutils_ifthen(A= mistsutils_starts(A= command, B= "key("), B= mistsutils_patchreporter(A= "params[0]"), C= command));
-      mistsutils_patchcommand3(A= "if (temp[0] === \"_\" && p0 !== ", B= "osl_clone[target.window.id].__self__", C= ") return null");
-      return mistsutils_patchreporter(A= "p0[temp] ?? null");
+  mistsutils_patchcommand(A: "// } catch(e) { console.error(p0,p1,e); return \"\" }");
+  if (mistsutils_starts(A: command, B: "key(") || mistsutils_starts(A: command, B: "\"")) {
+    if @is_object(input: input) {
+      mistsutils_patchcommand2(A: "let temp = ", B: mistsutils_ifthen(A: mistsutils_starts(A: command, B: "key("), B: mistsutils_patchreporter(A: "params[0]"), C: command));
+      mistsutils_patchcommand3(A: "if (temp[0] === \"_\" && p0 !== ", B: "osl_clone[target.window.id].__self__", C: ") return null");
+      return mistsutils_patchreporter(A: "p0[temp] ?? null");
     }
-    if @is_array(input= input) {
-      mistsutils_patchcommand2(A= "let temp = ", B= command);
-      return mistsutils_patchreporter(A= "p0.indexOf(temp) + 1");
+    if @is_array(input: input) {
+      mistsutils_patchcommand2(A: "let temp = ", B: command);
+      return mistsutils_patchreporter(A: "p0.indexOf(temp) + 1");
     }
-    mistsutils_patchcommand(A= "return null");
+    mistsutils_patchcommand(A: "return null");
   }
-  mistsutils_patchcommand(A= "if (p1[0] === \"_\" && p0 !== osl_clone[target.window.id].__self__) return null");
-  mistsutils_patchcommand(A= "const cmd = p1.slice(0,-2)");
-  mistsutils_patchcommand(A= "let command_obj = p0?.[cmd] ?? null");
-  mistsutils_patchcommand2(A= "if (command_obj?._get) command_obj =  ", B= @Run_Command_Object(params= "", command_object= mistsutils_patchreporter(A= "command_obj._get"), value= mistsutils_patchreporter(A= "p0")));
-  if mistsutils_patchboolean(A= "typeof command_obj === \"object\" && command_obj !== null") {
-    mistsutils_patchcommand(A= "command_obj.name = cmd");
-    mistsutils_patchcommand2(A= "return ", B= @Run_Command_Object(params= mistsutils_patchreporter(A= "params"), command_object= mistsutils_patchreporter(A= "command_obj"), value= mistsutils_patchreporter(A= "p0")));
+  mistsutils_patchcommand(A: "if (p1[0] === \"_\" && p0 !== osl_clone[target.window.id].__self__) return null");
+  mistsutils_patchcommand(A: "const cmd = p1.slice(0,-2)");
+  mistsutils_patchcommand(A: "let command_obj = p0?.[cmd] ?? null");
+  mistsutils_patchcommand2(A: "if (command_obj?._get) command_obj =  ", B: @Run_Command_Object(params: "", command_object: mistsutils_patchreporter(A: "command_obj._get"), value: mistsutils_patchreporter(A: "p0")));
+  if mistsutils_patchboolean(A: "typeof command_obj === \"object\" && command_obj !== null") {
+    mistsutils_patchcommand(A: "command_obj.name = cmd");
+    mistsutils_patchcommand2(A: "return ", B: @Run_Command_Object(params: mistsutils_patchreporter(A: "params"), command_object: mistsutils_patchreporter(A: "command_obj"), value: mistsutils_patchreporter(A: "p0")));
   } else {
-    mistsutils_patchcommand(A= "let type_obj = null");
-    mistsutils_patchcommand(A= "try { type_obj = target.osl_vars[osl.typeof.code(p0)] } catch {}");
-    mistsutils_patchcommand(A= "const command_obj = type_obj?.[cmd]");
-    if mistsutils_patchboolean(A= "typeof command_obj === \"object\" && command_obj !== null") {
-      mistsutils_patchcommand(A= "command_obj.name = cmd");
-      mistsutils_patchcommand2(A= "return ", B= @Run_Command_Object(params= mistsutils_patchreporter(A= "params"), command_object= mistsutils_patchreporter(A= "command_obj"), value= mistsutils_patchreporter(A= "p0")));
+    mistsutils_patchcommand(A: "let type_obj = null");
+    mistsutils_patchcommand(A: "try { type_obj = target.osl_vars[osl.typeof.code(p0)] } catch {}");
+    mistsutils_patchcommand(A: "const command_obj = type_obj?.[cmd]");
+    if mistsutils_patchboolean(A: "typeof command_obj === \"object\" && command_obj !== null") {
+      mistsutils_patchcommand(A: "command_obj.name = cmd");
+      mistsutils_patchcommand2(A: "return ", B: @Run_Command_Object(params: mistsutils_patchreporter(A: "params"), command_object: mistsutils_patchreporter(A: "command_obj"), value: mistsutils_patchreporter(A: "p0")));
     } else {
-      if mistsutils_patchboolean(A= "(command_obj ?? null) !== null") {
-        return mistsutils_patchreporter(A= "command_obj");
+      if mistsutils_patchboolean(A: "(command_obj ?? null) !== null") {
+        return mistsutils_patchreporter(A: "command_obj");
       }
     }
   }
-  mistsutils_patchcommand(A= "console.log(p0, p1, p2)");
-  @Log_Error(Data= @join(_1= "Method '", _2= command, _3= "' is not available on the data type '", _4= mistsutils_patchreporter3(A= "osl.typeof.code(", B= input, C= ")"), _5= "'", _6= "", _7= "", _8= "", _9= "", _10= "", _11= ""), Type= "Unknown");
-  return mistsutils_patchreporter(A= "null");
+  mistsutils_patchcommand(A: "console.log(p0, p1, p2)");
+  @Log_Error(Data: @join(_1: "Method '", _2: command, _3: "' is not available on the data type '", _4: mistsutils_patchreporter3(A: "osl.typeof.code(", B: input, C: ")"), _5: "'", _6: "", _7: "", _8: "", _9: "", _10: "", _11: ""), Type: "Unknown");
+  return mistsutils_patchreporter(A: "null");
 }

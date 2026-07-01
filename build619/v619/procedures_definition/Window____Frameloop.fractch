@@ -8,20 +8,20 @@
 
 import "../procedures_definition/OSL___Window_Mainloop.fractch";
 def @Window_Frameloop() "Window // Frameloop" warp=true {
-  mistsutils_patchcommand(A= "target.last_rendered.width = target.window.width");
-  mistsutils_patchcommand(A= "target.last_rendered.height = target.window.height");
-  motion_gotoxy(X= round(mistsutils_patchreporter(A= "target.window.x")), Y= round(mistsutils_patchreporter(A= "target.window.y")));
+  mistsutils_patchcommand(A: "target.last_rendered.width = target.window.width");
+  mistsutils_patchcommand(A: "target.last_rendered.height = target.window.height");
+  motion_gotoxy(X: round(mistsutils_patchreporter(A: "target.window.x")), Y: round(mistsutils_patchreporter(A: "target.window.y")));
   vars["Text // Char Tilt"] = "0";
   vars["Text // Boldness"] = "0";
   @OSL_Window_Mainloop();
-  mistsutils_patchcommand(A= "target.window.x = Math.round(target.window.x); target.window.y = Math.round(target.window.y);");
+  mistsutils_patchcommand(A: "target.window.x = Math.round(target.window.x); target.window.y = Math.round(target.window.y);");
   vars["Text // Char Tilt"] = "0";
   vars["Text // Boldness"] = "0";
-  mistsutils_patchcommand(A= "if (!thread.procedures || !target) return");
+  mistsutils_patchcommand(A: "if (!thread.procedures || !target) return");
   pen_penUp();
-  motion_pointindirection(DIRECTION= "90");
-  data_changevariableby(VALUE= 1, VARIABLE: var("OSL// Total Cycles", "zy"));
-  if (mistsutils_equals(A= vars["OSL// Total Cycles"], B= "1") && mistsutils_patchboolean(A= "target.window.shown")) {
+  motion_pointindirection(DIRECTION: "90");
+  vars["OSL// Total Cycles"] += 1;
+  if (mistsutils_equals(A: vars["OSL// Total Cycles"], B: "1") && mistsutils_patchboolean(A: "target.window.shown")) {
     @Window_Reset_Redraw_Box();
     @Renderer_Call_ReRender();
   }

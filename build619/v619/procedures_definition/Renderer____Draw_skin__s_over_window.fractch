@@ -7,13 +7,13 @@
  */
 
 def @Renderer_Draw_skin_over_window(skinId) "Renderer // Draw skin %s over window" warp=false {
-  mistsutils_patchcommand(A= "const skin = vm.renderer._allSkins[p0]");
-  mistsutils_patchcommand(A= "if (!skin) return");
-  mistsutils_patchcommand(A= "const y = Math.floor(800 / vm.renderer.gl.canvas.height)");
-  motion_gotoxy(X= mistsutils_patchreporter(A= "target.window.x - skin.x"), Y= mistsutils_patchreporter(A= "target.window.y - skin.y + y"));
-  mistsutils_patchcommand(A= "vm.renderer._allDrawables[target.drawableID].skin = skin;");
+  mistsutils_patchcommand(A: "const skin = vm.renderer._allSkins[p0]");
+  mistsutils_patchcommand(A: "if (!skin) return");
+  mistsutils_patchcommand(A: "const y = Math.floor(800 / vm.renderer.gl.canvas.height)");
+  motion_gotoxy(X: mistsutils_patchreporter(A: "target.window.x - skin.x"), Y: mistsutils_patchreporter(A: "target.window.y - skin.y + y"));
+  mistsutils_patchcommand(A: "vm.renderer._allDrawables[target.drawableID].skin = skin;");
   looks_hide();
-  looks_setsizeto(SIZE= mistsutils_patchreporter(A= "(vm.runtime.stageWidth / vm.renderer.canvas.width) * 100"));
-  stretch_setStretch(X= 100, Y= 100);
+  looks_setsizeto(SIZE: mistsutils_patchreporter(A: "(vm.runtime.stageWidth / vm.renderer.canvas.width) * 100"));
+  stretch_setStretch(X: 100, Y: 100);
   pen_stamp();
 }

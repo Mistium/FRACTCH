@@ -7,13 +7,13 @@
  */
 
 def @is_object(input) "is object? %s" warp=false {
-  mistsutils_patchcommand(A= "const type = typeof p0");
-  if mistsutils_patchboolean(A= "type === \"object\"") {
+  mistsutils_patchcommand(A: "const type = typeof p0");
+  if mistsutils_patchboolean(A: "type === \"object\"") {
     return mistsutils_true();
   } else {
-    mistsutils_patchcommand(A= "if (type !== \"string\") { return false; }");
-    if mistsutils_patchboolean(A= "p0?.[0] === \"{\"") {
-      mistsutils_patchcommand(A= "try {JSON.parse(p0); return true;} catch(e) {return false;}");
+    mistsutils_patchcommand(A: "if (type !== \"string\") { return false; }");
+    if mistsutils_patchboolean(A: "p0?.[0] === \"{\"") {
+      mistsutils_patchcommand(A: "try {JSON.parse(p0); return true;} catch(e) {return false;}");
     } else {
       return mistsutils_false();
     }

@@ -8,6 +8,6 @@
 
 import "../procedures_definition/Window___create__s__s.fractch";
 def @Create_Window_With_id_and_code(id, code) "Create Window With id: %s and code %s" warp=false {
-  mistsutils_patchcommand2(A= "const file = ", B= @File_add_Data_Icon_Perms(Location= "origin/(d) temp", Name= mistsutils_patchreporter(A= "`temp_${p0}`"), Type= ".osl", Data= mistsutils_patchreporter(A= "p1"), Icon= "", Perms= "[]"));
-  @Window_create(name= mistsutils_patchreporter(A= "file"), window_data= mistsutils_patchreporter(A= "p0"));
+  mistsutils_patchcommand2(A: "const file = ", B: @File_add_Data_Icon_Perms(Location: "origin/(d) temp", Name: mistsutils_patchreporter(A: "`temp_${p0}`"), Type: ".osl", Data: mistsutils_patchreporter(A: "p1"), Icon: "", Perms: "[]"));
+  @Window_create(name: mistsutils_patchreporter(A: "file"), window_data: mistsutils_patchreporter(A: "p0"));
 }

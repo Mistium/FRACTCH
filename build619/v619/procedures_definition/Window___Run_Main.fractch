@@ -9,232 +9,232 @@
 import "../procedures_definition/Window___Set_Frame__s__s__s__s__s__b.fractch";
 import "../procedures_definition/Window____Update_My_Global_Data.fractch";
 def @Window_Run_Main() "Window// Run Main" warp=true {
-  mistsutils_patchcommand(A= "target.render_start = performance.now()");
-  vars["Clone timer"] = (mistsutils_patchreporter(A= "Date.now()") - vars["Window // Created Timestamp"]);
-  vars["Window // ID_Index"] = data_itemnumoflist(ITEM= vars["WIndow // ID"], LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
-  mistsutils_patchcommand2(A= "const window_id_index = -1 + ", B= vars["Window // ID_Index"]);
+  mistsutils_patchcommand(A: "target.render_start = performance.now()");
+  vars["Clone timer"] = (mistsutils_patchreporter(A: "Date.now()") - vars["Window // Created Timestamp"]);
+  vars["Window // ID_Index"] = data_itemnumoflist(ITEM: vars["WIndow // ID"], field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
+  mistsutils_patchcommand2(A: "const window_id_index = -1 + ", B: vars["Window // ID_Index"]);
   if (not(sensing_mousedown()) || (vars["Files // Current Dragging"] > "0")) {
-    mistsutils_patchcommand2(A= "origin.windows.hovered[window_id_index] = ", B= (((sensing_mousex() < vars["Window // High X"]) && (sensing_mousex() > vars["Window // Low X"])) && ((sensing_mousey() < vars["Window // High Y"]) && (sensing_mousey() > vars["Window // Low Y"]))));
+    mistsutils_patchcommand2(A: "origin.windows.hovered[window_id_index] = ", B: (((sensing_mousex() < vars["Window // High X"]) && (sensing_mousex() > vars["Window // Low X"])) && ((sensing_mousey() < vars["Window // High Y"]) && (sensing_mousey() > vars["Window // Low Y"]))));
   }
-  mistsutils_patchcommand2(A= "const window_id = ", B= vars["WIndow // ID"]);
-  mistsutils_patchcommand2(A= "const cur = ", B= "origin.desktop.current");
+  mistsutils_patchcommand2(A: "const window_id = ", B: vars["WIndow // ID"]);
+  mistsutils_patchcommand2(A: "const cur = ", B: "origin.desktop.current");
   vars["Window // Resizing"] = "0";
-  if mistsutils_patchboolean(A= "`${target.window.target_x ?? \"\"}${target.window.target_y ?? \"\"}${target.window.target_width ?? \"\"}${target.window.target_height ?? \"\"}` !== \"\"") {
+  if mistsutils_patchboolean(A: "`${target.window.target_x ?? \"\"}${target.window.target_y ?? \"\"}${target.window.target_width ?? \"\"}${target.window.target_height ?? \"\"}` !== \"\"") {
     @Window_Reset_Redraw_Box();
     @Renderer_Call_ReRender();
     @Window_Move_To_Target();
   }
-  mistsutils_patchcommand(A= "target.scroll.vel = [osl.scroll.x.velocity, osl.scroll.y.velocity]");
-  mistsutils_patchcommand(A= "const popup = origin.desktop.popups[0] ?? null");
-  mistsutils_patchcommand(A= "target.window.x = Math.round(target.window.x); target.window.y = Math.round(target.window.y);");
-  vars["Window // Width Half"] = mistsutils_patchreporter(A= "(+target.window.width || 0) / 2 + 5");
-  vars["Window // Low X"] = ((mistsutils_patchreporter(A= "target.window.x") - vars["Window // Width Half"]) - mistsutils_ifthen(A= mistsutils_patchboolean(A= "target.window.no_desktop"), B= "0", C= (mistsutils_patchreporter(A= "origin.desktop.multiplier - (+target.window.desktop || 0)") * (mistsutils_stagewidth() * 1.2))));
-  vars["Window // High X"] = ((mistsutils_patchreporter(A= "target.window.x") + vars["Window // Width Half"]) - mistsutils_ifthen(A= mistsutils_patchboolean(A= "target.window.no_desktop"), B= "0", C= (mistsutils_patchreporter(A= "origin.desktop.multiplier - (+target.window.desktop || 0)") * (mistsutils_stagewidth() * 1.2))));
-  vars["Window // Height Half"] = mistsutils_patchreporter(A= "(+target.window.height || 0) / 2 + 5");
-  vars["Window // High Y"] = (mistsutils_patchreporter(A= "target.window.y") + vars["Window // Height Half"]);
-  if (((vars["Window // High Y"] - 5) > (vars["Screen Size Y"] / 2)) && (mistsutils_patchboolean(A= "String(target.window.shown) === \"true\" && (`${target.window.target_x}${target.window.target_y}${target.window.target_width}${target.window.target_height}` === \"\")") && mistsutils_patchboolean(A= "target.window.tile == \"\""))) {
-    @OSL_Window(name= "y", data= ((vars["Screen Size Y"] / 2) - vars["Window // Height Half"]));
-    vars["Window // High Y"] = (mistsutils_patchreporter(A= "target.window.y") + vars["Window // Height Half"]);
+  mistsutils_patchcommand(A: "target.scroll.vel = [osl.scroll.x.velocity, osl.scroll.y.velocity]");
+  mistsutils_patchcommand(A: "const popup = origin.desktop.popups[0] ?? null");
+  mistsutils_patchcommand(A: "target.window.x = Math.round(target.window.x); target.window.y = Math.round(target.window.y);");
+  vars["Window // Width Half"] = mistsutils_patchreporter(A: "(+target.window.width || 0) / 2 + 5");
+  vars["Window // Low X"] = ((mistsutils_patchreporter(A: "target.window.x") - vars["Window // Width Half"]) - mistsutils_ifthen(A: mistsutils_patchboolean(A: "target.window.no_desktop"), B: "0", C: (mistsutils_patchreporter(A: "origin.desktop.multiplier - (+target.window.desktop || 0)") * (mistsutils_stagewidth() * 1.2))));
+  vars["Window // High X"] = ((mistsutils_patchreporter(A: "target.window.x") + vars["Window // Width Half"]) - mistsutils_ifthen(A: mistsutils_patchboolean(A: "target.window.no_desktop"), B: "0", C: (mistsutils_patchreporter(A: "origin.desktop.multiplier - (+target.window.desktop || 0)") * (mistsutils_stagewidth() * 1.2))));
+  vars["Window // Height Half"] = mistsutils_patchreporter(A: "(+target.window.height || 0) / 2 + 5");
+  vars["Window // High Y"] = (mistsutils_patchreporter(A: "target.window.y") + vars["Window // Height Half"]);
+  if (((vars["Window // High Y"] - 5) > (vars["Screen Size Y"] / 2)) && (mistsutils_patchboolean(A: "String(target.window.shown) === \"true\" && (`${target.window.target_x}${target.window.target_y}${target.window.target_width}${target.window.target_height}` === \"\")") && mistsutils_patchboolean(A: "target.window.tile == \"\""))) {
+    @OSL_Window(name: "y", data: ((vars["Screen Size Y"] / 2) - vars["Window // Height Half"]));
+    vars["Window // High Y"] = (mistsutils_patchreporter(A: "target.window.y") + vars["Window // Height Half"]);
   }
-  vars["Window // Low Y"] = (mistsutils_patchreporter(A= "target.window.y") - vars["Window // Height Half"]);
-  mistsutils_patchcommand(A= "let render_outline = false");
+  vars["Window // Low Y"] = (mistsutils_patchreporter(A: "target.window.y") - vars["Window // Height Half"]);
+  mistsutils_patchcommand(A: "let render_outline = false");
   vars["Window // Overlapping Redraw"] = "false";
   if not((vars["WIndow // ID"] == vars["SYSTEM // Focused Application"])) {
-    mistsutils_patchcommand(A= "let i = 0");
-    mistsutils_patchcommand(A= "let lx = Infinity, hx = -Infinity, ly = Infinity, hy = -Infinity");
-    mistsutils_patchcommand(A= "const q = origin.renderer.last ?? []");
-    repeat mistsutils_patchreporter(A= "Math.min(origin.renderer.queue_total_frame_calls, q.length)") {
-      @Renderer_Load_Render_Queue_Item(idx= mistsutils_patchreporter(A= "q[i++]"));
-      mistsutils_patchcommand2(A= "let left = ", B= (vars["Redraw // Window Left"] - 10));
-      mistsutils_patchcommand2(A= "let right = ", B= (vars["Redraw // Window Right"] + 10));
-      mistsutils_patchcommand2(A= "let top = ", B= (vars["Redraw // Window Top"] + 10));
-      mistsutils_patchcommand2(A= "let bottom = ", B= (vars["Redraw // Window Bottom"] - 10));
-      if @Overlapping_and(minAx= mistsutils_patchreporter(A= "left"), maxAx= mistsutils_patchreporter(A= "right"), minAy= mistsutils_patchreporter(A= "bottom"), maxAy= mistsutils_patchreporter(A= "top"), minBx= vars["Window // Low X"], maxBx= vars["Window // High X"], minBy= vars["Window // Low Y"], maxBy= vars["Window // High Y"]) {
-        mistsutils_patchcommand(A= "lx = Math.min(lx, left)");
-        mistsutils_patchcommand(A= "hx = Math.max(hx, right)");
-        mistsutils_patchcommand(A= "ly = Math.min(ly, bottom)");
-        mistsutils_patchcommand(A= "hy = Math.max(hy, top)");
+    mistsutils_patchcommand(A: "let i = 0");
+    mistsutils_patchcommand(A: "let lx = Infinity, hx = -Infinity, ly = Infinity, hy = -Infinity");
+    mistsutils_patchcommand(A: "const q = origin.renderer.last ?? []");
+    repeat mistsutils_patchreporter(A: "Math.min(origin.renderer.queue_total_frame_calls, q.length)") {
+      @Renderer_Load_Render_Queue_Item(idx: mistsutils_patchreporter(A: "q[i++]"));
+      mistsutils_patchcommand2(A: "let left = ", B: (vars["Redraw // Window Left"] - 10));
+      mistsutils_patchcommand2(A: "let right = ", B: (vars["Redraw // Window Right"] + 10));
+      mistsutils_patchcommand2(A: "let top = ", B: (vars["Redraw // Window Top"] + 10));
+      mistsutils_patchcommand2(A: "let bottom = ", B: (vars["Redraw // Window Bottom"] - 10));
+      if @Overlapping_and(minAx: mistsutils_patchreporter(A: "left"), maxAx: mistsutils_patchreporter(A: "right"), minAy: mistsutils_patchreporter(A: "bottom"), maxAy: mistsutils_patchreporter(A: "top"), minBx: vars["Window // Low X"], maxBx: vars["Window // High X"], minBy: vars["Window // Low Y"], maxBy: vars["Window // High Y"]) {
+        mistsutils_patchcommand(A: "lx = Math.min(lx, left)");
+        mistsutils_patchcommand(A: "hx = Math.max(hx, right)");
+        mistsutils_patchcommand(A: "ly = Math.min(ly, bottom)");
+        mistsutils_patchcommand(A: "hy = Math.max(hy, top)");
         vars["Window // Overlapping Redraw"] = "true";
       }
     }
   }
-  vars["Frame // Width"] = mistsutils_patchreporter(A= "target.window.width");
-  mistsutils_patchcommand3(A= vars["OSL // Window"], B= ".left = ", C= (vars["Frame // Width"] / -2));
-  mistsutils_patchcommand3(A= vars["OSL // Window"], B= ".right = ", C= (vars["Frame // Width"] / 2));
-  vars["Frame // Height"] = mistsutils_patchreporter(A= "target.window.height");
-  mistsutils_patchcommand3(A= vars["OSL // Window"], B= ".top = ", C= (vars["Frame // Height"] / 2));
-  mistsutils_patchcommand3(A= vars["OSL // Window"], B= ".bottom = ", C= (vars["Frame // Height"] / -2));
-  mistsutils_patchcommand2(A= "const c = ", B= "osl.user?.theme?.background ?? \"#000\"");
-  if (mistsutils_patchboolean(A= "target.window._minimised") && (round((vars["Frame // Width"] + vars["Frame // Height"])) < "200")) {
-    vars["Frame // X"] = (mistsutils_patchreporter(A= "target.window.x") - mistsutils_ifthen(A= mistsutils_patchboolean(A= "target.window.no_desktop"), B= "0", C= (mistsutils_patchreporter(A= "origin.desktop.multiplier - (+target.window.desktop || 0)") * (mistsutils_stagewidth() * 1.2))));
-    vars["Frame // Y"] = mistsutils_patchreporter(A= "target.window.y");
-    mistsutils_patchcommand(A= "const mini = origin.windows.minimised");
-    mistsutils_patchcommand3(A= "const window_id = mini.indexOf(", B= vars["WIndow // ID"], C= ") + 1");
-    mistsutils_patchcommand2(A= "const target_x = ", B= round(((vars["Screen Size X"] / 2) - (31 * vars["SYSTEM // Minimised Apps Scale"]))));
-    mistsutils_patchcommand2(A= "const target_y = ", B= round(((mistsutils_patchreporter(A= "mini.length") * (24 * vars["SYSTEM // Minimised Apps Scale"])) - (mistsutils_patchreporter(A= "window_id") * (48 * vars["SYSTEM // Minimised Apps Scale"])))));
-    mistsutils_patchcommand2(A= "const canClick = ", B= vars["Can Click?"]);
-    if not((mistsutils_patchreporter(A= "target_x") == round(mistsutils_patchreporter(A= "target.window.x")))) {
-      mistsutils_patchcommand(A= "target.window.target_x = target_x");
+  vars["Frame // Width"] = mistsutils_patchreporter(A: "target.window.width");
+  mistsutils_patchcommand3(A: vars["OSL // Window"], B: ".left = ", C: (vars["Frame // Width"] / -2));
+  mistsutils_patchcommand3(A: vars["OSL // Window"], B: ".right = ", C: (vars["Frame // Width"] / 2));
+  vars["Frame // Height"] = mistsutils_patchreporter(A: "target.window.height");
+  mistsutils_patchcommand3(A: vars["OSL // Window"], B: ".top = ", C: (vars["Frame // Height"] / 2));
+  mistsutils_patchcommand3(A: vars["OSL // Window"], B: ".bottom = ", C: (vars["Frame // Height"] / -2));
+  mistsutils_patchcommand2(A: "const c = ", B: "osl.user?.theme?.background ?? \"#000\"");
+  if (mistsutils_patchboolean(A: "target.window._minimised") && (round((vars["Frame // Width"] + vars["Frame // Height"])) < "200")) {
+    vars["Frame // X"] = (mistsutils_patchreporter(A: "target.window.x") - mistsutils_ifthen(A: mistsutils_patchboolean(A: "target.window.no_desktop"), B: "0", C: (mistsutils_patchreporter(A: "origin.desktop.multiplier - (+target.window.desktop || 0)") * (mistsutils_stagewidth() * 1.2))));
+    vars["Frame // Y"] = mistsutils_patchreporter(A: "target.window.y");
+    mistsutils_patchcommand(A: "const mini = origin.windows.minimised");
+    mistsutils_patchcommand3(A: "const window_id = mini.indexOf(", B: vars["WIndow // ID"], C: ") + 1");
+    mistsutils_patchcommand2(A: "const target_x = ", B: round(((vars["Screen Size X"] / 2) - (31 * vars["SYSTEM // Minimised Apps Scale"]))));
+    mistsutils_patchcommand2(A: "const target_y = ", B: round(((mistsutils_patchreporter(A: "mini.length") * (24 * vars["SYSTEM // Minimised Apps Scale"])) - (mistsutils_patchreporter(A: "window_id") * (48 * vars["SYSTEM // Minimised Apps Scale"])))));
+    mistsutils_patchcommand2(A: "const canClick = ", B: vars["Can Click?"]);
+    if not((mistsutils_patchreporter(A: "target_x") == round(mistsutils_patchreporter(A: "target.window.x")))) {
+      mistsutils_patchcommand(A: "target.window.target_x = target_x");
     }
-    if not((mistsutils_patchreporter(A= "target_y") == round(mistsutils_patchreporter(A= "target.window.y")))) {
-      mistsutils_patchcommand(A= "target.window.target_y = target_y");
+    if not((mistsutils_patchreporter(A: "target_y") == round(mistsutils_patchreporter(A: "target.window.y")))) {
+      mistsutils_patchcommand(A: "target.window.target_y = target_y");
     }
     vars["Window // Interactable?"] = "true";
     vars["Frame // Interactable"] = "true";
-    pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "c"));
-    mistsutils_patchcommand2(A= "let s = ", B= "20");
-    vars["Window // Low X"] = (vars["Frame // X"] - mistsutils_patchreporter(A= "s"));
-    vars["Window // High Y"] = (vars["Frame // Y"] + mistsutils_patchreporter(A= "s"));
-    vars["Window // Low Y"] = (vars["Frame // Y"] - mistsutils_patchreporter(A= "s"));
+    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "c"));
+    mistsutils_patchcommand2(A: "let s = ", B: "20");
+    vars["Window // Low X"] = (vars["Frame // X"] - mistsutils_patchreporter(A: "s"));
+    vars["Window // High Y"] = (vars["Frame // Y"] + mistsutils_patchreporter(A: "s"));
+    vars["Window // Low Y"] = (vars["Frame // Y"] - mistsutils_patchreporter(A: "s"));
     vars["Frame // Max X"] = vars["Window // High X"];
     vars["Frame // Max Y"] = vars["Window // High Y"];
-    xeltallivclipblend_setClipbox(X1= (vars["Window // Low X"] - 5), Y1= (vars["Window // High Y"] + 5), X2= (vars["Window // High X"] + 5), Y2= (vars["Window // Low Y"] - 5));
-    @Draw_Square(X= vars["Frame // X"], Y= vars["Frame // Y"], Width= mistsutils_patchreporter(A= "s"), Height= mistsutils_patchreporter(A= "s"), Line_Width= mistsutils_patchreporter(A= "s"), Invisible= "");
+    xeltallivclipblend_setClipbox(X1: (vars["Window // Low X"] - 5), Y1: (vars["Window // High Y"] + 5), X2: (vars["Window // High X"] + 5), Y2: (vars["Window // Low Y"] - 5));
+    @Draw_Square(X: vars["Frame // X"], Y: vars["Frame // Y"], Width: mistsutils_patchreporter(A: "s"), Height: mistsutils_patchreporter(A: "s"), Line_Width: mistsutils_patchreporter(A: "s"), Invisible: "");
     vars["Can Click?"] = "true";
-    if (HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) && @Check_Collision_in_square_at_of_dimensions(x= sensing_mousex(), y= sensing_mousey(), x2= motion_xposition(), y2= motion_yposition(), w= mistsutils_patchreporter(A= "s * 1.5"), h= mistsutils_patchreporter(A= "s * 1.5"))) {
-      mistsutils_patchcommand(A= "mini.splice(window_id - 1, 1)");
-      mistsutils_patchcommand(A= "target.window._minimised = \"false\"");
+    if (HyperSenseSP_mouseClick(BUTTON: HyperSenseSP_menu_mouseButtons(field mouseButtons: ["0",null])) && @Check_Collision_in_square_at_of_dimensions(x: sensing_mousex(), y: sensing_mousey(), x2: motion_xposition(), y2: motion_yposition(), w: mistsutils_patchreporter(A: "s * 1.5"), h: mistsutils_patchreporter(A: "s * 1.5"))) {
+      mistsutils_patchcommand(A: "mini.splice(window_id - 1, 1)");
+      mistsutils_patchcommand(A: "target.window._minimised = \"false\"");
       vars["Window // Interactable?"] = "true";
-      mistsutils_patchcommand2(A= "target.window.target_x = ", B= round(vars["Window // Unminimised X"]));
-      mistsutils_patchcommand2(A= "target.window.target_y = ", B= round(vars["Window // Unminimised Y"]));
-      mistsutils_patchcommand2(A= "target.window.target_width = ", B= round(vars["Window // Unminimised Width"]));
-      mistsutils_patchcommand2(A= "target.window.target_height = ", B= round(vars["Window // Unminimised Height"]));
+      mistsutils_patchcommand2(A: "target.window.target_x = ", B: round(vars["Window // Unminimised X"]));
+      mistsutils_patchcommand2(A: "target.window.target_y = ", B: round(vars["Window // Unminimised Y"]));
+      mistsutils_patchcommand2(A: "target.window.target_width = ", B: round(vars["Window // Unminimised Width"]));
+      mistsutils_patchcommand2(A: "target.window.target_height = ", B: round(vars["Window // Unminimised Height"]));
       @Window_Focus();
     }
-    pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "c"));
-    @Render_File(Id= @OSL_Vars_Get(Varname= "my_file"), Size= (1.4 * vars["SYSTEM // Minimised Apps Scale"]));
+    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "c"));
+    @Render_File(Id: @OSL_Vars_Get(Varname: "my_file"), Size: (1.4 * vars["SYSTEM // Minimised Apps Scale"]));
     xeltallivclipblend_clearClipbox();
-    vars["Can Click?"] = mistsutils_patchreporter(A= "canClick");
+    vars["Can Click?"] = mistsutils_patchreporter(A: "canClick");
     vars["Frame // Interactable"] = "false";
     vars["Window // Interactable?"] = "false";
   } else {
-    mistsutils_patchcommand3(A= "if (target.last_rendered?.width !== target.window.width || target.last_rendered?.height !== target.window.height) ", B= vars["Window // Resizing"], C= " = 1");
-    mistsutils_patchcommand(A= "target.last_rendered.width = target.window.width");
-    mistsutils_patchcommand(A= "target.last_rendered.height = target.window.height");
-    vars["Window // Interactable?"] = (mistsutils_equals(A= vars["Window // Resizing"], B= "1") || (mistsutils_equals(A= vars["Window // Allow Interaction?"], B= "true") && ((vars["WIndow // ID"] == vars["SYSTEM // Focused Application"]) || ((vars["Window // HoverExecution"] == "true") && (((vars["Windows // Any Moving"] .. vars["Windows // Any Resizing"]) == "00") && (vars["Window // Top Index"] == vars["Window // ID_Index"]))))));
-    mistsutils_patchcommand3(A= "window.focused = String(", B= vars["Window // Interactable?"], C= ") === \"true\"");
-    xeltallivclipblend_setClipbox(X1= (vars["Window // Low X"] - 14), Y1= (vars["Window // High Y"] + 14), X2= (vars["Window // High X"] + 14), Y2= (vars["Window // Low Y"] - 14));
-    mistsutils_patchcommand(A= "const winShown = String(target.window.shown) === \"true\"");
-    if mistsutils_patchboolean(A= "winShown") {
+    mistsutils_patchcommand3(A: "if (target.last_rendered?.width !== target.window.width || target.last_rendered?.height !== target.window.height) ", B: vars["Window // Resizing"], C: " = 1");
+    mistsutils_patchcommand(A: "target.last_rendered.width = target.window.width");
+    mistsutils_patchcommand(A: "target.last_rendered.height = target.window.height");
+    vars["Window // Interactable?"] = (mistsutils_equals(A: vars["Window // Resizing"], B: "1") || (mistsutils_equals(A: vars["Window // Allow Interaction?"], B: "true") && ((vars["WIndow // ID"] == vars["SYSTEM // Focused Application"]) || ((vars["Window // HoverExecution"] == "true") && (((vars["Windows // Any Moving"] .. vars["Windows // Any Resizing"]) == "00") && (vars["Window // Top Index"] == vars["Window // ID_Index"]))))));
+    mistsutils_patchcommand3(A: "window.focused = String(", B: vars["Window // Interactable?"], C: ") === \"true\"");
+    xeltallivclipblend_setClipbox(X1: (vars["Window // Low X"] - 14), Y1: (vars["Window // High Y"] + 14), X2: (vars["Window // High X"] + 14), Y2: (vars["Window // Low Y"] - 14));
+    mistsutils_patchcommand(A: "const winShown = String(target.window.shown) === \"true\"");
+    if mistsutils_patchboolean(A: "winShown") {
       vars["Frame // Interactable"] = "true";
-      if mistsutils_patchboolean(A= "!simple3d.meshes.has(`window_${target.window.id}`)") {
-        if mistsutils_notequals(A= vars["Window // Responsive?"], B= "true") {
-          xeltallivclipblend_setClipbox(X1= (vars["Window // Low X"] - 14), Y1= (vars["Window // High Y"] + 14), X2= (vars["Window // High X"] + 14), Y2= (vars["Window // Low Y"] - 14));
+      if mistsutils_patchboolean(A: "!simple3d.meshes.has(`window_${target.window.id}`)") {
+        if mistsutils_notequals(A: vars["Window // Responsive?"], B: "true") {
+          xeltallivclipblend_setClipbox(X1: (vars["Window // Low X"] - 14), Y1: (vars["Window // High Y"] + 14), X2: (vars["Window // High X"] + 14), Y2: (vars["Window // Low Y"] - 14));
         }
-        motion_gotoxy(X= (vars["Window // Low X"] + 11.5), Y= (vars["Window // High Y"] - 11.5));
-        mistsutils_patchcommand2(A= "const w = -12.5 + ", B= "target.window.width");
-        mistsutils_patchcommand2(A= "const h = -12.5 + ", B= "target.window.height");
-        if mistsutils_patchboolean(A= "(osl.user?.theme?.show_outline || false) !== false") {
-          pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "target.osl_vars.window_accent ?? (window_id_index === 0 ? osl.user.theme.accent : osl.user.theme.secondary)"));
-          pen_setPenSizeTo(SIZE= 25);
+        motion_gotoxy(X: (vars["Window // Low X"] + 11.5), Y: (vars["Window // High Y"] - 11.5));
+        mistsutils_patchcommand2(A: "const w = -12.5 + ", B: "target.window.width");
+        mistsutils_patchcommand2(A: "const h = -12.5 + ", B: "target.window.height");
+        if mistsutils_patchboolean(A: "(osl.user?.theme?.show_outline || false) !== false") {
+          pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "target.osl_vars.window_accent ?? (window_id_index === 0 ? osl.user.theme.accent : osl.user.theme.secondary)"));
+          pen_setPenSizeTo(SIZE: 25);
           pen_penDown();
-          motion_changexby(DX= mistsutils_patchreporter(A= "w"));
-          motion_changeyby(DY= mistsutils_patchreporter(A= "h * -1"));
-          motion_changexby(DX= mistsutils_patchreporter(A= "w * -1"));
-          motion_changeyby(DY= mistsutils_patchreporter(A= "h"));
+          motion_changexby(DX: mistsutils_patchreporter(A: "w"));
+          motion_changeyby(DY: mistsutils_patchreporter(A: "h * -1"));
+          motion_changexby(DX: mistsutils_patchreporter(A: "w * -1"));
+          motion_changeyby(DY: mistsutils_patchreporter(A: "h"));
           pen_penUp();
         }
-        pen_setPenColorToColor(COLOR= @OSL_Vars_Get(Varname= "window_colour"));
-        pen_setPenSizeTo(SIZE= 20);
+        pen_setPenColorToColor(COLOR: @OSL_Vars_Get(Varname: "window_colour"));
+        pen_setPenSizeTo(SIZE: 20);
         pen_penDown();
-        motion_changexby(DX= mistsutils_patchreporter(A= "w"));
-        motion_changeyby(DY= mistsutils_patchreporter(A= "h * -1"));
-        motion_changexby(DX= mistsutils_patchreporter(A= "w * -1"));
-        motion_changeyby(DY= mistsutils_patchreporter(A= "h"));
+        motion_changexby(DX: mistsutils_patchreporter(A: "w"));
+        motion_changeyby(DY: mistsutils_patchreporter(A: "h * -1"));
+        motion_changexby(DX: mistsutils_patchreporter(A: "w * -1"));
+        motion_changeyby(DY: mistsutils_patchreporter(A: "h"));
         pen_penUp();
-        motion_gotoxy(X= mistsutils_patchreporter(A= "target.window.x"), Y= mistsutils_patchreporter(A= "target.window.y"));
-        @Window_Set_Frame(min_x= (vars["Window // Low X"] + 6), max_y= (vars["Window // High Y"] - 6), max_x= (vars["Window // High X"] - 6), min_y= (vars["Window // Low Y"] + 6), id= "", focusable= null);
-        pen_setPenSizeTo(SIZE= (vars["Frame // Width"] + vars["Frame // Height"]));
+        motion_gotoxy(X: mistsutils_patchreporter(A: "target.window.x"), Y: mistsutils_patchreporter(A: "target.window.y"));
+        @Window_Set_Frame(min_x: (vars["Window // Low X"] + 6), max_y: (vars["Window // High Y"] - 6), max_x: (vars["Window // High X"] - 6), min_y: (vars["Window // Low Y"] + 6), id: "", focusable: null);
+        pen_setPenSizeTo(SIZE: (vars["Frame // Width"] + vars["Frame // Height"]));
         pen_penDown();
         pen_penUp();
-        mistsutils_patchcommand(A= "render_outline = true");
-        if mistsutils_patchboolean(A= "osl.user.theme?.use_true_blur !== false") {
+        mistsutils_patchcommand(A: "render_outline = true");
+        if mistsutils_patchboolean(A: "osl.user.theme?.use_true_blur !== false") {
           @Window_Calculate_Redraw_Box();
           @Renderer_Call_ReRender();
         }
       } else {
-        @Window_Set_Frame(min_x= (vars["Window // Low X"] + 6), max_y= (vars["Window // High Y"] - 6), max_x= (vars["Window // High X"] - 6), min_y= (vars["Window // Low Y"] + 6), id= "", focusable= null);
+        @Window_Set_Frame(min_x: (vars["Window // Low X"] + 6), max_y: (vars["Window // High Y"] - 6), max_x: (vars["Window // High X"] - 6), min_y: (vars["Window // Low Y"] + 6), id: "", focusable: null);
         vars["Renderer // Frame Max Y"] = (vars["Window // High Y"] + 14);
         vars["Renderer // Frame Min Y"] = (vars["Window // Low Y"] - 14);
-        xeltallivclipblend_setClipbox(X1= (vars["Window // Low X"] - 14), Y1= (vars["Window // High Y"] + 14), X2= (vars["Window // High X"] + 14), Y2= (vars["Window // Low Y"] - 14));
+        xeltallivclipblend_setClipbox(X1: (vars["Window // Low X"] - 14), Y1: (vars["Window // High Y"] + 14), X2: (vars["Window // High X"] + 14), Y2: (vars["Window // Low Y"] - 14));
         @OSL_3dr_Draw_Scene();
-        mistsutils_patchcommand(A= "redraw = true");
+        mistsutils_patchcommand(A: "redraw = true");
       }
     } else {
-      @Window_Set_Frame(min_x= (vars["Window // Low X"] + 6), max_y= (vars["Window // High Y"] - 6), max_x= (vars["Window // High X"] - 6), min_y= (vars["Window // Low Y"] + 6), id= "", focusable= null);
-      if mistsutils_notequals(A= vars["Window // Responsive?"], B= "true") {
-        xeltallivclipblend_setClipbox(X1= mistsutils_max(A= (vars["Redraw // Window Left"] - 20), B= (vars["Window // Low X"] + 6)), Y1= mistsutils_min(A= (vars["Redraw // Window Top"] + 20), B= (vars["Window // High Y"] - 6)), X2= mistsutils_min(A= (vars["Redraw // Window Right"] + 20), B= (vars["Window // High X"] - 6)), Y2= mistsutils_max(A= (vars["Redraw // Window Bottom"] - 20), B= (vars["Window // Low Y"] + 6)));
+      @Window_Set_Frame(min_x: (vars["Window // Low X"] + 6), max_y: (vars["Window // High Y"] - 6), max_x: (vars["Window // High X"] - 6), min_y: (vars["Window // Low Y"] + 6), id: "", focusable: null);
+      if mistsutils_notequals(A: vars["Window // Responsive?"], B: "true") {
+        xeltallivclipblend_setClipbox(X1: mistsutils_max(A: (vars["Redraw // Window Left"] - 20), B: (vars["Window // Low X"] + 6)), Y1: mistsutils_min(A: (vars["Redraw // Window Top"] + 20), B: (vars["Window // High Y"] - 6)), X2: mistsutils_min(A: (vars["Redraw // Window Right"] + 20), B: (vars["Window // High X"] - 6)), Y2: mistsutils_max(A: (vars["Redraw // Window Bottom"] - 20), B: (vars["Window // Low Y"] + 6)));
       }
-      if mistsutils_patchboolean(A= "target.last_rendered?.x !== target.window.x || target.last_rendered?.x !== target.window.x") {
-        mistsutils_patchcommand(A= "target.last_rendered.x = target.window.x");
-        mistsutils_patchcommand(A= "target.last_rendered.y = target.window.y");
+      if mistsutils_patchboolean(A: "target.last_rendered?.x !== target.window.x || target.last_rendered?.x !== target.window.x") {
+        mistsutils_patchcommand(A: "target.last_rendered.x = target.window.x");
+        mistsutils_patchcommand(A: "target.last_rendered.y = target.window.y");
         @Window_Reset_Redraw_Box();
         @Renderer_Call_ReRender();
       }
     }
-    if ((vars["Window // ID_Index"] == vars["Window // Top Index"]) && mistsutils_equals(A= vars["Window // Allow Interaction?"], B= "true")) {
-      vars["Move// Drop Loc"] = mistsutils_patchreporter(A= "target.window.drop_location ?? \"\"");
+    if ((vars["Window // ID_Index"] == vars["Window // Top Index"]) && mistsutils_equals(A: vars["Window // Allow Interaction?"], B: "true")) {
+      vars["Move// Drop Loc"] = mistsutils_patchreporter(A: "target.window.drop_location ?? \"\"");
     }
-    pen_setPenColorToColor(COLOR= "#ffffff");
-    pen_setPenSizeTo(SIZE= 1);
+    pen_setPenColorToColor(COLOR: "#ffffff");
+    pen_setPenSizeTo(SIZE: 1);
     vars["Frame // Current"] = vars["Frame // Next Current"];
     vars["Frame // Next Current"] = "";
-    mistsutils_patchcommand(A= "target.currentFrame += 1");
-    mistsutils_patchcommand(A= "const runOnFrame = (target.currentFrame % 60) === 0");
-    mistsutils_patchcommand2(A= "const interactable = ", B= mistsutils_equals(A= vars["Window // Interactable?"], B= "true"));
-    mistsutils_patchcommand2(A= "const responsive = ", B= mistsutils_equals(A= vars["Window // Responsive?"], B= "true"));
-    data_deletealloflist(LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny"));
-    data_deletealloflist(LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6"));
-    data_addtolist(ITEM= vars["OSL // Frame"], LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6"));
-    mistsutils_patchcommand(A= "let executeMain = runOnFrame || interactable || responsive");
-    if mistsutils_patchboolean(A= "executeMain") {
+    mistsutils_patchcommand(A: "target.currentFrame += 1");
+    mistsutils_patchcommand(A: "const runOnFrame = (target.currentFrame % 60) === 0");
+    mistsutils_patchcommand2(A: "const interactable = ", B: mistsutils_equals(A: vars["Window // Interactable?"], B: "true"));
+    mistsutils_patchcommand2(A: "const responsive = ", B: mistsutils_equals(A: vars["Window // Responsive?"], B: "true"));
+    data_deletealloflist(field LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny"));
+    data_deletealloflist(field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6"));
+    data_addtolist(ITEM: vars["OSL // Frame"], field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6"));
+    mistsutils_patchcommand(A: "let executeMain = runOnFrame || interactable || responsive");
+    if mistsutils_patchboolean(A: "executeMain") {
       @Window_Frameloop();
-      mistsutils_patchcommand(A= "if (target.drawCacheSkin === undefined) {");
-      mistsutils_patchcommand(A= "const glcanvas = vm.renderer._gl.canvas");
-      mistsutils_patchcommand(A= "const canvas = document.createElement(\"canvas\")");
-      mistsutils_patchcommand(A= "canvas.reusable = false");
-      mistsutils_patchcommand(A= "canvas.width = glcanvas.width; canvas.height = glcanvas.height");
-      mistsutils_patchcommand(A= "const ctx = canvas.getContext(\"2d\")");
-      mistsutils_patchcommand(A= "target.drawCacheCanv = canvas");
-      mistsutils_patchcommand(A= "target.drawCacheSkin = vm.renderer.createBitmapSkin(canvas)");
-      mistsutils_patchcommand(A= "target.drawCacheSkinBlurred = vm.renderer.createBitmapSkin(canvas)");
-      mistsutils_patchcommand(A= "target.cacheSkinDirty = true");
-      mistsutils_patchcommand(A= "}");
+      mistsutils_patchcommand(A: "if (target.drawCacheSkin === undefined) {");
+      mistsutils_patchcommand(A: "const glcanvas = vm.renderer._gl.canvas");
+      mistsutils_patchcommand(A: "const canvas = document.createElement(\"canvas\")");
+      mistsutils_patchcommand(A: "canvas.reusable = false");
+      mistsutils_patchcommand(A: "canvas.width = glcanvas.width; canvas.height = glcanvas.height");
+      mistsutils_patchcommand(A: "const ctx = canvas.getContext(\"2d\")");
+      mistsutils_patchcommand(A: "target.drawCacheCanv = canvas");
+      mistsutils_patchcommand(A: "target.drawCacheSkin = vm.renderer.createBitmapSkin(canvas)");
+      mistsutils_patchcommand(A: "target.drawCacheSkinBlurred = vm.renderer.createBitmapSkin(canvas)");
+      mistsutils_patchcommand(A: "target.cacheSkinDirty = true");
+      mistsutils_patchcommand(A: "}");
     } else {
-      mistsutils_patchcommand(A= "if (target.lastExecuteMain === true) target.cacheSkinDirty = true");
+      mistsutils_patchcommand(A: "if (target.lastExecuteMain === true) target.cacheSkinDirty = true");
     }
-    if mistsutils_patchboolean(A= "target.cacheSkinDirty || runOnFrame || (target.isTop && target.window.id !== origin.windows.ids[0])") {
-      if mistsutils_patchboolean(A= "!executeMain") {
+    if mistsutils_patchboolean(A: "target.cacheSkinDirty || runOnFrame || (target.isTop && target.window.id !== origin.windows.ids[0])") {
+      if mistsutils_patchboolean(A: "!executeMain") {
         @Window_Frameloop();
       }
-      @Renderer_Put_canvas_into_targetCache(target= mistsutils_patchreporter(A= "target"));
-      mistsutils_patchcommand(A= "target.cacheSkinDirty = false");
+      @Renderer_Put_canvas_into_targetCache(target: mistsutils_patchreporter(A: "target"));
+      mistsutils_patchcommand(A: "target.cacheSkinDirty = false");
     }
-    if mistsutils_patchboolean(A= "target.lastExecuteMain === false && !executeMain") {
+    if mistsutils_patchboolean(A: "target.lastExecuteMain === false && !executeMain") {
       looks_cleargraphiceffects();
-      @Renderer_Draw_skin_over_window(skinId= mistsutils_patchreporter(A= "target.drawCacheSkin"));
-      mistSkins_restoreSkin(TARGET= mistSkins_menu_targetMenu(targetMenu: ["_myself_",null]));
+      @Renderer_Draw_skin_over_window(skinId: mistsutils_patchreporter(A: "target.drawCacheSkin"));
+      mistSkins_restoreSkin(TARGET: mistSkins_menu_targetMenu(field targetMenu: ["_myself_",null]));
     }
-    mistsutils_patchcommand(A= "target.lastExecuteMain = runOnFrame || interactable || responsive");
+    mistsutils_patchcommand(A: "target.lastExecuteMain = runOnFrame || interactable || responsive");
   }
-  @Window_Set_Frame(min_x= "", max_y= "", max_x= "", min_y= "", id= "", focusable= null);
-  if mistsutils_patchboolean(A= "render_outline") {
-    pen_setPenColorToColor(COLOR= @OSL_Vars_Get(Varname= "window_colour"));
-    mistsutils_patchcommand2(A= "const win = ", B= @OSL_Vars_Get(Varname= "window"));
-    motion_gotoxy(X= mistsutils_patchreporter(A= "win.x + win.left"), Y= mistsutils_patchreporter(A= "win.y + win.top"));
-    @Draw_Icon_boldness(Code= "w 2 cutcircle 5 -5 5 -4.5 45", Size= "1", setsize= "", x= "", y= "", direction= "", boldness= "");
-    motion_changexby(DX= mistsutils_patchreporter(A= "win.width"));
-    @Draw_Icon_boldness(Code= "w 2 cutcircle -5 -5 5 4.5 45", Size= "1", setsize= "", x= "", y= "", direction= "", boldness= "");
-    motion_changeyby(DY= mistsutils_patchreporter(A= "-win.height"));
-    @Draw_Icon_boldness(Code= "w 2 cutcircle -5 5 5 13.5 45", Size= "1", setsize= "", x= "", y= "", direction= "", boldness= "");
-    motion_changexby(DX= mistsutils_patchreporter(A= "-win.width"));
-    @Draw_Icon_boldness(Code= "w 2 cutcircle 5 5 5 -13.5 45", Size= "1", setsize= "", x= "", y= "", direction= "", boldness= "");
+  @Window_Set_Frame(min_x: "", max_y: "", max_x: "", min_y: "", id: "", focusable: null);
+  if mistsutils_patchboolean(A: "render_outline") {
+    pen_setPenColorToColor(COLOR: @OSL_Vars_Get(Varname: "window_colour"));
+    mistsutils_patchcommand2(A: "const win = ", B: @OSL_Vars_Get(Varname: "window"));
+    motion_gotoxy(X: mistsutils_patchreporter(A: "win.x + win.left"), Y: mistsutils_patchreporter(A: "win.y + win.top"));
+    @Draw_Icon_boldness(Code: "w 2 cutcircle 5 -5 5 -4.5 45", Size: "1", setsize: "", x: "", y: "", direction: "", boldness: "");
+    motion_changexby(DX: mistsutils_patchreporter(A: "win.width"));
+    @Draw_Icon_boldness(Code: "w 2 cutcircle -5 -5 5 4.5 45", Size: "1", setsize: "", x: "", y: "", direction: "", boldness: "");
+    motion_changeyby(DY: mistsutils_patchreporter(A: "-win.height"));
+    @Draw_Icon_boldness(Code: "w 2 cutcircle -5 5 5 13.5 45", Size: "1", setsize: "", x: "", y: "", direction: "", boldness: "");
+    motion_changexby(DX: mistsutils_patchreporter(A: "-win.width"));
+    @Draw_Icon_boldness(Code: "w 2 cutcircle 5 5 5 -13.5 45", Size: "1", setsize: "", x: "", y: "", direction: "", boldness: "");
   }
-  if mistsutils_patchboolean(A= "target.window.tile !== null") {
-    mistsutils_patchcommand(A= "render_outline = false");
+  if mistsutils_patchboolean(A: "target.window.tile !== null") {
+    mistsutils_patchcommand(A: "render_outline = false");
   }
-  if mistsutils_equals(A= vars["Window // ID_Index"], B= "1") {
-    mistsutils_patchcommand2(A= "const top = ", B= vars["Window // Top Index"]);
+  if mistsutils_equals(A: vars["Window // ID_Index"], B: "1") {
+    mistsutils_patchcommand2(A: "const top = ", B: vars["Window // Top Index"]);
     xeltallivclipblend_clearClipbox();
     vars["Window // Top Index"] = "1";
     vars["Window // Interactable?"] = "true";
@@ -244,69 +244,69 @@ def @Window_Run_Main() "Window// Run Main" warp=true {
     vars["Renderer // Frame Max Y"] = vars["Frame // Max Y"];
     vars["Frame // Min X"] = (vars["Screen Size X"] / -2);
     vars["Frame // Max X"] = (vars["Screen Size X"] / 2);
-    if not(((vars["Inputs // Next Selected"] == "") || HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])))) {
+    if not(((vars["Inputs // Next Selected"] == "") || HyperSenseSP_mouseClick(BUTTON: HyperSenseSP_menu_mouseButtons(field mouseButtons: ["0",null])))) {
       vars["Inputs // Current Selected"] = vars["Inputs // Next Selected"];
       vars["Inputs // Cursor Position"] = "0";
       vars["Inputs // Start Letter Pos"] = "0";
       vars["Inputs // Next Selected"] = "";
     }
-    vars["SYSTEM // Tooltip"] = @destring(Text= vars["SYSTEM // Tooltip"], remove= "\"");
-    if mistsutils_notequals(A= vars["SYSTEM // Tooltip"], B= "") {
-      @Elements_Set_Style_of_to(style= "left", name= "tooltip", value= ((sensing_mousex() - vars["Frame // Min X"]) .. "px"));
-      @Elements_Set_Style_of_to(style= "top", name= "tooltip", value= ((vars["Frame // Max Y"] - (sensing_mousey() - 15)) .. "px"));
-      @Elements_Set_Style_of_to(style= "backgroundColor", name= "tooltip", value= mistsutils_patchreporter(A= "osl.user.theme.background"));
-      @Elements_Set_Style_of_to(style= "color", name= "tooltip", value= mistsutils_patchreporter(A= "osl.user.theme.text"));
-      mistsutils_patchcommand2(A= "origin.elements.tooltip.innerText = ", B= vars["SYSTEM // Tooltip"]);
-      @Elements_Set_Style_of_to(style= "display", name= "tooltip", value= "block");
+    vars["SYSTEM // Tooltip"] = @destring(Text: vars["SYSTEM // Tooltip"], remove: "\"");
+    if mistsutils_notequals(A: vars["SYSTEM // Tooltip"], B: "") {
+      @Elements_Set_Style_of_to(style: "left", name: "tooltip", value: ((sensing_mousex() - vars["Frame // Min X"]) .. "px"));
+      @Elements_Set_Style_of_to(style: "top", name: "tooltip", value: ((vars["Frame // Max Y"] - (sensing_mousey() - 15)) .. "px"));
+      @Elements_Set_Style_of_to(style: "backgroundColor", name: "tooltip", value: mistsutils_patchreporter(A: "osl.user.theme.background"));
+      @Elements_Set_Style_of_to(style: "color", name: "tooltip", value: mistsutils_patchreporter(A: "osl.user.theme.text"));
+      mistsutils_patchcommand2(A: "origin.elements.tooltip.innerText = ", B: vars["SYSTEM // Tooltip"]);
+      @Elements_Set_Style_of_to(style: "display", name: "tooltip", value: "block");
     } else {
-      @Elements_Set_Style_of_to(style= "display", name= "tooltip", value= "none");
+      @Elements_Set_Style_of_to(style: "display", name: "tooltip", value: "none");
     }
-    if mistsutils_notequals(A= vars["Files // Current Dragging"], B= "0") {
+    if mistsutils_notequals(A: vars["Files // Current Dragging"], B: "0") {
       if sensing_mousedown() {
-        @Window_Set_Redraw_Box(left= (sensing_mousex() - 40), top= (sensing_mousey() + 40), right= (sensing_mousex() + 40), bottom= (sensing_mousey() - 40));
+        @Window_Set_Redraw_Box(left: (sensing_mousex() - 40), top: (sensing_mousey() + 40), right: (sensing_mousex() + 40), bottom: (sensing_mousey() - 40));
         @Renderer_Call_ReRender();
-        motion_gotoxy(X= sensing_mousex(), Y= sensing_mousey());
-        @Render_File(Id= vars["Files // Current Dragging"], Size= "1.5");
+        motion_gotoxy(X: sensing_mousex(), Y: sensing_mousey());
+        @Render_File(Id: vars["Files // Current Dragging"], Size: "1.5");
       } else {
         broadcast "Dropped";
       }
     }
     if not((vars["Kernel // Notification"] == "")) {
-      pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "c"));
-      data_changevariableby(VALUE= ((vars["Kernel // Notification Temp Y"] - vars["Kernel // Notification Y"]) / 10), VARIABLE: var("Kernel // Notification Y", ")e"));
+      pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "c"));
+      vars["Kernel // Notification Y"] += ((vars["Kernel // Notification Temp Y"] - vars["Kernel // Notification Y"]) / 10);
       vars["Kernel // Temp"] = ((vars["Screen Size Y"] / 2) + vars["Kernel // Notification Y"]);
-      mistsutils_patchcommand2(A= "let notif = ", B= mistsutils_jsonparse(A= vars["Kernel // Notification"]));
-      switch mistsutils_patchreporter(A= "notif.style") {
+      mistsutils_patchcommand2(A: "let notif = ", B: mistsutils_jsonparse(A: vars["Kernel // Notification"]));
+      switch mistsutils_patchreporter(A: "notif.style") {
         case "puck" {
-          mistsutils_patchcommand(A= "let w = ((notif?.title?.length ?? 0) + 2) * 8");
-          @Window_Set_Redraw_Box(left= mistsutils_patchreporter(A= "w/-2 - 20"), top= (vars["Kernel // Temp"] + 40), right= mistsutils_patchreporter(A= "w/2 + 20"), bottom= (vars["Kernel // Temp"] - 40));
-          @Draw_Square(X= "0", Y= vars["Kernel // Temp"], Width= mistsutils_patchreporter(A= "w"), Height= "0", Line_Width= "50", Invisible= "");
-          if mistsutils_patchboolean(A= "target.osl_vars.onclick === true") {
-            @RUSH_execute(Command= vars["Kernel // Notification Action (RUSH)"]);
+          mistsutils_patchcommand(A: "let w = ((notif?.title?.length ?? 0) + 2) * 8");
+          @Window_Set_Redraw_Box(left: mistsutils_patchreporter(A: "w/-2 - 20"), top: (vars["Kernel // Temp"] + 40), right: mistsutils_patchreporter(A: "w/2 + 20"), bottom: (vars["Kernel // Temp"] - 40));
+          @Draw_Square(X: "0", Y: vars["Kernel // Temp"], Width: mistsutils_patchreporter(A: "w"), Height: "0", Line_Width: "50", Invisible: "");
+          if mistsutils_patchboolean(A: "target.osl_vars.onclick === true") {
+            @RUSH_execute(Command: vars["Kernel // Notification Action (RUSH)"]);
           }
-          pen_setPenColorToColor(COLOR= "#ffffff");
-          motion_gotoxy(X= mistsutils_patchreporter(A= "w/-2"), Y= vars["Kernel // Temp"]);
-          @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "\"icon \\\"\" + notif.icon + \"\\\" 1\""));
-          @Draw_Text(Text= mistsutils_patchreporter(A= "notif?.title"), X= mistsutils_patchreporter(A= "w/-2 + 25"), Y= vars["Kernel // Temp"], Size= "8", Markdown_Enabled= "");
+          pen_setPenColorToColor(COLOR: "#ffffff");
+          motion_gotoxy(X: mistsutils_patchreporter(A: "w/-2"), Y: vars["Kernel // Temp"]);
+          @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "\"icon \\\"\" + notif.icon + \"\\\" 1\""));
+          @Draw_Text(Text: mistsutils_patchreporter(A: "notif?.title"), X: mistsutils_patchreporter(A: "w/-2 + 25"), Y: vars["Kernel // Temp"], Size: "8", Markdown_Enabled: "");
         }
         default {
-          @Draw_Square(X= "0", Y= vars["Kernel // Temp"], Width= "400", Height= "50", Line_Width= "20", Invisible= "");
-          if mistsutils_patchboolean(A= "target.osl_vars.onclick === true") {
-            @RUSH_execute(Command= vars["Kernel // Notification Action (RUSH)"]);
+          @Draw_Square(X: "0", Y: vars["Kernel // Temp"], Width: "400", Height: "50", Line_Width: "20", Invisible: "");
+          if mistsutils_patchboolean(A: "target.osl_vars.onclick === true") {
+            @RUSH_execute(Command: vars["Kernel // Notification Action (RUSH)"]);
           }
-          pen_setPenColorToColor(COLOR= "#ffffff");
-          @Draw_Text(Text= mistsutils_patchreporter(A= "notif.title"), X= "-140", Y= (vars["Kernel // Temp"] + 15), Size= "9", Markdown_Enabled= "");
-          @Draw_Text(Text= mistsutils_patchreporter(A= "notif.text"), X= "-140", Y= (vars["Kernel // Temp"] + -12), Size= "8", Markdown_Enabled= "");
-          motion_gotoxy(X= -180, Y= vars["Kernel // Temp"]);
-          pen_setPenColorToColor(COLOR= "#ffffff");
-          @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "\"icon \\\"\" + notif.icon + \"\\\" 1.7\""));
+          pen_setPenColorToColor(COLOR: "#ffffff");
+          @Draw_Text(Text: mistsutils_patchreporter(A: "notif.title"), X: "-140", Y: (vars["Kernel // Temp"] + 15), Size: "9", Markdown_Enabled: "");
+          @Draw_Text(Text: mistsutils_patchreporter(A: "notif.text"), X: "-140", Y: (vars["Kernel // Temp"] + -12), Size: "8", Markdown_Enabled: "");
+          motion_gotoxy(X: -180, Y: vars["Kernel // Temp"]);
+          pen_setPenColorToColor(COLOR: "#ffffff");
+          @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "\"icon \\\"\" + notif.icon + \"\\\" 1.7\""));
         }
       }
-      mistsutils_patchcommand2(A= "const temp_time = ", B= (mistsutils_patchreporter(A= "Date.now()") - vars["Kernel // Notification Time"]));
-      if (mistsutils_patchreporter(A= "temp_time") > "7000") {
+      mistsutils_patchcommand2(A: "const temp_time = ", B: (mistsutils_patchreporter(A: "Date.now()") - vars["Kernel // Notification Time"]));
+      if (mistsutils_patchreporter(A: "temp_time") > "7000") {
         @Renderer_Call_ReRender();
         vars["Kernel // Notification Temp Y"] = "60";
-        if (mistsutils_patchreporter(A= "temp_time") > "9000") {
+        if (mistsutils_patchreporter(A: "temp_time") > "9000") {
           vars["Kernel // Notification"] = "";
         }
       } else {
@@ -315,149 +315,149 @@ def @Window_Run_Main() "Window// Run Main" warp=true {
         }
       }
     }
-    if mistsutils_patchboolean(A= "popup") {
-      mistsutils_patchcommand(A= "render_outline = false");
-      mistsutils_patchcommand2(A= "let height = ", B= mistsutils_ifthen(A= (skyhigh173JSON_json_get(item= "type", json= mistsutils_patchreporter(A= "popup")) == "permission"), B= "450", C= "220"));
+    if mistsutils_patchboolean(A: "popup") {
+      mistsutils_patchcommand(A: "render_outline = false");
+      mistsutils_patchcommand2(A: "let height = ", B: mistsutils_ifthen(A: (skyhigh173JSON_json_get(item: "type", json: mistsutils_patchreporter(A: "popup")) == "permission"), B: "450", C: "220"));
       vars["Can Click?"] = "true";
       vars["SYSTEM // Squares Clickable"] = "true";
-      @OSL_Parse_and_Run(Run= "c global_accent");
-      @Draw_Square(X= "0", Y= "0", Width= "400", Height= mistsutils_patchreporter(A= "height"), Line_Width= "15", Invisible= "");
-      if mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true") {
-        MouseCursor_setCur(cur= MouseCursor_menu_cursors(cursors: ["default",null]));
+      @OSL_Parse_and_Run(Run: "c global_accent");
+      @Draw_Square(X: "0", Y: "0", Width: "400", Height: mistsutils_patchreporter(A: "height"), Line_Width: "15", Invisible: "");
+      if mistsutils_patchboolean(A: "target.osl_vars.mouse_touching === true") {
+        MouseCursor_setCur(cur: MouseCursor_menu_cursors(field cursors: ["default",null]));
       }
-      pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.background"));
-      @Draw_Square(X= "0", Y= "0", Width= "400", Height= mistsutils_patchreporter(A= "height"), Line_Width= "10", Invisible= "");
+      pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.background"));
+      @Draw_Square(X: "0", Y: "0", Width: "400", Height: mistsutils_patchreporter(A: "height"), Line_Width: "10", Invisible: "");
       vars["Frame // Max Y"] = "99999999";
-      motion_gotoxy(X= -185, Y= mistsutils_patchreporter(A= "height / 2 - 20"));
-      pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.text"));
-      vars["Kernel // Alert App"] = skyhigh173JSON_json_get(item= "app", json= mistsutils_patchreporter(A= "popup"));
-      switch skyhigh173JSON_json_get(item= "type", json= mistsutils_patchreporter(A= "popup")) {
+      motion_gotoxy(X: -185, Y: mistsutils_patchreporter(A: "height / 2 - 20"));
+      pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.text"));
+      vars["Kernel // Alert App"] = skyhigh173JSON_json_get(item: "app", json: mistsutils_patchreporter(A: "popup"));
+      switch skyhigh173JSON_json_get(item: "type", json: mistsutils_patchreporter(A: "popup")) {
         case "permission" {
-          @Render_File(Id= vars["Kernel // Alert App"], Size= "1");
-          pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.text"));
-          @Draw_Text(Text= (@letters_to_of(start= "1", end= "13", text= @File_get_item(id= vars["Kernel // Alert App"], item= "2")) .. " wants a permission..."), X= "-165", Y= motion_yposition(), Size= "10", Markdown_Enabled= "");
-          pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.accent"));
-          @Draw_Square(X= "0", Y= "70", Width= "130", Height= "130", Line_Width= "17", Invisible= "");
-          pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.primary"));
-          @Draw_Square(X= "0", Y= "70", Width= "130", Height= "130", Line_Width= "10", Invisible= "");
-          pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.text"));
-          @Draw_Icon_boldness(Code= mistsutils_patchreporter(A= "origin.permissions.full[JSON.parse(popup).title].icon"), Size= "4", setsize= "", x= "", y= "", direction= "", boldness= "");
+          @Render_File(Id: vars["Kernel // Alert App"], Size: "1");
+          pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.text"));
+          @Draw_Text(Text: (@letters_to_of(start: "1", end: "13", text: @File_get_item(id: vars["Kernel // Alert App"], item: "2")) .. " wants a permission..."), X: "-165", Y: motion_yposition(), Size: "10", Markdown_Enabled: "");
+          pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.accent"));
+          @Draw_Square(X: "0", Y: "70", Width: "130", Height: "130", Line_Width: "17", Invisible: "");
+          pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.primary"));
+          @Draw_Square(X: "0", Y: "70", Width: "130", Height: "130", Line_Width: "10", Invisible: "");
+          pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.text"));
+          @Draw_Icon_boldness(Code: mistsutils_patchreporter(A: "origin.permissions.full[JSON.parse(popup).title].icon"), Size: "4", setsize: "", x: "", y: "", direction: "", boldness: "");
         }
         default {
-          @Render_File(Id= vars["Kernel // Alert App"], Size= "1");
-          pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.text"));
-          @Draw_Text(Text= (@letters_to_of(start= "1", end= "24", text= @File_get_item(id= vars["Kernel // Alert App"], item= "2")) .. " wants to..."), X= "-165", Y= motion_yposition(), Size= "10", Markdown_Enabled= "");
+          @Render_File(Id: vars["Kernel // Alert App"], Size: "1");
+          pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.text"));
+          @Draw_Text(Text: (@letters_to_of(start: "1", end: "24", text: @File_get_item(id: vars["Kernel // Alert App"], item: "2")) .. " wants to..."), X: "-165", Y: motion_yposition(), Size: "10", Markdown_Enabled: "");
         }
       }
-      mistsutils_patchcommand2(A= "const title = ", B= skyhigh173JSON_json_get(item= "title", json= mistsutils_patchreporter(A= "popup")));
-      @Draw_Text(Text= mistsutils_patchreporter(A= "title"), X= mistsutils_patchreporter(A= "title.length * -7.5"), Y= mistsutils_patchreporter(A= "height / -2 + 165"), Size= "15", Markdown_Enabled= "");
-      mistsutils_patchcommand2(A= "const body = ", B= skyhigh173JSON_json_get(item= "body", json= mistsutils_patchreporter(A= "popup")));
-      @Draw_Text(Text= mistsutils_patchreporter(A= "body"), X= mistsutils_patchreporter(A= "body.length * -4"), Y= mistsutils_patchreporter(A= "target.y - 30"), Size= "8", Markdown_Enabled= "");
-      @OSL_Parse_and_Run(Run= "c global_accent");
-      @Draw_Square(X= "100", Y= mistsutils_patchreporter(A= "target.y - 60"), Width= "180", Height= "30", Line_Width= "15", Invisible= "");
-      if mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true") {
-        MouseCursor_setCur(cur= MouseCursor_menu_cursors(cursors: ["pointer",null]));
-        if HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) {
+      mistsutils_patchcommand2(A: "const title = ", B: skyhigh173JSON_json_get(item: "title", json: mistsutils_patchreporter(A: "popup")));
+      @Draw_Text(Text: mistsutils_patchreporter(A: "title"), X: mistsutils_patchreporter(A: "title.length * -7.5"), Y: mistsutils_patchreporter(A: "height / -2 + 165"), Size: "15", Markdown_Enabled: "");
+      mistsutils_patchcommand2(A: "const body = ", B: skyhigh173JSON_json_get(item: "body", json: mistsutils_patchreporter(A: "popup")));
+      @Draw_Text(Text: mistsutils_patchreporter(A: "body"), X: mistsutils_patchreporter(A: "body.length * -4"), Y: mistsutils_patchreporter(A: "target.y - 30"), Size: "8", Markdown_Enabled: "");
+      @OSL_Parse_and_Run(Run: "c global_accent");
+      @Draw_Square(X: "100", Y: mistsutils_patchreporter(A: "target.y - 60"), Width: "180", Height: "30", Line_Width: "15", Invisible: "");
+      if mistsutils_patchboolean(A: "target.osl_vars.mouse_touching === true") {
+        MouseCursor_setCur(cur: MouseCursor_menu_cursors(field cursors: ["pointer",null]));
+        if HyperSenseSP_mouseClick(BUTTON: HyperSenseSP_menu_mouseButtons(field mouseButtons: ["0",null])) {
           if (vars["Kernel // Alert Close"] == "false") {
             vars["Kernel // Alert Close"] = "true";
-            switch skyhigh173JSON_json_get(item= "type", json= mistsutils_patchreporter(A= "popup")) {
+            switch skyhigh173JSON_json_get(item: "type", json: mistsutils_patchreporter(A: "popup")) {
               case "permission" {
-                mistsutils_patchcommand3(A= "origin.permissions.writes.push(", B= "popup", C= ")");
+                mistsutils_patchcommand3(A: "origin.permissions.writes.push(", B: "popup", C: ")");
               }
               case "buy_key" {
-                mistsutils_patchcommand(A= "try {");
-                mistsutils_patchcommand2(A= "let key_id = ", B= skyhigh173JSON_json_get(item= "id", json= mistsutils_patchreporter(A= "popup")));
-                mistsutils_patchcommand2(A= "let response = ", B= mistsutils_jsonparse(A= cloudlink_fetchURL(url= mistsutils_patchreporter(A= "`https://social.rotur.dev/keys/buy/${key_id}?auth=${origin.permissions.getToken()}`"))));
-                @Show_Notification(Icon= "rotur", Title= mistsutils_patchreporter(A= "response.message ?? response.error"), Text= "", Style= "puck", Action= "");
-                mistsutils_patchcommand(A= "} catch {");
-                @Show_Notification(Icon= "rotur", Title= "key purchase failed", Text= "", Style= "puck", Action= "");
-                mistsutils_patchcommand(A= "}");
+                mistsutils_patchcommand(A: "try {");
+                mistsutils_patchcommand2(A: "let key_id = ", B: skyhigh173JSON_json_get(item: "id", json: mistsutils_patchreporter(A: "popup")));
+                mistsutils_patchcommand2(A: "let response = ", B: mistsutils_jsonparse(A: cloudlink_fetchURL(url: mistsutils_patchreporter(A: "`https://social.rotur.dev/keys/buy/${key_id}?auth=${origin.permissions.getToken()}`"))));
+                @Show_Notification(Icon: "rotur", Title: mistsutils_patchreporter(A: "response.message ?? response.error"), Text: "", Style: "puck", Action: "");
+                mistsutils_patchcommand(A: "} catch {");
+                @Show_Notification(Icon: "rotur", Title: "key purchase failed", Text: "", Style: "puck", Action: "");
+                mistsutils_patchcommand(A: "}");
               }
               case "cancel_key" {
-                mistsutils_patchcommand(A= "try {");
-                mistsutils_patchcommand2(A= "let key_id = ", B= skyhigh173JSON_json_get(item= "id", json= mistsutils_patchreporter(A= "popup")));
-                mistsutils_patchcommand2(A= "let response = ", B= mistsutils_jsonparse(A= cloudlink_fetchURL(url= mistsutils_patchreporter(A= "`https://social.rotur.dev/keys/cancel/${key_id}?auth=${origin.permissions.getToken()}`"))));
-                @Show_Notification(Icon= "rotur", Title= mistsutils_patchreporter(A= "response.message ?? response.error"), Text= "", Style= "puck", Action= "");
-                mistsutils_patchcommand(A= "} catch {");
-                @Show_Notification(Icon= "rotur", Title= "key purchase failed", Text= "", Style= "puck", Action= "");
-                mistsutils_patchcommand(A= "}");
+                mistsutils_patchcommand(A: "try {");
+                mistsutils_patchcommand2(A: "let key_id = ", B: skyhigh173JSON_json_get(item: "id", json: mistsutils_patchreporter(A: "popup")));
+                mistsutils_patchcommand2(A: "let response = ", B: mistsutils_jsonparse(A: cloudlink_fetchURL(url: mistsutils_patchreporter(A: "`https://social.rotur.dev/keys/cancel/${key_id}?auth=${origin.permissions.getToken()}`"))));
+                @Show_Notification(Icon: "rotur", Title: mistsutils_patchreporter(A: "response.message ?? response.error"), Text: "", Style: "puck", Action: "");
+                mistsutils_patchcommand(A: "} catch {");
+                @Show_Notification(Icon: "rotur", Title: "key purchase failed", Text: "", Style: "puck", Action: "");
+                mistsutils_patchcommand(A: "}");
               }
               case "save_directory" {
-                mistsutils_patchcommand2(A= "let directory_index = ", B= data_itemnumoflist(ITEM= (skyhigh173JSON_json_get(item= "directory", json= mistsutils_patchreporter(A= "popup")) .. ".folder"), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")));
-                @originFS_Exec_at_with_data_File_UUID(Command= "replace", Index= "13", Data= skyhigh173JSON_json_array_push(item= skyhigh173JSON_json_get(item= "uuid", json= mistsutils_patchreporter(A= "popup")), json= @File_get_item(id= mistsutils_patchreporter(A= "directory_index"), item= "13")), Uuid= data_itemoflist(INDEX= mistsutils_patchreporter(A= "directory_index"), LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
-                @File_open(Id= skyhigh173JSON_json_get(item= "uuid", json= mistsutils_patchreporter(A= "popup")));
-                @originWM_Send_global_Msg(arr= ("set_directory/" .. (skyhigh173JSON_json_get(item= "window_id", json= mistsutils_patchreporter(A= "popup")) .. ("/" .. @File_get_item(id= mistsutils_patchreporter(A= "directory_index"), item= "2")))));
+                mistsutils_patchcommand2(A: "let directory_index = ", B: data_itemnumoflist(ITEM: (skyhigh173JSON_json_get(item: "directory", json: mistsutils_patchreporter(A: "popup")) .. ".folder"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")));
+                @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: "13", Data: skyhigh173JSON_json_array_push(item: skyhigh173JSON_json_get(item: "uuid", json: mistsutils_patchreporter(A: "popup")), json: @File_get_item(id: mistsutils_patchreporter(A: "directory_index"), item: "13")), Uuid: data_itemoflist(INDEX: mistsutils_patchreporter(A: "directory_index"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+                @File_open(Id: skyhigh173JSON_json_get(item: "uuid", json: mistsutils_patchreporter(A: "popup")));
+                @originWM_Send_global_Msg(arr: ("set_directory/" .. (skyhigh173JSON_json_get(item: "window_id", json: mistsutils_patchreporter(A: "popup")) .. ("/" .. @File_get_item(id: mistsutils_patchreporter(A: "directory_index"), item: "2")))));
               }
             }
           }
         }
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.primary"));
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.primary"));
       } else {
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.primary"));
-        @Draw_Square(X= "100", Y= mistsutils_patchreporter(A= "target.y"), Width= "180", Height= "30", Line_Width= "10", Invisible= "");
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.text"));
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.primary"));
+        @Draw_Square(X: "100", Y: mistsutils_patchreporter(A: "target.y"), Width: "180", Height: "30", Line_Width: "10", Invisible: "");
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.text"));
       }
-      mistsutils_patchcommand2(A= "let allow_txt = \"\"+", B= skyhigh173JSON_json_get(item= "allow_txt", json= mistsutils_patchreporter(A= "popup")));
-      mistsutils_patchcommand(A= "allow_txt = allow_txt == \"\" ? \"Grant\" : allow_txt");
-      @Draw_Text(Text= mistsutils_patchreporter(A= "allow_txt"), X= mistsutils_patchreporter(A= "((allow_txt.length + 0.5) * -5) + 100"), Y= mistsutils_patchreporter(A= "target.y"), Size= "10", Markdown_Enabled= "");
-      @OSL_Parse_and_Run(Run= "c global_accent");
-      @Draw_Square(X= "-100", Y= mistsutils_patchreporter(A= "target.y"), Width= "180", Height= "30", Line_Width= "15", Invisible= "");
-      if mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true") {
-        MouseCursor_setCur(cur= MouseCursor_menu_cursors(cursors: ["pointer",null]));
-        if (HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) && (vars["Kernel // Alert Close"] == "false")) {
+      mistsutils_patchcommand2(A: "let allow_txt = \"\"+", B: skyhigh173JSON_json_get(item: "allow_txt", json: mistsutils_patchreporter(A: "popup")));
+      mistsutils_patchcommand(A: "allow_txt = allow_txt == \"\" ? \"Grant\" : allow_txt");
+      @Draw_Text(Text: mistsutils_patchreporter(A: "allow_txt"), X: mistsutils_patchreporter(A: "((allow_txt.length + 0.5) * -5) + 100"), Y: mistsutils_patchreporter(A: "target.y"), Size: "10", Markdown_Enabled: "");
+      @OSL_Parse_and_Run(Run: "c global_accent");
+      @Draw_Square(X: "-100", Y: mistsutils_patchreporter(A: "target.y"), Width: "180", Height: "30", Line_Width: "15", Invisible: "");
+      if mistsutils_patchboolean(A: "target.osl_vars.mouse_touching === true") {
+        MouseCursor_setCur(cur: MouseCursor_menu_cursors(field cursors: ["pointer",null]));
+        if (HyperSenseSP_mouseClick(BUTTON: HyperSenseSP_menu_mouseButtons(field mouseButtons: ["0",null])) && (vars["Kernel // Alert Close"] == "false")) {
           vars["Kernel // Alert Close"] = "true";
-          mistsutils_patchcommand(A= "const parsed = JSON.parse(popup)");
-          if (mistsutils_patchreporter(A= "parsed.type") == "permission") {
-            mistsutils_patchcommand3(A= "const wins = osl_get_windows().filter(v => v?.uuid === ", B= "parsed.app", C= ")");
-            mistsutils_patchcommand(A= "for (let i = 0; i < wins.length; i ++)");
-            @originWM_Send_global_Msg(arr= mistsutils_patchreporter(A= "[\"event\", wins[i].id, \"permission_denied\", parsed.title]"));
+          mistsutils_patchcommand(A: "const parsed = JSON.parse(popup)");
+          if (mistsutils_patchreporter(A: "parsed.type") == "permission") {
+            mistsutils_patchcommand3(A: "const wins = osl_get_windows().filter(v => v?.uuid === ", B: "parsed.app", C: ")");
+            mistsutils_patchcommand(A: "for (let i = 0; i < wins.length; i ++)");
+            @originWM_Send_global_Msg(arr: mistsutils_patchreporter(A: "[\"event\", wins[i].id, \"permission_denied\", parsed.title]"));
           }
         }
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.primary"));
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.primary"));
       } else {
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.primary"));
-        @Draw_Square(X= "-100", Y= mistsutils_patchreporter(A= "target.y"), Width= "180", Height= "30", Line_Width= "10", Invisible= "");
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.text"));
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.primary"));
+        @Draw_Square(X: "-100", Y: mistsutils_patchreporter(A: "target.y"), Width: "180", Height: "30", Line_Width: "10", Invisible: "");
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.text"));
       }
-      @Draw_Text(Text= "Deny", X= "-125", Y= mistsutils_patchreporter(A= "target.y"), Size= "10", Markdown_Enabled= "");
-      pen_setPenColorToColor(COLOR= "#e03838");
-      @Draw_Square(X= "0", Y= mistsutils_patchreporter(A= "target.y - 50"), Width= "380", Height= "30", Line_Width= "15", Invisible= "");
-      pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.primary"));
-      if mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true") {
-        MouseCursor_setCur(cur= MouseCursor_menu_cursors(cursors: ["pointer",null]));
-        if (HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) && (vars["Kernel // Alert Close"] == "false")) {
+      @Draw_Text(Text: "Deny", X: "-125", Y: mistsutils_patchreporter(A: "target.y"), Size: "10", Markdown_Enabled: "");
+      pen_setPenColorToColor(COLOR: "#e03838");
+      @Draw_Square(X: "0", Y: mistsutils_patchreporter(A: "target.y - 50"), Width: "380", Height: "30", Line_Width: "15", Invisible: "");
+      pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.primary"));
+      if mistsutils_patchboolean(A: "target.osl_vars.mouse_touching === true") {
+        MouseCursor_setCur(cur: MouseCursor_menu_cursors(field cursors: ["pointer",null]));
+        if (HyperSenseSP_mouseClick(BUTTON: HyperSenseSP_menu_mouseButtons(field mouseButtons: ["0",null])) && (vars["Kernel // Alert Close"] == "false")) {
           vars["Kernel // Alert Close"] = "true";
-          @RUSH_execute(Command= ("kill " .. @File_get_item(id= vars["Kernel // Alert App"], item= "2")));
-          mistsutils_patchcommand(A= "const parsed = JSON.parse(popup)");
-          if (mistsutils_patchreporter(A= "parsed.type") == "permission") {
-            mistsutils_patchcommand3(A= "const wins = osl_get_windows().filter(v => v?.uuid === ", B= "parsed.app", C= ")");
-            mistsutils_patchcommand(A= "for (let i = 0; i < wins.length; i ++)");
-            @originWM_Send_global_Msg(arr= mistsutils_patchreporter(A= "[\"event\", wins[i].id, \"permission_denied\", parsed.title]"));
+          @RUSH_execute(Command: ("kill " .. @File_get_item(id: vars["Kernel // Alert App"], item: "2")));
+          mistsutils_patchcommand(A: "const parsed = JSON.parse(popup)");
+          if (mistsutils_patchreporter(A: "parsed.type") == "permission") {
+            mistsutils_patchcommand3(A: "const wins = osl_get_windows().filter(v => v?.uuid === ", B: "parsed.app", C: ")");
+            mistsutils_patchcommand(A: "for (let i = 0; i < wins.length; i ++)");
+            @originWM_Send_global_Msg(arr: mistsutils_patchreporter(A: "[\"event\", wins[i].id, \"permission_denied\", parsed.title]"));
           }
         }
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.text"));
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.text"));
       } else {
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.primary"));
-        @Draw_Square(X= "0", Y= mistsutils_patchreporter(A= "target.y"), Width= "380", Height= "30", Line_Width= "10", Invisible= "");
-        pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "osl.user.theme.text"));
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.primary"));
+        @Draw_Square(X: "0", Y: mistsutils_patchreporter(A: "target.y"), Width: "380", Height: "30", Line_Width: "10", Invisible: "");
+        pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "osl.user.theme.text"));
       }
-      @Draw_Text(Text= "Quit This App And Stop Dialogues", X= "-144", Y= mistsutils_patchreporter(A= "target.y"), Size= "9", Markdown_Enabled= "");
+      @Draw_Text(Text: "Quit This App And Stop Dialogues", X: "-144", Y: mistsutils_patchreporter(A: "target.y"), Size: "9", Markdown_Enabled: "");
       if ((vars["Kernel // Alert Close"] == "true") && not(sensing_mousedown())) {
-        mistsutils_patchcommand(A= "origin.desktop.popups.shift()");
+        mistsutils_patchcommand(A: "origin.desktop.popups.shift()");
         vars["Kernel // Alert Close"] = "false";
         @Window_Reset_Redraw_Box();
         @Renderer_Call_ReRender();
       }
       vars["Can Click?"] = "false";
     }
-    mistsutils_patchcommand(A= "origin.windows.outline_shown = render_outline");
-    vars["Window // Top Index"] = mistsutils_patchreporter(A= "top");
-    if mistsutils_patchboolean(A= "!osl.mouse_down") {
+    mistsutils_patchcommand(A: "origin.windows.outline_shown = render_outline");
+    vars["Window // Top Index"] = mistsutils_patchreporter(A: "top");
+    if mistsutils_patchboolean(A: "!osl.mouse_down") {
       vars["Files // Drag id"] = "0";
     }
     vars["Kernel // Frame Time"] = (mistsutils_performancenow() - vars["Kernel // Frame Start"]);
   }
-  if mistsutils_patchboolean(A= "origin.windows.shown[window_id_index] != (String(target.window.shown) == \"true\")") {
+  if mistsutils_patchboolean(A: "origin.windows.shown[window_id_index] != (String(target.window.shown) == \"true\")") {
     @Window_Reset_Redraw_Box();
     @Renderer_Call_ReRender();
   }

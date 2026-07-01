@@ -7,19 +7,19 @@
  */
 
 import "../procedures_definition/OSL___Vars__Set__s__s__s.fractch";
-event_whenbroadcastreceived(BROADCAST_OPTION: broadcast("Load Wallpaper", "W#X|wS#@*(3?-mDc(P]1"));
-mistsutils_patchcommand(A= "if (target.isOriginal) {");
-if mistsutils_patchboolean(A= "Date.now() - origin.time.start > 1000") {
-  @Show_Notification(Icon= "origin-logo", Title= mistsutils_patchreporter(A= "`Loading wallpaper`"), Text= "", Style= "puck", Action= "");
+event_whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Load Wallpaper", "W#X|wS#@*(3?-mDc(P]1"));
+mistsutils_patchcommand(A: "if (target.isOriginal) {");
+if mistsutils_patchboolean(A: "Date.now() - origin.time.start > 1000") {
+  @Show_Notification(Icon: "origin-logo", Title: mistsutils_patchreporter(A: "`Loading wallpaper`"), Text: "", Style: "puck", Action: "");
 }
-mistsutils_patchcommand(A= "const url = target.wallpaper_to_load");
-@OSL_Vars_Set(name= "background_url", data= mistsutils_patchreporter(A= "url"), current_command= "global");
-mistsutils_patchcommand2(A= "const data = ", B= URIUtilities_downloadAndConvert(URL= mistsutils_patchreporter(A= "url")));
-mistSkins_registerURLSkin(URL= mistsutils_patchreporter(A= "data"), NAME= "wallpaper");
-mistSkins_registerURLSkin(URL= mistsutils_patchreporter(A= "data"), NAME= "wallpaper_blur");
-mistSkins_blurExistingSkin(SKIN= "wallpaper_blur", PASSES= 4, NAME= "wallpaper_blur");
-mistiumindexeddb_writeToDatabase(KEY= "user_wallpaper_url", VALUE= mistsutils_patchreporter(A= "url"));
-mistiumindexeddb_writeToDatabase(KEY= "user_wallpaper", VALUE= mistsutils_patchreporter(A= "data"));
-mistsutils_patchcommand(A= "origin.wallpaper.current = url");
-mistsutils_patchcommand(A= "target.wallpaper_to_load = null");
-mistsutils_patchcommand(A= "}");
+mistsutils_patchcommand(A: "const url = target.wallpaper_to_load");
+@OSL_Vars_Set(name: "background_url", data: mistsutils_patchreporter(A: "url"), current_command: "global");
+mistsutils_patchcommand2(A: "const data = ", B: URIUtilities_downloadAndConvert(URL: mistsutils_patchreporter(A: "url")));
+mistSkins_registerURLSkin(URL: mistsutils_patchreporter(A: "data"), NAME: "wallpaper");
+mistSkins_registerURLSkin(URL: mistsutils_patchreporter(A: "data"), NAME: "wallpaper_blur");
+mistSkins_blurExistingSkin(SKIN: "wallpaper_blur", PASSES: 4, NAME: "wallpaper_blur");
+mistiumindexeddb_writeToDatabase(KEY: "user_wallpaper_url", VALUE: mistsutils_patchreporter(A: "url"));
+mistiumindexeddb_writeToDatabase(KEY: "user_wallpaper", VALUE: mistsutils_patchreporter(A: "data"));
+mistsutils_patchcommand(A: "origin.wallpaper.current = url");
+mistsutils_patchcommand(A: "target.wallpaper_to_load = null");
+mistsutils_patchcommand(A: "}");

@@ -18,6 +18,23 @@ const BRANCH_SUBSTACK_OPCODES = new Set([
   'control_default', 'control_repeat', 'control_repeat_until', 'control_while',
 ]);
 
+const LEGACY_FIELD_KEYS = new Set([
+  'AND_WAIT', 'ATTRIBUTE', 'AXIS', 'BROADCAST_OPTION', 'BUTTONS', 'C', 'CLONE_OPTION',
+  'COMPRESSIONTYPES', 'CONTROL', 'DISTANCETOMENU', 'DRAG_MODE', 'EFFECT',
+  'EFFECTGETMENU', 'EFFECTMENU', 'EFFECTS', 'EXPORT', 'FILETYPE', 'FILE_INFO',
+  'FILTER', 'FROM', 'IMG_ATTS', 'INDICES', 'INFO', 'KEYS', 'KEY_OPTION', 'LIST',
+  'LOOP', 'METHODS', 'MIPMAPPING', 'ON_OFF', 'OPERATOR', 'PAUSE_UNPAUSE', 'PROP',
+  'PROPERTY', 'REMOVE', 'RENDERMODE', 'RGBMenu', 'SRCLIST', 'STOP_OPTION', 'Stype',
+  'TO', 'TOUCHINGOBJECTMENU', 'TRANSFORM', 'TYPE', 'Time', 'U', 'V', 'VALUE',
+  'VARIABLE', 'VIDEO_STATE', 'WRAP', 'W_H', 'X', 'Y', 'Z', 'blending', 'clearLayers',
+  'colorParam', 'compressionLevel', 'culling', 'cursors', 'depthTest', 'enabled',
+  'encoding', 'fileType', 'getFileType', 'get_list', 'keys', 'matComponent', 'mic',
+  'mouseButton', 'mouseButtons', 'onOff', 'powersOfTwo', 'primitives', 'props',
+  'skinAttributes', 'soundProperties', 'state', 'string_types', 'targetMenu',
+  'targets', 'types', 'uniformTypes', 'wait', 'writeFileType', 'zipFileType',
+  'mutation',
+]);
+
 export function parseFractch(content) {
   const text = stripHeader(content);
   const parser = new Parser(text);
@@ -253,10 +270,16 @@ class Parser {
         const name = this.parseStringLiteral();
         this.expectChar(']');
         this.skipWS();
-        this.expectChar('=');
+        let op = '=';
+        if (this.tryChar('+')) {
+          this.expectChar('=');
+          op = '+=';
+        } else {
+          this.expectChar('=');
+        }
         const v = this.parseExpr();
         this.tryChar(';');
-        return makeCall('data_setvariableto', [
+        return makeCall(op === '+=' ? 'data_changevariableby' : 'data_setvariableto', [
           keyedField('VARIABLE', { type: 'array', value: [name] }),
           keyedInput('VALUE', v),
         ]);
@@ -561,20 +584,41 @@ class Parser {
     return result;
   }
 
-  // key (`=` value | `:` value)
+  // key (`:` value | `=` value) for inputs; `field key: value` for fields.
+  // The old generated syntax used `key: value` for fields and `key= value`
+  // for inputs, so known field keys still parse as fields for compatibility.
   parseKeyedArgs() {
     const args = [];
     this.skipWS();
     if (this.peek() === ')') return args;
     for (;;) {
       this.skipWS();
+      let forceField = false;
+      const maybeField = this.snapshot();
+      const maybeKeyword = this.tryIdentifier();
+      if (maybeKeyword === 'field') {
+        const afterField = this.snapshot();
+        this.skipWS();
+        if (this.peek() !== ':' && this.peek() !== '=' && this.peek() !== ',' && this.peek() !== ')') {
+          forceField = true;
+        } else {
+          this.restore(maybeField);
+        }
+      } else {
+        this.restore(maybeField);
+      }
+
       const key = this.parseArgKey();
       this.skipWS();
-      let sep;
-      if (this.tryChar('=')) sep = 'input';
-      else if (this.tryChar(':')) sep = 'field';
+      let token;
+      if (forceField) {
+        this.expectChar(':');
+        token = ':';
+      } else if (this.tryChar('=')) token = '=';
+      else if (this.tryChar(':')) token = ':';
       else throw new ParseError(`expected '=' or ':' after key '${key}'`);
       const value = this.parseExpr();
+      const sep = forceField || (token === ':' && isLegacyFieldArg(key, value)) ? 'field' : 'input';
       args.push({ kind: 'keyed', sep, key, value });
       this.skipWS();
       if (this.tryChar(',')) continue;
@@ -630,6 +674,15 @@ class Parser {
     }
     throw new ParseError(`unterminated ${open}...${close}`);
   }
+}
+
+function isLegacyFieldArg(key, value) {
+  if (!LEGACY_FIELD_KEYS.has(key)) return false;
+  if (value?.type === 'json' || value?.type === 'array') return true;
+  if (key === 'VARIABLE') return value?.type === 'var';
+  if (key === 'LIST') return value?.type === 'list';
+  if (key === 'BROADCAST_OPTION') return value?.type === 'broadcast';
+  return false;
 }
 
 function makeCall(opcode, args) {

@@ -8,17 +8,17 @@
 
 def @RUSH_execute(Command) "RUSH // execute %s" warp=true {
   if not((Command == "")) {
-    mistsutils_patchcommand(A= "p0 = (\"\"+p0).trim()");
-    mistsutils_patchcommand2(A= "const window_index = ", B= vars["WIndow // ID"]);
-    mistsutils_patchcommand(A= "const terminal = target.variables[\"*]Mn/33!d},~KykjJQ|Y\"]");
-    data_deletealloflist(LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-    skyhigh173JSON_json_vm_setlist(list= skyhigh173JSON_menu_get_list(get_list: list(")./tR8V[bp)bg1K2.|v(")), json= mistsutils_jsonstringify(A= OSLUtils_tokeniseraw(CODE= mistsutils_patchreporter(A= "(\"\"+p0).trim()"))));
-    data_replaceitemoflist(INDEX= 2, ITEM= @destring(Text= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\""), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-    data_replaceitemoflist(INDEX= 3, ITEM= @destring(Text= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\""), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-    data_replaceitemoflist(INDEX= 4, ITEM= @destring(Text= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\""), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-    data_replaceitemoflist(INDEX= 5, ITEM= @destring(Text= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\""), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-    mistsutils_patchcommand(A= "let output = \"\"");
-    switch data_itemoflist(INDEX= 1, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+    mistsutils_patchcommand(A: "p0 = (\"\"+p0).trim()");
+    mistsutils_patchcommand2(A: "const window_index = ", B: vars["WIndow // ID"]);
+    mistsutils_patchcommand(A: "const terminal = target.variables[\"*]Mn/33!d},~KykjJQ|Y\"]");
+    data_deletealloflist(field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+    skyhigh173JSON_json_vm_setlist(list: skyhigh173JSON_menu_get_list(field get_list: list(")./tR8V[bp)bg1K2.|v(")), json: mistsutils_jsonstringify(A: OSLUtils_tokeniseraw(CODE: mistsutils_patchreporter(A: "(\"\"+p0).trim()"))));
+    data_replaceitemoflist(INDEX: 2, ITEM: @destring(Text: data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+    data_replaceitemoflist(INDEX: 3, ITEM: @destring(Text: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+    data_replaceitemoflist(INDEX: 4, ITEM: @destring(Text: data_itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+    data_replaceitemoflist(INDEX: 5, ITEM: @destring(Text: data_itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+    mistsutils_patchcommand(A: "let output = \"\"");
+    switch data_itemoflist(INDEX: 1, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
       case "shutdown" {
         vars["Network // Files Update Timeout"] = "0";
         @Clear_Data();
@@ -28,220 +28,220 @@ def @RUSH_execute(Command) "RUSH // execute %s" warp=true {
         broadcast "Refresh GUI";
       }
       case "syslog" {
-        mistsutils_patchcommand3(A= "terminal.value = terminal.value.concat(JSON.safeParse(", B= skyhigh173JSON_json_vm_getlist(list= skyhigh173JSON_menu_get_list(get_list: list("?[HcDcJb70Jr_)_.*)Kw"))), C= ").filter(v => v !== \"\"))");
+        mistsutils_patchcommand3(A: "terminal.value = terminal.value.concat(JSON.safeParse(", B: skyhigh173JSON_json_vm_getlist(list: skyhigh173JSON_menu_get_list(field get_list: list("?[HcDcJb70Jr_)_.*)Kw"))), C: ").filter(v => v !== \"\"))");
       }
       case "rvoice" {
-        switch data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        switch data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
           case "me" {
-            data_addtolist(ITEM= roturCall_getName(), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: roturCall_getName(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "peer" {
-            data_addtolist(ITEM= roturCall_getCallPartner(), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: roturCall_getCallPartner(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "connect_set" {
-            roturCall_connect(NAME= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-            data_addtolist(ITEM= roturCall_getStatus(), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            roturCall_connect(NAME: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+            data_addtolist(ITEM: roturCall_getStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "connect" {
-            roturCall_connect(NAME= skyhigh173JSON_json_get(item= "hash", json= cloudlink_returnUserObject()));
-            data_addtolist(ITEM= roturCall_getStatus(), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            roturCall_connect(NAME: skyhigh173JSON_json_get(item: "hash", json: cloudlink_returnUserObject()));
+            data_addtolist(ITEM: roturCall_getStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "accept" {
             roturCall_answerCall();
-            data_addtolist(ITEM= roturCall_getCallStatus(), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: roturCall_getCallStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "incoming" {
-            data_addtolist(ITEM= (roturCall_isCallIncoming() .. ""), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: (roturCall_isCallIncoming() .. ""), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "my_status" {
-            data_addtolist(ITEM= roturCall_getStatus(), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: roturCall_getStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "mic_status" {
-            data_addtolist(ITEM= (roturCall_hasAudio() .. ""), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: (roturCall_hasAudio() .. ""), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "call_status" {
-            data_addtolist(ITEM= roturCall_getCallStatus(), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: roturCall_getCallStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "hangup" {
             roturCall_hangup();
-            roturCall_enableAudio(mic= roturCall_menu_mic(mic: ["disable",null]));
+            roturCall_enableAudio(mic: roturCall_menu_mic(field mic: ["disable",null]));
           }
           case "call" {
-            roturCall_callPeer(NAME= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), WAIT= roturCall_menu_wait(wait: ["nowait",null]));
+            roturCall_callPeer(NAME: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), WAIT: roturCall_menu_wait(field wait: ["nowait",null]));
           }
           case "close" {
             roturCall_hangup();
             roturCall_disconnectPeer();
-            roturCall_enableAudio(mic= roturCall_menu_mic(mic: ["disable",null]));
+            roturCall_enableAudio(mic: roturCall_menu_mic(field mic: ["disable",null]));
           }
         }
       }
       case "upload" {
-        filesExpanded_textSet(TEXT= "upload a file to originOS");
-        data_deleteoflist(INDEX= 1, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-        if (data_lengthoflist(LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "0") {
-          data_addtolist(ITEM= "/Downloads", LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+        filesExpanded_textSet(TEXT: "upload a file to originOS");
+        data_deleteoflist(INDEX: 1, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+        if (data_lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "0") {
+          data_addtolist(ITEM: "/Downloads", field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
         } else {
-          data_replaceitemoflist(INDEX= 1, ITEM= list("Split Text", ")./tR8V[bp)bg1K2.|v("), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          data_replaceitemoflist(INDEX: 1, ITEM: list("Split Text", ")./tR8V[bp)bg1K2.|v("), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
         }
-        mistsutils_patchcommand2(A= "let file = ", B= filesExpanded_showPickerAs(as= filesExpanded_menu_encoding(encoding: ["url",null])));
-        if not((mistsutils_patchreporter(A= "file") == "")) {
-          if (operator_length(STRING= mistsutils_patchreporter(A= "file")) > mistsutils_patchreporter(A= "osl.user.max_size || 0")) {
-            data_addtolist(ITEM= mistsutils_patchreporter(A= "`File Too Big: ${String(file).length} characters`"), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        mistsutils_patchcommand2(A: "let file = ", B: filesExpanded_showPickerAs(as: filesExpanded_menu_encoding(field encoding: ["url",null])));
+        if not((mistsutils_patchreporter(A: "file") == "")) {
+          if (operator_length(STRING: mistsutils_patchreporter(A: "file")) > mistsutils_patchreporter(A: "osl.user.max_size || 0")) {
+            data_addtolist(ITEM: mistsutils_patchreporter(A: "`File Too Big: ${String(file).length} characters`"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           } else {
-            if not(skyhigh173JSON_json_has_value(json= skyhigh173JSON_json_get(item= "binary_file_types", json= vars["SYSTEM // Info"]), value= mistsutils_patchreporter2(A= filesExpanded_fileInfo(FORMAT= filesExpanded_menu_FILE_INFO(FILE_INFO: ["name",null])), B= ".split(\".\").pop().toUpperCase()"))) {
-              mistsutils_patchcommand2(A= "file = ", B= cloudlink_fetchURL(url= mistsutils_patchreporter(A= "file")));
+            if not(skyhigh173JSON_json_has_value(json: skyhigh173JSON_json_get(item: "binary_file_types", json: vars["SYSTEM // Info"]), value: mistsutils_patchreporter2(A: filesExpanded_fileInfo(FORMAT: filesExpanded_menu_FILE_INFO(field FILE_INFO: ["name",null])), B: ".split(\".\").pop().toUpperCase()"))) {
+              mistsutils_patchcommand2(A: "file = ", B: cloudlink_fetchURL(url: mistsutils_patchreporter(A: "file")));
             }
-            @Install_System_Utility(Location= (@OSL_Vars_Get(Varname= "user_folder") .. data_itemoflist(INDEX= 1, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), Name_And_Type= filesExpanded_fileInfo(FORMAT= filesExpanded_menu_FILE_INFO(FILE_INFO: ["name",null])), Data= mistsutils_patchreporter(A= "file"), Icon= "", not_system= mistsutils_true());
-            data_addtolist(ITEM= mistsutils_patchreporter(A= "`Uploaded ${String(file).length} Bytes Successfully`"), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            @Install_System_Utility(Location: (@OSL_Vars_Get(Varname: "user_folder") .. data_itemoflist(INDEX: 1, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), Name_And_Type: filesExpanded_fileInfo(FORMAT: filesExpanded_menu_FILE_INFO(field FILE_INFO: ["name",null])), Data: mistsutils_patchreporter(A: "file"), Icon: "", not_system: mistsutils_true());
+            data_addtolist(ITEM: mistsutils_patchreporter(A: "`Uploaded ${String(file).length} Bytes Successfully`"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
         }
       }
       case "get" {
-        switch data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        switch data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
           case "filechanges" {
-            data_addtolist(ITEM= "You can only access this through the data variable", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            @OSL_Set_Data_Var_To(data= mistsutils_patchreporter(A= "window.origin.network.updates"));
+            data_addtolist(ITEM: "You can only access this through the data variable", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            @OSL_Set_Data_Var_To(data: mistsutils_patchreporter(A: "window.origin.network.updates"));
           }
           case "filepaths" {
-            mistsutils_patchcommand(A= "const index = origin.files.index.value");
-            mistsutils_patchcommand(A= "for (let i = 0; i < index.length; i ++) {");
-            data_addtolist(ITEM= mistsutils_patchreporter(A= "index[i]"), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            mistsutils_patchcommand(A= "}");
+            mistsutils_patchcommand(A: "const index = origin.files.index.value");
+            mistsutils_patchcommand(A: "for (let i = 0; i < index.length; i ++) {");
+            data_addtolist(ITEM: mistsutils_patchreporter(A: "index[i]"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            mistsutils_patchcommand(A: "}");
           }
           case "mediadevices" {
-            data_addtolist(ITEM= mistsutils_jsonstringify(A= MistiumEval_reporterBlock(CODE= "navigator.mediaDevices.enumerateDevices().then((e=>{if(!e.length)return console.log(\"No media devices found.\");let i={};return e.forEach((d=>{i[d.label]||(i[d.label]={id:d.deviceId||\"N/A\",type:d.kind.includes(\"audio\")&&e.some((e=>e.deviceId===d.deviceId&&e.kind!==d.kind))?\"audioboth\":d.kind})})),i})).catch((e=>console.log(\"Error enumerating devices: \"+e)));")), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            @OSL_Set_Data_Var_To(data= data_itemoflist(INDEX= "last", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y")));
+            data_addtolist(ITEM: mistsutils_jsonstringify(A: MistiumEval_reporterBlock(CODE: "navigator.mediaDevices.enumerateDevices().then((e=>{if(!e.length)return console.log(\"No media devices found.\");let i={};return e.forEach((d=>{i[d.label]||(i[d.label]={id:d.deviceId||\"N/A\",type:d.kind.includes(\"audio\")&&e.some((e=>e.deviceId===d.deviceId&&e.kind!==d.kind))?\"audioboth\":d.kind})})),i})).catch((e=>console.log(\"Error enumerating devices: \"+e)));")), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            @OSL_Set_Data_Var_To(data: data_itemoflist(INDEX: "last", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y")));
           }
           case "access" {
-            if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "camera") {
-              data_addtolist(ITEM= MistiumEval_reporterBlock(CODE= "navigator.permissions.query({name: 'camera'}).then(permissionStatus => {return permissionStatus.state;}).catch(e=>{return e;});"), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            if (data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "camera") {
+              data_addtolist(ITEM: MistiumEval_reporterBlock(CODE: "navigator.permissions.query({name: 'camera'}).then(permissionStatus => {return permissionStatus.state;}).catch(e=>{return e;});"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
             }
-            if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "microphone") {
-              data_addtolist(ITEM= MistiumEval_reporterBlock(CODE= "navigator.permissions.query({name: 'microphone'}).then(permissionStatus => {return permissionStatus.state;}).catch(e=>{return e;});"), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            if (data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "microphone") {
+              data_addtolist(ITEM: MistiumEval_reporterBlock(CODE: "navigator.permissions.query({name: 'microphone'}).then(permissionStatus => {return permissionStatus.state;}).catch(e=>{return e;});"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
             }
-            @OSL_Set_Data_Var_To(data= data_itemoflist(INDEX= "last", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y")));
+            @OSL_Set_Data_Var_To(data: data_itemoflist(INDEX: "last", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y")));
           }
           case "scrollspeed" {
-            @OSL_Set_Data_Var_To(data= vars["SYSTEM // Scroll Multiplier"]);
+            @OSL_Set_Data_Var_To(data: vars["SYSTEM // Scroll Multiplier"]);
           }
         }
       }
       case "system" {
-        switch data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        switch data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
           case "wallpapermode" {
-            mistsutils_patchcommand2(A= "window.origin.wallpaper.mode = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+            mistsutils_patchcommand2(A: "window.origin.wallpaper.mode = ", B: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
             @Renderer_Call_ReRender();
-            data_addtolist(ITEM= "Changed Background Mode", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: "Changed Background Mode", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "scrollspeed" {
-            vars["SYSTEM // Scroll Multiplier"] = data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-            data_addtolist(ITEM= "Set Scrolling Speed", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            vars["SYSTEM // Scroll Multiplier"] = data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+            data_addtolist(ITEM: "Set Scrolling Speed", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "wallpaper" {
-            @OSL_Parse_and_Run(Run= ("network \"update\" \"wallpaper\" \"" .. (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. "\"")));
-            data_addtolist(ITEM= "Changed Background", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            @OSL_Parse_and_Run(Run: ("network \"update\" \"wallpaper\" \"" .. (data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. "\"")));
+            data_addtolist(ITEM: "Changed Background", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "sound" {
-            if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "get") {
-              if (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "volume") {
-                data_addtolist(ITEM= ("System volume is currently " .. vars["SYSTEM // Volume"]), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-                @OSL_Set_Data_Var_To(data= vars["SYSTEM // Volume"]);
+            if (data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "get") {
+              if (data_itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "volume") {
+                data_addtolist(ITEM: ("System volume is currently " .. vars["SYSTEM // Volume"]), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+                @OSL_Set_Data_Var_To(data: vars["SYSTEM // Volume"]);
               }
             }
-            if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "set") {
-              if (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "volume") {
-                vars["SYSTEM // Volume"] = data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-                data_addtolist(ITEM= ("System volume is now set to " .. vars["SYSTEM // Volume"]), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            if (data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "set") {
+              if (data_itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "volume") {
+                vars["SYSTEM // Volume"] = data_itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+                data_addtolist(ITEM: ("System volume is now set to " .. vars["SYSTEM // Volume"]), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
               }
             }
           }
           case "runtime" {
-            if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "fps_limit") {
-              runtimeoptions_setFramerate(fps= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+            if (data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "fps_limit") {
+              runtimeoptions_setFramerate(fps: data_itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
             }
           }
         }
       }
       case "mini" {
-        @Terminal_Global_Message(Command= "minimise", Window_Id= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        @Terminal_Global_Message(Command: "minimise", Window_Id: data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
       }
       case "font.load" {
-        mistsutils_patchcommand2(A= "let Current_Font =", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-        @File_get_item(id= data_itemnumoflist(ITEM= mistsutils_patchreporter(A= "`origin/(A) System/Fonts/${Current_Font}.ojff`"), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), item= "4");
-        vars["//return"] = mistsutils_replaceall(C= newline, A= vars["//return"], B= "");
-        skyhigh173JSON_json_vm_setlist(list= skyhigh173JSON_menu_get_list(get_list: list(")./tR8V[bp)bg1K2.|v(")), json= skyhigh173JSON_json_get_all(json= vars["//return"], Stype: ["datas",null]));
+        mistsutils_patchcommand2(A: "let Current_Font =", B: data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        @File_get_item(id: data_itemnumoflist(ITEM: mistsutils_patchreporter(A: "`origin/(A) System/Fonts/${Current_Font}.ojff`"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), item: "4");
+        vars["//return"] = mistsutils_replaceall(C: newline, A: vars["//return"], B: "");
+        skyhigh173JSON_json_vm_setlist(list: skyhigh173JSON_menu_get_list(field get_list: list(")./tR8V[bp)bg1K2.|v(")), json: skyhigh173JSON_json_get_all(json: vars["//return"], field Stype: ["datas",null]));
         vars["Font// Temp"] = "0";
-        repeat data_lengthoflist(LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
-          data_changevariableby(VALUE= 1, VARIABLE: var("Font// Temp", "}"));
-          mistsutils_patchcommand3(A= "const arr = ", B= @ICN_Compile(value= mistsutils_patchreporter2(A= skyhigh173JSON_json_array_get(item= 2, json= data_itemoflist(INDEX= vars["Font// Temp"], LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), B= ".split(\" \")")), C= ";");
-          mistsutils_patchcommand3(A= "window.icn_cache.set(\"fontorigin-\"+", B= skyhigh173JSON_json_array_get(item= 1, json= data_itemoflist(INDEX= vars["Font// Temp"], LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), C= ", arr)");
+        repeat data_lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+          vars["Font// Temp"] += 1;
+          mistsutils_patchcommand3(A: "const arr = ", B: @ICN_Compile(value: mistsutils_patchreporter2(A: skyhigh173JSON_json_array_get(item: 2, json: data_itemoflist(INDEX: vars["Font// Temp"], field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), B: ".split(\" \")")), C: ";");
+          mistsutils_patchcommand3(A: "window.icn_cache.set(\"fontorigin-\"+", B: skyhigh173JSON_json_array_get(item: 1, json: data_itemoflist(INDEX: vars["Font// Temp"], field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), C: ", arr)");
         }
-        data_addtolist(ITEM= "Loaded Font Successfully", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-        data_addtolist(ITEM= "", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        data_addtolist(ITEM: "Loaded Font Successfully", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        data_addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
       }
       case "font" {
-        switch data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        switch data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
           case "viewall" {
-            vars["Font // Temp2"] = mistsutils_replaceall(C= ".ojff", A= skyhigh173JSON_json_array_remove_all(item= "README.md", json= skyhigh173JSON_json_array_filter(key= "name", json= cloudlink_fetchURL(url= "https://api.github.com/repos/Mistium/Origin-OS/contents/Fonts"))), B= "");
-            data_addtolist(ITEM= "", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            vars["Font // Temp2"] = mistsutils_replaceall(C: ".ojff", A: skyhigh173JSON_json_array_remove_all(item: "README.md", json: skyhigh173JSON_json_array_filter(key: "name", json: cloudlink_fetchURL(url: "https://api.github.com/repos/Mistium/Origin-OS/contents/Fonts"))), B: "");
+            data_addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
             vars["Font// Temp"] = "0";
-            repeat skyhigh173JSON_json_length(json= vars["Font // Temp2"]) {
-              data_changevariableby(VALUE= 1, VARIABLE: var("Font// Temp", "}"));
-              data_addtolist(ITEM= skyhigh173JSON_json_array_get(item= vars["Font// Temp"], json= vars["Font // Temp2"]), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            repeat skyhigh173JSON_json_length(json: vars["Font // Temp2"]) {
+              vars["Font// Temp"] += 1;
+              data_addtolist(ITEM: skyhigh173JSON_json_array_get(item: vars["Font// Temp"], json: vars["Font // Temp2"]), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
             }
-            data_addtolist(ITEM= "", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "viewinstalled" {
-            vars["//return"] = @Get_Contents_Of_Folder_Path(Path= @Parse_Directory(directory= "~/fonts"), Show_UUIDS= null, data_included= null, Only_UUIDS= null);
-            data_addtolist(ITEM= "", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            vars["//return"] = @Get_Contents_Of_Folder_Path(Path: @Parse_Directory(directory: "~/fonts"), Show_UUIDS: null, data_included: null, Only_UUIDS: null);
+            data_addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
             vars["Font// Temp"] = "0";
-            repeat skyhigh173JSON_json_length(json= vars["//return"]) {
-              data_changevariableby(VALUE= 1, VARIABLE: var("Font// Temp", "}"));
-              data_addtolist(ITEM= skyhigh173JSON_json_array_get(item= vars["Font// Temp"], json= vars["//return"]), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            repeat skyhigh173JSON_json_length(json: vars["//return"]) {
+              vars["Font// Temp"] += 1;
+              data_addtolist(ITEM: skyhigh173JSON_json_array_get(item: vars["Font// Temp"], json: vars["//return"]), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
             }
-            data_addtolist(ITEM= "", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
           case "install" {
-            vars["Font// Temp"] = cloudlink_fetchURL(url= mistsutils_ifthen(A= mistsutils_starts(A= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B= "https://"), B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ("https://raw.githubusercontent.com/Mistium/Origin-OS/main/Fonts/" .. (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ".ojff"))));
+            vars["Font// Temp"] = cloudlink_fetchURL(url: mistsutils_ifthen(A: mistsutils_starts(A: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B: "https://"), B: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C: ("https://raw.githubusercontent.com/Mistium/Origin-OS/main/Fonts/" .. (data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ".ojff"))));
             if (vars["Font// Temp"] == "") {
-              data_addtolist(ITEM= "404: Font Does Not Exist", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+              data_addtolist(ITEM: "404: Font Does Not Exist", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
             } else {
-              if not(data_listcontainsitem(ITEM= @Parse_Directory(directory= "~/fonts.folder"), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"))) {
-                @Install_System_Utility(Location= @Parse_Directory(directory= "~"), Name_And_Type= "Fonts.folder", Data= "[]", Icon= "", not_system= mistsutils_true());
-                data_addtolist(ITEM= "Created Missing \"/Fonts\" Directory In User Folder", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+              if not(data_listcontainsitem(ITEM: @Parse_Directory(directory: "~/fonts.folder"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"))) {
+                @Install_System_Utility(Location: @Parse_Directory(directory: "~"), Name_And_Type: "Fonts.folder", Data: "[]", Icon: "", not_system: mistsutils_true());
+                data_addtolist(ITEM: "Created Missing \"/Fonts\" Directory In User Folder", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
               }
-              @Install_System_Utility(Location= @Parse_Directory(directory= "~/fonts"), Name_And_Type= (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ".ojff"), Data= vars["Font// Temp"], Icon= "", not_system= mistsutils_true());
-              data_addtolist(ITEM= ("Installed " .. (operator_length(STRING= vars["Font// Temp"]) .. " Bytes Successfully")), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+              @Install_System_Utility(Location: @Parse_Directory(directory: "~/fonts"), Name_And_Type: (data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ".ojff"), Data: vars["Font// Temp"], Icon: "", not_system: mistsutils_true());
+              data_addtolist(ITEM: ("Installed " .. (operator_length(STRING: vars["Font// Temp"]) .. " Bytes Successfully")), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
             }
           }
           case "cleardata" {
-            mistsutils_patchcommand(A= "window.icn_cache = new Map();");
+            mistsutils_patchcommand(A: "window.icn_cache = new Map();");
           }
           case "use" {
-            mistsutils_patchcommand2(A= "let Current_User_Font =", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-            @File_get_item(id= data_itemnumoflist(ITEM= @Parse_Directory(directory= mistsutils_patchreporter(A= "`~/fonts/${Current_User_Font}.ojff`")), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), item= "4");
-            vars["//return"] = mistsutils_replaceall(C= newline, A= vars["//return"], B= "");
-            vars["Text // Font"] = mistsutils_patchreporter(A= "Current_User_Font");
-            skyhigh173JSON_json_vm_setlist(list= skyhigh173JSON_menu_get_list(get_list: list(")./tR8V[bp)bg1K2.|v(")), json= skyhigh173JSON_json_get_all(json= vars["//return"], Stype: ["datas",null]));
+            mistsutils_patchcommand2(A: "let Current_User_Font =", B: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+            @File_get_item(id: data_itemnumoflist(ITEM: @Parse_Directory(directory: mistsutils_patchreporter(A: "`~/fonts/${Current_User_Font}.ojff`")), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), item: "4");
+            vars["//return"] = mistsutils_replaceall(C: newline, A: vars["//return"], B: "");
+            vars["Text // Font"] = mistsutils_patchreporter(A: "Current_User_Font");
+            skyhigh173JSON_json_vm_setlist(list: skyhigh173JSON_menu_get_list(field get_list: list(")./tR8V[bp)bg1K2.|v(")), json: skyhigh173JSON_json_get_all(json: vars["//return"], field Stype: ["datas",null]));
             vars["Font// Temp"] = "0";
-            repeat data_lengthoflist(LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
-              data_changevariableby(VALUE= 1, VARIABLE: var("Font// Temp", "}"));
-              mistsutils_patchcommand3(A= "const arr = ", B= @ICN_Compile(value= mistsutils_patchreporter2(A= skyhigh173JSON_json_array_get(item= 2, json= data_itemoflist(INDEX= vars["Font// Temp"], LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), B= ".split(\" \")")), C= ";");
-              mistsutils_patchcommand3(A= "window.icn_cache.set(\"fontorigin-\"+", B= skyhigh173JSON_json_array_get(item= 1, json= data_itemoflist(INDEX= vars["Font// Temp"], LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), C= ", arr)");
+            repeat data_lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+              vars["Font// Temp"] += 1;
+              mistsutils_patchcommand3(A: "const arr = ", B: @ICN_Compile(value: mistsutils_patchreporter2(A: skyhigh173JSON_json_array_get(item: 2, json: data_itemoflist(INDEX: vars["Font// Temp"], field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), B: ".split(\" \")")), C: ";");
+              mistsutils_patchcommand3(A: "window.icn_cache.set(\"fontorigin-\"+", B: skyhigh173JSON_json_array_get(item: 1, json: data_itemoflist(INDEX: vars["Font// Temp"], field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), C: ", arr)");
             }
-            data_addtolist(ITEM= (vars["Font// Temp"] .. " Characters"), LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            data_addtolist(ITEM= "Loaded Font Successfully", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            data_addtolist(ITEM= "", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: (vars["Font// Temp"] .. " Characters"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: "Loaded Font Successfully", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data_addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
           }
         }
       }
       case "disconnect" {
         cloudlink_closeSocket();
-        data_addtolist(ITEM= "Disconnected, System should auto reconnect soon", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        data_addtolist(ITEM: "Disconnected, System should auto reconnect soon", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
       }
       default {
-        data_addtolist(ITEM= "Unknown Terminal Command", LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        data_addtolist(ITEM: "Unknown Terminal Command", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
       }
     }
   }

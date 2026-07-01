@@ -7,5 +7,5 @@
  */
 
 def @Permissions_Has(perm) "Permissions // Has %s" warp=false {
-  return mistsutils_patchboolean(A= mistsutils_patchreporter3(A= "(", B= vars["OSL // Perms"], C= ").includes(p0)"));
+  return mistsutils_patchboolean(A: mistsutils_patchreporter3(A: "(", B: vars["OSL // Perms"], C: ").includes(p0)"));
 }

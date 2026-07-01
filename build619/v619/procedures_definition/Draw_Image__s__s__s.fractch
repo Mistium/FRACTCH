@@ -8,44 +8,44 @@
 
 import "../procedures_definition/Stamp_myself__s__s_skin_size___s__s.fractch";
 def @Draw_Image(url, width, height) "Draw Image %s %s %s" warp=false {
-  mistsutils_patchcommand(A= "if (p0 === \"\") { return; }");
-  mistsutils_patchcommand(A= "const prim = vm.runtime._primitives");
-  mistsutils_patchcommand(A= "let size_x = 0, size_y = 0");
-  mistsutils_patchcommand2(A= "const image = ", B= url);
-  mistsutils_patchcommand(A= "let skin;");
-  mistsutils_patchcommand(A= "let blurImage = image === \"wallpaper_blur\" && osl.user.theme.use_true_blur !== false");
-  if (mistsutils_patchboolean(A= "blurImage") && mistsutils_patchboolean(A= "target.window.shown === true")) {
-    mistsutils_patchcommand3(A= "skin = vm.renderer._allSkins[", B= @Renderer_Get_blur_skin(), C= "]");
-    mistsutils_patchcommand(A= "target.uses_glass = true");
+  mistsutils_patchcommand(A: "if (p0 === \"\") { return; }");
+  mistsutils_patchcommand(A: "const prim = vm.runtime._primitives");
+  mistsutils_patchcommand(A: "let size_x = 0, size_y = 0");
+  mistsutils_patchcommand2(A: "const image = ", B: url);
+  mistsutils_patchcommand(A: "let skin;");
+  mistsutils_patchcommand(A: "let blurImage = image === \"wallpaper_blur\" && osl.user.theme.use_true_blur !== false");
+  if (mistsutils_patchboolean(A: "blurImage") && mistsutils_patchboolean(A: "target.window.shown === true")) {
+    mistsutils_patchcommand3(A: "skin = vm.renderer._allSkins[", B: @Renderer_Get_blur_skin(), C: "]");
+    mistsutils_patchcommand(A: "target.uses_glass = true");
   }
-  if mistsutils_patchboolean(A= "image === \"@cacheSkin\"") {
-    mistsutils_patchcommand(A= "skin = vm.renderer._allSkins[target.drawCacheSkin]");
+  if mistsutils_patchboolean(A: "image === \"@cacheSkin\"") {
+    mistsutils_patchcommand(A: "skin = vm.renderer._allSkins[target.drawCacheSkin]");
   }
-  if mistsutils_patchboolean(A= "skin") {
-    mistsutils_patchcommand(A= "vm.renderer._allDrawables[target.drawableID].skin = skin");
-    mistsutils_patchcommand(A= "size_x = skin._textureSize[0]");
-    mistsutils_patchcommand(A= "size_y = skin._textureSize[1]");
-    if mistsutils_patchboolean(A= "image === \"@cacheSkin\"") {
-      @set_stretch_to_x_y(x= mistsutils_patchreporter(A= "(vm.runtime.stageWidth / vm.renderer.canvas.width) * 100"), y= mistsutils_patchreporter(A= "(vm.runtime.stageHeight / vm.renderer.canvas.height) * 100"));
+  if mistsutils_patchboolean(A: "skin") {
+    mistsutils_patchcommand(A: "vm.renderer._allDrawables[target.drawableID].skin = skin");
+    mistsutils_patchcommand(A: "size_x = skin._textureSize[0]");
+    mistsutils_patchcommand(A: "size_y = skin._textureSize[1]");
+    if mistsutils_patchboolean(A: "image === \"@cacheSkin\"") {
+      @set_stretch_to_x_y(x: mistsutils_patchreporter(A: "(vm.runtime.stageWidth / vm.renderer.canvas.width) * 100"), y: mistsutils_patchreporter(A: "(vm.runtime.stageHeight / vm.renderer.canvas.height) * 100"));
     }
-    if mistsutils_patchboolean(A= "blurImage") {
-      mistsutils_patchcommand(A= "size_x *= (osl.background_width / vm.runtime.stageWidth)");
-      mistsutils_patchcommand(A= "size_y *= (osl.background_height / vm.runtime.stageHeight)");
+    if mistsutils_patchboolean(A: "blurImage") {
+      mistsutils_patchcommand(A: "size_x *= (osl.background_width / vm.runtime.stageWidth)");
+      mistsutils_patchcommand(A: "size_y *= (osl.background_height / vm.runtime.stageHeight)");
     }
   } else {
-    if mistsutils_patchboolean(A= "prim.mistSkins_getSkinLoaded({\"NAME\": image}, thread)") {
-      mistsutils_patchcommand(A= "prim.mistSkins_setSkin({\"NAME\": image, \"TARGET\": \"_myself_\"}, thread)");
+    if mistsutils_patchboolean(A: "prim.mistSkins_getSkinLoaded({\"NAME\": image}, thread)") {
+      mistsutils_patchcommand(A: "prim.mistSkins_setSkin({\"NAME\": image, \"TARGET\": \"_myself_\"}, thread)");
     } else {
-      if ((mistsutils_starts(A= url, B= "data:") || (mistsutils_starts(A= url, B= "http://") || mistsutils_starts(A= url, B= "https://"))) && mistsutils_patchboolean(A= "!prim.mistSkins_getSkinLoading({\"NAME\": image}, thread)")) {
-        mistsutils_patchcommand(A= "prim.mistSkins_registerURLSkin({\"NAME\": image, \"URL\": image}, thread)");
+      if ((mistsutils_starts(A: url, B: "data:") || (mistsutils_starts(A: url, B: "http://") || mistsutils_starts(A: url, B: "https://"))) && mistsutils_patchboolean(A: "!prim.mistSkins_getSkinLoading({\"NAME\": image}, thread)")) {
+        mistsutils_patchcommand(A: "prim.mistSkins_registerURLSkin({\"NAME\": image, \"URL\": image}, thread)");
       }
-      mistsutils_patchcommand(A= "return");
+      mistsutils_patchcommand(A: "return");
     }
-    mistsutils_patchcommand2(A= "size_x = ", B= "prim.mistSkins_getSkinAttribute({\"ATTRIBUTE\": \"width\", \"NAME\": image}, thread)");
-    mistsutils_patchcommand2(A= "size_y = ", B= "prim.mistSkins_getSkinAttribute({\"ATTRIBUTE\": \"height\", \"NAME\": image}, thread)");
+    mistsutils_patchcommand2(A: "size_x = ", B: "prim.mistSkins_getSkinAttribute({\"ATTRIBUTE\": \"width\", \"NAME\": image}, thread)");
+    mistsutils_patchcommand2(A: "size_y = ", B: "prim.mistSkins_getSkinAttribute({\"ATTRIBUTE\": \"height\", \"NAME\": image}, thread)");
   }
-  @Stamp_myself_skin_size(width= width, height= height, skin_w= mistsutils_patchreporter(A= "size_x"), skin_h= mistsutils_patchreporter(A= "size_y"));
-  if mistsutils_patchboolean(A= "skin && image === \"@cacheSkin\"") {
-    @set_stretch_to_x_y(x= "100", y= "100");
+  @Stamp_myself_skin_size(width: width, height: height, skin_w: mistsutils_patchreporter(A: "size_x"), skin_h: mistsutils_patchreporter(A: "size_y"));
+  if mistsutils_patchboolean(A: "skin && image === \"@cacheSkin\"") {
+    @set_stretch_to_x_y(x: "100", y: "100");
   }
 }

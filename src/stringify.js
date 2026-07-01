@@ -12,7 +12,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
       const args = info.params.map((p) => {
         const inp = block.inputs?.[p.id];
         const val = Array.isArray(inp) ? getInputExpr(inp, subgraph) : 'null';
-        return `${p.ident}= ${val}`;
+        return `${p.ident}: ${val}`;
       });
       const call = `@${info.ident}(${args.join(', ')})`;
       return inline ? call : call + ';';
@@ -66,6 +66,11 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const varName = block.fields?.VARIABLE?.[0] ?? '';
     const value = getInputExpr(block.inputs?.VALUE, subgraph);
     return `vars[${JSON.stringify(varName)}] = ${value};`;
+  }
+  if (opcode === 'data_changevariableby') {
+    const varName = block.fields?.VARIABLE?.[0] ?? '';
+    const value = getInputExpr(block.inputs?.VALUE, subgraph);
+    return `vars[${JSON.stringify(varName)}] += ${value};`;
   }
 
   if (opcode === 'control_forever') {
@@ -182,9 +187,9 @@ export function stringifyInputs(block, subgraph, cLike = false) {
 
     if (typeof childId === 'string' && subgraph[childId]) {
       const nested = stringifyBlockCall(subgraph[childId], subgraph, childId, /*inline*/ true);
-      args.push(`${formatArgKey(name)}${cLike ? '=' : ':'} ${nested}`);
+      args.push(`${formatArgKey(name)}: ${nested}`);
     } else {
-      args.push(`${formatArgKey(name)}${cLike ? '=' : ':'} ${formatLiteral(arr)}`);
+      args.push(`${formatArgKey(name)}: ${formatLiteral(arr)}`);
     }
   }
   return args.join(', ');
@@ -200,18 +205,18 @@ export function stringifyFields(block) {
         const name = v[0];
         const id = v.length > 1 ? v[1] : undefined;
         if (keyLc.includes('variable')) {
-          return `${formatArgKey(k)}: ${id ? `var(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `var(${JSON.stringify(name)})`}`;
+          return `field ${formatArgKey(k)}: ${id ? `var(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `var(${JSON.stringify(name)})`}`;
         }
         if (keyLc.includes('list') || keyLc === 'list') {
-          return `${formatArgKey(k)}: ${id ? `list(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `list(${JSON.stringify(name)})`}`;
+          return `field ${formatArgKey(k)}: ${id ? `list(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `list(${JSON.stringify(name)})`}`;
         }
         if (keyLc.includes('broadcast')) {
-          return `${formatArgKey(k)}: ${id ? `broadcast(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `broadcast(${JSON.stringify(name)})`}`;
+          return `field ${formatArgKey(k)}: ${id ? `broadcast(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `broadcast(${JSON.stringify(name)})`}`;
         }
       }
-      return `${formatArgKey(k)}: ${JSON.stringify(v)}`;
+      return `field ${formatArgKey(k)}: ${JSON.stringify(v)}`;
     } catch {
-      return `${formatArgKey(k)}: ${JSON.stringify(String(v))}`;
+      return `field ${formatArgKey(k)}: ${JSON.stringify(String(v))}`;
     }
   });
   return kv.join(', ');

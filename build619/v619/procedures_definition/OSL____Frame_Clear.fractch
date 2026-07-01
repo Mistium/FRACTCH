@@ -8,34 +8,34 @@
 
 import "../procedures_definition/set_stretch_to_x___s_y___s.fractch";
 def @OSL_Frame_Clear() "OSL // Frame Clear" warp=false {
-  mistsutils_patchcommand2(A= "const cur_frame = ", B= data_itemoflist(INDEX= 1, LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
-  mistsutils_patchcommand2(A= "let max = +", B= "cur_frame.scrollMax.height");
-  mistsutils_patchcommand2(A= "let focused = ", B= (vars["Window // ID_Index"] == vars["Window // Top Index"]));
-  mistsutils_patchcommand(A= "let scroll_val = target.scroll[`framey_${cur_frame.id}`]");
-  mistsutils_patchcommand2(A= "let change = ", B= (mistsutils_ifthen(A= @Is_pressed(key= "shift"), B= mistsutils_patchreporter(A= "0"), C= mistsutils_patchreporter(A= "-target.scroll.vel[1]")) * (vars["SYSTEM // Scroll Multiplier"] / 4)));
-  if mistsutils_patchboolean(A= "focused && cur_frame.mouse_touching") {
-    mistsutils_patchcommand(A= "const selected = target.scroll.cur === (cur_frame.id || \"\")");
-    if mistsutils_patchboolean(A= "((change < 0 && scroll_val > 0) || (change > 0 && scroll_val < cur_frame.scrollMax.height))") {
-      mistsutils_patchcommand(A= "target.scroll.vel[1] = 0");
-      mistsutils_patchcommand(A= "target.scroll.cur = cur_frame.id || \"\"");
+  mistsutils_patchcommand2(A: "const cur_frame = ", B: data_itemoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
+  mistsutils_patchcommand2(A: "let max = +", B: "cur_frame.scrollMax.height");
+  mistsutils_patchcommand2(A: "let focused = ", B: (vars["Window // ID_Index"] == vars["Window // Top Index"]));
+  mistsutils_patchcommand(A: "let scroll_val = target.scroll[`framey_${cur_frame.id}`]");
+  mistsutils_patchcommand2(A: "let change = ", B: (mistsutils_ifthen(A: @Is_pressed(key: "shift"), B: mistsutils_patchreporter(A: "0"), C: mistsutils_patchreporter(A: "-target.scroll.vel[1]")) * (vars["SYSTEM // Scroll Multiplier"] / 4)));
+  if mistsutils_patchboolean(A: "focused && cur_frame.mouse_touching") {
+    mistsutils_patchcommand(A: "const selected = target.scroll.cur === (cur_frame.id || \"\")");
+    if mistsutils_patchboolean(A: "((change < 0 && scroll_val > 0) || (change > 0 && scroll_val < cur_frame.scrollMax.height))") {
+      mistsutils_patchcommand(A: "target.scroll.vel[1] = 0");
+      mistsutils_patchcommand(A: "target.scroll.cur = cur_frame.id || \"\"");
     } else {
-      mistsutils_patchcommand(A= "if (selected) target.scroll.current = null");
+      mistsutils_patchcommand(A: "if (selected) target.scroll.current = null");
     }
-    mistsutils_patchcommand2(A= "scroll_val += ", B= "change");
+    mistsutils_patchcommand2(A: "scroll_val += ", B: "change");
   }
-  mistsutils_patchcommand(A= "target.scroll[`framey_${cur_frame.id}`] = scroll_val");
-  data_deleteoflist(INDEX= 1, LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6"));
-  @set_stretch_to_x_y(x= "100", y= "100");
-  if (data_lengthoflist(LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")) == "0") {
-    @Window_Set_Frame(min_x= "", max_y= "", max_x= "", min_y= "", id= "", focusable= null);
-    @OSL_Vars_Set(name= "scroll_y", data= "0", current_command= "");
+  mistsutils_patchcommand(A: "target.scroll[`framey_${cur_frame.id}`] = scroll_val");
+  data_deleteoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6"));
+  @set_stretch_to_x_y(x: "100", y: "100");
+  if (data_lengthoflist(field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")) == "0") {
+    @Window_Set_Frame(min_x: "", max_y: "", max_x: "", min_y: "", id: "", focusable: null);
+    @OSL_Vars_Set(name: "scroll_y", data: "0", current_command: "");
   } else {
-    mistsutils_patchcommand2(A= "let prev_frame = ", B= data_itemoflist(INDEX= 1, LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
-    vars["Frame // X"] = mistsutils_patchreporter(A= "prev_frame.x");
-    vars["Frame // Y"] = mistsutils_patchreporter(A= "prev_frame.y");
-    xeltallivclipblend_setClipbox(X1= mistsutils_patchreporter(A= "prev_frame.lim_left"), Y1= mistsutils_patchreporter(A= "prev_frame.lim_top"), X2= mistsutils_patchreporter(A= "prev_frame.lim_right"), Y2= mistsutils_patchreporter(A= "prev_frame.lim_bottom"));
-    @Window_Set_Frame(min_x= (vars["Frame // X"] + mistsutils_patchreporter(A= "prev_frame.left")), max_y= (vars["Frame // Y"] + mistsutils_patchreporter(A= "prev_frame.top")), max_x= (vars["Frame // X"] + mistsutils_patchreporter(A= "prev_frame.right")), min_y= (vars["Frame // Y"] + mistsutils_patchreporter(A= "prev_frame.bottom")), id= mistsutils_patchreporter(A= "prev_frame.id"), focusable= null);
-    @OSL_Vars_Set(name= ("scroll_y" .. mistsutils_patchreporter(A= "prev_frame.id")), data= mistsutils_patchreporter(A= "prev_frame.scroll"), current_command= "");
-    vars["Frame // Interactable"] = mistsutils_patchreporter(A= "prev_frame.interactable");
+    mistsutils_patchcommand2(A: "let prev_frame = ", B: data_itemoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
+    vars["Frame // X"] = mistsutils_patchreporter(A: "prev_frame.x");
+    vars["Frame // Y"] = mistsutils_patchreporter(A: "prev_frame.y");
+    xeltallivclipblend_setClipbox(X1: mistsutils_patchreporter(A: "prev_frame.lim_left"), Y1: mistsutils_patchreporter(A: "prev_frame.lim_top"), X2: mistsutils_patchreporter(A: "prev_frame.lim_right"), Y2: mistsutils_patchreporter(A: "prev_frame.lim_bottom"));
+    @Window_Set_Frame(min_x: (vars["Frame // X"] + mistsutils_patchreporter(A: "prev_frame.left")), max_y: (vars["Frame // Y"] + mistsutils_patchreporter(A: "prev_frame.top")), max_x: (vars["Frame // X"] + mistsutils_patchreporter(A: "prev_frame.right")), min_y: (vars["Frame // Y"] + mistsutils_patchreporter(A: "prev_frame.bottom")), id: mistsutils_patchreporter(A: "prev_frame.id"), focusable: null);
+    @OSL_Vars_Set(name: ("scroll_y" .. mistsutils_patchreporter(A: "prev_frame.id")), data: mistsutils_patchreporter(A: "prev_frame.scroll"), current_command: "");
+    vars["Frame // Interactable"] = mistsutils_patchreporter(A: "prev_frame.interactable");
   }
 }

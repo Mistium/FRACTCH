@@ -7,43 +7,43 @@
  */
 
 import "../procedures_definition/Timed_Log__s.fractch";
-event_whenbroadcastreceived(BROADCAST_OPTION: broadcast("Network // Start Connection", "up"));
+event_whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Network // Start Connection", "up"));
 if (vars["Embed Mode"] == "0") {
-  @Timed_Log(Data= "Connecting to rotur");
+  @Timed_Log(Data: "Connecting to rotur");
   if cloudlink_getComState() {
-    @Timed_Log(Data= "Found existing connection");
+    @Timed_Log(Data: "Found existing connection");
     cloudlink_closeSocket();
     wait_until not(cloudlink_getComState());
-    @Timed_Log(Data= "Cleaned up previous rotur connection");
+    @Timed_Log(Data: "Cleaned up previous rotur connection");
   }
-  cloudlink_openSocket(IP= vars["Server // Current"]);
+  cloudlink_openSocket(IP: vars["Server // Current"]);
   wait_until (cloudlink_getComState() || cloudlink_getComFailedConnectionState());
-  @Timed_Log(Data= "Connected to rotur");
+  @Timed_Log(Data: "Connected to rotur");
   vars["Kernel // Notification"] = "";
   if cloudlink_getComState() {
-    cloudlink_setMyName(NAME= mistsutils_patchreporter(A= "`ori-${randomString(32)}`"));
+    cloudlink_setMyName(NAME: mistsutils_patchreporter(A: "`ori-${randomString(32)}`"));
     wait_until cloudlink_getUsernameState();
-    @Timed_Log(Data= "Synced Username to rotur");
-    cloudlink_linkToRooms(ROOMS= vars["Server // Rooms"]);
-    vars["Server// Base Payload"] = skyhigh173JSON_json_set(item= "client", json= skyhigh173JSON_json_set(item= "username", json= skyhigh173JSON_json_set(item= "id", json= "{}", value= cloudlink_returnUsernameDataNew()), value= cloudlink_returnUsernameDataNew()), value= skyhigh173JSON_json_set(item= "version", json= "{\"system\":\"originOS\"}", value= HyperSenseSP_getSpriteName()));
+    @Timed_Log(Data: "Synced Username to rotur");
+    cloudlink_linkToRooms(ROOMS: vars["Server // Rooms"]);
+    vars["Server// Base Payload"] = skyhigh173JSON_json_set(item: "client", json: skyhigh173JSON_json_set(item: "username", json: skyhigh173JSON_json_set(item: "id", json: "{}", value: cloudlink_returnUsernameDataNew()), value: cloudlink_returnUsernameDataNew()), value: skyhigh173JSON_json_set(item: "version", json: "{\"system\":\"originOS\"}", value: HyperSenseSP_getSpriteName()));
     wait_until cloudlink_getRoomState();
   }
-  @Timed_Log(Data= "rotur connection complete");
+  @Timed_Log(Data: "rotur connection complete");
 }
-data_changevariableby(VALUE= 1, VARIABLE: var("Boot // Connect Complete", "wr"));
-wait_until mistfetch_isRequestCompleted(ID= "permissions");
-mistsutils_patchcommand2(A= "origin.permissions.full = ", B= mistsutils_jsonparse(A= mistfetch_getResponseBodyById(ID= "permissions")));
-vars["SYSTEM // Permission Info"] = mistsutils_patchreporter(A= "Object.fromEntries(Object.entries(origin.permissions.full).map(([k, v]) => [k, v.description]))");
-mistfetch_deleteRequestById(ID= "permissions");
-@Timed_Log(Data= "OSL permissions finished loading");
+vars["Boot // Connect Complete"] += 1;
+wait_until mistfetch_isRequestCompleted(ID: "permissions");
+mistsutils_patchcommand2(A: "origin.permissions.full = ", B: mistsutils_jsonparse(A: mistfetch_getResponseBodyById(ID: "permissions")));
+vars["SYSTEM // Permission Info"] = mistsutils_patchreporter(A: "Object.fromEntries(Object.entries(origin.permissions.full).map(([k, v]) => [k, v.description]))");
+mistfetch_deleteRequestById(ID: "permissions");
+@Timed_Log(Data: "OSL permissions finished loading");
 if (vars["Embed Mode"] == "0") {
-  @Time_Sync_Proxied(Proxy= null);
-  if mistiumindexeddb_keyExists(KEY= "user_wallpaper") {
-    mistSkins_deleteSkin(NAME= "wallpaper");
-    mistSkins_deleteSkin(NAME= "wallpaper_blur");
-    wait_until not(mistSkins_getSkinLoaded(NAME= "wallpaper"));
-    mistSkins_registerURLSkin(URL= mistiumindexeddb_readFromDatabase(KEY= "user_wallpaper"), NAME= "wallpaper");
-    mistSkins_registerURLSkin(URL= mistiumindexeddb_readFromDatabase(KEY= "user_wallpaper"), NAME= "wallpaper_blur");
-    mistSkins_blurExistingSkin(SKIN= "wallpaper_blur", PASSES= 4, NAME= "wallpaper_blur");
+  @Time_Sync_Proxied(Proxy: null);
+  if mistiumindexeddb_keyExists(KEY: "user_wallpaper") {
+    mistSkins_deleteSkin(NAME: "wallpaper");
+    mistSkins_deleteSkin(NAME: "wallpaper_blur");
+    wait_until not(mistSkins_getSkinLoaded(NAME: "wallpaper"));
+    mistSkins_registerURLSkin(URL: mistiumindexeddb_readFromDatabase(KEY: "user_wallpaper"), NAME: "wallpaper");
+    mistSkins_registerURLSkin(URL: mistiumindexeddb_readFromDatabase(KEY: "user_wallpaper"), NAME: "wallpaper_blur");
+    mistSkins_blurExistingSkin(SKIN: "wallpaper_blur", PASSES: 4, NAME: "wallpaper_blur");
   }
 }
