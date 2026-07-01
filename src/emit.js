@@ -22,6 +22,7 @@ export function emitScriptFile({ target, script, subgraph, index, context }) {
   }
 
   const dslBodyHash = sha256(body);
+  const rawSubgraphB64 = Buffer.from(JSON.stringify(subgraph), 'utf8').toString('base64');
   const header =
     `/**\n` +
     ` * target: ${escapeHeader(target.name)}\n` +
@@ -30,6 +31,7 @@ export function emitScriptFile({ target, script, subgraph, index, context }) {
     ` * hatOpcode: ${escapeHeader(hatOpcode || '')}\n` +
     ` * dslBodyHash: ${dslBodyHash}\n` +
     ` * threadIndex: ${index}\n` +
+    ` * rawSubgraph_b64: ${rawSubgraphB64}\n` +
     ` */\n`;
 
   const imports = deriveImports(blocksArr, context);
@@ -132,9 +134,9 @@ function defSignature(defBlock, subgraph, context) {
   const proto = protoId ? subgraph[protoId] : undefined;
   const code = proto?.mutation?.proccode;
   const info = code && context.procByCode?.get(code);
-  if (!info) return `def proc()`;
+  if (!info) return `def @proc()`;
   const params = info.params.map((p) => p.ident).join(', ');
-  return `def ${info.ident}(${params})`;
+  return `def @${info.ident}(${params})`;
 }
 
 function indentBlock(str, spaces = 2) {

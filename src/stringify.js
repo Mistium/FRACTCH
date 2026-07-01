@@ -14,7 +14,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
         const val = Array.isArray(inp) ? getInputExpr(inp, subgraph) : 'null';
         return `${p.ident}= ${val}`;
       });
-      const call = `${info.ident}(${args.join(', ')})`;
+      const call = `@${info.ident}(${args.join(', ')})`;
       return inline ? call : call + ';';
     }
   }
