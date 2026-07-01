@@ -6,7 +6,7 @@
  * threadIndex: 54
  */
 
-def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=false {
+def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" {
   switch command {
     case "x" {
       mistsutils.patchcommand(A: "target.window.x = Math.round(+p1 || 0)");
@@ -26,11 +26,11 @@ def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=
     }
     case "to_position" {
       mistsutils.patchcommand2(A: "target.window.target_x = ", B: input2);
-      mistsutils.patchcommand2(A: "target.window.target_y = ", B: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils.patchcommand2(A: "target.window.target_y = ", B: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "to_dimensions" {
       mistsutils.patchcommand2(A: "target.window.target_width = ", B: input2);
-      mistsutils.patchcommand2(A: "target.window.target_height = ", B: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils.patchcommand2(A: "target.window.target_height = ", B: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "set_fps" {
       runtimeoptions.setFramerate(fps: input2);
@@ -38,15 +38,15 @@ def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=
       mistsutils.patchcommand2(A: "target.window.framerate = ", B: runtimeoptions.getFramerate());
     }
     case "focus" {
-      if mistsutils.notequals(A: vars["Window // ID_Index"], B: "1") {
-        vars["Window // ID_Index"] = "1";
+      if mistsutils.notequals(A: vars["Window // ID_Index"], B: 1) {
+        vars["Window // ID_Index"] = 1;
         vars["Window // Interactable?"] = "true";
       }
     }
     case "kill" {
       mistsutils.patchcommand(A: "const self = target.window");
       if mistsutils.patchboolean(A: "self.id === p1") {
-        if (vars["Process // Type"] == "worker") {
+        if vars["Process // Type"] == "worker" {
           @originWM_Send_global_Msg(arr: mistsutils.patchreporter3(A: "[\"close\", ", B: input2, C: "]"));
           control.break();
         } else {
@@ -68,17 +68,17 @@ def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=
     }
     case "min_size" {
       mistsutils.patchcommand2(A: "target.window.min_width = ", B: input2);
-      mistsutils.patchcommand2(A: "target.window.min_height = ", B: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils.patchcommand2(A: "target.window.min_height = ", B: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "goto" {
-      mistsutils.patchcommand2(A: "target.window.x = ", B: round(data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
-      mistsutils.patchcommand2(A: "target.window.y = ", B: round(data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      mistsutils.patchcommand2(A: "target.window.x = ", B: round(data.itemoflist(INDEX: 3, LIST: list("Split Text"))));
+      mistsutils.patchcommand2(A: "target.window.y = ", B: round(data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
       mistsutils.patchcommand(A: "target.window.target_x = null");
       mistsutils.patchcommand(A: "target.window.target_y = null");
     }
     case "dimensions" {
-      mistsutils.patchcommand2(A: "target.window.width = ", B: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-      mistsutils.patchcommand2(A: "target.window.height = ", B: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils.patchcommand2(A: "target.window.width = ", B: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
+      mistsutils.patchcommand2(A: "target.window.height = ", B: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
       mistsutils.patchcommand(A: "target.window.target_width = null");
       mistsutils.patchcommand(A: "target.window.target_height = null");
     }
@@ -90,7 +90,7 @@ def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=
       @Renderer_Call_ReRender();
     }
     case "minimise" {
-      if not(((mistsutils.patchreporter(A: "String(target.window._minimised)") == "true") || (vars["Embed Mode"] == "1"))) {
+      if !(mistsutils.patchreporter(A: "String(target.window._minimised)") == "true" || vars["Embed Mode"] == 1) {
         @Window_Calculate_Redraw_Box();
         @Renderer_Call_ReRender();
         mistsutils.patchcommand(A: "target.window._minimised = true");
@@ -101,7 +101,7 @@ def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=
         vars["Window // Unminimised Height"] = mistsutils.patchreporter(A: "target.window.height");
         mistsutils.patchcommand(A: "const mini = origin.windows.minimised");
         mistsutils.patchcommand3(A: "mini.push(", B: vars["WIndow // ID"], C: ")");
-        mistsutils.patchcommand2(A: "target.window.target_x = ", B: (17 + round(((vars["Screen Size X"] / 2) - 48))));
+        mistsutils.patchcommand2(A: "target.window.target_x = ", B: 17 + round(vars["Screen Size X"] / 2 - 48));
         mistsutils.patchcommand(A: "target.window.target_y = Math.round(mini.length * -24)");
         mistsutils.patchcommand(A: "target.window.target_width = 30");
         mistsutils.patchcommand(A: "target.window.target_height = 30");
@@ -115,14 +115,14 @@ def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=
       mistsutils.patchcommand(A: "const mini = origin.windows.minimised");
       mistsutils.patchcommand(A: "target.window.target_x = 0");
       mistsutils.patchcommand(A: "target.window.target_y = 0");
-      if (mistsutils.patchreporter(A: "String(target.window._resizable)") == "true") {
-        if ((mistsutils.patchreporter(A: "target.window.width") == vars["Screen Size X"]) && (mistsutils.patchreporter(A: "target.window.height") == (vars["Screen Size Y"] - 80))) {
+      if mistsutils.patchreporter(A: "String(target.window._resizable)") == "true" {
+        if mistsutils.patchreporter(A: "target.window.width") == vars["Screen Size X"] && mistsutils.patchreporter(A: "target.window.height") == vars["Screen Size Y"] - 80 {
           mistsutils.patchcommand(A: "target.window.target_width = 700");
           mistsutils.patchcommand(A: "target.window.target_height = 450");
           mistsutils.patchcommand(A: "target.window.tile = null");
         } else {
           mistsutils.patchcommand2(A: "target.window.target_width = ", B: vars["Screen Size X"]);
-          mistsutils.patchcommand2(A: "target.window.target_height = ", B: (vars["Screen Size Y"] - 80));
+          mistsutils.patchcommand2(A: "target.window.target_height = ", B: vars["Screen Size Y"] - 80);
           mistsutils.patchcommand(A: "target.window.target_y = 40");
           mistsutils.patchcommand(A: "target.window.tile = \"0,0\"");
         }
@@ -140,24 +140,24 @@ def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=
       mistsutils.patchcommand(A: "target.window.shown = false");
     }
     case "interactable" {
-      vars["Window // Allow Interaction?"] = (input2 == "true");
+      vars["Window // Allow Interaction?"] = input2 == "true";
     }
     case "stop" {
       @Window_Close(message: "Window Stop");
     }
     case "add" {
-      mistsutils.patchcommand2(A: "const id = ", B: @Window_create(name: input2, window_data: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      mistsutils.patchcommand2(A: "const id = ", B: @Window_create(name: input2, window_data: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
       mistsutils.patchcommand3(A: "if (target?.window?.children) target.window.children.push(", B: "id", C: ")");
     }
     case "responsive" {
-      vars["Window // Responsive?"] = (input2 == "true");
+      vars["Window // Responsive?"] = input2 == "true";
     }
     case "resizable" {
-      mistsutils.patchcommand2(A: "target.window._resizable = ", B: (input2 == "true"));
+      mistsutils.patchcommand2(A: "target.window._resizable = ", B: input2 == "true");
     }
     case "register_ext" {
-      vars["//return"] = skyhigh173JSON.json_array_insert(item: (("> " .. vars["Window // UUID"]) .. (" " .. vars["WIndow // ID"])), pos: 1, json: "");
-      if skyhigh173JSON.json_is(json: vars["//return"], types: skyhigh173JSON.menu_types(field types: ["Array",null])) {
+      vars["//return"] = skyhigh173JSON.json_array_insert(item: "> " .. vars["Window // UUID"] .. (" " .. vars["WIndow // ID"]), pos: 1, json: "");
+      if skyhigh173JSON.json_is(json: vars["//return"], types: skyhigh173JSON.menu_types(field types: "Array")) {
         mistsutils.patchcommand3(A: "window.osl_extensions[", B: vars["WIndow // ID"], C: mistsutils.patchreporter2(A: "] = ", B: @parse(json: vars["//return"])));
       }
     }

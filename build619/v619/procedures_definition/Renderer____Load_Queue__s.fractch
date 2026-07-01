@@ -6,7 +6,7 @@
  * threadIndex: 235
  */
 
-def @Renderer_Load_Queue(item) "Renderer // Load Queue %s" warp=false {
+def @Renderer_Load_Queue(item) "Renderer // Load Queue %s" {
   vars["Redraw // Window Left"] = mistsutils.patchreporter(A: "p0[0] - 30");
   vars["Redraw // Window Top"] = mistsutils.patchreporter(A: "p0[1] + 30");
   vars["Redraw // Window Right"] = mistsutils.patchreporter(A: "p0[2] + 30");

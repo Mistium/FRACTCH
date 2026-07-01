@@ -6,6 +6,6 @@
  * threadIndex: 204
  */
 
-def @OSL_Thread_Close() "OSL // Thread Close" warp=false {
+def @OSL_Thread_Close() "OSL // Thread Close" {
   mistsutils.patchcommand(A: "target.closeOSLThread(target)");
 }

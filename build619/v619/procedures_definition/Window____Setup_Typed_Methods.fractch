@@ -6,7 +6,7 @@
  * threadIndex: 178
  */
 
-def @Window_Setup_Typed_Methods() "Window // Setup Typed Methods" warp=false {
+def @Window_Setup_Typed_Methods() "Window // Setup Typed Methods" {
   mistsutils.patchcommand2(A: "const f = function(val, params) { return ", B: "thread.procedures[\"WOSL Function %s ( %s ) ( %s )\"](\"\",params ?? \"\",val).next().value }");
   mistsutils.patchcommand(A: "const con = target.parentCtx");
   mistsutils.patchcommand(A: "const g = osl_clone[target.window.id]");

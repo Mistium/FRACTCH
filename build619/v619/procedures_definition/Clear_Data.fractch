@@ -6,22 +6,22 @@
  * threadIndex: 223
  */
 
-def @Clear_Data() "Clear Data" warp=false {
+def @Clear_Data() "Clear Data" {
   xeltallivSimple3D.resetEverything();
-  data.deletealloflist(field LIST: list("Kernel // Log", "?[HcDcJb70Jr_)_.*)Kw"));
-  data.deletealloflist(field LIST: list("Renderer // UI Changes", "dYgzGnijwRP~00pCI1uL"));
-  data.deletealloflist(field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
-  data.deletealloflist(field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
-  data.deletealloflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-  data.deletealloflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
-  data.deletealloflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+  data.deletealloflist(LIST: list("Kernel // Log"));
+  data.deletealloflist(LIST: list("Renderer // UI Changes"));
+  data.deletealloflist(LIST: list("Files // Current"));
+  data.deletealloflist(LIST: list("Files"));
+  data.deletealloflist(LIST: list("Files // Index Path"));
+  data.deletealloflist(LIST: list("Files // UUIDS"));
+  data.deletealloflist(LIST: list("Split Text"));
   mistsutils.patchcommand(A: "window.osl = {}");
   mistsutils.patchcommand(A: "window.osl_clone = {}");
-  data.deletealloflist(field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
-  data.deletealloflist(field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
-  data.deletealloflist(field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes"));
-  data.deletealloflist(field LIST: list("Windows // Create Data", "^Yp.PtD#1oxNqza?z{+A"));
-  data.deletealloflist(field LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny"));
+  data.deletealloflist(LIST: list("Network // Outgoing Packets"));
+  data.deletealloflist(LIST: list("Windows // ID"));
+  data.deletealloflist(LIST: list("Windows // Create Names"));
+  data.deletealloflist(LIST: list("Windows // Create Data"));
+  data.deletealloflist(LIST: list("OSL // Import Times"));
   mistsutils.patchcommand(A: "const vars = Object.values(target.variables).concat(Object.values(vm.runtime._stageTarget.variables))");
   mistsutils.patchcommand(A: "for (const val of vars) if (val?.type === \"\") val.value = \"\"");
 }

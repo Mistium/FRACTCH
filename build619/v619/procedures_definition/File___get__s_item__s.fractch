@@ -6,7 +6,7 @@
  * threadIndex: 208
  */
 
-def @File_get_item(id, item) "File// get %s item %s" warp=true {
+def @File_get_item(id, item) "File// get %s item %s" warp {
   if mistsutils.patchboolean(A: "typeof p0 === \"number\" || !isNaN(+p0)") {
     vars["Files // Get Count"] = id;
   } else {
@@ -16,26 +16,26 @@ def @File_get_item(id, item) "File// get %s item %s" warp=true {
       vars["Files // Get Count"] = @originFS_UUID_ID(UUID: id);
     }
   }
-  vars["Files // Get Count"] = @file_item_of_num(index: vars["Files // Get Count"], num: "0");
-  if (item == "") {
-    data.deletealloflist(field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
+  vars["Files // Get Count"] = @file_item_of_num(index: vars["Files // Get Count"], num: 0);
+  if item == "" {
+    data.deletealloflist(LIST: list("Files // Current"));
     mistsutils.patchcommand(A: "for (let i = 1; i <= 14; i ++) {");
     vars["Files // Get Count"] += 1;
-    mistsutils.patchcommand2(A: "let val = ", B: data.itemoflist(INDEX: vars["Files // Get Count"], field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+    mistsutils.patchcommand2(A: "let val = ", B: data.itemoflist(INDEX: vars["Files // Get Count"], LIST: list("Files")));
     if mistsutils.patchboolean(A: "+i === 4 && val === false") {
-      mistsutils.patchcommand3(A: "val = yield* window.origin.getFile(", B: data.itemoflist(INDEX: (vars["Files // Get Count"] + 10), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: ")");
-      data.replaceitemoflist(INDEX: vars["Files // Get Count"], ITEM: mistsutils.patchreporter(A: "val"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+      mistsutils.patchcommand3(A: "val = yield* window.origin.getFile(", B: data.itemoflist(INDEX: vars["Files // Get Count"] + 10, LIST: list("Files")), C: ")");
+      data.replaceitemoflist(INDEX: vars["Files // Get Count"], ITEM: mistsutils.patchreporter(A: "val"), LIST: list("Files"));
     }
     vars["SYSTEM // Total Disk Reads"] += 1;
-    data.addtolist(ITEM: mistsutils.patchreporter(A: "val"), field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
+    data.addtolist(ITEM: mistsutils.patchreporter(A: "val"), LIST: list("Files // Current"));
     mistsutils.patchcommand(A: "}");
   } else {
     mistsutils.patchcommand2(A: "const idx = ", B: mistsutils.ifthen(A: mistsutils.patchboolean(A: "typeof p1 === \"number\""), B: item, C: mistsutils.patchreporter3(A: "origin.files.entryLabels.indexOf(", B: item, C: ") + 1")));
     vars["Files // Get Count"] += mistsutils.patchreporter(A: "idx");
-    mistsutils.patchcommand2(A: "let val = ", B: data.itemoflist(INDEX: vars["Files // Get Count"], field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+    mistsutils.patchcommand2(A: "let val = ", B: data.itemoflist(INDEX: vars["Files // Get Count"], LIST: list("Files")));
     if mistsutils.patchboolean(A: "+idx === 4 && val === false") {
-      mistsutils.patchcommand3(A: "val = yield* window.origin.getFile(", B: data.itemoflist(INDEX: (vars["Files // Get Count"] + 10), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: ")");
-      data.replaceitemoflist(INDEX: vars["Files // Get Count"], ITEM: mistsutils.patchreporter(A: "val"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+      mistsutils.patchcommand3(A: "val = yield* window.origin.getFile(", B: data.itemoflist(INDEX: vars["Files // Get Count"] + 10, LIST: list("Files")), C: ")");
+      data.replaceitemoflist(INDEX: vars["Files // Get Count"], ITEM: mistsutils.patchreporter(A: "val"), LIST: list("Files"));
     }
     vars["//return"] = mistsutils.patchreporter(A: "val");
     vars["SYSTEM // Total Disk Reads"] += 1;

@@ -6,7 +6,7 @@
  * threadIndex: 206
  */
 
-def @originNM_Send_to(data, username) "originNM // Send %s to %s" warp=true {
+def @originNM_Send_to(data, username) "originNM // Send %s to %s" warp {
   mistsutils.patchcommand(A: "try { const obj = JSON.parse(p0); obj.timestamp = Date.now(); const obj2 = JSON.stringify(obj)");
   vars["Network // Upload"] += mistsutils.patchreporter(A: "obj2.length");
   cloudlink.sendPData(DATA: mistsutils.patchreporter(A: "obj2"), ID: username);

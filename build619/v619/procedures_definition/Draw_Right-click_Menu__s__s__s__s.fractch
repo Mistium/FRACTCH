@@ -7,11 +7,11 @@
  */
 
 import "../procedures_definition/___Draw_Square__s__s__s__s__s__s.fractch";
-def @Draw_Right_click_Menu(code, depth, x, y) "Draw Right-click Menu %s %s %s %s" warp=true {
+def @Draw_Right_click_Menu(code, depth, x, y) "Draw Right-click Menu %s %s %s %s" warp {
   vars["Frame // Max Y"] = vars["Screen Size Y"];
-  vars["Frame // Min Y"] = (vars["Screen Size Y"] * -1);
+  vars["Frame // Min Y"] = vars["Screen Size Y"] * -1;
   vars["Frame // Max X"] = vars["Screen Size X"];
-  vars["Frame // Min X"] = (vars["Screen Size X"] * -1);
+  vars["Frame // Min X"] = vars["Screen Size X"] * -1;
   vars["OSL // Hover_Size"] = "";
   vars["SYSTEM // Focused Application"] = vars["WIndow // ID"];
   vars["Window // Top Index"] = vars["Window // ID_Index"];
@@ -24,76 +24,76 @@ def @Draw_Right_click_Menu(code, depth, x, y) "Draw Right-click Menu %s %s %s %s
   vars["Window // Interactable?"] = "true";
   vars["SYSTEM // Squares Clickable"] = "true";
   pen.setPenColorToColor(COLOR: @OSL_Vars_Get(Varname: "global_accent"));
-  @Draw_Square(X: (x + 135), Y: (y - (RightClickCount / 2)), Width: "250", Height: RightClickCount, Line_Width: "15", Invisible: "");
-  if not(sensing.mousedown()) {
+  @Draw_Square(X: x + 135, Y: y - RightClickCount / 2, Width: 250, Height: RightClickCount, Line_Width: 15, Invisible: "");
+  if !sensing.mousedown() {
     vars["RightClickClosable"] = mistsutils.true();
   }
-  if (mistsutils.patchboolean(A: "target.osl_vars.mouse_touching !== true") && (HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: ["0",null])) && ((RightClickClosable == "true") && (data.lengthoflist(field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?")) == (depth - 1))))) {
+  if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching !== true") && (HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && (RightClickClosable == "true" && data.lengthoflist(LIST: list("Right Click Menu Depth")) == depth - 1)) {
     @Window_Reset_Redraw_Box();
     @Renderer_Call_ReRender();
-    data.deletealloflist(field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?"));
-    data.deletealloflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+    data.deletealloflist(LIST: list("Right Click Menu Depth"));
+    data.deletealloflist(LIST: list("Rightclick Options"));
     stop "this script";
   }
   vars["Can Click?"] = "true";
   pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "theme_back"));
-  @Draw_Square(X: motion.xposition(), Y: motion.yposition(), Width: "250", Height: RightClickCount, Line_Width: "12", Invisible: "");
+  @Draw_Square(X: motion.xposition(), Y: motion.yposition(), Width: 250, Height: RightClickCount, Line_Width: 12, Invisible: "");
   mistsutils.patchcommand(A: "let current = \"\"");
-  motion.gotoxy(X: (x - 10), Y: (y - 15));
-  vars["RightClickCount"] = "-1";
+  motion.gotoxy(X: x - 10, Y: y - 15);
+  vars["RightClickCount"] = -1;
   mistsutils.patchcommand(A: "let id = 0");
   repeat mistsutils.length(A: code) {
     vars["RightClickCount"] += 1;
     pen.setPenColorToColor(COLOR: @OSL_Vars_Get(Varname: "global_accent"));
     mistsutils.patchcommand2(A: "current = ", B: mistsutils.squarebrackets(A: code, B: RightClickCount));
-    if (mistsutils.patchreporter(A: "(current+\"\")") == "-") {
-      @Draw_Square(X: (x + 135), Y: (motion.yposition() + 10), Width: "230", Height: "0", Line_Width: "2", Invisible: "");
+    if mistsutils.patchreporter(A: "(current+\"\")") == "-" {
+      @Draw_Square(X: x + 135, Y: motion.yposition() + 10, Width: 230, Height: 0, Line_Width: 2, Invisible: "");
       motion.changeyby(DY: -20);
     } else {
-      @Draw_Square(X: (x + 135), Y: motion.yposition(), Width: "260", Height: "18", Line_Width: "10", Invisible: "1");
+      @Draw_Square(X: x + 135, Y: motion.yposition(), Width: 260, Height: 18, Line_Width: 10, Invisible: 1);
       if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") {
-        @Draw_Square(X: (x + 135), Y: motion.yposition(), Width: "240", Height: "14", Line_Width: "10", Invisible: "");
-        if (data.lengthoflist(field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?")) > (depth - 1)) {
+        @Draw_Square(X: x + 135, Y: motion.yposition(), Width: 240, Height: 14, Line_Width: 10, Invisible: "");
+        if data.lengthoflist(LIST: list("Right Click Menu Depth")) > depth - 1 {
           @Window_Reset_Redraw_Box();
           @Renderer_Call_ReRender();
         }
         if mistsutils.patchboolean(A: "Array.isArray(current)") {
-          data.deleteoflist(INDEX: depth, field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?"));
-          data.insertatlist(ITEM: mistsutils.patchreporter3(A: "[", B: RightClickCount, C: mistsutils.patchreporter3(A: ",", B: motion.yposition(), C: " + 10]")), INDEX: depth, field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?"));
+          data.deleteoflist(INDEX: depth, LIST: list("Right Click Menu Depth"));
+          data.insertatlist(ITEM: mistsutils.patchreporter3(A: "[", B: RightClickCount, C: mistsutils.patchreporter3(A: ",", B: motion.yposition(), C: " + 10]")), INDEX: depth, LIST: list("Right Click Menu Depth"));
           if mistsutils.patchboolean(A: "current[0].startsWith(\"> \")") {
             mistsutils.patchcommand(A: "let spl = current[0].split(\" \")");
-            data.replaceitemoflist(INDEX: 4, ITEM: mistsutils.patchreporter2(A: "spl?.[2] ?? ", B: data.itemoflist(INDEX: 4, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"))), field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+            data.replaceitemoflist(INDEX: 4, ITEM: mistsutils.patchreporter2(A: "spl?.[2] ?? ", B: data.itemoflist(INDEX: 4, LIST: list("Rightclick Options"))), LIST: list("Rightclick Options"));
           }
         } else {
-          data.deleteoflist(INDEX: depth, field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?"));
-          if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: ["0",null])) {
+          data.deleteoflist(INDEX: depth, LIST: list("Right Click Menu Depth"));
+          if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
             @Window_Reset_Redraw_Box();
             @Renderer_Call_ReRender();
             if mistsutils.patchboolean(A: "typeof current === \"object\"") {
-              @originWM_Send_global_Msg(arr: mistsutils.patchreporter3(A: mistsutils.patchreporter3(A: "[\"rundef\", ", B: data.itemoflist(INDEX: 4, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), C: ", Object.values(current)[0], "), B: data.itemoflist(INDEX: 3, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), C: "]"));
+              @originWM_Send_global_Msg(arr: mistsutils.patchreporter3(A: mistsutils.patchreporter3(A: "[\"rundef\", ", B: data.itemoflist(INDEX: 4, LIST: list("Rightclick Options")), C: ", Object.values(current)[0], "), B: data.itemoflist(INDEX: 3, LIST: list("Rightclick Options")), C: "]"));
             } else {
               if mistsutils.patchboolean(A: "current.startsWith(\"> \")") {
                 mistsutils.patchcommand(A: "id = current.split(\" \")?.[1] ?? 1");
-                @Window_create(name: data.itemoflist(INDEX: mistsutils.patchreporter(A: "id"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), window_data: mistsutils.patchreporter2(A: data.itemoflist(INDEX: 3, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), B: "[0]"));
+                @Window_create(name: data.itemoflist(INDEX: mistsutils.patchreporter(A: "id"), LIST: list("Files // UUIDS")), window_data: mistsutils.patchreporter2(A: data.itemoflist(INDEX: 3, LIST: list("Rightclick Options")), B: "[0]"));
               } else {
                 vars["Right Click Output"] = mistsutils.patchreporter(A: "current");
                 broadcast_wait "// right click";
               }
             }
             vars["Can Click?"] = "false";
-            data.deletealloflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+            data.deletealloflist(LIST: list("Rightclick Options"));
             mistsutils.patchcommand(A: "break;");
           }
         }
       }
       pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "theme_prim"));
-      @Draw_Square(X: (x + 135), Y: motion.yposition(), Width: "235", Height: "16", Line_Width: "10", Invisible: "");
+      @Draw_Square(X: x + 135, Y: motion.yposition(), Width: 235, Height: 16, Line_Width: 10, Invisible: "");
       pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "theme_text"));
       if mistsutils.patchboolean(A: "typeof current === \"object\" && current !== null") {
         if mistsutils.patchboolean(A: "Array.isArray(current)") {
           @Draw_Rightclick_Text(current: mistsutils.patchreporter(A: "current[0]"), x: x);
-          motion.setx(X: (x + 240));
-          @Draw_Icon_boldness(Code: "w 6 line 0 10 10 0 cont 0 -10", Size: "0.5", setsize: "", x: "", y: "", direction: "", boldness: "");
+          motion.setx(X: x + 240);
+          @Draw_Icon_boldness(Code: "w 6 line 0 10 10 0 cont 0 -10", Size: 0.5, setsize: "", x: "", y: "", direction: "", boldness: "");
         } else {
           @Draw_Rightclick_Text(current: mistsutils.patchreporter(A: "Object.keys(current)[0]"), x: x);
         }
@@ -103,10 +103,10 @@ def @Draw_Right_click_Menu(code, depth, x, y) "Draw Right-click Menu %s %s %s %s
       motion.changeyby(DY: -30);
     }
   }
-  if (data.lengthoflist(field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?")) > (depth - 1)) {
-    mistsutils.patchcommand2(A: "const temp = ", B: data.itemoflist(INDEX: depth, field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?")));
-    vars["//return"] = mistsutils.ifthen(A: ((x + 530) > (vars["Screen Size X"] / 2)), B: "-265", C: "265");
-    @Top_Level_Right_Click(code: mistsutils.patchreporter2(A: mistsutils.squarebrackets(A: code, B: mistsutils.patchreporter(A: "temp[0]")), B: ".slice(1)"), depth: (depth + 1), x: (x + vars["//return"]), y: mistsutils.patchreporter(A: "temp[1]"));
+  if data.lengthoflist(LIST: list("Right Click Menu Depth")) > depth - 1 {
+    mistsutils.patchcommand2(A: "const temp = ", B: data.itemoflist(INDEX: depth, LIST: list("Right Click Menu Depth")));
+    vars["//return"] = mistsutils.ifthen(A: x + 530 > vars["Screen Size X"] / 2, B: -265, C: 265);
+    @Top_Level_Right_Click(code: mistsutils.patchreporter2(A: mistsutils.squarebrackets(A: code, B: mistsutils.patchreporter(A: "temp[0]")), B: ".slice(1)"), depth: depth + 1, x: x + vars["//return"], y: mistsutils.patchreporter(A: "temp[1]"));
   }
   motion.sety(Y: y);
   vars["SYSTEM // Squares Clickable"] = "false";

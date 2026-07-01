@@ -7,7 +7,7 @@
  */
 
 event.whenflagclicked();
-until not((vars["Account// Current"] == "")) {
+until vars["Account// Current"] != "" {
   wait "0";
 }
 mistsutils.patchcommand(A: "origin.network ??= {}");
@@ -16,7 +16,7 @@ mistsutils.patchcommand(A: "origin.warnTabClose = false");
 forever {
   if mistsutils.patchboolean(A: "origin.network.updates.length > 0") {
     mistsutils.patchcommand(A: "origin.warnTabClose = true");
-    if (cloudlink.checkForID(ID: vars["Server // Name"]) && mistsutils.patchboolean(A: "navigator.onLine")) {
+    if cloudlink.checkForID(ID: vars["Server // Name"]) && mistsutils.patchboolean(A: "navigator.onLine") {
       @originFS_Handle_network_updates();
     }
     wait "2";

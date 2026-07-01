@@ -11,20 +11,20 @@ import "../procedures_definition/Install_System_Utility__s__s__s__s__b.fractch";
 import "../procedures_definition/RUSH____execute__s.fractch";
 import "../procedures_definition/___Draw_Text__s__s__s__s__s.fractch";
 import "../procedures_definition/File____Pull_System.fractch";
-def @File_Reset() "File// Reset" warp=false {
+def @File_Reset() "File// Reset" {
   @File_add_Data_Icon_Perms(Location: "", Name: "origin", Type: ".folder", Data: "", Icon: "c #333 w 10 square 0 0 10 10 c #ffffff w 2 cutcircle 0 0 10 4.5 150 cutcircle 0 0 5.5 5 150 line -1 -2 -7 -8", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
   @File_add_Data_Icon_Perms(Location: "origin", Name: "(A) System", Type: ".folder", Data: "", Icon: "c #772d1c square 0 2 10 4 c #ff724f square -8 6 2 2 line -5 7 3 0 square 0 -1 10 5 w 8 square 0 -0.5 5 0 c #772d1c icn originOS 0.4 0 -1", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
   @File_add_Data_Icon_Perms(Location: "origin", Name: "(B) Local", Type: ".folder", Data: "", Icon: "c #772d1c square 0 2 10 4 c #ff724f square -8 6 2 2 line -5 7 3 0 square 0 -1 10 5 w 8 square 0 -0.5 5 0 c #772d1c icn upload 0.4 0 0", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
   @File_add_Data_Icon_Perms(Location: "origin", Name: "(C) Users", Type: ".folder", Data: "", Icon: "c #772d1c square 0 2 10 4 c #ff724f square -8 6 2 2 line -5 7 3 0 square 0 -1 10 5 w 8 square 0 -0.5 5 0 c #772d1c icn accounts 0.4 0 0", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
   @File_add_Data_Icon_Perms(Location: "origin", Name: "(D) Temp", Type: ".folder", Data: "", Icon: "c #772d1c square 0 2 10 4 c #ff724f square -8 6 2 2 line -5 7 3 0 square 0 -1 10 5 w 8 square 0 -0.5 5 0 c #772d1c", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
   @File_add_Data_Icon_Perms(Location: "origin/(A) System", Name: "Fonts", Type: ".folder", Data: "", Icon: "", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
-  if (vars["Embed Mode"] == "0") {
+  if vars["Embed Mode"] == 0 {
     if mistsutils.patchboolean(A: "!navigator.onLine") {
       stop "other scripts in sprite";
-      vars["Frame // Min Y"] = "-100";
+      vars["Frame // Min Y"] = -100;
       motion.gotoxy(X: 0, Y: 0);
       motion.pointindirection(DIRECTION: "90");
-      @Draw_Icon_boldness(Code: "w 99999999 c #000 c #fff w 3 cutcircle 0 -7 14 0 50 cutcircle 0 -7 7 0 50 w 4 dot 0 -7 w 3 line -9 -9 9 9", Size: "5", setsize: "", x: "0", y: "0", direction: "", boldness: "");
+      @Draw_Icon_boldness(Code: "w 99999999 c #000 c #fff w 3 cutcircle 0 -7 14 0 50 cutcircle 0 -7 7 0 50 w 4 dot 0 -7 w 3 line -9 -9 9 9", Size: 5, setsize: "", x: 0, y: 0, direction: "", boldness: "");
       stop "all";
     }
     if MistKeyHistoryExtension.iskeyPressed(KEY: "alt") {
@@ -36,10 +36,10 @@ def @File_Reset() "File// Reset" warp=false {
       stop "other scripts in sprite";
       forever {
         motion.gotoxy(X: 0, Y: 0);
-        @Draw_Icon_boldness(Code: "w 999999 c #000 dot 0 0 c #fff", Size: "5", setsize: "", x: "0", y: "0", direction: "", boldness: "");
+        @Draw_Icon_boldness(Code: "w 999999 c #000 dot 0 0 c #fff", Size: 5, setsize: "", x: 0, y: 0, direction: "", boldness: "");
         mistsutils.patchcommand(A: "for (let i = 0; i < branches.length; i ++) {");
         mistsutils.patchcommand(A: "const message = (current === i ? \"> \" : \"\") + `Boot from ${branches[i]}`");
-        @Draw_Text(Text: mistsutils.patchreporter(A: "message"), X: mistsutils.patchreporter(A: "message.length * -5"), Y: mistsutils.patchreporter(A: "i * -20"), Size: "10", Markdown_Enabled: "");
+        @Draw_Text(Text: mistsutils.patchreporter(A: "message"), X: mistsutils.patchreporter(A: "message.length * -5"), Y: mistsutils.patchreporter(A: "i * -20"), Size: 10, Markdown_Enabled: "");
         mistsutils.patchcommand(A: "}");
         if MistKeyHistoryExtension.iskeyhit(KEY: "arrowup") {
           mistsutils.patchcommand(A: "current --");
@@ -64,9 +64,9 @@ def @File_Reset() "File// Reset" warp=false {
   @RUSH_execute(Command: "font cleardata");
   @RUSH_execute(Command: "font.load origin");
   mistfetch.deleteRequestById(ID: "font");
-  @Draw_Text(Text: HyperSenseSP.getSpriteName(), X: vars["Frame // Min X"], Y: (vars["Frame // Max Y"] - 20), Size: "10", Markdown_Enabled: "");
+  @Draw_Text(Text: HyperSenseSP.getSpriteName(), X: vars["Frame // Min X"], Y: vars["Frame // Max Y"] - 20, Size: 10, Markdown_Enabled: "");
   mistsutils.patchcommand(A: "let msg = \"Working on system cache\"");
-  @Draw_Text(Text: mistsutils.patchreporter(A: "msg"), X: mistsutils.patchreporter(A: "msg.length * -5"), Y: "-150", Size: "10", Markdown_Enabled: "");
+  @Draw_Text(Text: mistsutils.patchreporter(A: "msg"), X: mistsutils.patchreporter(A: "msg.length * -5"), Y: -150, Size: 10, Markdown_Enabled: "");
   @File_add_Data_Icon_Perms(Location: "origin/(A) System", Name: "Kernel And Setup", Type: ".folder", Data: "", Icon: "", Perms: "");
   @File_add_Data_Icon_Perms(Location: "origin/(A) System/Kernel And Setup", Name: "setup", Type: ".osl", Data: "", Icon: "", Perms: "");
   @File_add_Data_Icon_Perms(Location: "origin/(A) System", Name: "System Data", Type: ".folder", Data: "", Icon: "", Perms: "");

@@ -7,7 +7,7 @@
  */
 
 import "../procedures_definition/Log_Error__s__s.fractch";
-def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" warp=false {
+def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" {
   mistsutils.patchcommand(A: "let destr = p0; if (p0 === null) destr = \"null\"; else if (typeof p0 === \"object\") destr = \"[object Object]\"; else destr = \"\"+p0;");
   mistsutils.patchcommand(A: "const mtd = window.osl_methods");
   mistsutils.patchcommand(A: "const params = p2 ?? []");
@@ -27,7 +27,7 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
         return mistsutils.patchreporter(A: "net_data");
       } else {
         mistsutils.patchcommand(A: "const fetches = origin.fetches.web");
-        if not((mistsutils.patchboolean(A: "fetches.includes(destr)") || mistsutils.patchboolean(A: "origin.fetches.downloads.slice().map(val => val.url).includes(destr)"))) {
+        if !(mistsutils.patchboolean(A: "fetches.includes(destr)") || mistsutils.patchboolean(A: "origin.fetches.downloads.slice().map(val => val.url).includes(destr)")) {
           mistsutils.patchcommand(A: "fetches.push(destr)");
           mistsutils.patchcommand2(A: vars["OSL // Web Cache"], B: ".push(destr)");
         }
@@ -39,9 +39,9 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       return input;
     }
     mistsutils.patchcommand3(A: "case mtd[\"httpGet()\"]: return JSON.safeParse(", B: cloudlink.fetchURL(url: mistsutils.patchreporter(A: "destr")), C: ")");
-    mistsutils.patchcommand2(A: "case mtd[\"encodeUTF16()\"]: return ", B: shovellzcompress.compress(TEXT: mistsutils.patchreporter(A: "destr"), TYPE: shovellzcompress.menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: ["UTF16",null])));
-    mistsutils.patchcommand2(A: "case mtd[\"decodeUTF16()\"]: return ", B: shovellzcompress.decompress(TEXT: mistsutils.patchreporter(A: "destr"), TYPE: shovellzcompress.menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: ["UTF16",null])));
-    mistsutils.patchcommand3(A: "case mtd[\"newWebsocket()\"]: { const id = `${", B: webSocketPlus.connectSecure(URL: @item_of_split_by(int: "1", string: mistsutils.patchreporter(A: "destr"), delimiter: ":"), PORT: @item_of_split_by(int: "2", string: mistsutils.patchreporter(A: "destr"), delimiter: ":")), C: "}`; target.window.ws.push(id); return id }");
+    mistsutils.patchcommand2(A: "case mtd[\"encodeUTF16()\"]: return ", B: shovellzcompress.compress(TEXT: mistsutils.patchreporter(A: "destr"), TYPE: shovellzcompress.menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: "UTF16")));
+    mistsutils.patchcommand2(A: "case mtd[\"decodeUTF16()\"]: return ", B: shovellzcompress.decompress(TEXT: mistsutils.patchreporter(A: "destr"), TYPE: shovellzcompress.menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: "UTF16")));
+    mistsutils.patchcommand3(A: "case mtd[\"newWebsocket()\"]: { const id = `${", B: webSocketPlus.connectSecure(URL: @item_of_split_by(int: 1, string: mistsutils.patchreporter(A: "destr"), delimiter: ":"), PORT: @item_of_split_by(int: 2, string: mistsutils.patchreporter(A: "destr"), delimiter: ":")), C: "}`; target.window.ws.push(id); return id }");
     mistsutils.patchcommand2(A: "case mtd[\"wsHasnew()\"]: return ", B: webSocketPlus.hasNewMessages(ID: mistsutils.patchreporter(A: "destr")));
     mistsutils.patchcommand2(A: "case mtd[\"wsGetall()\"]: return ", B: @parse(json: webSocketPlus.getAllMessages(ID: mistsutils.patchreporter(A: "destr"))));
     mistsutils.patchcommand2(A: "case mtd[\"wsGetcount()\"]: return ", B: skyhigh173JSON.json_length(json: webSocketPlus.getAllMessages(ID: mistsutils.patchreporter(A: "destr"))));
@@ -60,34 +60,34 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       vars["3dr // All Meshes"] = skyhigh173JSON.json_array_remove_all(item: mistsutils.patchreporter(A: "destr"), json: vars["3dr // All Meshes"]);
       return "";
     }
-    mistsutils.patchcommand2(A: "case mtd[\"meshExists()\"]: return ", B: xeltallivSimple3D.meshInfo(NAME: mistsutils.patchreporter(A: "destr"), field PROP: ["exists",null]));
-    mistsutils.patchcommand2(A: "case mtd[\"meshHasTexture()\"]: return ", B: xeltallivSimple3D.meshInfo(NAME: mistsutils.patchreporter(A: "destr"), field PROP: ["has texture",null]));
-    mistsutils.patchcommand2(A: "case mtd[\"meshIsDrawable()\"]: return ", B: xeltallivSimple3D.meshInfo(NAME: mistsutils.patchreporter(A: "destr"), field PROP: ["is valid for drawing",null]));
+    mistsutils.patchcommand2(A: "case mtd[\"meshExists()\"]: return ", B: xeltallivSimple3D.meshInfo(NAME: mistsutils.patchreporter(A: "destr"), field PROP: "exists"));
+    mistsutils.patchcommand2(A: "case mtd[\"meshHasTexture()\"]: return ", B: xeltallivSimple3D.meshInfo(NAME: mistsutils.patchreporter(A: "destr"), field PROP: "has texture"));
+    mistsutils.patchcommand2(A: "case mtd[\"meshIsDrawable()\"]: return ", B: xeltallivSimple3D.meshInfo(NAME: mistsutils.patchreporter(A: "destr"), field PROP: "is valid for drawing"));
     case mistsutils.patchreporter(A: "mtd[\"getFolder()\"]") {
-      vars["DeString // out"] = @originFS_Path_ID(Path: (@Find_Directory(Directory: mistsutils.patchreporter(A: "destr")) .. ".folder"));
+      vars["DeString // out"] = @originFS_Path_ID(Path: @Find_Directory(Directory: mistsutils.patchreporter(A: "destr")) .. ".folder");
       @Permissions_Can_i_view_file(File_To_Get: vars["DeString // out"]);
-      if (vars["OSL// Permission Output"] == "1") {
-        return @parse(json: @File_get_item(id: vars["DeString // out"], item: "4"));
+      if vars["OSL// Permission Output"] == 1 {
+        return @parse(json: @File_get_item(id: vars["DeString // out"], item: 4));
       } else {
-        @Log_Error(Data: ("[FCIF] getFolder() Denied To " .. input), Type: "Permission");
+        @Log_Error(Data: "[FCIF] getFolder() Denied To " .. input, Type: "Permission");
         mistsutils.patchcommand(A: "return [\"Access Denied\"]");
       }
     }
     case mistsutils.patchreporter(A: "mtd[\"listFolder()\"]") {
-      vars["DeString // out"] = @originFS_Path_ID(Path: (@Find_Directory(Directory: mistsutils.patchreporter(A: "destr")) .. ".folder"));
+      vars["DeString // out"] = @originFS_Path_ID(Path: @Find_Directory(Directory: mistsutils.patchreporter(A: "destr")) .. ".folder");
       @Permissions_Can_i_view_file(File_To_Get: vars["DeString // out"]);
-      if (vars["OSL// Permission Output"] == "1") {
+      if vars["OSL// Permission Output"] == 1 {
         return @parse(json: @Get_Contents_Of_Folder_Path(Path: @Find_Directory(Directory: mistsutils.patchreporter(A: "destr")), Show_UUIDS: null, data_included: null, Only_UUIDS: null));
       } else {
-        @Log_Error(Data: ("[FCIF] getFolder() Denied To " .. input), Type: "Permission");
+        @Log_Error(Data: "[FCIF] getFolder() Denied To " .. input, Type: "Permission");
         mistsutils.patchcommand(A: "return [\"Access Denied\"]");
       }
     }
     case mistsutils.patchreporter(A: "mtd[\"fileExists()\"]") {
       if operator.contains(STRING1: mistsutils.patchreporter(A: "destr"), STRING2: "/") {
-        mistsutils.patchcommand2(A: "return ", B: (@originFS_Path_ID(Path: mistsutils.patchreporter(A: "destr")) > "0"));
+        mistsutils.patchcommand2(A: "return ", B: @originFS_Path_ID(Path: mistsutils.patchreporter(A: "destr")) > 0);
       } else {
-        mistsutils.patchcommand2(A: "return ", B: (@originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "destr")) > "0"));
+        mistsutils.patchcommand2(A: "return ", B: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "destr")) > 0);
       }
     }
     case mistsutils.patchreporter(A: "mtd[\"getFile()\"]") {
@@ -99,27 +99,27 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
         }
       }
       @Permissions_Can_i_view_file(File_To_Get: vars["DeString // out"]);
-      if (vars["OSL// Permission Output"] == "1") {
-        return @parse(json: @File_get_item(id: vars["DeString // out"], item: "4"));
+      if vars["OSL// Permission Output"] == 1 {
+        return @parse(json: @File_get_item(id: vars["DeString // out"], item: 4));
       } else {
-        @Log_Error(Data: ("[FCIF] getFile() Denied To " .. input), Type: "Permission");
+        @Log_Error(Data: "[FCIF] getFile() Denied To " .. input, Type: "Permission");
         return "Access Denied";
       }
     }
     case mistsutils.patchreporter(A: "mtd[\"saveExists()\"]") {
-      if (vars["Window // Save Directory"] == "") {
+      if vars["Window // Save Directory"] == "" {
         @Log_Error(Data: "[SDDU] No save directory set yet, use `save \"directory name that you want to use\" \"set_directory\"`", Type: "Unknown");
         return "";
       } else {
-        return data.listcontainsitem(ITEM: ((((@Parse_Directory(directory: "~/application data") .. "/") .. vars["Window // Save Directory"]) .. "/") .. mistsutils.patchreporter(A: "destr")), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+        return data.listcontainsitem(ITEM: @Parse_Directory(directory: "~/application data") .. "/" .. vars["Window // Save Directory"] .. "/" .. mistsutils.patchreporter(A: "destr"), LIST: list("Files // Index Path"));
       }
     }
     case mistsutils.patchreporter(A: "mtd[\"saveGet()\"]") {
-      if (vars["Window // Save Directory"] == "") {
+      if vars["Window // Save Directory"] == "" {
         @Log_Error(Data: "[SDDU] No save directory set yet, use `save \"directory name that you want to use\" \"set_directory\"`", Type: "Unknown");
       } else {
-        vars["Temp"] = @originFS_Path_ID(Path: ((((@Parse_Directory(directory: "~/application data") .. "/") .. vars["Window // Save Directory"]) .. "/") .. mistsutils.patchreporter(A: "destr")));
-        if (Temp > "0") {
+        vars["Temp"] = @originFS_Path_ID(Path: @Parse_Directory(directory: "~/application data") .. "/" .. vars["Window // Save Directory"] .. "/" .. mistsutils.patchreporter(A: "destr"));
+        if Temp > 0 {
           return @parse(json: @File_get_item(id: Temp, item: mistsutils.patchreporter(A: "params.length === 0 ? 4 : +params[0]")));
         } else {
           mistsutils.patchcommand(A: "return null");
@@ -144,7 +144,7 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       mistsutils.patchcommand(A: "if(Array.isArray(p0)){if(typeof temp!==\"number\"){for(let i=p0.length-1;i>=0;i--)if(p0[i]===temp)p0.splice(i,1)}else p0.splice(temp-1,1);return p0}");
       mistsutils.patchcommand(A: "else { delete p0[temp]; return p0 } }");
       mistsutils.patchcommand(A: "if (temp <= 0) return destr");
-      return (@letters_to_of(start: "1", end: (mistsutils.patchreporter(A: "temp") - 1), text: mistsutils.patchreporter(A: "destr")) .. @letters_to_of(start: (mistsutils.patchreporter(A: "temp") + 1), end: operator.length(STRING: mistsutils.patchreporter(A: "destr")), text: mistsutils.patchreporter(A: "destr")));
+      return @letters_to_of(start: 1, end: mistsutils.patchreporter(A: "temp") - 1, text: mistsutils.patchreporter(A: "destr")) .. @letters_to_of(start: mistsutils.patchreporter(A: "temp") + 1, end: operator.length(STRING: mistsutils.patchreporter(A: "destr")), text: mistsutils.patchreporter(A: "destr"));
     }
     case mistsutils.patchreporter(A: "mtd[\"every()\"]") {
       mistsutils.patchcommand(A: "const command_obj = params[0]");
@@ -177,9 +177,9 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
     case mistsutils.patchreporter(A: "mtd[\"getall()\"]") {
       mistsutils.patchcommand(A: "let key = params[0]");
       switch mistsutils.patchreporter(A: "key") {
-        mistsutils.patchcommand2(A: "case \"extract-letters\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: ["letters",null]), STRING: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"extract-numbers\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: ["numbers",null]), STRING: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"extract-special\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: ["special characters",null]), STRING: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"extract-letters\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: "letters"), STRING: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"extract-numbers\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: "numbers"), STRING: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"extract-special\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: "special characters"), STRING: mistsutils.patchreporter(A: "destr")));
       }
       mistsutils.patchcommand(A: "if (typeof p0 === \"object\" && p0 !== null) {return p0.map(x => { let cur = x[key]; if (typeof cur !== \"undefined\") return cur; return null; })}");
       if @is_array(input: input) {
@@ -192,8 +192,8 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       switch mistsutils.patchreporter(A: "params[0]") {
         mistsutils.patchcommand2(A: "case \"loaded\": return ", B: mistSkins.getSkinLoaded(NAME: mistsutils.patchreporter(A: "destr")));
         mistsutils.patchcommand2(A: "case \"loading\": return ", B: mistSkins.getSkinLoading(NAME: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"width\": return ", B: mistSkins.getSkinAttribute(ATTRIBUTE: mistSkins.menu_skinAttributes(field skinAttributes: ["width",null]), NAME: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"height\": return ", B: mistSkins.getSkinAttribute(ATTRIBUTE: mistSkins.menu_skinAttributes(field skinAttributes: ["height",null]), NAME: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"width\": return ", B: mistSkins.getSkinAttribute(ATTRIBUTE: mistSkins.menu_skinAttributes(field skinAttributes: "width"), NAME: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"height\": return ", B: mistSkins.getSkinAttribute(ATTRIBUTE: mistSkins.menu_skinAttributes(field skinAttributes: "height"), NAME: mistsutils.patchreporter(A: "destr")));
         default {
           @Log_Error(Data: "[MTII] invalid input for 'imageinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'imageinfo' method";
@@ -224,15 +224,15 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       mistsutils.patchcommand(A: "return p0");
     }
     case mistsutils.patchreporter(A: "mtd[\"roturSend()\"]") {
-      if not((mistsutils.patchreporter(A: "destr") == vars["Server // Name"])) {
-        data.addtolist(ITEM: skyhigh173JSON.json_set(item: "target_user", json: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "target", json: skyhigh173JSON.json_set(item: "source", json: skyhigh173JSON.json_delete(item: "id", json: vars["Server// Base Payload"]), value: vars["Window // Network ID"]), value: @destring(Text: mistsutils.squarebrackets(A: params, B: "1"), remove: "\"")), value: @Stringify(json: mistsutils.squarebrackets(A: params, B: "0"))), value: @Find_User(Name: input, all: null)), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+      if mistsutils.patchreporter(A: "destr") != vars["Server // Name"] {
+        data.addtolist(ITEM: skyhigh173JSON.json_set(item: "target_user", json: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "target", json: skyhigh173JSON.json_set(item: "source", json: skyhigh173JSON.json_delete(item: "id", json: vars["Server// Base Payload"]), value: vars["Window // Network ID"]), value: @destring(Text: mistsutils.squarebrackets(A: params, B: 1), remove: "\"")), value: @Stringify(json: mistsutils.squarebrackets(A: params, B: 0))), value: @Find_User(Name: input, all: null)), LIST: list("Network // Outgoing Packets"));
       }
       return input;
     }
     case mistsutils.patchreporter(A: "mtd[\"replace()\"]") {
       mistsutils.patchcommand(A: "const temp1 = params[0] ?? \"\"");
       mistsutils.patchcommand(A: "const temp2 = params[1] ?? \"\"");
-      if (mistsutils.patchboolean(A: "String(temp1).startsWith(\"/\")") && truefantomregexp.is_regexp_block(A: mistsutils.patchreporter(A: "temp1"))) {
+      if mistsutils.patchboolean(A: "String(temp1).startsWith(\"/\")") && truefantomregexp.is_regexp_block(A: mistsutils.patchreporter(A: "temp1")) {
         return truefantomregexp.regexp_replace_block(A: mistsutils.patchreporter(A: "destr"), B: mistsutils.patchreporter(A: "temp1"), C: mistsutils.patchreporter(A: "temp2"));
       }
       return mistsutils.replaceall(C: mistsutils.patchreporter(A: "temp1"), A: mistsutils.patchreporter(A: "destr"), B: mistsutils.patchreporter(A: "temp2"));
@@ -247,16 +247,16 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       mistsutils.patchcommand(A: "return false;");
     }
     case mistsutils.patchreporter(A: "mtd[\"soundinfo()\"]") {
-      mistsutils.patchcommand2(A: "const input = ", B: (vars["WIndow // ID"] .. mistsutils.patchreporter(A: "`-${destr}`")));
+      mistsutils.patchcommand2(A: "const input = ", B: vars["WIndow // ID"] .. mistsutils.patchreporter(A: "`-${destr}`"));
       switch mistsutils.patchreporter(A: "params[0]") {
-        mistsutils.patchcommand2(A: "case \"loaded\": return ", B: SPtuneShark.soundCheck(NAME: mistsutils.patchreporter(A: "input"), field CONTROL: ["exists?",null]));
-        mistsutils.patchcommand2(A: "case \"speed\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: ["speed",null])));
-        mistsutils.patchcommand2(A: "case \"pitch\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: ["pitch",null])));
+        mistsutils.patchcommand2(A: "case \"loaded\": return ", B: SPtuneShark.soundCheck(NAME: mistsutils.patchreporter(A: "input"), field CONTROL: "exists?"));
+        mistsutils.patchcommand2(A: "case \"speed\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "speed")));
+        mistsutils.patchcommand2(A: "case \"pitch\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "pitch")));
         mistsutils.patchcommand2(A: "case \"current_time\": return ", B: SPtuneShark.currentSoundTime(NAME: mistsutils.patchreporter(A: "input")));
-        mistsutils.patchcommand2(A: "case \"duration\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: ["length",null])));
-        mistsutils.patchcommand2(A: "case \"volume\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: ["volume",null])));
-        mistsutils.patchcommand2(A: "case \"playing\": return ", B: SPtuneShark.soundCheck(NAME: mistsutils.patchreporter(A: "input"), field CONTROL: ["playing?",null]));
-        mistsutils.patchcommand2(A: "case \"completion\": return ", B: (SPtuneShark.currentSoundTime(NAME: mistsutils.patchreporter(A: "input")) / SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: ["length",null]))));
+        mistsutils.patchcommand2(A: "case \"duration\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "length")));
+        mistsutils.patchcommand2(A: "case \"volume\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "volume")));
+        mistsutils.patchcommand2(A: "case \"playing\": return ", B: SPtuneShark.soundCheck(NAME: mistsutils.patchreporter(A: "input"), field CONTROL: "playing?"));
+        mistsutils.patchcommand2(A: "case \"completion\": return ", B: SPtuneShark.currentSoundTime(NAME: mistsutils.patchreporter(A: "input")) / SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "length")));
         default {
           @Log_Error(Data: "[MTII] invalid input for 'soundinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'soundinfo' method";
@@ -266,8 +266,8 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
     case mistsutils.patchreporter(A: "mtd[\"timestamp()\"]") {
       switch mistsutils.patchreporter(A: "params[0]") {
         mistsutils.patchcommand2(A: "case \"to-full\": case \"convert-full\": return ", B: sipctime.TimestampToTime(timestamp: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"to-date\": case \"convert-date\": return ", B: @item_of_split_by(int: "1", string: sipctime.TimestampToTime(timestamp: mistsutils.patchreporter(A: "destr")), delimiter: " "));
-        mistsutils.patchcommand2(A: "case \"to-time\": case \"convert-time\": return ", B: @item_of_split_by(int: "2", string: sipctime.TimestampToTime(timestamp: mistsutils.patchreporter(A: "destr")), delimiter: " "));
+        mistsutils.patchcommand2(A: "case \"to-date\": case \"convert-date\": return ", B: @item_of_split_by(int: 1, string: sipctime.TimestampToTime(timestamp: mistsutils.patchreporter(A: "destr")), delimiter: " "));
+        mistsutils.patchcommand2(A: "case \"to-time\": case \"convert-time\": return ", B: @item_of_split_by(int: 2, string: sipctime.TimestampToTime(timestamp: mistsutils.patchreporter(A: "destr")), delimiter: " "));
         mistsutils.patchcommand2(A: "case \"to-relative\": case \"convert-relative\": return ", B: @Timestamp_Convert(data: mistsutils.patchreporter(A: "destr")));
         default {
           return sipctime.Timedata(Timedata: mistsutils.replace(C: "get-", A: mistsutils.patchreporter(A: "params[0]"), B: ""), timestamp: mistsutils.patchreporter(A: "destr"));
@@ -279,18 +279,18 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       return @letters_to_of(start: mistsutils.patchreporter(A: "params[0]"), end: mistsutils.patchreporter(A: "params[1]"), text: mistsutils.patchreporter(A: "destr"));
     }
     case mistsutils.patchreporter(A: "mtd[\"vrotate()\"]") {
-      return @Rotate_around_by_yaw_pitch_roll(arr1: input, arr2: mistsutils.patchreporter(A: "params.slice(0, 3)"), yaw: mistsutils.squarebrackets(A: params, B: "3"), pitch: mistsutils.squarebrackets(A: params, B: "4"), roll: mistsutils.squarebrackets(A: params, B: "5"));
+      return @Rotate_around_by_yaw_pitch_roll(arr1: input, arr2: mistsutils.patchreporter(A: "params.slice(0, 3)"), yaw: mistsutils.squarebrackets(A: params, B: 3), pitch: mistsutils.squarebrackets(A: params, B: 4), roll: mistsutils.squarebrackets(A: params, B: 5));
     }
     case mistsutils.patchreporter(A: "mtd[\"videoinfo()\"]") {
-      mistsutils.patchcommand2(A: "destr = ", B: (vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\"_\" + destr")));
+      mistsutils.patchcommand2(A: "destr = ", B: vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\"_\" + destr"));
       switch mistsutils.patchreporter(A: "params[0]") {
         mistsutils.patchcommand2(A: "case \"loaded\": return ", B: skyhigh173JSON.json_has_value(json: lmsVideo.getLoadedVideos(), value: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"width\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: ["width",null]));
-        mistsutils.patchcommand2(A: "case \"height\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: ["height",null]));
-        mistsutils.patchcommand2(A: "case \"current_time\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: ["current time",null]));
-        mistsutils.patchcommand2(A: "case \"duration\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: ["duration",null]));
-        mistsutils.patchcommand2(A: "case \"volume\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: ["volume",null]));
-        mistsutils.patchcommand2(A: "case \"playing\": return ", B: lmsVideo.getState(NAME: mistsutils.patchreporter(A: "destr"), STATE: lmsVideo.menu_state(field state: ["playing",null])));
+        mistsutils.patchcommand2(A: "case \"width\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: "width"));
+        mistsutils.patchcommand2(A: "case \"height\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: "height"));
+        mistsutils.patchcommand2(A: "case \"current_time\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: "current time"));
+        mistsutils.patchcommand2(A: "case \"duration\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: "duration"));
+        mistsutils.patchcommand2(A: "case \"volume\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: "volume"));
+        mistsutils.patchcommand2(A: "case \"playing\": return ", B: lmsVideo.getState(NAME: mistsutils.patchreporter(A: "destr"), STATE: lmsVideo.menu_state(field state: "playing")));
         default {
           @Log_Error(Data: "[MTII] invalid input for 'videoinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'videoinfo' method";
@@ -305,7 +305,7 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
     }
   }
   mistsutils.patchcommand(A: "// } catch(e) { console.error(p0,p1,e); return \"\" }");
-  if (mistsutils.starts(A: command, B: "key(") || mistsutils.starts(A: command, B: "\"")) {
+  if mistsutils.starts(A: command, B: "key(") || mistsutils.starts(A: command, B: "\"") {
     if @is_object(input: input) {
       mistsutils.patchcommand2(A: "let temp = ", B: mistsutils.ifthen(A: mistsutils.starts(A: command, B: "key("), B: mistsutils.patchreporter(A: "params[0]"), C: command));
       mistsutils.patchcommand3(A: "if (temp[0] === \"_\" && p0 !== ", B: "osl_clone[target.window.id].__self__", C: ") return null");

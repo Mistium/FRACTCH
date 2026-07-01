@@ -6,6 +6,6 @@
  * threadIndex: 221
  */
 
-def @is_array(input) "is array? %s" warp=false {
+def @is_array(input) "is array? %s" {
   return mistsutils.patchboolean(A: "Array.isArray(p0)");
 }

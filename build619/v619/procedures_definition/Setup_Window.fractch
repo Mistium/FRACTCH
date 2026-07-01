@@ -14,18 +14,18 @@ import "../procedures_definition/Renderer____Call_ReRender.fractch";
 import "../procedures_definition/Window____Focus.fractch";
 import "../procedures_definition/Renderer____Put_canvas_into_targetCache__s.fractch";
 import "../procedures_definition/__log____s.fractch";
-def @Setup_Window() "Setup_Window" warp=true {
+def @Setup_Window() warp {
   mistsutils.patchcommand(A: "const start_open = performance.now()");
   vars["Window // Allow Interaction?"] = "true";
   vars["OSL // Current Zip Archive"] = "";
   vars["OSL // Zip Archives"] = mistsutils.patchreporter(A: "{}");
-  vars["Input // Changed Info"] = "0";
+  vars["Input // Changed Info"] = 0;
   vars["3dr // All Meshes"] = "[]";
   mistsutils.patchcommand(A: "target.osl_globals = {\"commands\":{},\"imports\":[]}");
-  vars["Text // Line Spacing"] = "2.3";
-  vars["Text // Char Spacing"] = "30";
-  vars["Text // Boldness"] = "1";
-  vars["Text // Char Tilt"] = "0";
+  vars["Text // Line Spacing"] = 2.3;
+  vars["Text // Char Spacing"] = 30;
+  vars["Text // Boldness"] = 1;
+  vars["Text // Char Tilt"] = 0;
   vars["Text // Font"] = "origin";
   vars["Window // HoverExecution"] = "true";
   vars["OSL // Web Cache"] = mistsutils.patchreporter(A: "[]");
@@ -37,13 +37,13 @@ def @Setup_Window() "Setup_Window" warp=true {
   xeltallivclipblend.clearClipbox();
   motion.pointindirection(DIRECTION: "90");
   vars["OSL // Import Cache"] = mistsutils.patchreporter(A: "new Map()");
-  data.deletealloflist(field LIST: list("Split Text 2", "L4/m,MFx/1Xn#g5:|?`W"));
-  data.deletealloflist(field LIST: list("OSL // Classes Name Cache", "D%nB/}bRhJuMKg/j8^V["));
-  data.deletealloflist(field LIST: list("OSL // Classes Self Cache", "wjQi2_1%$?9TwXyT83(R"));
-  data.deletealloflist(field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
-  data.deletealloflist(field LIST: list("3dr // Temp1", "Zi~czhtteJ6hR7:$hW|h"));
-  data.deletealloflist(field LIST: list("3dr // Temp2", "a]Z/U14`;am|lUR2~m~+"));
-  data.deletealloflist(field LIST: list("3dr // Temp3", "(6NYIRNI@$HIl1Zn{RDD"));
+  data.deletealloflist(LIST: list("Split Text 2"));
+  data.deletealloflist(LIST: list("OSL // Classes Name Cache"));
+  data.deletealloflist(LIST: list("OSL // Classes Self Cache"));
+  data.deletealloflist(LIST: list("OSL // Sounds Loaded"));
+  data.deletealloflist(LIST: list("3dr // Temp1"));
+  data.deletealloflist(LIST: list("3dr // Temp2"));
+  data.deletealloflist(LIST: list("3dr // Temp3"));
   vars["OSL // Images"] = mistsutils.patchreporter(A: "new Set()");
   mistsutils.patchcommand2(A: "const window_id = ", B: vars["WIndow // ID"]);
   mistsutils.patchcommand3(A: "origin.workers[", B: "window_id", C: "] = {}");
@@ -66,26 +66,26 @@ def @Setup_Window() "Setup_Window" warp=true {
   mistsutils.patchcommand(A: "Object.setPrototypeOf(window.osl_clone[window_id], target.parentCtx)");
   mistsutils.patchcommand(A: "osl_clone[window_id].__self__ = null");
   @Window_Setup_Typed_Methods();
-  vars["OSL// Total Cycles"] = "0";
+  vars["OSL// Total Cycles"] = 0;
   vars["Window // Network ID"] = vars["Window // Name"];
-  mistsutils.patchcommand2(A: "let title = ", B: @File_get_item(id: vars["Window // File ID"], item: "2"));
+  mistsutils.patchcommand2(A: "let title = ", B: @File_get_item(id: vars["Window // File ID"], item: 2));
   vars["Window // Save Directory"] = "";
   @RUSH_execute(Command: "echo \"hello world\"");
-  vars["Scroll// Y"] = "-40";
-  vars["App // Count1"] = "0";
-  vars["App // Count2"] = "0";
-  data.deletealloflist(field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+  vars["Scroll// Y"] = -40;
+  vars["App // Count1"] = 0;
+  vars["App // Count2"] = 0;
+  data.deletealloflist(LIST: list("App // Data"));
   vars["Inputs // Current Line"] = "";
   vars["Inputs // Output Data"] = "";
-  vars["Files// Selected ID"] = "0";
-  vars["Files // Drag id"] = "0";
+  vars["Files// Selected ID"] = 0;
+  vars["Files // Drag id"] = 0;
   vars["//return"] = "";
   mistsutils.patchcommand(A: "const parent_ctx = target.setup.parent_ctx");
   mistsutils.patchcommand(A: "const parent_window = parent_ctx?.window");
   mistsutils.patchcommand(A: "const parent_id = parent_window?.id ?? -1");
   mistsutils.patchcommand(A: "const parent_name = parent_window?.title ?? \"\"");
   @OSL_Vars_Set(name: "data", data: "", current_command: "");
-  @OSL_Vars_Set(name: "file_dropped", data: "0", current_command: "");
+  @OSL_Vars_Set(name: "file_dropped", data: 0, current_command: "");
   @OSL_Vars_Set(name: "parent", data: mistsutils.patchreporter(A: "parent_id"), current_command: "");
   @OSL_Vars_Set(name: "parent_name", data: mistsutils.patchreporter(A: "parent_name"), current_command: "");
   @OSL_Vars_Set(name: "window_colour", data: "#050505", current_command: "");
@@ -99,7 +99,7 @@ def @Setup_Window() "Setup_Window" warp=true {
   @OSL_Vars_Set(name: "network_data_command", data: "", current_command: "");
   @OSL_Vars_Set(name: "network_data_from", data: "", current_command: "");
   mistsutils.patchcommand(A: "global.inputs = {}");
-  vars["Window // UUID"] = data.itemoflist(INDEX: vars["Window // File ID"], field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+  vars["Window // UUID"] = data.itemoflist(INDEX: vars["Window // File ID"], LIST: list("Files // UUIDS"));
   mistsutils.patchcommand2(A: "const uuid = ", B: vars["Window // UUID"]);
   mistsutils.patchcommand2(A: "global.window_id = ", B: vars["WIndow // ID"]);
   mistsutils.patchcommand2(A: "global.my_file = ", B: vars["Window // File ID"]);
@@ -109,7 +109,7 @@ def @Setup_Window() "Setup_Window" warp=true {
   mistsutils.patchcommand(A: "global.my_location = path.join(\"/\")");
   mistsutils.patchcommand2(A: "const my_path = ", B: @originFS_ID_Path(id: vars["Window // File ID"]));
   mistsutils.patchcommand(A: "global.my_path = my_path");
-  data.deletealloflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+  data.deletealloflist(LIST: list("Split Text"));
   mistsutils.patchcommand(A: "/*");
   @Window_Close(message: "");
   @Renderer_Call_ReRender();
@@ -122,7 +122,7 @@ def @Setup_Window() "Setup_Window" warp=true {
   mistsutils.patchcommand2(A: "win.parent.name = ", B: "parent_name");
   mistsutils.patchcommand2(A: "win.parent.id = ", B: "parent_id");
   mistsutils.patchcommand3(A: "win.parent.file_uuid = ", B: "parent_ctx", C: "?.my_uuid");
-  if (mistsutils.patchreporter(A: "uuid") == mistsutils.patchreporter(A: "win.parent.file_uuid")) {
+  if mistsutils.patchreporter(A: "uuid") == mistsutils.patchreporter(A: "win.parent.file_uuid") {
     mistsutils.patchcommand2(A: "win.parent.variables = ", B: "parent_ctx");
   }
   mistsutils.patchcommand(A: "win.file = { uuid }");
@@ -152,13 +152,13 @@ def @Setup_Window() "Setup_Window" warp=true {
   mistsutils.patchcommand2(A: "win.emit = ", B: @OSL_Function(name: "emit", parameters: "event, data", code: mistsutils.patchreporter(A: "`local events @= self._events[this.event] ?? []\\nfor i events.len (\\ntry (\\nvoid events[i](data)\\n)\\n)`")));
   mistsutils.patchcommand2(A: "win.listeners = ", B: @OSL_Function(name: "listeners", parameters: "event", code: "return self._events[event] ?? []"));
   vars["OSL // Perms"] = mistsutils.patchreporter(A: "[]");
-  if (((vars["Network // Files Update Offset"] / 14) > vars["Window // File ID"]) || mistsutils.starts(A: mistsutils.patchreporter(A: "my_path"), B: @Find_Directory(Directory: "~/applications"))) {
+  if vars["Network // Files Update Offset"] / 14 > vars["Window // File ID"] || mistsutils.starts(A: mistsutils.patchreporter(A: "my_path"), B: @Find_Directory(Directory: "~/applications")) {
     mistsutils.patchcommand(A: "try {");
     vars["OSL // Perms"] = @Root_Permissions();
     mistsutils.patchcommand(A: "} catch {}");
     mistsutils.patchcommand3(A: vars["OSL // Window"], B: ".permissions = ", C: vars["OSL // Perms"]);
   }
-  vars["//return"] = @File_get_item(id: vars["Window // File ID"], item: "4");
+  vars["//return"] = @File_get_item(id: vars["Window // File ID"], item: 4);
   mistsutils.patchcommand3(A: "win.file.code = ", B: vars["//return"], C: ".split('\\n')");
   mistsutils.patchcommand2(A: "const lint = ", B: OSLUtils.lintSyntax(CODE: vars["//return"]));
   if mistsutils.patchboolean(A: "lint.errors.length > 0") {
@@ -176,13 +176,13 @@ def @Setup_Window() "Setup_Window" warp=true {
   mistsutils.patchcommand(A: "else ast = {setup: ast.slice(0, idx), main: ast.slice(idx + 1)};");
   mistsutils.patchcommand(A: "win.ast = ast");
   mistsutils.patchcommand(A: "win.code = []");
-  procedures.call(arg0: ("Window Opened: " .. vars["Window // Name"]), mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
+  procedures.call(arg0: "Window Opened: " .. vars["Window // Name"], mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
   mistsutils.patchcommand(A: "target.window.wd = osl.user_folder");
   vars["New Window Created?"] = "false";
   vars["Window // Overlapping Redraw"] = "false";
   mistsutils.patchcommand(A: "win.x = 0; win.y = 0; win.width = 700; win.height = 450");
-  vars["Frame // Width"] = "0";
-  vars["Frame // Height"] = "0";
+  vars["Frame // Width"] = 0;
+  vars["Frame // Height"] = 0;
   mistsutils.patchcommand(A: "let token = origin.auth.token; origin.auth.token = \"\"");
   mistsutils.patchcommand2(A: "global.variables = ", B: @OSL_Function(name: "Variables", parameters: "", code: mistsutils.patchreporter3(A: "function() { return osl_clone[", B: vars["WIndow // ID"], C: "] }")));
   mistsutils.patchcommand2(A: "global.roturtoken = ", B: @OSL_Function(name: "roturToken", parameters: "", code: mistsutils.patchreporter(A: "function() { if (hasPermission(\"rotur token\")) return origin.permissions.getToken(); return \"\" }")));

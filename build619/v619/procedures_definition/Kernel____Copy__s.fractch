@@ -6,10 +6,10 @@
  * threadIndex: 200
  */
 
-def @Kernel_Copy(value) "Kernel // Copy %s" warp=false {
+def @Kernel_Copy(value) "Kernel // Copy %s" {
   mistsutils.patchcommand2(A: "let clipboard = ", B: clipboard.clipboard());
-  if not((clipboard.clipboard() == value)) {
-    if not(((value == "") || (value == "0"))) {
+  if clipboard.clipboard() != value {
+    if !(value == "" || value == 0) {
       clipboard.setClipboard(TEXT: value);
       mistsutils.patchcommand2(A: "clipboard = ", B: value);
     }

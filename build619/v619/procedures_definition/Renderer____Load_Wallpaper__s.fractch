@@ -6,7 +6,7 @@
  * threadIndex: 168
  */
 
-def @Renderer_Load_Wallpaper(url) "Renderer // Load Wallpaper %s" warp=false {
+def @Renderer_Load_Wallpaper(url) "Renderer // Load Wallpaper %s" {
   mistsutils.patchcommand(A: "origin.wallpaper.next = p0");
   if mistsutils.ends(A: url, B: ".mp4") {
     mistsutils.patchcommand(A: "origin.wallpaper.current = p0");
@@ -14,8 +14,8 @@ def @Renderer_Load_Wallpaper(url) "Renderer // Load Wallpaper %s" warp=false {
     lmsVideo.loadVideoURL(URL: url, NAME: "wallpaper");
     wait_until skyhigh173JSON.json_has_value(json: lmsVideo.getLoadedVideos(), value: "wallpaper");
     lmsVideo.startVideo(NAME: "wallpaper", DURATION: 0);
-    wait_until (lmsVideo.getAttribute(NAME: "wallpaper", field ATTRIBUTE: ["current time",null]) > "0");
-    lmsVideo.toggleLooping(NAME: "wallpaper", field LOOP: ["loop",null]);
+    wait_until lmsVideo.getAttribute(NAME: "wallpaper", field ATTRIBUTE: "current time") > 0;
+    lmsVideo.toggleLooping(NAME: "wallpaper", field LOOP: "loop");
     @OSL_Vars_Set(name: "background_url", data: url, current_command: "global");
   } else {
     mistsutils.patchcommand(A: "target.wallpaper_to_load = p0");

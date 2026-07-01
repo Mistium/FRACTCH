@@ -6,14 +6,14 @@
  * threadIndex: 80
  */
 
-def @Show_Notification(Icon, Title, Text, Style, Action) "Show Notification %s %s %s %s %s" warp=true {
+def @Show_Notification(Icon, Title, Text, Style, Action) "Show Notification %s %s %s %s %s" warp {
   mistsutils.patchcommand2(A: "const wrapped = ", B: "window.wordWrap(p2,43)");
   mistsutils.patchcommand(A: "let temp = JSON.stringify({text: wrapped, title: p1, icon: p0, style: p3})");
-  if not((vars["Kernel // Notification"] == mistsutils.patchreporter(A: "temp"))) {
+  if vars["Kernel // Notification"] != mistsutils.patchreporter(A: "temp") {
     vars["Kernel // Notification"] = mistsutils.patchreporter(A: "temp");
-    vars["Kernel // Notification Y"] = "60";
-    vars["Kernel // Notification Temp Y"] = "-40";
-    vars["Kernel // Notification Time"] = (mistsutils.patchreporter(A: "Date.now()") + vars["SYSTEM // Timestamp Offset"]);
+    vars["Kernel // Notification Y"] = 60;
+    vars["Kernel // Notification Temp Y"] = -40;
+    vars["Kernel // Notification Time"] = mistsutils.patchreporter(A: "Date.now()") + vars["SYSTEM // Timestamp Offset"];
     vars["Kernel // Notification Action (RUSH)"] = Action;
   }
 }

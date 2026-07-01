@@ -6,7 +6,7 @@
  * threadIndex: 220
  */
 
-def @Kernel_Tab_focus_change_handler() "Kernel // Tab focus change handler" warp=false {
+def @Kernel_Tab_focus_change_handler() "Kernel // Tab focus change handler" {
   mistsutils.patchcommand(A: "const focused = document.hasFocus()");
   mistsutils.patchcommand(A: "if (focused === origin.focused) return");
   mistsutils.patchcommand(A: "origin.focused = focused");

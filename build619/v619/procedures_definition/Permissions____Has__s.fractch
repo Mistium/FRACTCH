@@ -6,6 +6,6 @@
  * threadIndex: 228
  */
 
-def @Permissions_Has(perm) "Permissions // Has %s" warp=false {
+def @Permissions_Has(perm) "Permissions // Has %s" {
   return mistsutils.patchboolean(A: mistsutils.patchreporter3(A: "(", B: vars["OSL // Perms"], C: ").includes(p0)"));
 }

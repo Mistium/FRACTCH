@@ -6,6 +6,6 @@
  * threadIndex: 163
  */
 
-def @Inputs_Focus(id) "Inputs // Focus %s" warp=false {
+def @Inputs_Focus(id) "Inputs // Focus %s" {
   vars["Inputs // Next Selected"] = id;
 }

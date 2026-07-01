@@ -8,7 +8,7 @@
 
 import "../procedures_definition/Window____Setup_OSL_compilables.fractch";
 control.start_as_clone();
-sensing.setdragmode(field DRAG_MODE: ["not draggable",null]);
+sensing.setdragmode(field DRAG_MODE: "not draggable");
 looks.cleargraphiceffects();
 mistsutils.patchcommand(A: "target.self = target.variables[\"Xw\"]");
 mistsutils.patchcommand(A: "target._customState[\"Scratch.pen\"].getColour=window.getPenColour");
@@ -31,7 +31,7 @@ mistsutils.patchcommand(A: "target._evaltkn =  thread.procedures[\"ZEvaluate OSL
 mistsutils.patchcommand2(A: "//", B: @Log_Error(Data: "", Type: ""));
 mistsutils.patchcommand(A: "target._oslError = thread.procedures[\"ZLog Error %s %s\"]");
 mistsutils.patchcommand(A: "target.frames = {}");
-mistsutils.patchcommand2(A: "const embed_mode = ", B: (vars["Embed Mode"] == "1"));
+mistsutils.patchcommand2(A: "const embed_mode = ", B: vars["Embed Mode"] == 1);
 mistsutils.patchcommand(A: "target.getThisIdx = (target, name) => { const obj = target.osl_this; const map = target.osl_local_map; if (Object.hasOwn(map, name)) { return map[name]; } const idx = obj.length; map[name] = idx; obj.push(null); return idx; };");
 mistsutils.patchcommand(A: "const test_mode = embed_mode && origin.roturLink.mode === 'test'");
 if mistsutils.patchboolean(A: "test_mode") {
@@ -48,7 +48,7 @@ if mistsutils.patchboolean(A: "embed_mode && origin.parentWindow") {
 }
 mistsutils.patchcommand(A: "}");
 @Window_Setup_OSL_compilables();
-if (vars["Process // Type"] == "App") {
+if vars["Process // Type"] == "App" {
   if mistsutils.patchboolean(A: "embed_mode && origin.parentWindow") {
     mistsutils.patchcommand(A: "origin.parentWindow.postMessage({ type: \"start\" }, origin.parentOrigin)");
   }
@@ -58,7 +58,7 @@ if (vars["Process // Type"] == "App") {
   @Setup_Window();
   @OSL_Setup_Default_Functions();
   vars["Window // Created Timestamp"] = mistsutils.patchreporter(A: "Date.now()");
-  @OSL_Vars_Set(name: "file_dropped", data: mistsutils.patchreporter(A: "0"), current_command: "");
+  @OSL_Vars_Set(name: "file_dropped", data: mistsutils.patchreporter(A: 0), current_command: "");
   @OSL_Vars_Set(name: "passed_data", data: mistsutils.patchreporter(A: "target.passed_data"), current_command: "");
   mistsutils.patchcommand2(A: "const win_id = ", B: vars["WIndow // ID"]);
   mistsutils.patchcommand2(A: "target.window = ", B: vars["OSL // Window"]);
@@ -73,7 +73,7 @@ if (vars["Process // Type"] == "App") {
   mistsutils.patchcommand(A: "const calcRedraw = thread.procedures[\"ZWindow // Calculate Redraw Box\"]");
   mistsutils.patchcommand(A: "const redraw = thread.procedures[\"ZRenderer // Call ReRender\"]");
   @Window_Focus();
-  @set_stretch_to_x_y(x: "100", y: "100");
+  @set_stretch_to_x_y(x: 100, y: 100);
   mistsutils.patchcommand(A: "target.mainThread = thread");
   mistsutils.patchcommand(A: "target.runMain = () => vm.runtime.sequencer.stepThread(thread)");
   mistsutils.patchcommand(A: "origin.targets[win_id] = target");
@@ -92,7 +92,7 @@ if (vars["Process // Type"] == "App") {
   @OSL_Thread_Close();
   mistsutils.patchcommand(A: "} catch(e) { if (e !== \"exit\") { const cur = window?.osl_current_command; console.error(`Line ${cur?.line}: ${`${window?.osl_current_command?.[0]?.source ?? cur?.source}`.split(\"\\n\", 1)[0]}`); console.error(e?.full ?? e?.stack); console.log(target.window);");
   @Window_create(name: "popup", window_data: mistsutils.patchreporter(A: "String(e.full ?? e.stack)"));
-  data.addtolist(ITEM: skyhigh173JSON.json_set(item: "command", json: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "source", json: vars["Server// Base Payload"], value: mistsutils.patchreporter(A: "String(target.window?.my_path ?? \"\")")), value: mistsutils.patchreporter(A: "e.full ?? e.stack")), value: "report"), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+  data.addtolist(ITEM: skyhigh173JSON.json_set(item: "command", json: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "source", json: vars["Server// Base Payload"], value: mistsutils.patchreporter(A: "String(target.window?.my_path ?? \"\")")), value: mistsutils.patchreporter(A: "e.full ?? e.stack")), value: "report"), LIST: list("Network // Outgoing Packets"));
   if mistsutils.patchboolean(A: "test_mode") {
     mistsutils.patchcommand(A: "origin.roturLink.ws.send(JSON.stringify({id: target.passed_data, done: true }))");
   }
@@ -104,11 +104,11 @@ if (vars["Process // Type"] == "App") {
     forever {
       @OSL_Thread_Open(Name: "Mainloop");
       @Window_Run_Main();
-      if (vars["Window // ID_Index"] == "1") {
-        if (data.lengthoflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) > "0") {
+      if vars["Window // ID_Index"] == 1 {
+        if data.lengthoflist(LIST: list("Rightclick Options")) > 0 {
           mistsutils.patchcommand(A: "const menu = vm.runtime.getTargetForStage().variables[\"shgJ[!T-Mw;C6gtV1bEu\"].value.slice(4)");
           xeltallivclipblend.clearClipbox();
-          @Top_Level_Right_Click(code: mistsutils.patchreporter(A: "menu"), depth: "1", x: data.itemoflist(INDEX: 1, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), y: data.itemoflist(INDEX: 2, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")));
+          @Top_Level_Right_Click(code: mistsutils.patchreporter(A: "menu"), depth: 1, x: data.itemoflist(INDEX: 1, LIST: list("Rightclick Options")), y: data.itemoflist(INDEX: 2, LIST: list("Rightclick Options")));
         }
         mistsutils.patchcommand(A: "origin.permissions.getToken = getToken");
         mistsutils.patchcommand(A: "vm.renderer.dirty = true; vm.renderer.draw()");

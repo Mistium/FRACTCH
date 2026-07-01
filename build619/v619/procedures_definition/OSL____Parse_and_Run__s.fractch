@@ -6,11 +6,11 @@
  * threadIndex: 180
  */
 
-def @OSL_Parse_and_Run(Run) "OSL // Parse and Run %s" warp=false {
+def @OSL_Parse_and_Run(Run) "OSL // Parse and Run %s" {
   mistsutils.patchcommand(A: "if (!p0) return;");
   mistsutils.patchcommand(A: "// origin.renderer.frame.push(p0)");
   mistsutils.patchcommand2(A: "// ", B: @Evaluate_OSL_Token(Token_Obj: ""));
-  mistsutils.patchcommand2(A: "// ", B: data.lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+  mistsutils.patchcommand2(A: "// ", B: data.lengthoflist(LIST: list("Split Text")));
   mistsutils.patchcommand(A: "thread.evalToken = thread.procedures[\"WEvaluate OSL Token %s\"];");
   mistsutils.patchcommand3(A: "if (typeof p0 === \"string\") { const cac = origin.osl_ast_cache; if (cac.has(p0)) p0 = cac.get(p0); else { const k = p0; p0 = ", B: OSLUtils.generateFullAST(CODE: Run), C: "[0]; cac.set(k, p0) } }");
   mistsutils.patchcommand(A: "const token_ast = p0;");
@@ -82,8 +82,8 @@ def @OSL_Parse_and_Run(Run) "OSL // Parse and Run %s" warp=false {
   switch mistsutils.patchreporter(A: "node.data") {
     mistsutils.patchcommand(A: "case \"=\": out = (typeof value === \"object\" && value !== null) ? Object.clone(value) : value; break;");
     mistsutils.patchcommand(A: "case \"@=\": out = value; break;");
-    mistsutils.patchcommand3(A: "case \"++\": out = ", B: (mistsutils.patchreporter(A: "cur") + 1), C: "; break;");
-    mistsutils.patchcommand3(A: "case \"--\": out = ", B: (mistsutils.patchreporter(A: "cur") - 1), C: "; break;");
+    mistsutils.patchcommand3(A: "case \"++\": out = ", B: mistsutils.patchreporter(A: "cur") + 1, C: "; break;");
+    mistsutils.patchcommand3(A: "case \"--\": out = ", B: mistsutils.patchreporter(A: "cur") - 1, C: "; break;");
     mistsutils.patchcommand(A: "case \"=??\": if ((value ?? \"\") === \"\") return; out = (typeof value === \"object\" && value !== null && value !== cur) ? Object.clone(value) : value; break");
     mistsutils.patchcommand2(A: "default: out = ", B: "osl_maths(cur, node.data.slice(0, -1), value);");
   }

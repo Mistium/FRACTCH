@@ -6,7 +6,7 @@
  * threadIndex: 236
  */
 
-def @Renderer_Get_blur_skin() "Renderer // Get blur skin" warp=false {
+def @Renderer_Get_blur_skin() "Renderer // Get blur skin" {
   mistsutils.patchcommand(A: "const myId = target.window.id");
   mistsutils.patchcommand(A: "const winIds = origin.windows.ids");
   mistsutils.patchcommand(A: "let idx = winIds.indexOf(myId)");

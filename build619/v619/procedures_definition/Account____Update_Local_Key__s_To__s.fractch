@@ -7,7 +7,7 @@
  */
 
 import "../procedures_definition/OSL___Vars__Set__s__s__s.fractch";
-def @Account_Update_Local_Key_To(Key, Value) "Account // Update Local Key %s To %s" warp=true {
+def @Account_Update_Local_Key_To(Key, Value) "Account // Update Local Key %s To %s" warp {
   mistsutils.patchcommand2(A: "let old_acc = ", B: mistsutils.jsonparse(A: vars["Account// Current"]));
   vars["Account// Current"] = skyhigh173JSON.json_set(item: Key, json: vars["Account// Current"], value: Value);
   @OSL_Vars_Set(name: "user", data: mistsutils.jsonparse(A: vars["Account// Current"]), current_command: "global");
@@ -31,7 +31,7 @@ def @Account_Update_Local_Key_To(Key, Value) "Account // Update Local Key %s To 
     @OSL_Vars_Set(name: "global_accent", data: mistsutils.patchreporter(A: "p1.accent"), current_command: "global");
     @Generate_Theme_Colours_From_User();
   }
-  if (mistsutils.patchboolean(A: "p0 === \"sys.requests\"") && mistsutils.patchboolean(A: "p1.length > old_acc[\"sys.requests\"].length")) {
+  if mistsutils.patchboolean(A: "p0 === \"sys.requests\"") && mistsutils.patchboolean(A: "p1.length > old_acc[\"sys.requests\"].length") {
     mistsutils.patchcommand(A: "let name = p1[p1.length - 1]");
     @Show_Notification(Icon: mistsutils.patchreporter(A: "`image https://avatars.rotur.dev/${name}?radius=256 20`"), Title: mistsutils.patchreporter(A: "name + \" sent you a friend request\""), Text: "", Style: "puck", Action: "osl \"/(A) System/User Applications/Contacts.osl\"");
   }

@@ -6,16 +6,16 @@
  * threadIndex: 59
  */
 
-def @originFS_Exec_at_with_data_File_UUID(Command, Index, Data, Uuid) "originFS // __Exec__ %s at %s with data %s File UUID: %s" warp=true {
+def @originFS_Exec_at_with_data_File_UUID(Command, Index, Data, Uuid) "originFS // __Exec__ %s at %s with data %s File UUID: %s" warp {
   mistsutils.patchcommand(A: "let cloud_path = \"origin/(c) users\"");
   mistsutils.patchcommand(A: "const updates = origin.network.updates");
   mistsutils.patchcommand(A: "const update_ids = origin.network.update_ids");
-  if (Uuid == "") {
-    if (Command == "append") {
+  if Uuid == "" {
+    if Command == "append" {
       @Kernel_Log(Thing: "originFS", Value: mistsutils.patchreporter3(A: "`add ${formatFileSize(", B: operator.length(STRING: Data), C: ")}`"));
       mistsutils.patchcommand(A: "if (`${p3}`[0] === \"~\") return");
       mistsutils.patchcommand2(A: "const loc = ", B: skyhigh173JSON.json_array_get(item: 3, json: Data));
-      if not((vars["Account// Current"] == "")) {
+      if vars["Account// Current"] != "" {
         if mistsutils.patchboolean(A: "String(loc).toLowerCase().startsWith(cloud_path)") {
           mistsutils.patchcommand3(A: "updates.push(", B: skyhigh173JSON.json_set(item: "dta", json: skyhigh173JSON.json_set(item: "uuid", json: "{\"command\":\"UUIDa\"}", value: skyhigh173JSON.json_array_get(item: 14, json: Data)), value: Data), C: ")");
           mistsutils.patchcommand(A: "update_ids.push(\"\")");
@@ -26,16 +26,16 @@ def @originFS_Exec_at_with_data_File_UUID(Command, Index, Data, Uuid) "originFS 
     stop "this script";
   } else {
     mistsutils.patchcommand2(A: "let index = ", B: @originFS_UUID_ID(UUID: Uuid));
-    if (Command == "delete") {
-      @Kernel_Log(Thing: "originFS", Value: ("del " .. Uuid));
+    if Command == "delete" {
+      @Kernel_Log(Thing: "originFS", Value: "del " .. Uuid);
       mistsutils.patchcommand(A: "if (`${p3}`[0] === \"~\") return");
-      mistsutils.patchcommand2(A: "const loc = ", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: "3"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+      mistsutils.patchcommand2(A: "const loc = ", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: 3), LIST: list("Files")));
       if mistsutils.patchboolean(A: "String(loc).toLowerCase().startsWith(cloud_path)") {
         mistsutils.patchcommand3(A: "updates.push(", B: skyhigh173JSON.json_set(item: "uuid", json: "{\"command\":\"UUIDd\"}", value: Uuid), C: ")");
         mistsutils.patchcommand(A: "update_ids.push(\"\")");
-        if (data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: "1"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")) == ".folder") {
+        if data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: 1), LIST: list("Files")) == ".folder" {
           mistsutils.patchcommand(A: "try {");
-          mistsutils.patchcommand2(A: "let arr = ", B: @Files_List_all_uuids_recursively_in(path: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: "14"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"))));
+          mistsutils.patchcommand2(A: "let arr = ", B: @Files_List_all_uuids_recursively_in(path: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: 14), LIST: list("Files"))));
           mistsutils.patchcommand(A: "arr.shift()");
           mistsutils.patchcommand(A: "const queue = arr.slice()");
           mistsutils.patchcommand(A: "const obj = {files: queue, header: \"Deleting Files\", total: queue.length, message: `Deleting ${queue.length} files`}");
@@ -46,21 +46,21 @@ def @originFS_Exec_at_with_data_File_UUID(Command, Index, Data, Uuid) "originFS 
         }
       }
       repeat 14 {
-        data.deleteoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: "1"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+        data.deleteoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: 1), LIST: list("Files"));
       }
-      data.deleteoflist(INDEX: mistsutils.patchreporter(A: "index"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-      data.deleteoflist(INDEX: mistsutils.patchreporter(A: "index"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+      data.deleteoflist(INDEX: mistsutils.patchreporter(A: "index"), LIST: list("Files // Index Path"));
+      data.deleteoflist(INDEX: mistsutils.patchreporter(A: "index"), LIST: list("Files // UUIDS"));
       @originFS_Generate_window_origin_index();
     } else {
-      if mistsutils.notequals(A: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: Index), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), B: Data) {
-        if (Command == "replace") {
-          mistsutils.patchcommand3(A: "const name = `${", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: "2"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: mistsutils.patchreporter3(A: "}${", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: "1"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: "}`"));
+      if mistsutils.notequals(A: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: Index), LIST: list("Files")), B: Data) {
+        if Command == "replace" {
+          mistsutils.patchcommand3(A: "const name = `${", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: 2), LIST: list("Files")), C: mistsutils.patchreporter3(A: "}${", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: 1), LIST: list("Files")), C: "}`"));
           @Kernel_Log(Thing: "originFS", Value: mistsutils.patchreporter3(A: "`set ${name} item ${p1}: ${formatFileSize(", B: operator.length(STRING: Data), C: ")}`"));
           mistsutils.patchcommand(A: "if (`${p3}`[0] === \"~\") return");
-          data.replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: Index), ITEM: Data, field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
-          mistsutils.patchcommand2(A: "const loc = ", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: "3"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
-          if (not((vars["Account// Current"] == "")) && mistsutils.patchboolean(A: "String(loc).toLowerCase().startsWith(cloud_path)")) {
-            mistsutils.patchcommand2(A: "let id = ", B: (Uuid .. ("-" .. Index)));
+          data.replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: Index), ITEM: Data, LIST: list("Files"));
+          mistsutils.patchcommand2(A: "const loc = ", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "index"), num: 3), LIST: list("Files")));
+          if vars["Account// Current"] != "" && mistsutils.patchboolean(A: "String(loc).toLowerCase().startsWith(cloud_path)") {
+            mistsutils.patchcommand2(A: "let id = ", B: Uuid .. ("-" .. Index));
             mistsutils.patchcommand2(A: "let obj = ", B: skyhigh173JSON.json_set(item: "dta", json: skyhigh173JSON.json_set(item: "uuid", json: skyhigh173JSON.json_set(item: "idx", json: "{\"command\":\"UUIDr\"}", value: Index), value: Uuid), value: Data));
             if mistsutils.patchboolean(A: "update_ids.includes(id)") {
               mistsutils.patchcommand(A: "updates[update_ids.indexOf(id)] = obj");

@@ -6,7 +6,7 @@
  * threadIndex: 233
  */
 
-def @Renderer_Draw_skin_over_window(skinId) "Renderer // Draw skin %s over window" warp=false {
+def @Renderer_Draw_skin_over_window(skinId) "Renderer // Draw skin %s over window" {
   mistsutils.patchcommand(A: "const skin = vm.renderer._allSkins[p0]");
   mistsutils.patchcommand(A: "if (!skin) return");
   mistsutils.patchcommand(A: "const y = Math.floor(800 / vm.renderer.gl.canvas.height)");

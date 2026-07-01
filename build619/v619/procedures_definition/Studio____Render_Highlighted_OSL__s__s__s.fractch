@@ -6,22 +6,22 @@
  * threadIndex: 69
  */
 
-def @Studio_Render_Highlighted_OSL(OSL, Parsed, text_colour("text colour")) "Studio // Render Highlighted OSL %s %s %s" warp=true {
-  if (OSL == "") {
+def @Studio_Render_Highlighted_OSL(OSL, Parsed, text_colour("text colour")) "Studio // Render Highlighted OSL %s %s %s" warp {
+  if OSL == "" {
     stop "this script";
   }
   vars["temp2"] = operator.length(STRING: OSL);
-  if (temp2 > "1000") {
-    @Draw_Text(Text: OSL, X: motion.xposition(), Y: motion.yposition(), Size: "10", Markdown_Enabled: "");
+  if temp2 > 1000 {
+    @Draw_Text(Text: OSL, X: motion.xposition(), Y: motion.yposition(), Size: 10, Markdown_Enabled: "");
     mistsutils.patchcommand(A: "return;");
   }
   vars["temp"] = truefantomregexp.regexp_replace_block(A: OSL, B: "/^ */", C: "");
-  vars["temp2"] = (temp2 - operator.length(STRING: temp));
+  vars["temp2"] = temp2 - operator.length(STRING: temp);
   mistsutils.patchcommand2(A: "const ohf = ", B: vars["Studio // OHF"]);
   mistsutils.patchcommand2(A: "let col = ", B: text_colour);
-  if (mistsutils.starts(A: temp, B: mistsutils.patchreporter(A: "ohf?.overrides?.[\"origin.comment_mark\"] ?? \"//\"")) && mistsutils.patchboolean(A: "ohf.overrides[\"origin.comments\"]")) {
+  if mistsutils.starts(A: temp, B: mistsutils.patchreporter(A: "ohf?.overrides?.[\"origin.comment_mark\"] ?? \"//\"")) && mistsutils.patchboolean(A: "ohf.overrides[\"origin.comments\"]") {
     pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "ohf.overrides[\"origin.comments\"]"));
-    @Draw_Text(Text: OSL, X: motion.xposition(), Y: motion.yposition(), Size: "10", Markdown_Enabled: "");
+    @Draw_Text(Text: OSL, X: motion.xposition(), Y: motion.yposition(), Size: 10, Markdown_Enabled: "");
   } else {
     mistsutils.patchcommand(A: "const numbers_colour = ohf?.overrides?.[\"origin.numbers\"]");
     mistsutils.patchcommand(A: "const strings_colour = ohf?.overrides?.[\"origin.strings\"]");
@@ -39,7 +39,7 @@ def @Studio_Render_Highlighted_OSL(OSL, Parsed, text_colour("text colour")) "Stu
         mistsutils.patchcommand2(A: "arr = ", B: OSLUtils.tokeniseraw(CODE: temp));
       }
     }
-    motion.changexby(DX: (temp2 * 10));
+    motion.changexby(DX: temp2 * 10);
     mistsutils.patchcommand(A: "for (let i = 0; i < arr.length; i ++) {");
     mistsutils.patchcommand(A: "const token = \"\"+arr[i] || \"\"");
     mistsutils.patchcommand(A: "let colour = null;");
@@ -62,7 +62,7 @@ def @Studio_Render_Highlighted_OSL(OSL, Parsed, text_colour("text colour")) "Stu
     mistsutils.patchcommand(A: "} if (token === \" \") {");
     motion.changexby(DX: 10);
     mistsutils.patchcommand(A: "} else {");
-    @Draw_Text(Text: mistsutils.patchreporter(A: "token"), X: motion.xposition(), Y: motion.yposition(), Size: "10", Markdown_Enabled: "1");
+    @Draw_Text(Text: mistsutils.patchreporter(A: "token"), X: motion.xposition(), Y: motion.yposition(), Size: 10, Markdown_Enabled: 1);
     mistsutils.patchcommand(A: "}");
     pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "col"));
     mistsutils.patchcommand(A: "}");

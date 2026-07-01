@@ -6,12 +6,12 @@
  * threadIndex: 144
  */
 
-def @Connect_As(user) "Connect As %s" warp=false {
+def @Connect_As(user) "Connect As %s" {
   pen.setPenColorToColor(COLOR: "#ffffff");
   mistsutils.patchcommand(A: "origin.desktop.split = [0.5,0.5,0.5,0.5,0.5]");
   vars["Account// Current"] = "";
   vars["Kernel // Notification"] = "";
-  mistsutils.patchcommand2(A: "let username = ", B: ("ori-" .. (mistsutils.patchreporter(A: "p0.username") .. ("§" .. mistsutils.letters(A: 1, B: 10, C: mistsutils.patchreporter(A: "CryptoJS.SHA512(\"\"+performance.now()).toString()"))))));
+  mistsutils.patchcommand2(A: "let username = ", B: "ori-" .. (mistsutils.patchreporter(A: "p0.username") .. ("§" .. mistsutils.letters(A: 1, B: 10, C: mistsutils.patchreporter(A: "CryptoJS.SHA512(\"\"+performance.now()).toString()")))));
   vars["Server// Base Payload"] = skyhigh173JSON.json_set(item: "username", json: vars["Server// Base Payload"], value: mistsutils.patchreporter(A: "username"));
   cloudlink.runCMDnoID(CMD: "setid", DATA: mistsutils.patchreporter(A: "username"));
 }

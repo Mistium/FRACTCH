@@ -6,7 +6,7 @@
  * threadIndex: 146
  */
 
-def @Account_Request_using_and(mode, Key, Value) "Account // Request %s using %s and %s" warp=false {
+def @Account_Request_using_and(mode, Key, Value) "Account // Request %s using %s and %s" {
   switch mode {
     case "update" {
       if mistsutils.notequals(A: mistsutils.patchreporter3(A: "osl.user[", B: Key, C: "]"), B: Value) {
@@ -16,7 +16,7 @@ def @Account_Request_using_and(mode, Key, Value) "Account // Request %s using %s
       }
     }
     case "delete" {
-      data.addtolist(ITEM: skyhigh173JSON.json_set(item: "command", json: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "source", json: vars["Server// Base Payload"], value: vars["Window // Network ID"]), value: Key), value: "delete"), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+      data.addtolist(ITEM: skyhigh173JSON.json_set(item: "command", json: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "source", json: vars["Server// Base Payload"], value: vars["Window // Network ID"]), value: Key), value: "delete"), LIST: list("Network // Outgoing Packets"));
       @Account_Remove_Local_Key(Key: Key);
     }
   }

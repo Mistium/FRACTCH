@@ -6,14 +6,14 @@
  * threadIndex: 47
  */
 
-event.whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Send Global Message", "Ar"));
-if (vars["Process // Type"] == "App") {
+event.whenbroadcastreceived(BROADCAST_OPTION: broadcast("Send Global Message"));
+if vars["Process // Type"] == "App" {
   mistsutils.patchcommand(A: "try {");
   if mistsutils.patchboolean(A: "!target.isOriginal") {
     mistsutils.patchcommand2(A: "let globalMsg = ", B: vars["SYSTEM // Global Message"]);
     mistsutils.patchcommand(A: "const cmd = String(globalMsg[0]).toLowerCase()");
     mistsutils.patchcommand(A: "const id = parseInt(String(globalMsg[1]))");
-    if (mistsutils.patchreporter(A: "id") == vars["WIndow // ID"]) {
+    if mistsutils.patchreporter(A: "id") == vars["WIndow // ID"] {
       vars["SYSTEM // Global Message"] = mistsutils.patchreporter(A: "null");
       switch mistsutils.patchreporter(A: "cmd") {
         case "close" {

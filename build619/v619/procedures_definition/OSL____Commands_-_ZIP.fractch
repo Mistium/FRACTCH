@@ -6,26 +6,26 @@
  * threadIndex: 207
  */
 
-def @OSL_Commands_ZIP() "OSL // Commands - ZIP" warp=false {
-  mistsutils.patchcommand2(A: "let destr = ", B: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-  mistsutils.patchcommand2(A: "let destr2 = ", B: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-  if (vars["OSL // Current Zip Archive"] == "") {
-    if (data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "new") {
-      @VFS_Switch_context(name: (vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\"-\" + destr")));
+def @OSL_Commands_ZIP() "OSL // Commands - ZIP" {
+  mistsutils.patchcommand2(A: "let destr = ", B: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
+  mistsutils.patchcommand2(A: "let destr2 = ", B: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
+  if vars["OSL // Current Zip Archive"] == "" {
+    if data.itemoflist(INDEX: 2, LIST: list("Split Text")) == "new" {
+      @VFS_Switch_context(name: vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\"-\" + destr"));
     } else {
-      if (data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "open") {
-        @VFS_Switch_context(name: ((vars["WIndow // ID"] .. "-") .. data.itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
-        vfs.importfiles(FILES: mistsutils.patchreporter(A: "String(destr)"), field EXPORT: ["zip",null]);
+      if data.itemoflist(INDEX: 2, LIST: list("Split Text")) == "open" {
+        @VFS_Switch_context(name: vars["WIndow // ID"] .. "-" .. data.itemoflist(INDEX: 5, LIST: list("Split Text")));
+        vfs.importfiles(FILES: mistsutils.patchreporter(A: "String(destr)"), field EXPORT: "zip");
       } else {
         @Log_Error(Data: "ZIP - Invalid Command While No Directory Is Open", Type: "ZIP");
       }
     }
     stop "this script";
   } else {
-    switch data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+    switch data.itemoflist(INDEX: 2, LIST: list("Split Text")) {
       case "switch" {
         vars["OSL // Current Zip Archive"] = "";
-        @VFS_Switch_context(name: (vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\"-\" + destr")));
+        @VFS_Switch_context(name: vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\"-\" + destr"));
       }
       case "remove" {
         mistsutils.patchcommand2(A: "const id = ", B: vars["OSL // Current Zip Archive"]);
@@ -55,10 +55,10 @@ def @OSL_Commands_ZIP() "OSL // Commands - ZIP" warp=false {
         vfs.deleteFile(FILE_PATH: mistsutils.patchreporter(A: "destr"));
       }
       case "export_json" {
-        @OSL_Set_Data_Var_To(data: vfs.getallfiles(field EXPORT: ["json",null]));
+        @OSL_Set_Data_Var_To(data: vfs.getallfiles(field EXPORT: "json"));
       }
       case "export_zip" {
-        @OSL_Set_Data_Var_To(data: vfs.getallfiles(field EXPORT: ["zip",null]));
+        @OSL_Set_Data_Var_To(data: vfs.getallfiles(field EXPORT: "zip"));
       }
       default {
         @Log_Error(Data: mistsutils.patchreporter(A: "`Unknown ZIP command: ${p0}`"), Type: "Unknown Command");

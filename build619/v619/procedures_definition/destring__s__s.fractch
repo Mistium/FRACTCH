@@ -6,7 +6,7 @@
  * threadIndex: 100
  */
 
-def @destring(Text, remove) "destring %s %s" warp=true {
+def @destring(Text, remove) warp {
   mistsutils.patchcommand(A: "b0.value = destr(p0,p1)");
   return vars["DeString // out"];
 }

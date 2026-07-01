@@ -6,7 +6,7 @@
  * threadIndex: 126
  */
 
-def @Renderer_Call_ReRender() "Renderer // Call ReRender" warp=false {
+def @Renderer_Call_ReRender() "Renderer // Call ReRender" {
   mistsutils.patchcommand2(A: "let left = ", B: vars["Redraw // Window Left"]);
   mistsutils.patchcommand2(A: "let top = ", B: vars["Redraw // Window Top"]);
   mistsutils.patchcommand2(A: "let right = ", B: vars["Redraw // Window Right"]);

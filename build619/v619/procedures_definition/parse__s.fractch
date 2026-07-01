@@ -6,6 +6,6 @@
  * threadIndex: 134
  */
 
-def @parse(json) "parse %s" warp=false {
+def @parse(json) {
   return mistsutils.patchreporter(A: "JSON.safeParse(p0)");
 }

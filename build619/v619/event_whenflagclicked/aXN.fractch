@@ -42,8 +42,8 @@ if mistsutils.patchboolean(A: "window.location.origin === \"file://\"") {
   stop "all";
 }
 @Clear_Data();
-vars["Renderer // Scale"] = "1";
-vars["SYSTEM // Minimised Apps Scale"] = "1";
+vars["Renderer // Scale"] = 1;
+vars["SYSTEM // Minimised Apps Scale"] = 1;
 cloudlink.closeSocket();
 mistsutils.patchcommand(A: "window.snapshotStage = function() { const renderer = vm.renderer; let dataUrl; const oldCallbacks = renderer._snapshotCallbacks; renderer.dirty = true; renderer._snapshotCallbacks = [(url) => {dataUrl = url}]; renderer.draw(); renderer._snapshotCallbacks = oldCallbacks; renderer.dirty = true; return dataUrl || \"\"; }");
 mistsutils.patchcommand(A: "document.title = \"originOS\";");
@@ -60,7 +60,7 @@ mistsutils.patchcommand(A: "const GPU_VENDOR_REGEX=/(intel|nvidia|sis|amd|apple|
 mistsutils.patchcommand(A: "window.defineTypedProperty=(e,t,o,l,r)=>{const n=\"?\"===l[l.length-1],p=n?l.slice(0,-1):l,s=osl.typeof.code,y=`\"${t}\" must be of type ${l}`,f=`Initial value for \"${t}\" must be of type ${l}`;let i=o;null==o&&n||s(o)===p||r._oslError(f,\"type\"),Object.defineProperty(e,t,{get:()=>i,set(e){null==e&&n||s(e)===p?i=e:r._oslError(y,\"type\")},enumerable:!0,configurable:!0})};");
 mistsutils.patchcommand(A: "window.createTypedObject=function(e,r,o){const t={};let n;for(n in r)n in e||o._oslError(`Unknown property \"${n}\"`,\"interface\");for(n in e){const l=e[n];let i,s=l.type,c=!!l.optional,f=63===s.charCodeAt(s.length-1),p=f?s.slice(0,-1):s;n in r?(i=r[n],null===i?c||f||o._oslError(`\"${n}\" must be of type ${s}`,\"interface\"):osl.typeof.code(i)!==p&&o._oslError(`\"${n}\" must be of type ${s}`,\"interface\")):(c||o._oslError(`Missing required property \"${n}\"`,\"interface\"),i=null),Object.defineProperty(t,n,{get:()=>i,set(e){null===e?c||f||o._oslError(`\"${n}\" must be of type ${s}`,\"interface\"):osl.typeof.code(e)!==p&&o._oslError(`\"${n}\" must be of type ${s}`,\"interface\"),i=e},enumerable:!0,configurable:!1})}return t};");
 mistsutils.patchcommand(A: "vm._events.targetsUpdate = []");
-videoSensing.videoToggle(VIDEO_STATE: videoSensing.menu_VIDEO_STATE(field VIDEO_STATE: ["off",null]));
+videoSensing.videoToggle(VIDEO_STATE: videoSensing.menu_VIDEO_STATE(field VIDEO_STATE: "off"));
 mistsutils.patchcommand(A: "if (window.origin?.roturLink?.ws?.readyState < 3) window.origin.roturLink.ws.close()");
 mistsutils.patchcommand(A: "window.origin = {auth: {}, targets: {}, osl_ast_cache: new Map(), account: {}, apps: {}, sudoTransmit: [], permissions: {writes: []}, repoSource: \"https://origin.mistium.com/\", applySource: function(url) { return this.repoSource + url }, fetches: {video: [], images: [], web: [], downloads: []}, time: {}, terminal: {}, roturLink: { enabled: false }, wallpaper: { transparency: 0, transparency_target: 0}, network: {logs: [], updates: [], update_ids: []}, symbols: {}, files: {mount_points: {}, transfers: [], processes: [], system_total: window?.origin?.files?.system_total ?? 0, queues:{delete:[], move:[], duplicate: []}}, notifications: [], renderer: {penSkin: vm.runtime.ext_pen._penSkinId, canvas: vm.renderer.canvas, last: [], queue: [], frame: []}, desktop: {current: 0, min: 1, max: 5, split: [0.5,0.5,0.5,0.5,0.5,0.5], popups: []}, keyboard: {keysObj: {}, keysDown: [], tabIndexes: [], tabIndex: 0}, workers:{}, processes: [], windows:{area: {}, positions: [], hovered: [], snapping: [], network_ids: [], names: [], minimised: [], received: [], render: [], shown: [], ids: [], icns: [], paths: []}, elements: {}, utils: {}}");
 mistsutils.patchcommand(A: "const origin = window.origin");
@@ -79,7 +79,7 @@ mistsutils.patchcommand(A: "window.zipUtil=function(e,n){return new Promise(((t,
 mistsutils.patchcommand(A: "!function(n){function r(n,r){return n+r&4294967295}function t(n,t,o,u,e,f){return t=r(r(t,n),r(u,f)),r(t<<e|t>>>32-e,o)}function o(n,r,o,u,e,f,c){return t(r&o|~r&u,n,r,e,f,c)}function u(n,r,o,u,e,f,c){return t(r&u|o&~u,n,r,e,f,c)}function e(n,r,o,u,e,f,c){return t(r^o^u,n,r,e,f,c)}function f(n,r,o,u,e,f,c){return t(o^(r|~u),n,r,e,f,c)}function c(n,t){var c=n[0],i=n[1],a=n[2],h=n[3];c=o(c,i,a,h,t[0],7,-680876936),h=o(h,c,i,a,t[1],12,-389564586),a=o(a,h,c,i,t[2],17,606105819),i=o(i,a,h,c,t[3],22,-1044525330),c=o(c,i,a,h,t[4],7,-176418897),h=o(h,c,i,a,t[5],12,1200080426),a=o(a,h,c,i,t[6],17,-1473231341),i=o(i,a,h,c,t[7],22,-45705983),c=o(c,i,a,h,t[8],7,1770035416),h=o(h,c,i,a,t[9],12,-1958414417),a=o(a,h,c,i,t[10],17,-42063),i=o(i,a,h,c,t[11],22,-1990404162),c=o(c,i,a,h,t[12],7,1804603682),h=o(h,c,i,a,t[13],12,-40341101),a=o(a,h,c,i,t[14],17,-1502002290),c=u(c,i=o(i,a,h,c,t[15],22,1236535329),a,h,t[1],5,-165796510),h=u(h,c,i,a,t[6],9,-1069501632),a=u(a,h,c,i,t[11],14,643717713),i=u(i,a,h,c,t[0],20,-373897302),c=u(c,i,a,h,t[5],5,-701558691),h=u(h,c,i,a,t[10],9,38016083),a=u(a,h,c,i,t[15],14,-660478335),i=u(i,a,h,c,t[4],20,-405537848),c=u(c,i,a,h,t[9],5,568446438),h=u(h,c,i,a,t[14],9,-1019803690),a=u(a,h,c,i,t[3],14,-187363961),i=u(i,a,h,c,t[8],20,1163531501),c=u(c,i,a,h,t[13],5,-1444681467),h=u(h,c,i,a,t[2],9,-51403784),a=u(a,h,c,i,t[7],14,1735328473),c=e(c,i=u(i,a,h,c,t[12],20,-1926607734),a,h,t[5],4,-378558),h=e(h,c,i,a,t[8],11,-2022574463),a=e(a,h,c,i,t[11],16,1839030562),i=e(i,a,h,c,t[14],23,-35309556),c=e(c,i,a,h,t[1],4,-1530992060),h=e(h,c,i,a,t[4],11,1272893353),a=e(a,h,c,i,t[7],16,-155497632),i=e(i,a,h,c,t[10],23,-1094730640),c=e(c,i,a,h,t[13],4,681279174),h=e(h,c,i,a,t[0],11,-358537222),a=e(a,h,c,i,t[3],16,-722521979),i=e(i,a,h,c,t[6],23,76029189),c=e(c,i,a,h,t[9],4,-640364487),h=e(h,c,i,a,t[12],11,-421815835),a=e(a,h,c,i,t[15],16,530742520),c=f(c,i=e(i,a,h,c,t[2],23,-995338651),a,h,t[0],6,-198630844),h=f(h,c,i,a,t[7],10,1126891415),a=f(a,h,c,i,t[14],15,-1416354905),i=f(i,a,h,c,t[5],21,-57434055),c=f(c,i,a,h,t[12],6,1700485571),h=f(h,c,i,a,t[3],10,-1894986606),a=f(a,h,c,i,t[10],15,-1051523),i=f(i,a,h,c,t[1],21,-2054922799),c=f(c,i,a,h,t[8],6,1873313359),h=f(h,c,i,a,t[15],10,-30611744),a=f(a,h,c,i,t[6],15,-1560198380),i=f(i,a,h,c,t[13],21,1309151649),c=f(c,i,a,h,t[4],6,-145523070),h=f(h,c,i,a,t[11],10,-1120210379),a=f(a,h,c,i,t[2],15,718787259),i=f(i,a,h,c,t[9],21,-343485551),n[0]=r(c,n[0]),n[1]=r(i,n[1]),n[2]=r(a,n[2]),n[3]=r(h,n[3])}function i(n){var r,t=[];for(r=0;r<64;r+=4)t[r>>2]=n.charCodeAt(r)+(n.charCodeAt(r+1)<<8)+(n.charCodeAt(r+2)<<16)+(n.charCodeAt(r+3)<<24);return t}function a(n){for(var r=\"\",t=0;t<4;t++)r+=h[n>>8*t+4&15]+h[n>>8*t&15];return r}var h=\"0123456789abcdef\".split(\"\");n.md5=function(n){return function(n){for(var r=0;r<n.length;r++)n[r]=a(n[r]);return n.join(\"\")}(function(n){var r,t=n.length,o=[1732584193,-271733879,-1732584194,271733878];for(r=64;r<=n.length;r+=64)c(o,i(n.substring(r-64,r)));n=n.substring(r-64);var u=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];for(r=0;r<n.length;r++)u[r>>2]|=n.charCodeAt(r)<<(r%4<<3);if(u[r>>2]|=128<<(r%4<<3),r>55)for(c(o,u),r=0;r<16;r++)u[r]=0;return u[14]=8*t,c(o,u),o}(n))}}(window);");
 mistsutils.patchcommand(A: "const cleanUpLogin = () => { window._roturOverlay&&Scratch.renderer.removeOverlay(window._roturOverlay),window.removeEventListener(\"message\",window._roturAuthHandler),delete window._roturOverlay,delete window._roturAuthHandler; }");
 mistsutils.patchcommand(A: "cleanUpLogin()");
-vars["Embed Mode"] = (zxmushroom63searchparams.hassearchparam(ID: "embed") - 0);
+vars["Embed Mode"] = zxmushroom63searchparams.hassearchparam(ID: "embed") - 0;
 if zxmushroom63searchparams.hassearchparam(ID: "source") {
   mistsutils.patchcommand2(A: "origin.repoSource = \"\"+", B: zxmushroom63searchparams.searchparam(ID: "source"));
   mistsutils.patchcommand(A: "if (!origin.repoSource.endsWith(\"/\")) origin.repoSource += \"/\"");
@@ -89,51 +89,51 @@ mistsutils.patchcommand2(A: "const connect = ", B: @Kernel_Setup_roturLink_conne
 mistsutils.patchcommand(A: "connect()");
 xeltallivSimple3D.resetEverything();
 mistfetch.deleteAllRequests();
-if (vars["Embed Mode"] == "0") {
-  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/scripts/system/setup.osl\")"), ID: "setup", headers: "{}", body: "{}");
-  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: mistsutils.patchreporter(A: "origin.applySource(\"Resources/Rightclick.json\")"), ID: "rightclick", headers: "{}", body: "{}");
-  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/apps/System/.Install_system.json\")"), ID: "installer", headers: "{}", body: "{}");
+if vars["Embed Mode"] == 0 {
+  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/scripts/system/setup.osl\")"), ID: "setup", headers: "{}", body: "{}");
+  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Resources/Rightclick.json\")"), ID: "rightclick", headers: "{}", body: "{}");
+  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/apps/System/.Install_system.json\")"), ID: "installer", headers: "{}", body: "{}");
 }
-mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: "https://origin.mistium.com/Resources/info.json", ID: "info.json", headers: "{}", body: "{}");
-mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: "https://origin.mistium.com/Resources/permissions_full.json", ID: "permissions", headers: "{}", body: "{}");
-mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: mistsutils.patchreporter(A: "origin.applySource(\"Fonts/origin.ojff\")"), ID: "font", headers: "{}", body: "{}");
+mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: "https://origin.mistium.com/Resources/info.json", ID: "info.json", headers: "{}", body: "{}");
+mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: "https://origin.mistium.com/Resources/permissions_full.json", ID: "permissions", headers: "{}", body: "{}");
+mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Fonts/origin.ojff\")"), ID: "font", headers: "{}", body: "{}");
 mistsutils.patchcommand(A: "if (!sessionStorage.hasOwnProperty(\"icons\"))");
-mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: mistsutils.patchreporter(A: "origin.applySource(\"Icons/all-icons.json\")"), ID: "icons", headers: "{}", body: "{}");
+mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Icons/all-icons.json\")"), ID: "icons", headers: "{}", body: "{}");
 webSocketPlus.disconnectall();
 xeltallivclipblend.clearClipbox();
 mistsutils.patchcommand(A: "const penSkinId = vm.renderer._penSkinId, penLine = vm.renderer.penLine.bind(vm.renderer), _getPenState = vm.runtime.ext_pen._getPenState");
 mistsutils.patchcommand(A: "window.icnOffset = (x, y, s, target) => { const state = _getPenState(target); const ox = target.x; const oy = target.y; const icn = window.icn; target.x = icn.ox + (icn.offx + x) * s; target.y = icn.oy + (icn.offy + y) * s; if (!state.penDown) return; penLine(penSkinId, state.penAttributes, ox, oy, target.x, target.y)}");
 @Kernel_Setup_postMessageHandler();
 motion.gotoxy(X: 0, Y: 0);
-@Draw_Icon_boldness(Code: "w 99999999 c #000 dot 0 0", Size: "1", setsize: "", x: "", y: "", direction: "", boldness: "");
-@Draw_Icon_boldness(Code: "c #fff w 2 cutcircle 0 0 12 4.5 150 cutcircle 0 0 7 5 150 line -2 -4 -8 -10", Size: "9", setsize: "", x: "", y: "", direction: "", boldness: "");
-vars["Network // Packets Down"] = "0";
-vars["Network // Files Update Offset"] = "0";
+@Draw_Icon_boldness(Code: "w 99999999 c #000 dot 0 0", Size: 1, setsize: "", x: "", y: "", direction: "", boldness: "");
+@Draw_Icon_boldness(Code: "c #fff w 2 cutcircle 0 0 12 4.5 150 cutcircle 0 0 7 5 150 line -2 -4 -8 -10", Size: 9, setsize: "", x: "", y: "", direction: "", boldness: "");
+vars["Network // Packets Down"] = 0;
+vars["Network // Files Update Offset"] = 0;
 vars["Server // User Info"] = "";
 vars["SYSTEM // Global Message"] = mistsutils.patchreporter(A: "null");
-vars["Boot // Connect Complete"] = "0";
-vars["Network // Upload"] = "0";
-vars["Network // Download"] = "0";
+vars["Boot // Connect Complete"] = 0;
+vars["Network // Upload"] = 0;
+vars["Network // Download"] = 0;
 mistsutils.patchcommand(A: "origin.desktop.multiplier = 0");
-vars["SYSTEM // Total Disk Reads"] = "0";
-vars["SYSTEM // Total Disk Writes"] = "0";
-data.deletealloflist(field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
-data.deletealloflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-data.deletealloflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
-data.deletealloflist(field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
-data.deletealloflist(field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
+vars["SYSTEM // Total Disk Reads"] = 0;
+vars["SYSTEM // Total Disk Writes"] = 0;
+data.deletealloflist(LIST: list("Files"));
+data.deletealloflist(LIST: list("Files // Index Path"));
+data.deletealloflist(LIST: list("Files // UUIDS"));
+data.deletealloflist(LIST: list("App // Data"));
+data.deletealloflist(LIST: list("Files // Current"));
 skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("?[HcDcJb70Jr_)_.*)Kw")), json: mistsutils.replaceall(C: "null", A: skyhigh173JSON.json_array_setlen(json: "[]", len: 1000), B: "\"\""));
-data.deletealloflist(field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
-vars["Kernel // Notification Y"] = "60";
-vars["WIndow // ID"] = "0";
-vars["SYSTEM // Scroll Multiplier"] = "0";
+data.deletealloflist(LIST: list("Network // Outgoing Packets"));
+vars["Kernel // Notification Y"] = 60;
+vars["WIndow // ID"] = 0;
+vars["SYSTEM // Scroll Multiplier"] = 0;
 @Window_Setup_OSL_compilables();
-sensing.setdragmode(field DRAG_MODE: ["not draggable",null]);
+sensing.setdragmode(field DRAG_MODE: "not draggable");
 mistsutils.patchcommand(A: "origin.clipboard = {contents: \"\"}");
 mistsutils.patchcommand(A: "origin.mouse = {}");
-vars["Text // Char Spacing"] = "30";
-vars["Text // Line Spacing"] = "20";
-vars["Text // Boldness"] = "0";
+vars["Text // Char Spacing"] = 30;
+vars["Text // Line Spacing"] = 20;
+vars["Text // Boldness"] = 0;
 vars["Text // Font"] = "origin";
 mistsutils.patchcommand(A: "window.renderQueue = new Set()");
 mistsutils.patchcommand(A: "let mouseMoveTimer;");
@@ -148,7 +148,7 @@ mistsutils.patchcommand(A: "clearTimeout(mouseMoveTimer);");
 mistsutils.patchcommand(A: "mouseMoveTimer = setTimeout(() => {");
 vars["Mouse // Moved"] = mistsutils.false();
 mistsutils.patchcommand(A: "}, 50)}");
-vars["WIndow // ID"] = "-1";
+vars["WIndow // ID"] = -1;
 mistsutils.patchcommand(A: "window.files = {\"uuids\":{},\"paths\":{}}");
 mistsutils.patchcommand(A: "window.icn_cache = new Map()");
 mistsutils.patchcommand(A: "window.osl_clone = {\"-1\":{}}");
@@ -159,24 +159,24 @@ mistsutils.patchcommand(A: "window.origin.files.getAll = () => vm.runtime.getTar
 @SYSTEM_Define_OSL_System_Functions();
 mistsutils.patchcommand2(A: "window.origin.roturLink.send = ", B: @OSL_Function(name: "send", parameters: "", code: mistsutils.patchreporter(A: "function(data) { origin.roturLink.ws.send(JSON.smartStringify(data)) }")));
 theshovelcanvaseffects.cleareffects();
-cloudlink.clearAllPackets(field TYPE: ["All data",null]);
+cloudlink.clearAllPackets(field TYPE: "All data");
 vfs.clearall();
-pointerlock.setLocked(enabled: pointerlock.menu_enabled(field enabled: ["false",null]));
+pointerlock.setLocked(enabled: pointerlock.menu_enabled(field enabled: "false"));
 @Timed_Log(Data: "Initialising indexedDB");
-if not(mistiumindexeddb.isinitialised()) {
+if !mistiumindexeddb.isinitialised() {
   mistiumindexeddb.setDBName(NAME: "originOS");
   wait_until mistiumindexeddb.isinitialised();
 }
 vars["Account// Current"] = "";
-if sensing.keypressed(KEY_OPTION: sensing.keyoptions(field KEY_OPTION: ["c",null])) {
+if sensing.keypressed(KEY_OPTION: sensing.keyoptions(field KEY_OPTION: "c")) {
   mistiumindexeddb.importJSONToDatabase(jsonData: "{}");
 }
 mistsutils.patchcommand(A: "try {");
 mistSkins.deleteAllSkins();
 mistsutils.patchcommand(A: "} catch {}");
 @Timed_Log(Data: "Waiting for rotur info");
-mistsutils.patchcommand2(A: "const embed_mode = !", B: (vars["Embed Mode"] == "0"));
-wait_until (mistfetch.isRequestCompleted(ID: "info.json") || mistsutils.patchboolean(A: "embed_mode"));
+mistsutils.patchcommand2(A: "const embed_mode = !", B: vars["Embed Mode"] == 0);
+wait_until mistfetch.isRequestCompleted(ID: "info.json") || mistsutils.patchboolean(A: "embed_mode");
 vars["SYSTEM // Info"] = mistsutils.ifthen(A: mistsutils.patchboolean(A: "embed_mode"), B: "{}", C: mistfetch.getResponseBodyById(ID: "info.json"));
 mistfetch.deleteRequestById(ID: "info.json");
 vars["Server // Current"] = mistsutils.replace(C: "wss://", A: skyhigh173JSON.json_get(item: "server", json: vars["SYSTEM // Info"]), B: "https://");
@@ -190,14 +190,14 @@ vars["newline"] = mistsutils.patchreporter(A: "\"\\n\"");
 repeat skyhigh173JSON.json_length(json: lmsVideo.getLoadedVideos()) {
   lmsVideo.deleteVideoURL(NAME: skyhigh173JSON.json_array_get(item: 1, json: lmsVideo.getLoadedVideos()));
 }
-lmsVideo.stopShowingVideo(TARGET: lmsVideo.menu_targets(field targets: ["_myself_",null]));
-vars["SYSTEM // Volume"] = "100";
+lmsVideo.stopShowingVideo(TARGET: lmsVideo.menu_targets(field targets: "_myself_"));
+vars["SYSTEM // Volume"] = 100;
 vars["Screen Size X"] = mistsutils.stagewidth();
 vars["Screen Size Y"] = mistsutils.stageheight();
-vars["Frame // Max X"] = (vars["Screen Size X"] / 2);
-vars["Frame // Min X"] = ((vars["Screen Size X"] / -2) + 10);
-vars["Frame // Max Y"] = (vars["Screen Size Y"] / 2);
-vars["Frame // Min Y"] = (vars["Screen Size Y"] / -2);
+vars["Frame // Max X"] = vars["Screen Size X"] / 2;
+vars["Frame // Min X"] = vars["Screen Size X"] / -2 + 10;
+vars["Frame // Max Y"] = vars["Screen Size Y"] / 2;
+vars["Frame // Min Y"] = vars["Screen Size Y"] / -2;
 vars["Renderer // Frame Max Y"] = vars["Frame // Max Y"];
 vars["Renderer // Frame Min Y"] = vars["Frame // Min Y"];
 mistsutils.patchcommand(A: "origin.files.entryLabels = [\"type\",\"name\",\"location\",\"data\",\"data2\",\"x\",\"y\",\"id\",\"created\",\"edited\",\"icon\",\"size\",\"permissions\", \"uuid\"]");
@@ -210,27 +210,27 @@ mistsutils.patchcommand(A: "addEventListenerOnce(document, 'keyup', origin.keybo
 @File_Reset();
 @Timed_Log(Data: "Completed system setup");
 runtimeoptions.setFramerate(fps: 60);
-@Draw_Icon_boldness(Code: "w 4000000 c #000 dot 0 0", Size: "1", setsize: "", x: "", y: "", direction: "", boldness: "");
-motion.gotoxy(X: (vars["Frame // Min X"] + 20), Y: (vars["Frame // Min Y"] + 30));
+@Draw_Icon_boldness(Code: "w 4000000 c #000 dot 0 0", Size: 1, setsize: "", x: "", y: "", direction: "", boldness: "");
+motion.gotoxy(X: vars["Frame // Min X"] + 20, Y: vars["Frame // Min Y"] + 30);
 mistsutils.patchcommand(A: "if (origin.roturLink.enabled)");
-@Draw_Icon_boldness(Code: "c #fff w 1 ellipse 0 0 10 0.45 100 ellipse 0 0 10 0.45 160 ellipse 0 0 10 0.45 220", Size: "1.5", setsize: "", x: "", y: "", direction: "", boldness: "");
+@Draw_Icon_boldness(Code: "c #fff w 1 ellipse 0 0 10 0.45 100 ellipse 0 0 10 0.45 160 ellipse 0 0 10 0.45 220", Size: 1.5, setsize: "", x: "", y: "", direction: "", boldness: "");
 motion.gotoxy(X: 0, Y: 0);
-@Draw_Icon_boldness(Code: "c #fff w 2 cutcircle 0 0 12 4.5 150 cutcircle 0 0 7 5 150 line -2 -4 -8 -10", Size: "9", setsize: "", x: "", y: "", direction: "", boldness: "");
-@Draw_Text(Text: HyperSenseSP.getSpriteName(), X: vars["Frame // Min X"], Y: (vars["Frame // Max Y"] - 20), Size: "10", Markdown_Enabled: "");
+@Draw_Icon_boldness(Code: "c #fff w 2 cutcircle 0 0 12 4.5 150 cutcircle 0 0 7 5 150 line -2 -4 -8 -10", Size: 9, setsize: "", x: "", y: "", direction: "", boldness: "");
+@Draw_Text(Text: HyperSenseSP.getSpriteName(), X: vars["Frame // Min X"], Y: vars["Frame // Max Y"] - 20, Size: 10, Markdown_Enabled: "");
 vars["Window // FPS"] = "";
 SPtuneShark.deleteAllSounds();
-CameraSensingPlusSP.turnOnCamera(field ON_OFF: ["off",null]);
-vars["App // Count1"] = "1";
-vars["SYSTEM // Scroll Multiplier"] = "-1";
+CameraSensingPlusSP.turnOnCamera(field ON_OFF: "off");
+vars["App // Count1"] = 1;
+vars["SYSTEM // Scroll Multiplier"] = -1;
 mistsutils.patchcommand(A: "window.osl_filetypes = {}");
 mistsutils.patchcommand(A: "origin.wallpaper.mode = \"fill\"");
-vars["Windows // Any Moving"] = "0";
-vars["Window ID Count"] = "-1";
-data.deletealloflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-data.deletealloflist(field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
-data.deletealloflist(field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes"));
-data.deletealloflist(field LIST: list("Windows // Create Data", "^Yp.PtD#1oxNqza?z{+A"));
-data.deletealloflist(field LIST: list("Windows // Create Parent", "1C9e)ePY1onuWFVxH:@$"));
+vars["Windows // Any Moving"] = 0;
+vars["Window ID Count"] = -1;
+data.deletealloflist(LIST: list("Rightclick Options"));
+data.deletealloflist(LIST: list("Windows // ID"));
+data.deletealloflist(LIST: list("Windows // Create Names"));
+data.deletealloflist(LIST: list("Windows // Create Data"));
+data.deletealloflist(LIST: list("Windows // Create Parent"));
 @OSL_Vars_Set(name: "Key_Temp", data: "", current_command: "");
 vars["temp"] = sensing.timer();
 vars["NETWORK // Get Web Outputs"] = mistsutils.patchreporter(A: "{}");
@@ -255,21 +255,21 @@ mistsutils.patchcommand(A: "osl.timezone = \"UTC+\" + (new Date()).getTimezoneOf
 mistsutils.patchcommand(A: "osl.network = {downloadTotal: 0, uploadTotal: 0}");
 mistsutils.patchcommand(A: "osl.background_url = \"\"; osl.background_width = 0; osl.background_height = 0");
 mistsutils.patchcommand(A: "osl.windows_area = {}");
-data.deletealloflist(field LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny"));
+data.deletealloflist(LIST: list("OSL // Import Times"));
 @Timed_Log(Data: "Installing System Data");
 mistsutils.patchcommand(A: "origin.wallpaper.current = \"https://origin.mistium.com/Wallpapers/current.jpeg\"");
 mistsutils.patchcommand(A: "origin.wallpaper.next = origin.wallpaper.current");
 @SYSTEM_Load_Icons();
-if (vars["Embed Mode"] == "0") {
+if vars["Embed Mode"] == 0 {
   @Timed_Log(Data: "Handling normal login");
-  vars["Network // Files Update Offset"] = data.lengthoflist(field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+  vars["Network // Files Update Offset"] = data.lengthoflist(LIST: list("Files"));
   mistsutils.patchcommand2(A: "osl.origin = ", B: mistsutils.jsonparse(A: skyhigh173JSON.json_set(item: "version", json: "{\"version\":\"-1\",\"system\":{}}", value: mistsutils.patchreporter(A: "target.sprite.name.replace(/[v.]/gm,\"\")"))));
   mistsutils.patchcommand(A: "let login = String(localStorage.getItem(\"origin_login\") ?? \"\")");
   mistsutils.patchcommand(A: "let wallpaper_url = \"\"");
   mistsutils.patchcommand(A: "let data = \"\"");
   mistsutils.patchcommand2(A: "if (login !== \"\") login = ", B: mistsutils.jsonparse(A: cloudlink.fetchURL(url: mistsutils.patchreporter(A: "`https://social.rotur.dev/get_user?auth=${login}`"))));
   @Timed_Log(Data: "Waiting for connection");
-  until (vars["Boot // Connect Complete"] == "1") {
+  until vars["Boot // Connect Complete"] == 1 {
     wait "0";
   }
   mistsutils.patchcommand(A: "if (login === \"\") {");
@@ -296,7 +296,7 @@ if (vars["Embed Mode"] == "0") {
   mistSkins.registerURLSkin(URL: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjYGBg+A8AAQQBAHAgZQsAAAAASUVORK5CYII=", NAME: "wallpaper");
   wait_until mistSkins.getSkinLoaded(NAME: "wallpaper");
   mistsutils.patchcommand2(A: "osl.origin = ", B: mistsutils.jsonparse(A: skyhigh173JSON.json_set(item: "version", json: "{\"version\":\"-1\",\"system\":{}}", value: mistsutils.patchreporter(A: "target.sprite.name.replace(/[v.]/gm,\"\")"))));
-  vars["Network // Files Update Offset"] = "9999999999";
+  vars["Network // Files Update Offset"] = 9999999999;
   @Window_create(name: "origin/(a) system/embed.osl", window_data: "");
   if mistsutils.patchboolean(A: "window.parent !== window") {
     mistsutils.patchcommand(A: "window.parent.postMessage({ type: \"booted\" }, \"*\")");
@@ -306,19 +306,19 @@ mistsutils.patchcommand(A: "osl.origin.kernel = {name: \"Veil\", type: \"Stable\
 @Timed_Log(Data: "Finished Booting");
 MistKeyHistoryExtension.deleteAllKeys();
 vars["Icons // All System"] = mistsutils.jsonparse(A: @Get_Contents_Of_Folder_Path(Path: "origin/(A) System/Icons", Show_UUIDS: null, data_included: mistsutils.true(), Only_UUIDS: null));
-vars["Screen Size X"] = "0";
-vars["Screen Size Y"] = "0";
+vars["Screen Size X"] = 0;
+vars["Screen Size Y"] = 0;
 vars["Inputs // Last Keys Down"] = mistsutils.patchreporter(A: "[]");
-vars["SYSTEM // Fps Damper"] = "0.95";
+vars["SYSTEM // Fps Damper"] = 0.95;
 xeltallivclipblend.clearClipbox();
 @OSL_Vars_Set(name: "Windows", data: @OSL_Function(name: "Windows", parameters: "", code: mistsutils.patchreporter(A: "window.osl_get_windows")), current_command: "");
-vars["Renderer // Wallpaper Redraws"] = "0";
+vars["Renderer // Wallpaper Redraws"] = 0;
 vars["Screen Size X"] = mistsutils.stagewidth();
 vars["Screen Size Y"] = mistsutils.stageheight();
 vars["OSL // Perms"] = mistsutils.patchreporter(A: "[]");
 vars["SYSTEM // Right Click Data"] = mistsutils.patchreporter(A: "{}");
 mistsutils.patchcommand(A: "try {");
-vars["SYSTEM // Right Click Data"] = mistsutils.jsonparse(A: @File_get_item(id: data.itemnumoflist(ITEM: "origin/(A) System/System Data/Kernel/Rightclick Options.json", field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), item: "4"));
+vars["SYSTEM // Right Click Data"] = mistsutils.jsonparse(A: @File_get_item(id: data.itemnumoflist(ITEM: "origin/(A) System/System Data/Kernel/Rightclick Options.json", LIST: list("Files // Index Path")), item: 4));
 mistsutils.patchcommand(A: "} catch {}");
 mistsutils.patchcommand(A: "function gcd(r, o) { for (; o; ) [r, o] = [o, r % o]; return r; }");
 mistsutils.patchcommand(A: "function lcm(r, o) { return Math.abs(r * o) / gcd(r, o) }");
@@ -390,7 +390,7 @@ forever {
   mistsutils.patchcommand(A: "origin.renderer.canvasScale = vm.renderer.canvas.clientWidth / vm.renderer.canvas.width");
   mistsutils.patchcommand(A: "origin.files.transfers_last = origin.files.transfers");
   mistsutils.patchcommand(A: "origin.files.transfers = []");
-  mistsutils.patchcommand2(A: "const totalWindows = ", B: data.lengthoflist(field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~")));
+  mistsutils.patchcommand2(A: "const totalWindows = ", B: data.lengthoflist(LIST: list("Windows // ID")));
   mistsutils.patchcommand(A: "const win = origin.windows");
   mistsutils.patchcommand(A: "win.ids.length = totalWindows");
   mistsutils.patchcommand(A: "win.positions.length = totalWindows");
@@ -408,11 +408,11 @@ forever {
   mistsutils.patchcommand3(A: "const lastKeyPressed = ", B: MistKeyHistoryExtension.recentKeysAsRawJs(), C: ".at(-1)?.data ?? \"\"");
   if sensing.keypressed(KEY_OPTION: mistsutils.patchreporter(A: "lastKeyPressed")) {
     if operator.contains(STRING1: mistsutils.patchreporter(A: "lastKeyPressed"), STRING2: " Arrow") {
-      vars["Key// Current Pressed"] = ("Arrow " .. mistsutils.replace(C: " Arrow", A: mistsutils.patchreporter(A: "lastKeyPressed"), B: ""));
+      vars["Key// Current Pressed"] = "Arrow " .. mistsutils.replace(C: " Arrow", A: mistsutils.patchreporter(A: "lastKeyPressed"), B: "");
     } else {
       vars["Key// Current Pressed"] = mistsutils.patchreporter(A: "lastKeyPressed");
     }
-    if ((vars["Key // Temp"] == mistsutils.patchreporter(A: "lastKeyPressed")) && (HyperSenseSP.timeKeyPressed(KEY: vars["Key// Current Pressed"]) < "0.5")) {
+    if vars["Key // Temp"] == mistsutils.patchreporter(A: "lastKeyPressed") && HyperSenseSP.timeKeyPressed(KEY: vars["Key// Current Pressed"]) < 0.5 {
       vars["Key// Current Pressed"] = "";
     } else {
       if operator.contains(STRING1: mistsutils.patchreporter(A: "lastKeyPressed"), STRING2: " Arrow") {
@@ -433,33 +433,33 @@ forever {
   @Kernel_Wallpaper();
   vars["Screen Size X"] = mistsutils.stagewidth();
   vars["Screen Size Y"] = mistsutils.stageheight();
-  if not(sensing.mousedown()) {
+  if !sensing.mousedown() {
     vars["SYSTEM // Onclick Can"] = "true";
     vars["Can Click?"] = "true";
-    vars["Windows // Any Resizing"] = "0";
-    vars["Windows // Any Moving"] = "0";
+    vars["Windows // Any Resizing"] = 0;
+    vars["Windows // Any Moving"] = 0;
     vars["Inputs // Selecting"] = "false";
   } else {
     vars["SYSTEM // Onclick"] = vars["SYSTEM // Onclick Can"];
     vars["SYSTEM // Onclick Can"] = "false";
   }
   mistsutils.patchcommand2(A: "const canClick = ", B: mistsutils.equals(A: vars["Can Click?"], B: "true"));
-  @OSL_Vars_Set(name: "mouse_ondown", data: (mistsutils.equals(A: vars["SYSTEM // Onclick"], B: "true") && mistsutils.patchboolean(A: "canClick")), current_command: "Global");
-  mistsutils.patchcommand2(A: "const mouse_down = ", B: (HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: ["0",null])) && mistsutils.patchboolean(A: "canClick")));
+  @OSL_Vars_Set(name: "mouse_ondown", data: mistsutils.equals(A: vars["SYSTEM // Onclick"], B: "true") && mistsutils.patchboolean(A: "canClick"), current_command: "Global");
+  mistsutils.patchcommand2(A: "const mouse_down = ", B: HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && mistsutils.patchboolean(A: "canClick"));
   @OSL_Vars_Set(name: "mouse_down", data: mistsutils.patchreporter(A: "mouse_down"), current_command: "Global");
   @OSL_Vars_Set(name: "mouse_left", data: mistsutils.patchreporter(A: "mouse_down"), current_command: "Global");
-  @OSL_Vars_Set(name: "mouse_middle", data: HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: ["1",null])), current_command: "Global");
-  @OSL_Vars_Set(name: "mouse_right", data: HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: ["2",null])), current_command: "Global");
+  @OSL_Vars_Set(name: "mouse_middle", data: HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "1")), current_command: "Global");
+  @OSL_Vars_Set(name: "mouse_right", data: HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "2")), current_command: "Global");
   @OSL_Vars_Set(name: "mouse_moving", data: vars["Mouse // Moved"], current_command: "Global");
-  @OSL_Vars_Set(name: "focused_application", data: mistsutils.patchreporter3(A: "origin.windows.names[", B: data.itemnumoflist(ITEM: vars["SYSTEM // Focused Application"], field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~")), C: "-1]"), current_command: "Global");
+  @OSL_Vars_Set(name: "focused_application", data: mistsutils.patchreporter3(A: "origin.windows.names[", B: data.itemnumoflist(ITEM: vars["SYSTEM // Focused Application"], LIST: list("Windows // ID")), C: "-1]"), current_command: "Global");
   @OSL_Vars_Set(name: "focused_application_id", data: vars["SYSTEM // Focused Application"], current_command: "Global");
   @OSL_Vars_Set(name: "is_origin_focused", data: mistsutils.patchboolean(A: "document.hasFocus()"), current_command: "Global");
   mistsutils.patchcommand(A: "const roturLink = Object.clone(window.origin?.roturLink)");
   @OSL_Vars_Set(name: "roturLink", data: mistsutils.patchreporter(A: "roturLink"), current_command: "Global");
   mistsutils.patchcommand(A: "let scroll = {x:{}, y:{}}");
-  mistsutils.patchcommand2(A: "scroll.multiplier =  ", B: (vars["SYSTEM // Scroll Multiplier"] / 4));
-  mistsutils.patchcommand2(A: "scroll.x.velocity =  ", B: (HyperSenseSP.scrollVelX() * mistsutils.patchreporter(A: "scroll.multiplier")));
-  mistsutils.patchcommand2(A: "scroll.y.velocity =  ", B: (HyperSenseSP.scrollVel() * mistsutils.patchreporter(A: "scroll.multiplier")));
+  mistsutils.patchcommand2(A: "scroll.multiplier =  ", B: vars["SYSTEM // Scroll Multiplier"] / 4);
+  mistsutils.patchcommand2(A: "scroll.x.velocity =  ", B: HyperSenseSP.scrollVelX() * mistsutils.patchreporter(A: "scroll.multiplier"));
+  mistsutils.patchcommand2(A: "scroll.y.velocity =  ", B: HyperSenseSP.scrollVel() * mistsutils.patchreporter(A: "scroll.multiplier"));
   @OSL_Vars_Set(name: "scroll_velocity", data: mistsutils.patchreporter(A: "scroll.y.velocity"), current_command: "Global");
   @OSL_Vars_Set(name: "scroll", data: mistsutils.patchreporter(A: "scroll"), current_command: "Global");
   mistsutils.patchcommand(A: "osl.screensize_x = vm.runtime.stageWidth");
@@ -512,16 +512,16 @@ forever {
     mistsutils.patchcommand(A: "osl.network.ip = net_user.ip");
     mistsutils.patchcommand(A: "osl.network.rooms = net_user.rooms");
     mistsutils.patchcommand(A: "osl.network.hostname = net_user.hostname");
-    vars["Network // Upload"] = "0";
-    vars["Network // Download"] = "0";
+    vars["Network // Upload"] = 0;
+    vars["Network // Download"] = 0;
   }
   mistsutils.patchcommand(A: "osl.windows_area = Object.clone(origin.windows.area)");
   @OSL_Vars_Set(name: "cursor", data: MouseCursor.getCur(), current_command: "Global");
-  vars["SYSTEM // Fps"] = ((vars["SYSTEM // Fps"] * vars["SYSTEM // Fps Damper"]) + (mistsutils.clamp(A: (1000 / vars["Kernel // Frame Time"]), B: 0, C: mistsutils.patchreporter(A: "runtime.frameLoop.framerate")) * (1 - vars["SYSTEM // Fps Damper"])));
-  mistsutils.patchcommand2(A: "osl.time.delta = ", B: mistsutils.max(A: mistsutils.patchreporter(A: "(1000 / runtime.frameLoop.framerate) / 1000"), B: (vars["Kernel // Frame Time"] / 1000)));
+  vars["SYSTEM // Fps"] = vars["SYSTEM // Fps"] * vars["SYSTEM // Fps Damper"] + mistsutils.clamp(A: 1000 / vars["Kernel // Frame Time"], B: 0, C: mistsutils.patchreporter(A: "runtime.frameLoop.framerate")) * (1 - vars["SYSTEM // Fps Damper"]);
+  mistsutils.patchcommand2(A: "osl.time.delta = ", B: mistsutils.max(A: mistsutils.patchreporter(A: "(1000 / runtime.frameLoop.framerate) / 1000"), B: vars["Kernel // Frame Time"] / 1000));
   @OSL_Vars_Set(name: "fps", data: vars["SYSTEM // Fps"], current_command: "Global");
-  @OSL_Vars_Set(name: "delta_time", data: (vars["Kernel // Frame Time"] / 1000), current_command: "Global");
-  @OSL_Vars_Set(name: "picker_colour", data: shovelColorPicker.getColor(TYPE: shovelColorPicker.menu_RGBMenu(field RGBMenu: ["hex",null])), current_command: "Global");
+  @OSL_Vars_Set(name: "delta_time", data: vars["Kernel // Frame Time"] / 1000, current_command: "Global");
+  @OSL_Vars_Set(name: "picker_colour", data: shovelColorPicker.getColor(TYPE: shovelColorPicker.menu_RGBMenu(field RGBMenu: "hex")), current_command: "Global");
   mistsutils.patchcommand2(A: "let last = ", B: vars["Inputs // Keys Down"]);
   vars["Inputs // Keys Down"] = mistsutils.patchreporter(A: "origin.keyboard.keysDown.map(v => v.length === 1 ? v : v.toLowerCase())");
   vars["Inputs // Last Keys Down"] = mistsutils.patchreporter2(A: vars["Inputs // Keys Down"], B: ".filter(item => last.indexOf(item) === -1)");
@@ -537,42 +537,42 @@ forever {
     @Create_Window_With_id_and_code(id: mistsutils.patchreporter(A: "cur.id"), code: mistsutils.patchreporter(A: "cur.code"));
     mistsutils.patchcommand(A: "}");
   }
-  mistsutils.patchcommand2(A: "const len = ", B: data.lengthoflist(field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes")));
+  mistsutils.patchcommand2(A: "const len = ", B: data.lengthoflist(LIST: list("Windows // Create Names")));
   mistsutils.patchcommand(A: "for (let i = 0; i < len; i ++) {");
   vars["New Window Created?"] = "true";
-  vars["Window // File ID"] = "0";
-  if operator.contains(STRING1: data.itemoflist(INDEX: 1, field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes")), STRING2: "/") {
-    vars["Window // File ID"] = @originFS_Path_ID(Path: data.itemoflist(INDEX: 1, field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes")));
+  vars["Window // File ID"] = 0;
+  if operator.contains(STRING1: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Names")), STRING2: "/") {
+    vars["Window // File ID"] = @originFS_Path_ID(Path: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Names")));
   } else {
-    if (operator.length(STRING: data.itemoflist(INDEX: 1, field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes"))) == "32") {
-      vars["Window // File ID"] = @originFS_UUID_ID(UUID: data.itemoflist(INDEX: 1, field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes")));
+    if operator.length(STRING: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Names"))) == 32 {
+      vars["Window // File ID"] = @originFS_UUID_ID(UUID: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Names")));
     }
   }
-  if (vars["Window // File ID"] == "0") {
-    vars["Window // File ID"] = skyhigh173JSON.json_array_itemH(item: mistsutils.patchreporter3(A: "`${", B: data.itemoflist(INDEX: 1, field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes")), C: "}.osl`.toLowerCase()"), json: mistsutils.patchreporter3(A: "`${JSON.stringify(JSON.parse(", B: skyhigh173JSON.json_vm_getlist(list: skyhigh173JSON.menu_get_list(field get_list: list("CL33%0R^/cfdOsUUuN{9"))), C: ").join(\"\\n\").match(/(([^/]+)|\\/)$/gim))}`.toLowerCase()"));
+  if vars["Window // File ID"] == 0 {
+    vars["Window // File ID"] = skyhigh173JSON.json_array_itemH(item: mistsutils.patchreporter3(A: "`${", B: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Names")), C: "}.osl`.toLowerCase()"), json: mistsutils.patchreporter3(A: "`${JSON.stringify(JSON.parse(", B: skyhigh173JSON.json_vm_getlist(list: skyhigh173JSON.menu_get_list(field get_list: list("CL33%0R^/cfdOsUUuN{9"))), C: ").join(\"\\n\").match(/(([^/]+)|\\/)$/gim))}`.toLowerCase()"));
   }
-  if not((vars["Window // File ID"] == "0")) {
+  if vars["Window // File ID"] != 0 {
     mistsutils.patchcommand(A: "origin.windows.received.unshift([])");
     mistsutils.patchcommand(A: "origin.windows.snapping.unshift(\"\")");
     vars["Window ID Count"] += 1;
     vars["WIndow // ID"] = vars["Window ID Count"];
-    data.insertatlist(ITEM: vars["Window ID Count"], INDEX: 1, field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
+    data.insertatlist(ITEM: vars["Window ID Count"], INDEX: 1, LIST: list("Windows // ID"));
     mistsutils.patchcommand3(A: "origin.windows.ids.unshift(", B: vars["Window ID Count"], C: ")");
-    mistsutils.patchcommand2(A: "const name = ", B: data.itemoflist(INDEX: 1, field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes")));
-    mistsutils.patchcommand2(A: "const passed_data = ", B: data.itemoflist(INDEX: 1, field LIST: list("Windows // Create Data", "^Yp.PtD#1oxNqza?z{+A")));
-    mistsutils.patchcommand2(A: "const parent_ctx = ", B: data.itemoflist(INDEX: 1, field LIST: list("Windows // Create Parent", "1C9e)ePY1onuWFVxH:@$")));
+    mistsutils.patchcommand2(A: "const name = ", B: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Names")));
+    mistsutils.patchcommand2(A: "const passed_data = ", B: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Data")));
+    mistsutils.patchcommand2(A: "const parent_ctx = ", B: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Parent")));
     vars["Process // Type"] = "App";
     mistsutils.patchcommand(A: "origin.auth.token = token");
     mistsutils.patchcommand(A: "const newWin = target.makeClone();");
     mistsutils.patchcommand(A: "newWin.setup = {name, passed_data, parent_ctx}");
     mistsutils.patchcommand(A: "if (newWin) { vm.runtime.addTarget(newWin); newWin.goBehindOther(target); }");
   }
-  data.deleteoflist(INDEX: 1, field LIST: list("Windows // Create Data", "^Yp.PtD#1oxNqza?z{+A"));
-  data.deleteoflist(INDEX: 1, field LIST: list("Windows // Create Parent", "1C9e)ePY1onuWFVxH:@$"));
-  data.deleteoflist(INDEX: 1, field LIST: list("Windows // Create Names", "CPOR$e*j3[;w6Fi6Ihes"));
+  data.deleteoflist(INDEX: 1, LIST: list("Windows // Create Data"));
+  data.deleteoflist(INDEX: 1, LIST: list("Windows // Create Parent"));
+  data.deleteoflist(INDEX: 1, LIST: list("Windows // Create Names"));
   mistsutils.patchcommand(A: "}");
-  vars["WIndow // ID"] = "-1";
-  if (vars["Embed Mode"] == "0") {
+  vars["WIndow // ID"] = -1;
+  if vars["Embed Mode"] == 0 {
     mistsutils.patchcommand(A: "const processes = origin.files.processes");
     mistsutils.patchcommand(A: "for (let i = 0; i < processes.length; i ++) {");
     mistsutils.patchcommand(A: "const files = processes[i].files");
@@ -583,31 +583,31 @@ forever {
         mistsutils.patchcommand(A: "for (let _ = 0; _ < loops; _ ++) {");
         mistsutils.patchcommand(A: "const cur = files.shift()");
         mistsutils.patchcommand2(A: "const id = ", B: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "cur")));
-        @Files_Set_ID_To_Path(ID: mistsutils.patchreporter(A: "id"), Path: mistsutils.patchreporter2(A: (mistsutils.patchreporter(A: "target + \"/\"") .. (@File_get_item(id: mistsutils.patchreporter(A: "id"), item: "2") .. @File_get_item(id: mistsutils.patchreporter(A: "id"), item: "1"))), B: ".toLowerCase()"));
-        @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: "3", Data: mistsutils.patchreporter(A: "target"), Uuid: mistsutils.patchreporter(A: "cur"));
+        @Files_Set_ID_To_Path(ID: mistsutils.patchreporter(A: "id"), Path: mistsutils.patchreporter2(A: mistsutils.patchreporter(A: "target + \"/\"") .. (@File_get_item(id: mistsutils.patchreporter(A: "id"), item: 2) .. @File_get_item(id: mistsutils.patchreporter(A: "id"), item: 1)), B: ".toLowerCase()"));
+        @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: 3, Data: mistsutils.patchreporter(A: "target"), Uuid: mistsutils.patchreporter(A: "cur"));
         mistsutils.patchcommand(A: "}");
       }
       case "Deleting Files" {
         mistsutils.patchcommand(A: "let cur = \"\"; while (cur = files.shift()) {");
-        data.replaceitemoflist(INDEX: @file_item_of_num(index: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "cur")), num: "1"), ITEM: ".temp", field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+        data.replaceitemoflist(INDEX: @file_item_of_num(index: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "cur")), num: 1), ITEM: ".temp", LIST: list("Files"));
         @originFS_Exec_at_with_data_File_UUID(Command: "delete", Index: "", Data: "", Uuid: mistsutils.patchreporter(A: "cur"));
         mistsutils.patchcommand(A: "}");
       }
     }
     mistsutils.patchcommand(A: "}");
     mistsutils.patchcommand(A: "for (let i = 0; i < processes.length; i ++) { if (processes[i].files.length === 0) { processes.splice(i, 1); i -- } }");
-    if (mistsutils.patchreporter(A: "(navigator.onLine+\"\")") == "true") {
+    if mistsutils.patchreporter(A: "(navigator.onLine+\"\")") == "true" {
       vars["Network // Been Online"] = "true";
-      if (not(cloudlink.getComState()) && (vars["Server // User Info"] == "")) {
+      if !cloudlink.getComState() && vars["Server // User Info"] == "" {
         cloudlink.openSocket(IP: vars["Server // Current"]);
       } else {
-        if (vars["Server // User Info"] == "") {
-          if not(cloudlink.getUsernameState()) {
+        if vars["Server // User Info"] == "" {
+          if !cloudlink.getUsernameState() {
             cloudlink.setMyName(NAME: skyhigh173JSON.json_get(item: "username", json: vars["Server// Base Payload"]));
           } else {
-            if not(cloudlink.getRoomState()) {
+            if !cloudlink.getRoomState() {
               cloudlink.linkToRooms(ROOMS: vars["Server // Rooms"]);
-              if (cloudlink.returnMOTD() == "") {
+              if cloudlink.returnMOTD() == "" {
                 @Show_Notification(Icon: "network", Title: "Connected Successfully", Text: "", Style: "puck", Action: "");
               } else {
                 @Show_Notification(Icon: "network", Title: cloudlink.returnMOTD(), Text: "", Style: "puck", Action: "");
@@ -616,36 +616,36 @@ forever {
             }
           }
         }
-        if cloudlink.newPacketsExist(field TYPE: ["Private data",null]) {
+        if cloudlink.newPacketsExist(field TYPE: "Private data") {
           @originNM_Handle_Packet_Systems();
         }
         mistsutils.patchcommand(A: "try {");
         mistsutils.patchcommand2(A: "const server = ", B: vars["Server // Name"]);
         if mistsutils.patchreporter3(A: "JSON.parse(", B: cloudlink.returnUserListData(), C: ").filter(v => v.username === server).length > 0") {
-          mistsutils.patchcommand3(A: "for (let _ = 0; _ <", B: data.lengthoflist(field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K")), C: "; _ ++) {");
-          mistsutils.patchcommand2(A: "let target_name = ", B: skyhigh173JSON.json_get(item: "target_user", json: data.itemoflist(INDEX: 1, field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"))));
-          if (mistsutils.patchreporter(A: "target_name") == "") {
-            @originNM_Send_to(data: data.itemoflist(INDEX: 1, field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K")), username: mistsutils.patchreporter(A: "server"));
+          mistsutils.patchcommand3(A: "for (let _ = 0; _ <", B: data.lengthoflist(LIST: list("Network // Outgoing Packets")), C: "; _ ++) {");
+          mistsutils.patchcommand2(A: "let target_name = ", B: skyhigh173JSON.json_get(item: "target_user", json: data.itemoflist(INDEX: 1, LIST: list("Network // Outgoing Packets"))));
+          if mistsutils.patchreporter(A: "target_name") == "" {
+            @originNM_Send_to(data: data.itemoflist(INDEX: 1, LIST: list("Network // Outgoing Packets")), username: mistsutils.patchreporter(A: "server"));
           } else {
-            @originNM_Send_to(data: data.itemoflist(INDEX: 1, field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K")), username: mistsutils.patchreporter(A: "target_name"));
+            @originNM_Send_to(data: data.itemoflist(INDEX: 1, LIST: list("Network // Outgoing Packets")), username: mistsutils.patchreporter(A: "target_name"));
           }
-          data.deleteoflist(INDEX: 1, field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+          data.deleteoflist(INDEX: 1, LIST: list("Network // Outgoing Packets"));
           mistsutils.patchcommand(A: "}");
         }
         mistsutils.patchcommand(A: "} catch {}");
       }
     } else {
-      if (vars["Network // Been Online"] == "true") {
+      if vars["Network // Been Online"] == "true" {
         vars["Network // Been Online"] = "false";
         @Show_Notification(Icon: "network", Title: "You Are Offline", Text: "", Style: "puck", Action: "");
       }
     }
-    vars["SYSTEM // Squares Clickable"] = ((data.lengthoflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) == "0") && ((vars["Files // Current Dragging"] == "0") && ((vars["Windows // Any Resizing"] == "0") && ((vars["Windows // Any Moving"] == "0") && (vars["Can Click?"] == "true")))));
-    if (operator.length(STRING: vars["Account// Current"]) > "0") {
+    vars["SYSTEM // Squares Clickable"] = data.lengthoflist(LIST: list("Rightclick Options")) == 0 && (vars["Files // Current Dragging"] == 0 && (vars["Windows // Any Resizing"] == 0 && (vars["Windows // Any Moving"] == 0 && vars["Can Click?"] == "true")));
+    if operator.length(STRING: vars["Account// Current"]) > 0 {
       vars["OSL // Perms"] = @Root_Permissions();
       mistsutils.patchcommand(A: "const isKeyDown = origin.keyboard.isKeyDown");
       if @is_hit(key: "f2") {
-        @File_add_Data_Icon_Perms(Location: mistsutils.patchreporter(A: "`${osl.user_folder}/pictures`"), Name: ("Screenshot At " .. sipctime.TimestampToTime(timestamp: mistsutils.patchreporter(A: "Date.now()"))), Type: ".png", Data: imgEffectsSP.stretchImg(URI: lmsLooksPlus.snapshotStage(), W: ((mistsutils.stagewidth() / mistsutils.stageheight()) * 500), H: 500), Icon: "", Perms: "");
+        @File_add_Data_Icon_Perms(Location: mistsutils.patchreporter(A: "`${osl.user_folder}/pictures`"), Name: "Screenshot At " .. sipctime.TimestampToTime(timestamp: mistsutils.patchreporter(A: "Date.now()")), Type: ".png", Data: imgEffectsSP.stretchImg(URI: lmsLooksPlus.snapshotStage(), W: mistsutils.stagewidth() / mistsutils.stageheight() * 500, H: 500), Icon: "", Perms: "");
         @Show_Notification(Icon: "tick", Title: "New Screenshot Saved To /Pictures", Text: "", Style: "puck", Action: "");
       }
     }
@@ -669,8 +669,8 @@ forever {
   }
   mistsutils.patchcommand(A: "} catch(e) { console.error(e) }");
   mistsutils.patchcommand(A: "}");
-  vars["Renderer // Total Icons"] = "0";
-  vars["Renderer // Total OSL"] = "0";
+  vars["Renderer // Total Icons"] = 0;
+  vars["Renderer // Total OSL"] = 0;
   mistsutils.patchcommand(A: "} catch(e) { console.error(e)");
   @SYSTEM_Crash(message: mistsutils.patchreporter(A: "\"CRITICAL ERROR HAS OCCURRED IN KERNEL PROCESS, \" + e"), stack: mistsutils.patchreporter(A: "\"CRITICAL ERROR HAS OCCURRED IN KERNEL PROCESS\\n\\n\" + e.stack.toString()"));
   mistsutils.patchcommand(A: "}");

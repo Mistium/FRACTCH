@@ -6,11 +6,11 @@
  * threadIndex: 115
  */
 
-def @originFS_UUID_ID(UUID) "originFS // UUID %s -> ID" warp=false {
+def @originFS_UUID_ID(UUID) "originFS // UUID %s -> ID" {
   mistsutils.patchcommand(A: "const uuids = window.files.uuids");
   mistsutils.patchcommand(A: "let id = uuids?.[\"\"+p0] ?? 0");
-  if (mistsutils.patchreporter(A: "id") == "0") {
-    mistsutils.patchcommand2(A: "id = +", B: data.itemnumoflist(ITEM: UUID, field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+  if mistsutils.patchreporter(A: "id") == 0 {
+    mistsutils.patchcommand2(A: "id = +", B: data.itemnumoflist(ITEM: UUID, LIST: list("Files // UUIDS")));
     return mistsutils.patchreporter(A: "id === 0 ? 0 : uuids[\"\"+p0] = id");
   } else {
     return mistsutils.patchreporter(A: "id");

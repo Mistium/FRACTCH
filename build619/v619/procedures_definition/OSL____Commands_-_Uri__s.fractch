@@ -6,60 +6,60 @@
  * threadIndex: 202
  */
 
-def @OSL_Commands_Uri(command) "OSL // Commands - Uri %s" warp=true {
+def @OSL_Commands_Uri(command) "OSL // Commands - Uri %s" warp {
   switch command {
     case "start_editing" {
-      vars["OSL // Current Uri"] = data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-      vars["OSL // Uri Width"] = imgEffectsSP.numPixels(URI: vars["OSL // Current Uri"], field TYPE: ["per line",null]);
-      vars["OSL // Uri Height"] = imgEffectsSP.numPixels(URI: vars["OSL // Current Uri"], field TYPE: ["per row",null]);
+      vars["OSL // Current Uri"] = data.itemoflist(INDEX: 3, LIST: list("Split Text"));
+      vars["OSL // Uri Width"] = imgEffectsSP.numPixels(URI: vars["OSL // Current Uri"], field TYPE: "per line");
+      vars["OSL // Uri Height"] = imgEffectsSP.numPixels(URI: vars["OSL // Current Uri"], field TYPE: "per row");
       @OSL_Vars_Set(name: "uri_width", data: vars["OSL // Uri Width"], current_command: "");
       @OSL_Vars_Set(name: "uri_height", data: vars["OSL // Uri Height"], current_command: "");
     }
     case "get_total_pixels" {
-      @OSL_Set_Data_Var_To(data: imgEffectsSP.numPixels(URI: vars["OSL // Current Uri"], field TYPE: ["total",null]));
+      @OSL_Set_Data_Var_To(data: imgEffectsSP.numPixels(URI: vars["OSL // Current Uri"], field TYPE: "total"));
     }
     case "get_width_height" {
       @OSL_Set_Data_Var_To(data: mistsutils.patchreporter3(A: "[", B: vars["OSL // Uri Width"], C: mistsutils.patchreporter3(A: ",", B: vars["OSL // Uri Height"], C: "]")));
     }
     case "remove_colour" {
-      imgEffectsSP.setSoftness(AMT: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-      vars["OSL // Current Uri"] = imgEffectsSP.deleteColor(COLOR: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), DATA_URI: vars["OSL // Current Uri"]);
+      imgEffectsSP.setSoftness(AMT: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
+      vars["OSL // Current Uri"] = imgEffectsSP.deleteColor(COLOR: data.itemoflist(INDEX: 3, LIST: list("Split Text")), DATA_URI: vars["OSL // Current Uri"]);
     }
     case "replace_colour" {
-      imgEffectsSP.setSoftness(AMT: data.itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-      vars["OSL // Current Uri"] = imgEffectsSP.replaceColor(COLOR: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), REPLACE: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), DATA_URI: vars["OSL // Current Uri"]);
+      imgEffectsSP.setSoftness(AMT: data.itemoflist(INDEX: 5, LIST: list("Split Text")));
+      vars["OSL // Current Uri"] = imgEffectsSP.replaceColor(COLOR: data.itemoflist(INDEX: 3, LIST: list("Split Text")), REPLACE: data.itemoflist(INDEX: 4, LIST: list("Split Text")), DATA_URI: vars["OSL // Current Uri"]);
     }
     case "add_hue" {
-      vars["OSL // Current Uri"] = imgEffectsSP.applyHueEffect(COLOR: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), SVG: vars["OSL // Current Uri"]);
+      vars["OSL // Current Uri"] = imgEffectsSP.applyHueEffect(COLOR: data.itemoflist(INDEX: 3, LIST: list("Split Text")), SVG: vars["OSL // Current Uri"]);
     }
     case "get_pixel" {
-      @OSL_Set_Data_Var_To(data: imgEffectsSP.getPixel(NUM: (((data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 1) * vars["OSL // Uri Width"]) + data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), URI: vars["OSL // Current Uri"]));
+      @OSL_Set_Data_Var_To(data: imgEffectsSP.getPixel(NUM: (data.itemoflist(INDEX: 4, LIST: list("Split Text")) - 1) * vars["OSL // Uri Width"] + data.itemoflist(INDEX: 3, LIST: list("Split Text")), URI: vars["OSL // Current Uri"]));
     }
     case "set_pixel" {
-      vars["OSL // Current Uri"] = imgEffectsSP.setPixel(NUM: (((data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 1) * vars["OSL // Uri Width"]) + data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), COLOR: data.itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), URI: vars["OSL // Current Uri"]);
+      vars["OSL // Current Uri"] = imgEffectsSP.setPixel(NUM: (data.itemoflist(INDEX: 4, LIST: list("Split Text")) - 1) * vars["OSL // Uri Width"] + data.itemoflist(INDEX: 3, LIST: list("Split Text")), COLOR: data.itemoflist(INDEX: 5, LIST: list("Split Text")), URI: vars["OSL // Current Uri"]);
     }
     case "blur" {
-      vars["OSL // Current Uri"] = blurImage.blurImage(URL: vars["OSL // Current Uri"], BLUR: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      vars["OSL // Current Uri"] = blurImage.blurImage(URL: vars["OSL // Current Uri"], BLUR: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
     }
     case "effect" {
-      vars["OSL // Current Uri"] = imgEffectsSP.applyEffect(EFFECT: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), SVG: vars["OSL // Current Uri"], PERCENTAGE: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      vars["OSL // Current Uri"] = imgEffectsSP.applyEffect(EFFECT: data.itemoflist(INDEX: 3, LIST: list("Split Text")), SVG: vars["OSL // Current Uri"], PERCENTAGE: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "remove_transparent" {
-      if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "under") {
-        vars["OSL // Current Uri"] = imgEffectsSP.removeTransparencyEffect(SVG: vars["OSL // Current Uri"], THRESHOLD: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), field REMOVE: ["under",null]);
+      if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "under" {
+        vars["OSL // Current Uri"] = imgEffectsSP.removeTransparencyEffect(SVG: vars["OSL // Current Uri"], THRESHOLD: data.itemoflist(INDEX: 4, LIST: list("Split Text")), field REMOVE: "under");
       }
-      if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "over") {
-        vars["OSL // Current Uri"] = imgEffectsSP.removeTransparencyEffect(SVG: vars["OSL // Current Uri"], THRESHOLD: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), field REMOVE: ["over",null]);
+      if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "over" {
+        vars["OSL // Current Uri"] = imgEffectsSP.removeTransparencyEffect(SVG: vars["OSL // Current Uri"], THRESHOLD: data.itemoflist(INDEX: 4, LIST: list("Split Text")), field REMOVE: "over");
       }
-      if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "equal_to") {
-        vars["OSL // Current Uri"] = imgEffectsSP.removeTransparencyEffect(SVG: vars["OSL // Current Uri"], THRESHOLD: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), field REMOVE: ["equal to",null]);
+      if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "equal_to" {
+        vars["OSL // Current Uri"] = imgEffectsSP.removeTransparencyEffect(SVG: vars["OSL // Current Uri"], THRESHOLD: data.itemoflist(INDEX: 4, LIST: list("Split Text")), field REMOVE: "equal to");
       }
     }
     case "stretch" {
-      vars["OSL // Current Uri"] = imgEffectsSP.stretchImg(URI: vars["OSL // Current Uri"], W: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), H: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      vars["OSL // Current Uri"] = imgEffectsSP.stretchImg(URI: vars["OSL // Current Uri"], W: data.itemoflist(INDEX: 3, LIST: list("Split Text")), H: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "upscale" {
-      vars["OSL // Current Uri"] = imgEffectsSP.upscaleImage(URI: vars["OSL // Current Uri"], NUM: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      vars["OSL // Current Uri"] = imgEffectsSP.upscaleImage(URI: vars["OSL // Current Uri"], NUM: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
     }
     case "get_output" {
       @OSL_Set_Data_Var_To(data: vars["OSL // Current Uri"]);

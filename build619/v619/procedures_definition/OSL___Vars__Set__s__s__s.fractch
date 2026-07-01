@@ -7,9 +7,9 @@
  */
 
 import "../procedures_definition/Log_Error__s__s.fractch";
-def @OSL_Vars_Set(name, data, current_command("current command")) "OSL// Vars: Set %s %s %s" warp=true {
+def @OSL_Vars_Set(name, data, current_command("current command")) "OSL// Vars: Set %s %s %s" warp {
   mistsutils.patchcommand(A: "try {");
-  if (current_command == "") {
+  if current_command == "" {
     mistsutils.patchcommand3(A: "if (p0?.length === 0) return; window.osl_clone[", B: vars["WIndow // ID"], C: "][p0.toLowerCase()] = p1 ?? \"\"");
   } else {
     mistsutils.patchcommand(A: "window.osl[p0.toLowerCase()] = p1 ?? \"\"");

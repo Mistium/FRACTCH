@@ -6,7 +6,7 @@
  * threadIndex: 187
  */
 
-def @Window_Setup_OSL_compilables() "Window // Setup OSL compilables" warp=false {
+def @Window_Setup_OSL_compilables() "Window // Setup OSL compilables" {
   mistsutils.patchcommand(A: "target.getOSLvar = (p0, t) => { const target = t; switch (p0) {");
   mistsutils.patchcommand(A: "case \"timer\": return runtime.ioDevices.clock.projectTimer()");
   mistsutils.patchcommand2(A: "case \"frame_width\": return ", B: vars["Frame // Width"]);
@@ -20,18 +20,18 @@ def @Window_Setup_OSL_compilables() "Window // Setup OSL compilables" warp=false
   mistsutils.patchcommand(A: "case \"direction\": return t.direction");
   mistsutils.patchcommand(A: "case \"this\": return t.osl_this");
   mistsutils.patchcommand(A: "case \"self\": return t.osl_vars.__self__ ?? null");
-  mistsutils.patchcommand2(A: "case \"file_dragging\": return ", B: (vars["Files // Current Dragging"] > "0"));
-  mistsutils.patchcommand2(A: "case \"mouse_x\": return ", B: (sensing.mousex() - vars["Frame // X"]));
-  mistsutils.patchcommand2(A: "case \"mouse_y\": return ", B: (sensing.mousey() - vars["Frame // Y"]));
-  mistsutils.patchcommand2(A: "case \"x_position\": return ", B: (motion.xposition() - vars["Frame // X"]));
-  mistsutils.patchcommand2(A: "case \"y_position\": return ", B: (motion.yposition() - vars["Frame // Y"]));
-  mistsutils.patchcommand2(A: "case \"frame\": return ", B: data.itemoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
+  mistsutils.patchcommand2(A: "case \"file_dragging\": return ", B: vars["Files // Current Dragging"] > 0);
+  mistsutils.patchcommand2(A: "case \"mouse_x\": return ", B: sensing.mousex() - vars["Frame // X"]);
+  mistsutils.patchcommand2(A: "case \"mouse_y\": return ", B: sensing.mousey() - vars["Frame // Y"]);
+  mistsutils.patchcommand2(A: "case \"x_position\": return ", B: motion.xposition() - vars["Frame // X"]);
+  mistsutils.patchcommand2(A: "case \"y_position\": return ", B: motion.yposition() - vars["Frame // Y"]);
+  mistsutils.patchcommand2(A: "case \"frame\": return ", B: data.itemoflist(INDEX: 1, LIST: list("OSL // Frames")));
   mistsutils.patchcommand2(A: "case \"window_width\": return ", B: "target.window.width");
   mistsutils.patchcommand2(A: "case \"window_height\": return ", B: "target.window.height");
   mistsutils.patchcommand2(A: "case \"stretch_x\": return ", B: vars["Renderer // Stretch X"]);
   mistsutils.patchcommand2(A: "case \"stretch_y\": return ", B: vars["Renderer // Stretch Y"]);
   mistsutils.patchcommand2(A: "case \"window_timer\": case \"local_timer\": return ", B: vars["Clone timer"]);
-  mistsutils.patchcommand2(A: "case \"bg_redrawn\": return ", B: (mistsutils.patchboolean(A: "window.origin.wallpaper.redrawn === true") && (mistsutils.equals(A: vars["Window // ID_Index"], B: "1") || mistsutils.equals(A: vars["Window // Overlapping Redraw"], B: "true"))));
+  mistsutils.patchcommand2(A: "case \"bg_redrawn\": return ", B: mistsutils.patchboolean(A: "window.origin.wallpaper.redrawn === true") && (mistsutils.equals(A: vars["Window // ID_Index"], B: 1) || mistsutils.equals(A: vars["Window // Overlapping Redraw"], B: "true")));
   mistsutils.patchcommand2(A: "case \"window_id_index\": return ", B: vars["Window // ID_Index"]);
   mistsutils.patchcommand2(A: "case \"loaded_file\": return ", B: vars["OSL// Current Open File"]);
   mistsutils.patchcommand3(A: "case \"scope\": return {\"depth\": t?.osl_local_vars?.length ?? null, \"this\": ", B: "t.osl_this", C: ", \"path\": t.osl_local_vars.map(v => v.name) }");

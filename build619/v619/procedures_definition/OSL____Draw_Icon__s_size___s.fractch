@@ -8,16 +8,16 @@
 
 import "../procedures_definition/destring__s__s.fractch";
 import "../procedures_definition/Draw_Icon__s__s__s__s__s__s_boldness__s.fractch";
-def @OSL_Draw_Icon_size(data, size) "OSL // Draw Icon %s size: %s" warp=false {
+def @OSL_Draw_Icon_size(data, size) "OSL // Draw Icon %s size: %s" {
   mistsutils.patchcommand2(A: "let size = +", B: size);
-  if (vars["Window // Interactable?"] == "true") {
-    @Draw_Square(X: motion.xposition(), Y: motion.yposition(), Width: (size * 30), Height: (size * 30), Line_Width: "10", Invisible: "1");
-    if (mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") && not((vars["OSL // Hover_Size"] == ""))) {
-      mistsutils.patchcommand2(A: "size = ", B: (size * vars["OSL // Hover_Size"]));
+  if vars["Window // Interactable?"] == "true" {
+    @Draw_Square(X: motion.xposition(), Y: motion.yposition(), Width: size * 30, Height: size * 30, Line_Width: 10, Invisible: 1);
+    if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") && vars["OSL // Hover_Size"] != "" {
+      mistsutils.patchcommand2(A: "size = ", B: size * vars["OSL // Hover_Size"]);
     }
   }
   @destring(Text: data, remove: "\"");
-  if not((operator.contains(STRING1: vars["DeString // out"], STRING2: " ") || mistsutils.patchboolean(A: "p0[0] === \"[\""))) {
+  if !(operator.contains(STRING1: vars["DeString // out"], STRING2: " ") || mistsutils.patchboolean(A: "p0[0] === \"[\"")) {
     mistsutils.patchcommand3(A: "const name = ", B: mistsutils.tostring(A: vars["DeString // out"]), C: ".toLowerCase() + \".icn\"");
     vars["DeString // out"] = mistsutils.patchreporter2(A: vars["Icons // All System"], B: "[name] ?? \"\"");
   }

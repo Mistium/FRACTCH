@@ -6,7 +6,7 @@
  * threadIndex: 141
  */
 
-def @OSL_Function(name, parameters, code) "OSL Function %s ( %s ) ( %s )" warp=false {
+def @OSL_Function(name, parameters, code) "OSL Function %s ( %s ) ( %s )" {
   mistsutils.patchcommand(A: "if (target.JScompCache.has(p2)) return Object.clone(target.JScompCache.get(p2));");
   mistsutils.patchcommand(A: "let func = Object.create(null)");
   mistsutils.patchcommand(A: "func._symbol = origin.symbols.function; func.parent = \"\"; func.name = p0");

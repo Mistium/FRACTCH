@@ -6,8 +6,8 @@
  * threadIndex: 211
  */
 
-def @originNM_Handle_Packet_Systems() "originNM // Handle Packet Systems" warp=true {
-  mistsutils.patchcommand2(A: "let packets = ", B: cloudlink.getAndClearPacketQueue(field TYPE: ["Private data",null]));
+def @originNM_Handle_Packet_Systems() "originNM // Handle Packet Systems" warp {
+  mistsutils.patchcommand2(A: "let packets = ", B: cloudlink.getAndClearPacketQueue(field TYPE: "Private data"));
   vars["Network // Download"] += mistsutils.patchreporter(A: "packets.length");
   mistsutils.patchcommand(A: "packets = JSON.parse(packets)");
   repeat mistsutils.patchreporter(A: "packets.length") {

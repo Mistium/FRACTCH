@@ -8,7 +8,7 @@
 
 import "../procedures_definition/OSL____Thread_Open__s.fractch";
 import "../procedures_definition/OSL____Thread_Close.fractch";
-def @Run_Definition(command_obj) "Run Definition %s" warp=true {
+def @Run_Definition(command_obj) "Run Definition %s" warp {
   mistsutils.patchcommand2(A: "let last_package = ", B: vars["Import // Current Package"]);
   mistsutils.patchcommand3(A: "const vars = ", B: command_obj, C: ".parameters");
   mistsutils.patchcommand3(A: "let code = ", B: command_obj, C: ".code");
@@ -19,10 +19,10 @@ def @Run_Definition(command_obj) "Run Definition %s" warp=true {
   repeat mistsutils.patchreporter(A: "vars.length") {
     vars["OSL // Set Val Of"] = mistsutils.patchreporter(A: "vars[i ++]");
     if mistsutils.starts(A: vars["OSL // Set Val Of"], B: "this.") {
-      vars["OSL // Set Val Of"] = @item_of_split_by(int: "2", string: vars["OSL // Set Val Of"], delimiter: ".");
+      vars["OSL // Set Val Of"] = @item_of_split_by(int: 2, string: vars["OSL // Set Val Of"], delimiter: ".");
     }
     mistsutils.patchcommand2(A: "const name = ", B: vars["OSL // Set Val Of"]);
-    mistsutils.patchcommand3(A: "target.osl_this[target.getThisIdx(target, name)]", B: " = ", C: data.itemoflist(INDEX: mistsutils.patchreporter(A: "i + 1"), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    mistsutils.patchcommand3(A: "target.osl_this[target.getThisIdx(target, name)]", B: " = ", C: data.itemoflist(INDEX: mistsutils.patchreporter(A: "i + 1"), LIST: list("Split Text")));
   }
   mistsutils.patchcommand2(A: "let id = ", B: vars["WIndow // ID"]);
   mistsutils.patchcommand(A: "const hasParent = (parent ?? \"\") !== \"\"");

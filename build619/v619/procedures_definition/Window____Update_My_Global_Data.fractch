@@ -6,7 +6,7 @@
  * threadIndex: 184
  */
 
-def @Window_Update_My_Global_Data() "Window // Update My Global Data" warp=false {
+def @Window_Update_My_Global_Data() "Window // Update My Global Data" {
   mistsutils.patchcommand2(A: "const window_id_index = -1 + ", B: vars["Window // ID_Index"]);
   mistsutils.patchcommand(A: "origin.windows.shown[window_id_index] = String(target.window.shown) == \"true\"");
   mistsutils.patchcommand(A: "origin.windows.icns[window_id_index] = target.icn");
@@ -16,7 +16,7 @@ def @Window_Update_My_Global_Data() "Window // Update My Global Data" warp=false
   mistsutils.patchcommand2(A: "origin.windows.network_ids[window_id_index] =", B: vars["Window // Network ID"]);
   mistsutils.patchcommand2(A: "origin.windows.snapping[window_id_index] =", B: "target.window.tile");
   mistsutils.patchcommand2(A: "origin.windows.positions[window_id_index] =", B: @join(_1: "[", _2: vars["Window // Low X"], _3: ",", _4: vars["Window // High Y"], _5: ",", _6: vars["Window // High X"], _7: ",", _8: vars["Window // Low Y"], _9: "]", _10: "", _11: ""));
-  if (data.lengthoflist(field LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny")) > "0") {
+  if data.lengthoflist(LIST: list("OSL // Import Times")) > 0 {
     mistsutils.patchcommand(A: "origin.windows.render[window_id_index].push(target.variables[\"_nDk?DcJ%M`dL*cXe-Ny\"].value)");
   }
 }

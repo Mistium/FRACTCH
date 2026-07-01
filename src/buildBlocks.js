@@ -261,9 +261,9 @@ function buildIdentReporterNode(name, ctx, id) {
   return { id, opcode: 'data_variable', next: null, parent: null, inputs: {}, fields: { VARIABLE: [name, varId] }, shadow: false, topLevel: false };
 }
 
-function synthesizeProccode(ident, params) {
-  const label = String(ident).replace(/_/g, ' ').trim() || 'proc';
-  return params.length ? `${label} ${params.map(() => '%s').join(' ')}` : label;
+export function synthesizeProccode(ident, paramCount) {
+  const label = String(ident).trim() || 'proc';
+  return paramCount ? `${label} ${Array(paramCount).fill('%s').join(' ')}` : label;
 }
 
 function extractPlaceholderTypes(proccode, count) {
@@ -279,7 +279,7 @@ function buildProcDefScript(procDef, ids, ctx) {
   const protoId = ids.next();
 
   const paramNames = procDef.params.map((p) => p.name);
-  const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params);
+  const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
   const typeTokens = extractPlaceholderTypes(proccode, procDef.params.length);
   const argIds = (ctx.proceduresMapForTarget && ctx.proceduresMapForTarget.get(proccode)) || procDef.params.map((p) => p.ident);
   const argDefaults = typeTokens.map((t) => (t === 'b' ? 'false' : ''));

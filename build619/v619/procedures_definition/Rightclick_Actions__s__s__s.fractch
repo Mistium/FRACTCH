@@ -7,48 +7,48 @@
  */
 
 import "../procedures_definition/File___get__s_item__s.fractch";
-def @Rightclick_Actions(Action, file, Type) "Rightclick Actions %s %s %s" warp=true {
-  data.deletealloflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
-  @File_get_item(id: mistsutils.squarebrackets(A: file, B: "0"), item: "");
+def @Rightclick_Actions(Action, file, Type) "Rightclick Actions %s %s %s" warp {
+  data.deletealloflist(LIST: list("Rightclick Options"));
+  @File_get_item(id: mistsutils.squarebrackets(A: file, B: 0), item: "");
   switch Action {
     case "Open" {
       @File_open(Id: file);
     }
     case "Show File" {
-      @Window_create(name: "@File Explorer", window_data: @File_get_item(id: @OSL_Vars_Get(Varname: "current_file_uuid"), item: "3"));
+      @Window_create(name: "@File Explorer", window_data: @File_get_item(id: @OSL_Vars_Get(Varname: "current_file_uuid"), item: 3));
     }
     case "New File" {
-      @Window_create(name: "Origin/(A) System/System Apps/New_File.osl", window_data: @item_of_split_by(int: "1", string: data.itemoflist(INDEX: @originFS_UUID_ID(UUID: file), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), delimiter: "."));
+      @Window_create(name: "Origin/(A) System/System Apps/New_File.osl", window_data: @item_of_split_by(int: 1, string: data.itemoflist(INDEX: @originFS_UUID_ID(UUID: file), LIST: list("Files // Index Path")), delimiter: "."));
     }
     case "Copy File As JSON" {
       @File_get_item(id: file, item: "");
       clipboard.setClipboard(TEXT: skyhigh173JSON.json_vm_getlist(list: skyhigh173JSON.menu_get_list(field get_list: list("sZuM+zCt8vo`B5=)O+p."))));
     }
     case "Copy Link To Script" {
-      zxmushroom63searchparams.setsearchparam(ID: "embed", VAL: @File_get_item(id: file, item: "4"));
+      zxmushroom63searchparams.setsearchparam(ID: "embed", VAL: @File_get_item(id: file, item: 4));
       clipboard.setClipboard(TEXT: mistsutils.patchreporter(A: "window.location.href"));
       zxmushroom63searchparams.deletesearchparam(ID: "embed");
     }
     case "View Original File" {
-      @Window_create(name: "@File Explorer", window_data: data.itemoflist(INDEX: data.itemnumoflist(ITEM: (@File_get_item(id: data.itemoflist(INDEX: 4, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), item: "3") .. ".folder"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+      @Window_create(name: "@File Explorer", window_data: data.itemoflist(INDEX: data.itemnumoflist(ITEM: @File_get_item(id: data.itemoflist(INDEX: 4, LIST: list("Files // Current")), item: 3) .. ".folder", LIST: list("Files // Index Path")), LIST: list("Files // UUIDS")));
     }
     case "View Contents" {
-      @Window_create(name: "@File Explorer", window_data: (mistsutils.patchreporter(A: "`${osl.user_folder}/application data/`") .. data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."))));
+      @Window_create(name: "@File Explorer", window_data: mistsutils.patchreporter(A: "`${osl.user_folder}/application data/`") .. data.itemoflist(INDEX: 2, LIST: list("Files // Current")));
     }
     case "Edit" {
-      @Window_create(name: "@Text Editor", window_data: mistsutils.squarebrackets(A: @parse(json: file), B: "0"));
+      @Window_create(name: "@Text Editor", window_data: mistsutils.squarebrackets(A: @parse(json: file), B: 0));
     }
     case "Info" {
-      @Window_create(name: "Origin/(A) System/System Apps/Files_Info.osl", window_data: mistsutils.squarebrackets(A: @parse(json: file), B: "0"));
+      @Window_create(name: "Origin/(A) System/System Apps/Files_Info.osl", window_data: mistsutils.squarebrackets(A: @parse(json: file), B: 0));
     }
     case "Rename" {
-      @Window_create(name: "Origin/(A) System/System Apps/Rename-Helper.osl", window_data: mistsutils.squarebrackets(A: @parse(json: file), B: "0"));
+      @Window_create(name: "Origin/(A) System/System Apps/Rename-Helper.osl", window_data: mistsutils.squarebrackets(A: @parse(json: file), B: 0));
     }
     case "New Shortcut Here" {
-      @File_add_Data_Icon_Perms(Location: @File_get_item(id: file, item: "3"), Name: @File_get_item(id: file, item: "2"), Type: ".shortcut", Data: @originFS_ID_Path(id: @originFS_UUID_ID(UUID: @File_get_item(id: file, item: "14"))), Icon: "", Perms: "");
+      @File_add_Data_Icon_Perms(Location: @File_get_item(id: file, item: 3), Name: @File_get_item(id: file, item: 2), Type: ".shortcut", Data: @originFS_ID_Path(id: @originFS_UUID_ID(UUID: @File_get_item(id: file, item: 14))), Icon: "", Perms: "");
     }
     case "New Shortcut On Dock" {
-      @File_add_Data_Icon_Perms(Location: @Find_Directory(Directory: "~/dock"), Name: @File_get_item(id: file, item: "2"), Type: ".shortcut", Data: @originFS_ID_Path(id: @originFS_UUID_ID(UUID: @File_get_item(id: file, item: "14"))), Icon: "", Perms: "");
+      @File_add_Data_Icon_Perms(Location: @Find_Directory(Directory: "~/dock"), Name: @File_get_item(id: file, item: 2), Type: ".shortcut", Data: @originFS_ID_Path(id: @originFS_UUID_ID(UUID: @File_get_item(id: file, item: 14))), Icon: "", Perms: "");
     }
     case "Delete Immediately" {
       @originFS_Exec_file_file_data_id_input(command: "immediately delete", Id: @originFS_UUID_ID(UUID: file), data_id: "", input: "");
@@ -69,10 +69,10 @@ def @Rightclick_Actions(Action, file, Type) "Rightclick Actions %s %s %s" warp=t
       if @is_array(input: mistsutils.patchreporter(A: "arr")) {
         repeat mistsutils.patchreporter(A: "arr.length") {
           mistsutils.patchcommand(A: "const cur = arr.pop()");
-          @originFS_Exec_file_file_data_id_input(command: "duplicate", Id: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "cur")), data_id: "", input: @File_get_item(id: mistsutils.patchreporter(A: "cur"), item: "3"));
+          @originFS_Exec_file_file_data_id_input(command: "duplicate", Id: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "cur")), data_id: "", input: @File_get_item(id: mistsutils.patchreporter(A: "cur"), item: 3));
         }
       } else {
-        @originFS_Exec_file_file_data_id_input(command: "duplicate", Id: mistsutils.patchreporter(A: "arr"), data_id: "", input: @File_get_item(id: mistsutils.patchreporter(A: "arr"), item: "3"));
+        @originFS_Exec_file_file_data_id_input(command: "duplicate", Id: mistsutils.patchreporter(A: "arr"), data_id: "", input: @File_get_item(id: mistsutils.patchreporter(A: "arr"), item: 3));
       }
     }
     case "Copy Path" {
@@ -90,50 +90,50 @@ def @Rightclick_Actions(Action, file, Type) "Rightclick Actions %s %s %s" warp=t
       mistsutils.patchcommand2(A: "let path = ", B: @originFS_ID_Path(id: @originFS_UUID_ID(UUID: file)));
       mistsutils.patchcommand(A: "path = path.slice(0, -7)");
       mistsutils.patchcommand(A: "const files = Object.entries(window.files.paths).filter(v => v[0].startsWith(path))");
-      mistsutils.patchcommand2(A: "const prev = ", B: vfs.getallfiles(field EXPORT: ["json",null]));
+      mistsutils.patchcommand2(A: "const prev = ", B: vfs.getallfiles(field EXPORT: "json"));
       vfs.clearall();
       mistsutils.patchcommand(A: "for (let i = 0; i < files.length; i ++) {");
       mistsutils.patchcommand(A: "const fpath = files[i][0].replace(path, \"\")");
       mistsutils.patchcommand(A: "if (fpath.endsWith(\".folder\")) continue");
       vfs.createFile(FILE_PATH: mistsutils.patchreporter(A: "fpath"));
-      vfs.writeFile(CONTENT: @File_get_item(id: mistsutils.patchreporter(A: "files[i][1]"), item: "4"), FILE_PATH: mistsutils.patchreporter(A: "fpath"));
+      vfs.writeFile(CONTENT: @File_get_item(id: mistsutils.patchreporter(A: "files[i][1]"), item: 4), FILE_PATH: mistsutils.patchreporter(A: "fpath"));
       mistsutils.patchcommand(A: "}");
-      filesExpanded.downloadURL(url: vfs.getallfiles(field EXPORT: ["zip",null]), file: mistsutils.patchreporter3(A: "`${", B: @File_get_item(id: mistsutils.patchreporter(A: "`${path}.folder`"), item: "2"), C: "}.zip`"));
+      filesExpanded.downloadURL(url: vfs.getallfiles(field EXPORT: "zip"), file: mistsutils.patchreporter3(A: "`${", B: @File_get_item(id: mistsutils.patchreporter(A: "`${path}.folder`"), item: 2), C: "}.zip`"));
       vfs.clearall();
-      vfs.importfiles(FILES: mistsutils.patchreporter(A: "prev"), field EXPORT: ["json",null]);
+      vfs.importfiles(FILES: mistsutils.patchreporter(A: "prev"), field EXPORT: "json");
     }
     case "Download To My Computer" {
-      filesExpanded.download(text: data.itemoflist(INDEX: 4, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), file: (data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) .. data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."))));
+      filesExpanded.download(text: data.itemoflist(INDEX: 4, LIST: list("Files // Current")), file: data.itemoflist(INDEX: 2, LIST: list("Files // Current")) .. data.itemoflist(INDEX: 1, LIST: list("Files // Current")));
     }
     default {
       if operator.contains(STRING1: Action, STRING2: "New Folder") {
-        vars["OSL// Index 1"] = "2";
+        vars["OSL// Index 1"] = 2;
         if @is_array(input: file) {
-          @File_get_item(id: mistsutils.squarebrackets(A: file, B: "0"), item: "");
+          @File_get_item(id: mistsutils.squarebrackets(A: file, B: 0), item: "");
         } else {
           @File_get_item(id: file, item: "");
         }
-        vars["//return"] = data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
+        vars["//return"] = data.itemoflist(INDEX: 3, LIST: list("Files // Current"));
         vars["OSL// Temp2"] = vars["//return"];
-        if (Action == "New Folder Inside") {
-          vars["//return"] = (vars["//return"] .. ("/" .. data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."))));
+        if Action == "New Folder Inside" {
+          vars["//return"] = vars["//return"] .. ("/" .. data.itemoflist(INDEX: 2, LIST: list("Files // Current")));
         }
-        if data.listcontainsitem(ITEM: (vars["//return"] .. "/New Folder.folder"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) {
-          until not(data.listcontainsitem(ITEM: (vars["//return"] .. ("/New Folder " .. (vars["OSL// Index 1"] .. ".folder"))), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"))) {
+        if data.listcontainsitem(ITEM: vars["//return"] .. "/New Folder.folder", LIST: list("Files // Index Path")) {
+          until !data.listcontainsitem(ITEM: vars["//return"] .. ("/New Folder " .. (vars["OSL// Index 1"] .. ".folder")), LIST: list("Files // Index Path")) {
             vars["OSL// Index 1"] += 1;
           }
-          if (Action == "New Folder With Selection") {
-            vars["OSL// Temp2"] = (vars["OSL// Temp2"] .. ("/New Folder " .. vars["OSL// Index 1"]));
+          if Action == "New Folder With Selection" {
+            vars["OSL// Temp2"] = vars["OSL// Temp2"] .. ("/New Folder " .. vars["OSL// Index 1"]);
           }
-          @File_add_Data_Icon_Perms(Location: vars["//return"], Name: ("New Folder " .. vars["OSL// Index 1"]), Type: ".folder", Data: "[]", Icon: "", Perms: "");
+          @File_add_Data_Icon_Perms(Location: vars["//return"], Name: "New Folder " .. vars["OSL// Index 1"], Type: ".folder", Data: "[]", Icon: "", Perms: "");
         } else {
-          if (Action == "New Folder With Selection") {
-            vars["OSL// Temp2"] = (vars["OSL// Temp2"] .. "/New Folder");
+          if Action == "New Folder With Selection" {
+            vars["OSL// Temp2"] = vars["OSL// Temp2"] .. "/New Folder";
           }
           @File_add_Data_Icon_Perms(Location: vars["//return"], Name: "New Folder", Type: ".folder", Data: "[]", Icon: "", Perms: "");
         }
-        if (Action == "New Folder With Selection") {
-          vars["OSL// Index 1"] = "0";
+        if Action == "New Folder With Selection" {
+          vars["OSL// Index 1"] = 0;
           repeat skyhigh173JSON.json_length(json: file) {
             vars["OSL// Index 1"] += 1;
             @originFS_Exec_file_file_data_id_input(command: "move", Id: skyhigh173JSON.json_array_get(item: vars["OSL// Index 1"], json: file), data_id: "", input: vars["OSL// Temp2"]);
@@ -142,5 +142,5 @@ def @Rightclick_Actions(Action, file, Type) "Rightclick Actions %s %s %s" warp=t
       }
     }
   }
-  data.deletealloflist(field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
+  data.deletealloflist(LIST: list("Files // Current"));
 }

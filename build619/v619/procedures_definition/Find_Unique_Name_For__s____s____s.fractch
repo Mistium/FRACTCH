@@ -6,7 +6,7 @@
  * threadIndex: 203
  */
 
-def @Find_Unique_Name_For(path, name, type) "Find Unique Name For %s / %s . %s" warp=true {
+def @Find_Unique_Name_For(path, name, type) "Find Unique Name For %s / %s . %s" warp {
   mistsutils.patchcommand(A: "const index = origin.files.index.value");
   if mistsutils.patchreporter(A: "index.indexOf(`${p0}/${p1}.${p2}`.toLowerCase()) !== -1") {
     mistsutils.patchcommand(A: "let i = 1");
@@ -15,6 +15,6 @@ def @Find_Unique_Name_For(path, name, type) "Find Unique Name For %s / %s . %s" 
     }
     return mistsutils.patchreporter(A: "`${p1} (${i}).${p2}`");
   } else {
-    return (name .. ("." .. type));
+    return name .. ("." .. type);
   }
 }

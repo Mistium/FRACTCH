@@ -6,7 +6,7 @@
  * threadIndex: 70
  */
 
-def @distance_between_and(x, y, x2, y2) "distance between %s %s and %s %s" warp=false {
+def @distance_between_and(x, y, x2, y2) "distance between %s %s and %s %s" {
   mistsutils.patchcommand(A: "const a = p0 - p2, b = p1 - p3; return Math.hypot( a, b )");
   return "";
 }

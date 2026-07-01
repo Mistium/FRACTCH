@@ -6,7 +6,7 @@
  * threadIndex: 188
  */
 
-def @Draw_Text(Text, X, Y, Size, Markdown_Enabled("Markdown Enabled?")) "// Draw Text %s %s %s %s %s" warp=true {
+def @Draw_Text(Text, X, Y, Size, Markdown_Enabled("Markdown Enabled?")) "// Draw Text %s %s %s %s %s" warp {
   mistsutils.patchcommand(A: "let text_current;");
   mistsutils.patchcommand(A: "if (p0 === null) return");
   mistsutils.patchcommand(A: "switch (typeof p0) {");
@@ -18,47 +18,47 @@ def @Draw_Text(Text, X, Y, Size, Markdown_Enabled("Markdown Enabled?")) "// Draw
   mistsutils.patchcommand(A: "case \"number\": text_current = \"\"+p0; break");
   mistsutils.patchcommand(A: "default: text_current = \"\"; break");
   mistsutils.patchcommand(A: "}");
-  vars["Text // Size Multiplier"] = (Size / 30);
+  vars["Text // Size Multiplier"] = Size / 30;
   mistsutils.patchcommand(A: "p1 = +p1 || 0");
   mistsutils.patchcommand(A: "p2 = +p2 || 0");
-  mistsutils.patchcommand2(A: "const char_spacing = ", B: ((vars["Text // Char Spacing"] / 30) * vars["Renderer // Scale"]));
-  vars["Text // Width"] = ((mistsutils.patchreporter(A: "text_current.length") * mistsutils.patchreporter(A: "char_spacing")) * Size);
-  if (vars["Window // Interactable?"] == "true") {
-    @Draw_Square(X: mistsutils.patchreporter2(A: "p1 + ", B: (vars["Text // Width"] / 2)), Y: mistsutils.patchreporter(A: "p2"), Width: vars["Text // Width"], Height: (Size * vars["Text // Line Spacing"]), Line_Width: "", Invisible: "1");
+  mistsutils.patchcommand2(A: "const char_spacing = ", B: vars["Text // Char Spacing"] / 30 * vars["Renderer // Scale"]);
+  vars["Text // Width"] = mistsutils.patchreporter(A: "text_current.length") * mistsutils.patchreporter(A: "char_spacing") * Size;
+  if vars["Window // Interactable?"] == "true" {
+    @Draw_Square(X: mistsutils.patchreporter2(A: "p1 + ", B: vars["Text // Width"] / 2), Y: mistsutils.patchreporter(A: "p2"), Width: vars["Text // Width"], Height: Size * vars["Text // Line Spacing"], Line_Width: "", Invisible: 1);
     if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") {
-      if not((vars["OSL // Hover_Colour"] == "")) {
+      if vars["OSL // Hover_Colour"] != "" {
         pen.setPenColorToColor(COLOR: vars["OSL // Hover_Colour"]);
       }
-      if not((vars["OSL // Hover_Size"] == "")) {
-        vars["Text // Size Multiplier"] = (vars["Text // Size Multiplier"] * vars["OSL // Hover_Size"]);
+      if vars["OSL // Hover_Size"] != "" {
+        vars["Text // Size Multiplier"] = vars["Text // Size Multiplier"] * vars["OSL // Hover_Size"];
       }
     }
   }
   mistsutils.patchcommand(A: "target.setXY(p1, (p2 - Number(p3) * 0.6) || 0);");
-  vars["Text // Clicked Letter ID"] = "-1";
+  vars["Text // Clicked Letter ID"] = -1;
   mistsutils.patchcommand3(A: "const font = `font${", B: vars["Text // Font"], C: "}-`");
   mistsutils.patchcommand2(A: "const text_direction = ", B: motion.direction());
   mistsutils.patchcommand(A: "const rad_direction = (90 - text_direction) * Math.PI / 180");
   mistsutils.patchcommand(A: "let compound = font");
-  mistsutils.patchcommand2(A: "const char_spacing_scaled = ", B: (Size * mistsutils.patchreporter(A: "char_spacing")));
-  mistsutils.patchcommand2(A: "let can_render = ", B: (motion.yposition() < vars["Frame // Max Y"]));
+  mistsutils.patchcommand2(A: "const char_spacing_scaled = ", B: Size * mistsutils.patchreporter(A: "char_spacing"));
+  mistsutils.patchcommand2(A: "let can_render = ", B: motion.yposition() < vars["Frame // Max Y"]);
   mistsutils.patchcommand(A: "const cha_x = char_spacing_scaled * Math.cos(rad_direction)");
   mistsutils.patchcommand(A: "const cha_y = char_spacing_scaled * Math.sin(rad_direction)");
-  mistsutils.patchcommand2(A: "const min_x = ", B: (vars["Frame // Min X"] - Size));
-  mistsutils.patchcommand2(A: "const max_x = ", B: (vars["Frame // Max X"] + Size));
-  mistsutils.patchcommand2(A: "const min_y = ", B: (vars["Frame // Min Y"] - Size));
-  mistsutils.patchcommand2(A: "const max_y = ", B: (vars["Frame // Max Y"] + Size));
+  mistsutils.patchcommand2(A: "const min_x = ", B: vars["Frame // Min X"] - Size);
+  mistsutils.patchcommand2(A: "const max_x = ", B: vars["Frame // Max X"] + Size);
+  mistsutils.patchcommand2(A: "const min_y = ", B: vars["Frame // Min Y"] - Size);
+  mistsutils.patchcommand2(A: "const max_y = ", B: vars["Frame // Max Y"] + Size);
   mistsutils.patchcommand(A: "let text_length = text_current.length");
   mistsutils.patchcommand(A: "for (let i = 0; i < text_length; i++) {");
   mistsutils.patchcommand(A: "let text_letter = text_current[i]");
   if mistsutils.patchboolean(A: "text_letter === \"\\n\"") {
-    motion.gotoxy(X: X, Y: (motion.yposition() - (Size * vars["Text // Line Spacing"])));
+    motion.gotoxy(X: X, Y: motion.yposition() - Size * vars["Text // Line Spacing"]);
     mistsutils.patchcommand(A: "if (!can_render) {");
-    if (motion.yposition() < vars["Frame // Max Y"]) {
+    if motion.yposition() < vars["Frame // Max Y"] {
       mistsutils.patchcommand(A: "can_render = true");
     }
     mistsutils.patchcommand(A: "}");
-    if (motion.yposition() < mistsutils.patchreporter(A: "min_y")) {
+    if motion.yposition() < mistsutils.patchreporter(A: "min_y") {
       mistsutils.patchcommand(A: "can_render = false");
     }
   } else {
@@ -69,7 +69,7 @@ def @Draw_Text(Text, X, Y, Size, Markdown_Enabled("Markdown Enabled?")) "// Draw
       mistsutils.patchcommand(A: "can_render = false");
     }
     if mistsutils.patchboolean(A: "text_letter !== \"\\r\"") {
-      @Draw_Icon_boldness(Code: mistsutils.patchreporter(A: "text_letter === \" \" ? \"\" : font + text_letter"), Size: vars["Text // Size Multiplier"], setsize: "1", x: "", y: "", direction: mistsutils.patchreporter(A: "text_direction"), boldness: vars["Text // Boldness"]);
+      @Draw_Icon_boldness(Code: mistsutils.patchreporter(A: "text_letter === \" \" ? \"\" : font + text_letter"), Size: vars["Text // Size Multiplier"], setsize: 1, x: "", y: "", direction: mistsutils.patchreporter(A: "text_direction"), boldness: vars["Text // Boldness"]);
     }
     mistsutils.patchcommand(A: "} else {");
     if mistsutils.patchboolean(A: "x < min_x && x > max_x && y < max_y && y > min_y") {
@@ -79,5 +79,5 @@ def @Draw_Text(Text, X, Y, Size, Markdown_Enabled("Markdown Enabled?")) "// Draw
     mistsutils.patchcommand(A: "target.setXY(x + cha_x, y + cha_y)");
   }
   mistsutils.patchcommand(A: "}");
-  motion.changeyby(DY: (Size * 0.6));
+  motion.changeyby(DY: Size * 0.6);
 }

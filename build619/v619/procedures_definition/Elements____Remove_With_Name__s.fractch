@@ -6,7 +6,7 @@
  * threadIndex: 171
  */
 
-def @Elements_Remove_With_Name(name) "Elements // Remove With Name %s" warp=false {
+def @Elements_Remove_With_Name(name) "Elements // Remove With Name %s" {
   mistsutils.patchcommand(A: "try {");
   mistsutils.patchcommand(A: "let temp = window.origin.elements[p0];");
   mistsutils.patchcommand(A: "vm.renderer.removeOverlay(temp);");

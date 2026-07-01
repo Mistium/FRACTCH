@@ -7,7 +7,7 @@
  */
 
 import "../procedures_definition/OSL___Vars__Set__s__s__s.fractch";
-event.whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Load Wallpaper", "W#X|wS#@*(3?-mDc(P]1"));
+event.whenbroadcastreceived(BROADCAST_OPTION: broadcast("Load Wallpaper"));
 mistsutils.patchcommand(A: "if (target.isOriginal) {");
 if mistsutils.patchboolean(A: "Date.now() - origin.time.start > 1000") {
   @Show_Notification(Icon: "origin-logo", Title: mistsutils.patchreporter(A: "`Loading wallpaper`"), Text: "", Style: "puck", Action: "");

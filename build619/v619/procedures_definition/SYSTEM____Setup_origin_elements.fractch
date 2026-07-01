@@ -9,7 +9,7 @@
 import "../procedures_definition/Elements____Remove_With_Name__s.fractch";
 import "../procedures_definition/Elements____New_With_Name__s.fractch";
 import "../procedures_definition/Elements____Set_Style__s_of__s_to__s.fractch";
-def @SYSTEM_Setup_origin_elements() "SYSTEM // Setup origin.elements" warp=false {
+def @SYSTEM_Setup_origin_elements() "SYSTEM // Setup origin.elements" {
   @Elements_Remove_With_Name(name: "tooltip");
   @Elements_New_With_Name(name: "tooltip");
   @Elements_Set_Style_of_to(style: "width", name: "tooltip", value: "fit-content");

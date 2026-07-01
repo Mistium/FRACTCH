@@ -41,9 +41,22 @@ export function convertProject(projectJson, { outDir }) {
     }
   }
 
+  const stageTarget = targets.find((t) => t.isStage);
+  const stageVarMap = nameIdMap(stageTarget?.variables);
+  const stageListMap = nameIdMap(stageTarget?.lists);
+  const broadcastNameToId = new Map();
+  for (const t of targets) {
+    for (const [bName, bId] of nameIdMap(t.broadcasts)) {
+      if (!broadcastNameToId.has(bName)) broadcastNameToId.set(bName, bId);
+    }
+  }
+
   for (const target of targets) {
     const tDir = path.join(outDir, sanitize(target.name));
     fs.mkdirSync(tDir, { recursive: true });
+
+    const varMap = new Map([...stageVarMap, ...nameIdMap(target.variables)]);
+    const listMap = new Map([...stageListMap, ...nameIdMap(target.lists)]);
 
     const scripts = groupTopLevelScripts(target);
     const subgraphs = new Map(); // topBlockId -> subgraph
@@ -102,7 +115,7 @@ export function convertProject(projectJson, { outDir }) {
         script,
         subgraph,
         index: idx++,
-        context: { broadcastMap, proceduresMap, procByCode },
+        context: { broadcastMap, proceduresMap, procByCode, varMap, listMap, broadcastNameToId },
       });
       fs.writeFileSync(filePath, content);
       const rel = `./${sanitize(target.name)}/${sanitize(hatOpcode || 'nohat')}/${filename}`;
@@ -141,6 +154,15 @@ function manifestWithoutBlocks(projectJson) {
 
 function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
+}
+
+function nameIdMap(dict) {
+  const map = new Map();
+  for (const [id, entry] of Object.entries(dict || {})) {
+    const name = Array.isArray(entry) ? entry[0] : entry;
+    if (typeof name === 'string' && !map.has(name)) map.set(name, id);
+  }
+  return map;
 }
 
 export function cleanIdent(label) {

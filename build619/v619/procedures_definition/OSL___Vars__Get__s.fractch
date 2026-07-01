@@ -6,6 +6,6 @@
  * threadIndex: 50
  */
 
-def @OSL_Vars_Get(Varname) "OSL// Vars: Get %s" warp=true {
+def @OSL_Vars_Get(Varname) "OSL// Vars: Get %s" warp {
   return mistsutils.patchreporter(A: "target.getOSLvar(p0, target)");
 }

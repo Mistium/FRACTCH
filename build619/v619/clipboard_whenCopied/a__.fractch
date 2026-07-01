@@ -11,7 +11,7 @@ clipboard.whenCopied();
 mistsutils.patchcommand(A: "if (target.isOriginal) {");
 @Kernel_Copy(value: vars["Inputs // Selected String"]);
 mistsutils.patchcommand(A: "} else {");
-if (vars["Process // Type"] == "app") {
+if vars["Process // Type"] == "app" {
   @OSL_Run_W_O_Screen_Refresh(code: "window.emit(\"copy\")");
 }
 mistsutils.patchcommand(A: "}");

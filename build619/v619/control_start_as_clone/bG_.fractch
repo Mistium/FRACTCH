@@ -8,8 +8,8 @@
 
 control.start_as_clone();
 mistsutils.patchcommand(A: "target.window ??= {}");
-if (vars["Process // Type"] == "App") {
-  if (vars["Embed Mode"] == "1") {
+if vars["Process // Type"] == "App" {
+  if vars["Embed Mode"] == 1 {
     forever {
       mistsutils.patchcommand2(A: "target.window.width = ", B: vars["Screen Size X"]);
       mistsutils.patchcommand2(A: "target.window.height = ", B: vars["Screen Size Y"]);

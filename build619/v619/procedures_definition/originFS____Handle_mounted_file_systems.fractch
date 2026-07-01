@@ -7,15 +7,15 @@
  */
 
 import "../procedures_definition/originFS____Generate_Paths_And_Uuids.fractch";
-def @originFS_Handle_mounted_file_systems() "originFS // Handle mounted file systems" warp=false {
+def @originFS_Handle_mounted_file_systems() "originFS // Handle mounted file systems" {
   @originFS_Generate_Paths_And_Uuids();
   mistsutils.patchcommand(A: "const mountings = Object.entries(window.files.paths).filter(v => v[0].endsWith(\".mount\")).map(v => [`${v[0].slice(0, -6)}`, v[1]])");
   mistsutils.patchcommand(A: "let files = Object.values(vm.runtime.getTargetForStage().variables).filter(obj => obj.name === \"Files\")[0]");
   mistsutils.patchcommand(A: "for (let i = 0; i < mountings.length; i ++) {");
   mistsutils.patchcommand(A: "const cur = mountings[i]");
   mistsutils.patchcommand2(A: "const id = ", B: @originFS_Path_ID(Path: mistsutils.patchreporter(A: "`${cur[0]}.mount`")));
-  mistsutils.patchcommand2(A: "const url = ", B: @File_get_item(id: mistsutils.patchreporter(A: "id"), item: "4"));
-  mistsutils.patchcommand2(A: "const uuid = ", B: @File_get_item(id: mistsutils.patchreporter(A: "id"), item: "14"));
+  mistsutils.patchcommand2(A: "const url = ", B: @File_get_item(id: mistsutils.patchreporter(A: "id"), item: 4));
+  mistsutils.patchcommand2(A: "const uuid = ", B: @File_get_item(id: mistsutils.patchreporter(A: "id"), item: 14));
   mistsutils.patchcommand(A: "const mount_point = { url, uuid, success: false }");
   mistsutils.patchcommand(A: "window.origin.files.mount_points[`${cur[0]}/`] = mount_point");
   mistsutils.patchcommand2(A: "let data = ", B: cloudlink.fetchURL(url: mistsutils.patchreporter(A: "url")));
@@ -25,10 +25,10 @@ def @originFS_Handle_mounted_file_systems() "originFS // Handle mounted file sys
   mistsutils.patchcommand(A: "mount_point.success = true");
   mistsutils.patchcommand(A: "for (let j = 2; j < data.length; j += 14) { data[j] = data[j] === \"\" ? cur[0] : `${cur[0]}/${data[j]}`; }");
   mistsutils.patchcommand(A: "files.value = files.value.concat(data)");
-  data.replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: "4"), ITEM: "[]", field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
-  data.replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: "1"), ITEM: ".folder", field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
-  data.replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: "14"), ITEM: @originFS_Generate_file_uuid(), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
-  mistsutils.patchcommand2(A: "mount_point.new_uuid = ", B: @File_get_item(id: mistsutils.patchreporter(A: "id"), item: "14"));
+  data.replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: 4), ITEM: "[]", LIST: list("Files"));
+  data.replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: 1), ITEM: ".folder", LIST: list("Files"));
+  data.replaceitemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: 14), ITEM: @originFS_Generate_file_uuid(), LIST: list("Files"));
+  mistsutils.patchcommand2(A: "mount_point.new_uuid = ", B: @File_get_item(id: mistsutils.patchreporter(A: "id"), item: 14));
   mistsutils.patchcommand(A: "}");
   @originFS_Generate_Paths_And_Uuids();
 }

@@ -6,7 +6,7 @@
  * threadIndex: 108
  */
 
-def @Log_Error(Data, Type) "Log Error %s %s" warp=false {
+def @Log_Error(Data, Type) "Log Error %s %s" {
   mistsutils.patchcommand2(A: "let osl_window = ", B: "target.window");
   mistsutils.patchcommand(A: "target.osl_local_scopes ??= [{name: \"Anonymous\"}]");
   mistsutils.patchcommand(A: "let line = \"\"+(window.osl_current_command?.[0]?.line ?? 0)");

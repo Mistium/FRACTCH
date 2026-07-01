@@ -6,7 +6,7 @@
  * threadIndex: 129
  */
 
-def @Window_Set_Redraw_Box(left, top, right, bottom) "Window // Set Redraw Box %s %s %s %s" warp=false {
+def @Window_Set_Redraw_Box(left, top, right, bottom) "Window // Set Redraw Box %s %s %s %s" {
   vars["Redraw // Window Left"] = left;
   vars["Redraw // Window Top"] = top;
   vars["Redraw // Window Right"] = right;

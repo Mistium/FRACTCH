@@ -18,6 +18,16 @@ const BRANCH_SUBSTACK_OPCODES = new Set([
   'control_default', 'control_repeat', 'control_repeat_until', 'control_while',
 ]);
 
+const BINARY_OPS = {
+  '||': 1, '&&': 2,
+  '==': 3, '!=': 3, '<': 3, '>': 3, '<=': 3, '>=': 3,
+  '..': 4,
+  '+': 5, '-': 5,
+  '*': 6, '/': 6, '%': 6,
+};
+const TWO_CHAR_OPS = new Set(['==', '!=', '<=', '>=', '&&', '||', '..']);
+const ONE_CHAR_OPS = new Set(['+', '-', '*', '/', '%', '<', '>']);
+
 const LEGACY_FIELD_KEYS = new Set([
   'AND_WAIT', 'ATTRIBUTE', 'AXIS', 'BROADCAST_OPTION', 'BUTTONS', 'C', 'CLONE_OPTION',
   'COMPRESSIONTYPES', 'CONTROL', 'DISTANCETOMENU', 'DRAG_MODE', 'EFFECT',
@@ -270,19 +280,26 @@ class Parser {
         const name = this.parseStringLiteral();
         this.expectChar(']');
         this.skipWS();
-        let op = '=';
-        if (this.tryChar('+')) {
-          this.expectChar('=');
+        let op = null;
+        if (this.peek() === '+' && this.peek(1) === '=') {
+          this.i += 2;
           op = '+=';
-        } else {
-          this.expectChar('=');
+        } else if (this.peek() === '=' && this.peek(1) !== '=') {
+          this.i++;
+          op = '=';
         }
-        const v = this.parseExpr();
+        if (op) {
+          const v = this.parseExpr();
+          this.tryChar(';');
+          return makeCall(op === '+=' ? 'data_changevariableby' : 'data_setvariableto', [
+            keyedField('VARIABLE', { type: 'array', value: [name] }),
+            keyedInput('VALUE', v),
+          ]);
+        }
+        const expr = this.parseBinaryFrom({ type: 'var', name, id: null }, 1);
         this.tryChar(';');
-        return makeCall(op === '+=' ? 'data_changevariableby' : 'data_setvariableto', [
-          keyedField('VARIABLE', { type: 'array', value: [name] }),
-          keyedInput('VALUE', v),
-        ]);
+        if (expr.type === 'call') return expr.value;
+        return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(expr))]);
       }
       case 'dangling_next': {
         // Preserves a forward reference to a block id that doesn't actually
@@ -343,9 +360,13 @@ class Parser {
     if (this.peekWord() === 'warp') {
       this.tryIdentifier();
       this.skipWS();
-      this.expectChar('=');
-      const w = this.tryIdentifier();
-      warp = w === 'true';
+      if (this.peek() === '=') {
+        this.i++;
+        const w = this.tryIdentifier();
+        warp = w === 'true';
+      } else {
+        warp = true;
+      }
     }
 
     const body = this.parseBraceBody();
@@ -415,9 +436,45 @@ class Parser {
     return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(e))]);
   }
 
-  // ---- expressions ----
-
   parseExpr() {
+    return this.parseBinaryExpr(1);
+  }
+
+  parseBinaryExpr(minPrec) {
+    return this.parseBinaryFrom(this.parseUnaryExpr(), minPrec);
+  }
+
+  parseBinaryFrom(left, minPrec) {
+    for (;;) {
+      const op = this.peekBinaryOp();
+      if (!op || BINARY_OPS[op] < minPrec) break;
+      this.i += op.length;
+      const right = this.parseBinaryExpr(BINARY_OPS[op] + 1); // left-assoc
+      left = combineBinary(left, op, right);
+    }
+    return left;
+  }
+
+  peekBinaryOp() {
+    this.skipWS();
+    const two = this.s.slice(this.i, this.i + 2);
+    if (TWO_CHAR_OPS.has(two)) return two;
+    const one = this.peek();
+    if (one && ONE_CHAR_OPS.has(one)) return one;
+    return null;
+  }
+
+  parseUnaryExpr() {
+    this.skipWS();
+    if (this.peek() === '!' && this.peek(1) !== '=') {
+      this.i++;
+      const operand = this.parseUnaryExpr();
+      return { type: 'call', value: makeCall('operator_not', [keyedInput('OPERAND', operand)]) };
+    }
+    return this.parsePrimary();
+  }
+
+  parsePrimary() {
     this.skipWS();
     if (this.eof()) throw new ParseError('unexpected end of input');
     const ch = this.peek();
@@ -511,45 +568,10 @@ class Parser {
 
   parseParenExpr() {
     this.expectChar('(');
-    const left = this.parseExpr();
-    this.skipWS();
-    const op = this.parseOperatorToken();
-    const right = this.parseExpr();
+    const e = this.parseExpr();
     this.skipWS();
     this.expectChar(')');
-
-    const OP_MAP = {
-      '+': ['operator_add', 'NUM1', 'NUM2'],
-      '-': ['operator_subtract', 'NUM1', 'NUM2'],
-      '*': ['operator_multiply', 'NUM1', 'NUM2'],
-      '/': ['operator_divide', 'NUM1', 'NUM2'],
-      '%': ['operator_mod', 'NUM1', 'NUM2'],
-      '..': ['operator_join', 'STRING1', 'STRING2'],
-      '==': ['operator_equals', 'OPERAND1', 'OPERAND2'],
-      '<': ['operator_lt', 'OPERAND1', 'OPERAND2'],
-      '>': ['operator_gt', 'OPERAND1', 'OPERAND2'],
-      '&&': ['operator_and', 'OPERAND1', 'OPERAND2'],
-      '||': ['operator_or', 'OPERAND1', 'OPERAND2'],
-    };
-    const mapping = OP_MAP[op];
-    if (!mapping) throw new ParseError(`unknown operator '${op}'`);
-    const [opcode, k1, k2] = mapping;
-    return { type: 'call', value: makeCall(opcode, [keyedInput(k1, left), keyedInput(k2, right)]) };
-  }
-
-  parseOperatorToken() {
-    this.skipWS();
-    const two = this.s.slice(this.i, this.i + 2);
-    if (two === '==' || two === '&&' || two === '||' || two === '..') {
-      this.i += 2;
-      return two;
-    }
-    const one = this.peek();
-    if ('+-*/%<>'.includes(one)) {
-      this.i++;
-      return one;
-    }
-    throw new ParseError(`expected operator, got '${one}'`);
+    return e;
   }
 
   parseNumberLiteral() {
@@ -686,6 +708,31 @@ class Parser {
   }
 }
 
+const BINARY_OPCODES = {
+  '+': ['operator_add', 'NUM1', 'NUM2'],
+  '-': ['operator_subtract', 'NUM1', 'NUM2'],
+  '*': ['operator_multiply', 'NUM1', 'NUM2'],
+  '/': ['operator_divide', 'NUM1', 'NUM2'],
+  '%': ['operator_mod', 'NUM1', 'NUM2'],
+  '..': ['operator_join', 'STRING1', 'STRING2'],
+  '==': ['operator_equals', 'OPERAND1', 'OPERAND2'],
+  '<': ['operator_lt', 'OPERAND1', 'OPERAND2'],
+  '>': ['operator_gt', 'OPERAND1', 'OPERAND2'],
+  '&&': ['operator_and', 'OPERAND1', 'OPERAND2'],
+  '||': ['operator_or', 'OPERAND1', 'OPERAND2'],
+};s
+const NEGATED_OPCODES = { '!=': '==', '<=': '>', '>=': '<' };
+
+function combineBinary(left, op, right) {
+  const negated = NEGATED_OPCODES[op];
+  if (negated) {
+    const inner = combineBinary(left, negated, right);
+    return { type: 'call', value: makeCall('operator_not', [keyedInput('OPERAND', inner)]) };
+  }
+  const [opcode, k1, k2] = BINARY_OPCODES[op];
+  return { type: 'call', value: makeCall(opcode, [keyedInput(k1, left), keyedInput(k2, right)]) };
+}
+
 function isLegacyFieldArg(key, value) {
   if (!LEGACY_FIELD_KEYS.has(key)) return false;
   if (value?.type === 'json' || value?.type === 'array') return true;
@@ -729,4 +776,4 @@ function toFieldValueNode(e) {
   }
 }
 
-export { BRANCH_SUBSTACK_OPCODES };
+export { BRANCH_SUBSTACK_OPCODES, LEGACY_FIELD_KEYS };

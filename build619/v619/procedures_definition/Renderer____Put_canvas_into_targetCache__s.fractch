@@ -6,7 +6,7 @@
  * threadIndex: 231
  */
 
-def @Renderer_Put_canvas_into_targetCache(target) "Renderer // Put canvas into targetCache %s" warp=false {
+def @Renderer_Put_canvas_into_targetCache(target) "Renderer // Put canvas into targetCache %s" {
   mistsutils.patchcommand(A: "const target = p0");
   mistsutils.patchcommand(A: "const id = target.drawCacheSkin");
   mistsutils.patchcommand(A: "const glcanvas = vm.renderer._gl.canvas");

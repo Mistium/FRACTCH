@@ -7,17 +7,17 @@
  */
 
 import "../procedures_definition/originFS____Generate_window_origin_index.fractch";
-def @originFS_Generate_Paths_And_Uuids() "originFS // Generate Paths And Uuids" warp=true {
-  data.deletealloflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-  data.deletealloflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
-  vars["//return"] = ((vars["AODP File"] * -1) + 3);
-  data.addtolist(ITEM: "origin.folder", field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-  data.addtolist(ITEM: data.itemoflist(INDEX: 14, field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+def @originFS_Generate_Paths_And_Uuids() "originFS // Generate Paths And Uuids" warp {
+  data.deletealloflist(LIST: list("Files // Index Path"));
+  data.deletealloflist(LIST: list("Files // UUIDS"));
+  vars["//return"] = vars["AODP File"] * -1 + 3;
+  data.addtolist(ITEM: "origin.folder", LIST: list("Files // Index Path"));
+  data.addtolist(ITEM: data.itemoflist(INDEX: 14, LIST: list("Files")), LIST: list("Files // UUIDS"));
   vars["//return"] += vars["AODP File"];
-  repeat ((data.lengthoflist(field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")) / vars["AODP File"]) - 1) {
+  repeat data.lengthoflist(LIST: list("Files")) / vars["AODP File"] - 1 {
     vars["//return"] += vars["AODP File"];
-    data.addtolist(ITEM: @originFS_ID_Path(id: (data.lengthoflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) + 1)), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-    data.addtolist(ITEM: data.itemoflist(INDEX: (vars["//return"] + 11), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+    data.addtolist(ITEM: @originFS_ID_Path(id: data.lengthoflist(LIST: list("Files // Index Path")) + 1), LIST: list("Files // Index Path"));
+    data.addtolist(ITEM: data.itemoflist(INDEX: vars["//return"] + 11, LIST: list("Files")), LIST: list("Files // UUIDS"));
   }
   @originFS_Generate_window_origin_index();
 }

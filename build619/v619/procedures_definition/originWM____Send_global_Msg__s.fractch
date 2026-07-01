@@ -6,7 +6,7 @@
  * threadIndex: 194
  */
 
-def @originWM_Send_global_Msg(arr) "originWM // Send global Msg %s" warp=false {
+def @originWM_Send_global_Msg(arr) "originWM // Send global Msg %s" {
   mistsutils.patchcommand2(A: "p0 = typeof p0 === \"object\" ? p0 : ", B: OSLUtils.tokeniseValues(CODE: arr, DELIMITER: "/"));
   mistsutils.patchcommand(A: "const id = parseInt(String(p0[1]))");
   if mistsutils.patchboolean(A: "window.origin.windows.ids.filter(v => v >= 0).includes(id)") {

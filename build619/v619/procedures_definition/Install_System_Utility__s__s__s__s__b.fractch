@@ -6,27 +6,27 @@
  * threadIndex: 130
  */
 
-def @Install_System_Utility(Location, Name_And_Type("Name And Type"), Data, Icon, not_system("not system?")) "Install System Utility %s %s %s %s %b" warp=false {
-  mistsutils.patchcommand2(A: "let folder = ", B: ((Location .. "/") .. Name_And_Type));
+def @Install_System_Utility(Location, Name_And_Type("Name And Type"), Data, Icon, not_system("not system?")) "Install System Utility %s %s %s %s %b" {
+  mistsutils.patchcommand2(A: "let folder = ", B: Location .. "/" .. Name_And_Type);
   mistsutils.patchcommand(A: "let list = stage.variables[\"CL33%0R^/cfdOsUUuN{9\"].value");
   mistsutils.patchcommand(A: "let id = list.indexOf(folder.toLowerCase()) + 1");
   if mistsutils.patchboolean(A: "id > 0") {
-    mistsutils.patchcommand2(A: "let uuid = \"\"+", B: data.itemoflist(INDEX: mistsutils.patchreporter(A: "id"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
-    if mistsutils.notequals(A: @File_get_item(id: mistsutils.patchreporter(A: "id"), item: "4"), B: Data) {
-      @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "id"), data_id: "4", input: Data);
-      @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "id"), data_id: "11", input: Icon);
+    mistsutils.patchcommand2(A: "let uuid = \"\"+", B: data.itemoflist(INDEX: mistsutils.patchreporter(A: "id"), LIST: list("Files // UUIDS")));
+    if mistsutils.notequals(A: @File_get_item(id: mistsutils.patchreporter(A: "id"), item: 4), B: Data) {
+      @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "id"), data_id: 4, input: Data);
+      @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "id"), data_id: 11, input: Icon);
     }
-    @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "id"), data_id: "10", input: mistsutils.patchreporter(A: "Date.now()"));
-    mistsutils.patchcommand2(A: "let parent_folder = ", B: (Location .. ".folder"));
+    @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "id"), data_id: 10, input: mistsutils.patchreporter(A: "Date.now()"));
+    mistsutils.patchcommand2(A: "let parent_folder = ", B: Location .. ".folder");
     mistsutils.patchcommand(A: "let parent_id = list.indexOf(parent_folder.toLowerCase()) + 1");
     mistsutils.patchcommand(A: "try {");
-    mistsutils.patchcommand2(A: "let contents = ", B: mistsutils.jsonparse(A: @File_get_item(id: mistsutils.patchreporter(A: "parent_id"), item: "4")));
+    mistsutils.patchcommand2(A: "let contents = ", B: mistsutils.jsonparse(A: @File_get_item(id: mistsutils.patchreporter(A: "parent_id"), item: 4)));
     if mistsutils.patchboolean(A: "contents.indexOf(uuid) === -1") {
       mistsutils.patchcommand(A: "contents.push(uuid)");
-      @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "parent_id"), data_id: "4", input: mistsutils.patchreporter(A: "JSON.stringify(contents)"));
+      @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "parent_id"), data_id: 4, input: mistsutils.patchreporter(A: "JSON.stringify(contents)"));
     }
     mistsutils.patchcommand(A: "} catch(e) {}");
-    return @File_get_item(id: mistsutils.patchreporter(A: "id"), item: "14");
+    return @File_get_item(id: mistsutils.patchreporter(A: "id"), item: 14);
   } else {
     mistsutils.patchcommand3(A: "let name = ", B: Name_And_Type, C: ".split(\".\")");
     return @File_add_Data_Icon_Perms(Location: Location, Name: mistsutils.patchreporter(A: "name.slice(0,name.length-1).join(\".\")"), Type: mistsutils.patchreporter(A: "\".\"+name[name.length-1]"), Data: Data, Icon: Icon, Perms: mistsutils.ifthen(A: not_system, B: "", C: "[\"system\"]"));

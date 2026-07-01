@@ -6,16 +6,16 @@
  * threadIndex: 66
  */
 
-def @Window_Set_Frame(min_x("min-x"), max_y("max-y"), max_x("max-x"), min_y("min-y"), id, focusable) "Window// Set Frame %s %s %s %s %s %b" warp=true {
-  if ((min_x .. max_x) == "") {
-    xeltallivclipblend.setClipbox(X1: (vars["Window // Low X"] + 6), Y1: (vars["Window // High Y"] - 6), X2: (vars["Window // High X"] - 6), Y2: (vars["Window // Low Y"] + 6));
+def @Window_Set_Frame(min_x("min-x"), max_y("max-y"), max_x("max-x"), min_y("min-y"), id, focusable) "Window// Set Frame %s %s %s %s %s %b" warp {
+  if min_x .. max_x == "" {
+    xeltallivclipblend.setClipbox(X1: vars["Window // Low X"] + 6, Y1: vars["Window // High Y"] - 6, X2: vars["Window // High X"] - 6, Y2: vars["Window // Low Y"] + 6);
   }
-  mistsutils.patchcommand2(A: "const min_x = ", B: xeltallivclipblend.getClipbox(PROP: xeltallivclipblend.menu_props(field props: ["min x",null])));
-  mistsutils.patchcommand2(A: "const min_y = ", B: xeltallivclipblend.getClipbox(PROP: xeltallivclipblend.menu_props(field props: ["min y",null])));
-  mistsutils.patchcommand2(A: "const max_x = ", B: xeltallivclipblend.getClipbox(PROP: xeltallivclipblend.menu_props(field props: ["max x",null])));
-  mistsutils.patchcommand2(A: "const max_y = ", B: xeltallivclipblend.getClipbox(PROP: xeltallivclipblend.menu_props(field props: ["max y",null])));
-  if ((min_x .. max_x) == "") {
-    vars["//return"] = "0";
+  mistsutils.patchcommand2(A: "const min_x = ", B: xeltallivclipblend.getClipbox(PROP: xeltallivclipblend.menu_props(field props: "min x")));
+  mistsutils.patchcommand2(A: "const min_y = ", B: xeltallivclipblend.getClipbox(PROP: xeltallivclipblend.menu_props(field props: "min y")));
+  mistsutils.patchcommand2(A: "const max_x = ", B: xeltallivclipblend.getClipbox(PROP: xeltallivclipblend.menu_props(field props: "max x")));
+  mistsutils.patchcommand2(A: "const max_y = ", B: xeltallivclipblend.getClipbox(PROP: xeltallivclipblend.menu_props(field props: "max y")));
+  if min_x .. max_x == "" {
+    vars["//return"] = 0;
     vars["Frame // Min X"] = mistsutils.patchreporter(A: "min_x");
     vars["Frame // Min Y"] = mistsutils.patchreporter(A: "min_y");
     vars["Frame // Max X"] = mistsutils.patchreporter(A: "max_x");
@@ -28,15 +28,15 @@ def @Window_Set_Frame(min_x("min-x"), max_y("max-y"), max_x("max-x"), min_y("min
     vars["Frame // Max X"] = max_x;
     vars["Frame // Max Y"] = max_y;
   }
-  vars["Frame // Width"] = abs((vars["Frame // Min X"] - vars["Frame // Max X"]));
-  vars["Frame // Height"] = abs((vars["Frame // Min Y"] - vars["Frame // Max Y"]));
-  vars["Frame // X"] = (vars["Frame // Min X"] + (vars["Frame // Width"] / 2));
-  vars["Frame // Y"] = (vars["Frame // Min Y"] + (vars["Frame // Height"] / 2));
+  vars["Frame // Width"] = abs(vars["Frame // Min X"] - vars["Frame // Max X"]);
+  vars["Frame // Height"] = abs(vars["Frame // Min Y"] - vars["Frame // Max Y"]);
+  vars["Frame // X"] = vars["Frame // Min X"] + vars["Frame // Width"] / 2;
+  vars["Frame // Y"] = vars["Frame // Min Y"] + vars["Frame // Height"] / 2;
   vars["Frame // Interactable"] = mistsutils.patchreporter3(A: id, B: " === ", C: vars["Frame // Current"]);
   vars["Renderer // Frame Max Y"] = vars["Frame // Max Y"];
   vars["Renderer // Frame Min Y"] = vars["Frame // Min Y"];
-  mistsutils.patchcommand2(A: "const mouse_touching = ", B: (@Check_Collision_in_square_at_of_dimensions(x: sensing.mousex(), y: sensing.mousey(), x2: vars["Frame // X"], y2: vars["Frame // Y"], w: vars["Frame // Width"], h: vars["Frame // Height"]) && focusable));
-  if not(((min_x .. max_x) == "")) {
+  mistsutils.patchcommand2(A: "const mouse_touching = ", B: @Check_Collision_in_square_at_of_dimensions(x: sensing.mousex(), y: sensing.mousey(), x2: vars["Frame // X"], y2: vars["Frame // Y"], w: vars["Frame // Width"], h: vars["Frame // Height"]) && focusable);
+  if min_x .. max_x != "" {
     if mistsutils.patchboolean(A: "mouse_touching") {
       vars["Frame // Next Current"] = id;
     }

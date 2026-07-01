@@ -6,12 +6,12 @@
  * threadIndex: 64
  */
 
-def @Find_Directory(Directory) "Find Directory %s" warp=false {
+def @Find_Directory(Directory) "Find Directory %s" {
   mistsutils.patchcommand(A: "p0 = (\"\"+p0).toLowerCase()");
   mistsutils.patchcommand(A: "if (String(p0).startsWith(\"origin/\")) return p0");
   mistsutils.patchcommand(A: "if (String(p0).startsWith(\"/\")) return `origin${p0}`");
   if mistsutils.starts(A: Directory, B: "user/") {
-    return (mistsutils.patchreporter(A: "`${osl.user_folder}/`") .. @letters_to_of(start: "6", end: "-1", text: Directory));
+    return mistsutils.patchreporter(A: "`${osl.user_folder}/`") .. @letters_to_of(start: 6, end: -1, text: Directory);
   }
   return @Parse_Directory(directory: Directory);
 }

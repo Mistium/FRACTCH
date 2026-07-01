@@ -6,7 +6,7 @@
  * threadIndex: 131
  */
 
-def @Is_pressed(key) "Is %s pressed?" warp=false {
+def @Is_pressed(key) "Is %s pressed?" {
   mistsutils.patchcommand(A: "if (p0 === \"space\") p0 = \" \"");
   mistsutils.patchcommand3(A: "return ", B: vars["Inputs // Keys Down"], C: ".indexOf((p0+\"\").toLowerCase()) !== -1");
   return mistsutils.false();

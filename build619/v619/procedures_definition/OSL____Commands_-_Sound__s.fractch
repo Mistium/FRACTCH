@@ -6,64 +6,64 @@
  * threadIndex: 61
  */
 
-def @OSL_Commands_Sound(input2) "OSL // Commands - Sound %s" warp=false {
-  data.replaceitemoflist(INDEX: 2, ITEM: input2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-  if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "clear") {
-    vars["DeString // out"] = (vars["WIndow // ID"] .. ("-" .. vars["DeString // out"]));
+def @OSL_Commands_Sound(input2) "OSL // Commands - Sound %s" {
+  data.replaceitemoflist(INDEX: 2, ITEM: input2, LIST: list("Split Text"));
+  if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "clear" {
+    vars["DeString // out"] = vars["WIndow // ID"] .. ("-" .. vars["DeString // out"]);
     SPtuneShark.stopSound(NAME: vars["DeString // out"]);
     SPtuneShark.deleteSound(NAME: vars["DeString // out"]);
-    data.deleteoflist(INDEX: data.itemnumoflist(ITEM: vars["DeString // out"], field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l")), field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
+    data.deleteoflist(INDEX: data.itemnumoflist(ITEM: vars["DeString // out"], LIST: list("OSL // Sounds Loaded")), LIST: list("OSL // Sounds Loaded"));
     stop "this script";
   }
-  if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "load") {
-    if (data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "") {
-      @destring(Text: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\"");
-      vars["DeString // out"] = (vars["WIndow // ID"] .. ("-" .. vars["DeString // out"]));
-      if not(SPtuneShark.soundCheck(NAME: vars["DeString // out"], field CONTROL: ["exists?",null])) {
-        if (mistsutils.starts(A: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B: "http") || mistsutils.starts(A: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B: "data:")) {
-          SPtuneShark.importSound(URL: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), NAME: vars["DeString // out"]);
+  if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "load" {
+    if data.itemoflist(INDEX: 4, LIST: list("Split Text")) == "" {
+      @destring(Text: data.itemoflist(INDEX: 2, LIST: list("Split Text")), remove: "\"");
+      vars["DeString // out"] = vars["WIndow // ID"] .. ("-" .. vars["DeString // out"]);
+      if !SPtuneShark.soundCheck(NAME: vars["DeString // out"], field CONTROL: "exists?") {
+        if mistsutils.starts(A: data.itemoflist(INDEX: 2, LIST: list("Split Text")), B: "http") || mistsutils.starts(A: data.itemoflist(INDEX: 2, LIST: list("Split Text")), B: "data:") {
+          SPtuneShark.importSound(URL: data.itemoflist(INDEX: 2, LIST: list("Split Text")), NAME: vars["DeString // out"]);
         } else {
-          SPtuneShark.importSound(URL: URIUtilities.stringToDataURI(STRING: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), TYPE: "audio/mpeg"), NAME: vars["DeString // out"]);
+          SPtuneShark.importSound(URL: URIUtilities.stringToDataURI(STRING: data.itemoflist(INDEX: 2, LIST: list("Split Text")), TYPE: "audio/mpeg"), NAME: vars["DeString // out"]);
         }
-        if SPtuneShark.soundCheck(NAME: vars["DeString // out"], field CONTROL: ["exists?",null]) {
-          data.addtolist(ITEM: vars["DeString // out"], field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
+        if SPtuneShark.soundCheck(NAME: vars["DeString // out"], field CONTROL: "exists?") {
+          data.addtolist(ITEM: vars["DeString // out"], LIST: list("OSL // Sounds Loaded"));
         }
       }
     } else {
-      data.replaceitemoflist(INDEX: 4, ITEM: (vars["WIndow // ID"] .. ("-" .. data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-      if not(SPtuneShark.soundCheck(NAME: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), field CONTROL: ["exists?",null])) {
-        SPtuneShark.importSound(URL: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), NAME: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-        if SPtuneShark.soundCheck(NAME: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), field CONTROL: ["exists?",null]) {
-          data.addtolist(ITEM: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
+      data.replaceitemoflist(INDEX: 4, ITEM: vars["WIndow // ID"] .. ("-" .. data.itemoflist(INDEX: 4, LIST: list("Split Text"))), LIST: list("Split Text"));
+      if !SPtuneShark.soundCheck(NAME: data.itemoflist(INDEX: 4, LIST: list("Split Text")), field CONTROL: "exists?") {
+        SPtuneShark.importSound(URL: data.itemoflist(INDEX: 2, LIST: list("Split Text")), NAME: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
+        if SPtuneShark.soundCheck(NAME: data.itemoflist(INDEX: 4, LIST: list("Split Text")), field CONTROL: "exists?") {
+          data.addtolist(ITEM: data.itemoflist(INDEX: 4, LIST: list("Split Text")), LIST: list("OSL // Sounds Loaded"));
         }
       }
     }
     stop "this script";
   }
-  if not(@is_array(input: input2)) {
-    data.replaceitemoflist(INDEX: 2, ITEM: skyhigh173JSON.json_array_push(item: (vars["WIndow // ID"] .. ("-" .. input2)), json: "[]"), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+  if !@is_array(input: input2) {
+    data.replaceitemoflist(INDEX: 2, ITEM: skyhigh173JSON.json_array_push(item: vars["WIndow // ID"] .. ("-" .. input2), json: "[]"), LIST: list("Split Text"));
   }
-  switch data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+  switch data.itemoflist(INDEX: 3, LIST: list("Split Text")) {
     case "unpause" {
-      SPtuneShark.pauseUnpauseSounds(NAMES: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), field PAUSE_UNPAUSE: ["unpause",null]);
+      SPtuneShark.pauseUnpauseSounds(NAMES: data.itemoflist(INDEX: 2, LIST: list("Split Text")), field PAUSE_UNPAUSE: "unpause");
     }
     case "pause" {
-      SPtuneShark.pauseUnpauseSounds(NAMES: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), field PAUSE_UNPAUSE: ["pause",null]);
+      SPtuneShark.pauseUnpauseSounds(NAMES: data.itemoflist(INDEX: 2, LIST: list("Split Text")), field PAUSE_UNPAUSE: "pause");
     }
     case "play" {
-      SPtuneShark.playSounds(NAMES: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      SPtuneShark.playSounds(NAMES: data.itemoflist(INDEX: 2, LIST: list("Split Text")));
     }
     case "start" {
-      SPtuneShark.playSoundsAt(NAMES: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), START_TIME: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      SPtuneShark.playSoundsAt(NAMES: data.itemoflist(INDEX: 2, LIST: list("Split Text")), START_TIME: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "volume" {
-      SPtuneShark.setSoundsVolume(NAMES: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), VOLUME: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      SPtuneShark.setSoundsVolume(NAMES: data.itemoflist(INDEX: 2, LIST: list("Split Text")), VOLUME: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "speed" {
-      SPtuneShark.setSoundSpeeds(NAMES: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), SPEED: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      SPtuneShark.setSoundSpeeds(NAMES: data.itemoflist(INDEX: 2, LIST: list("Split Text")), SPEED: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "pitch" {
-      SPtuneShark.setSoundsPitch(NAMES: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), PITCH: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      SPtuneShark.setSoundsPitch(NAMES: data.itemoflist(INDEX: 2, LIST: list("Split Text")), PITCH: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     default {
       @Log_Error(Data: mistsutils.patchreporter(A: "`Unknown sound command: ${p0}`"), Type: "Unknown Command");

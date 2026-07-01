@@ -6,7 +6,7 @@
  * threadIndex: 147
  */
 
-def @Add_Global_Command(name, parameters, code) "Add Global Command %s %s %s" warp=false {
+def @Add_Global_Command(name, parameters, code) "Add Global Command %s %s %s" {
   mistsutils.patchcommand(A: "let func = {\"parent\":\"\",\"type\":\"command\",\"name\":p0,\"parameters\": p1.length === 0 ? [] : p1.replaceAll(\" \",\"\").split(\",\")}");
   mistsutils.patchcommand(A: "if (typeof p2 === \"function\") func.code = p2;");
   mistsutils.patchcommand2(A: "else func.code = ", B: OSLUtils.generateFullAST(CODE: code));

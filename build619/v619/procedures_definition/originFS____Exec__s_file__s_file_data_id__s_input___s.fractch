@@ -6,31 +6,31 @@
  * threadIndex: 101
  */
 
-def @originFS_Exec_file_file_data_id_input(command, Id, data_id("data id"), input) "originFS // Exec %s file %s file data id %s input: %s" warp=true {
+def @originFS_Exec_file_file_data_id_input(command, Id, data_id("data id"), input) "originFS // Exec %s file %s file data id %s input: %s" warp {
   if @Permissions_Can_i_edit_file(File_To_Get: Id) {
     @File_get_item(id: Id, item: "");
-    if ((vars["Network // Files Update Offset"] / 14) < Id) {
+    if vars["Network // Files Update Offset"] / 14 < Id {
       mistsutils.patchcommand(A: "let update_count = 0");
       switch command {
         case "replace" {
-          if (data_id < "14") {
-            if mistsutils.notequals(A: input, B: data.itemoflist(INDEX: data_id, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."))) {
+          if data_id < 14 {
+            if mistsutils.notequals(A: input, B: data.itemoflist(INDEX: data_id, LIST: list("Files // Current"))) {
               vars["SYSTEM // Total Disk Writes"] += operator.length(STRING: input);
-              @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: data_id, Data: input, Uuid: data.itemoflist(INDEX: Id, field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+              @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: data_id, Data: input, Uuid: data.itemoflist(INDEX: Id, LIST: list("Files // UUIDS")));
               @File_get_item(id: Id, item: "");
-              if (data_id < "4") {
+              if data_id < 4 {
                 @Files_Set_ID_To_Path(ID: Id, Path: "");
-                mistsutils.patchcommand2(A: "let name = ", B: @Files_Name_And_Type_From(Data: @Find_Unique_Name_For(path: data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), name: data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), type: mistsutils.patchreporter2(A: data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), B: ".replaceAll(\".\",\"\")"))));
-                @Files_Set_ID_To_Path(ID: Id, Path: mistsutils.patchreporter3(A: "`${", B: data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), C: "}/${name.join(\".\").replaceAll(\"/\", \":\")}`.toLowerCase()"));
-                @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: "2", Data: mistsutils.patchreporter(A: "name[0]"), Uuid: data.itemoflist(INDEX: Id, field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
-                if (data_id > "1") {
-                  if (data_id == "3") {
-                    @originFS_Exec_at_with_data_File_UUID(Command: "move", Index: "", Data: data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Uuid: data.itemoflist(INDEX: Id, field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+                mistsutils.patchcommand2(A: "let name = ", B: @Files_Name_And_Type_From(Data: @Find_Unique_Name_For(path: data.itemoflist(INDEX: 3, LIST: list("Files // Current")), name: data.itemoflist(INDEX: 2, LIST: list("Files // Current")), type: mistsutils.patchreporter2(A: data.itemoflist(INDEX: 1, LIST: list("Files // Current")), B: ".replaceAll(\".\",\"\")"))));
+                @Files_Set_ID_To_Path(ID: Id, Path: mistsutils.patchreporter3(A: "`${", B: data.itemoflist(INDEX: 3, LIST: list("Files // Current")), C: "}/${name.join(\".\").replaceAll(\"/\", \":\")}`.toLowerCase()"));
+                @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: 2, Data: mistsutils.patchreporter(A: "name[0]"), Uuid: data.itemoflist(INDEX: Id, LIST: list("Files // UUIDS")));
+                if data_id > 1 {
+                  if data_id == 3 {
+                    @originFS_Exec_at_with_data_File_UUID(Command: "move", Index: "", Data: data.itemoflist(INDEX: 3, LIST: list("Files // Current")), Uuid: data.itemoflist(INDEX: Id, LIST: list("Files // UUIDS")));
                   }
-                  if (data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) == ".folder") {
+                  if data.itemoflist(INDEX: 1, LIST: list("Files // Current")) == ".folder" {
                     mistsutils.patchcommand(A: "try {");
-                    mistsutils.patchcommand2(A: "let files = ", B: @Files_List_all_uuids_recursively_in(path: data.itemoflist(INDEX: @file_item_of_num(index: Id, num: "14"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"))));
-                    mistsutils.patchcommand3(A: "const to = ", B: (data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) .. ("/" .. data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")))), C: ".toLowerCase()");
+                    mistsutils.patchcommand2(A: "let files = ", B: @Files_List_all_uuids_recursively_in(path: data.itemoflist(INDEX: @file_item_of_num(index: Id, num: 14), LIST: list("Files"))));
+                    mistsutils.patchcommand3(A: "const to = ", B: data.itemoflist(INDEX: 3, LIST: list("Files // Current")) .. ("/" .. data.itemoflist(INDEX: 2, LIST: list("Files // Current"))), C: ".toLowerCase()");
                     mistsutils.patchcommand(A: "files.shift()");
                     mistsutils.patchcommand(A: "let queue = files.slice()");
                     mistsutils.patchcommand(A: "const obj = {files: queue, header: \"Moving Files\", total: queue.length, message: `Moving ${queue.length} files`, target: to}");
@@ -39,13 +39,13 @@ def @originFS_Exec_file_file_data_id_input(command, Id, data_id("data id"), inpu
                   }
                 }
               }
-              if not((data_id == "10")) {
-                @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: "10", Data: mistsutils.patchreporter(A: "Date.now()"), Uuid: data.itemoflist(INDEX: Id, field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+              if data_id != 10 {
+                @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: 10, Data: mistsutils.patchreporter(A: "Date.now()"), Uuid: data.itemoflist(INDEX: Id, LIST: list("Files // UUIDS")));
               }
             }
-            if not((data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) == ".folder")) {
+            if data.itemoflist(INDEX: 1, LIST: list("Files // Current")) != ".folder" {
               @File_get_item(id: Id, item: "");
-              @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: "12", Data: operator.length(STRING: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Uuid: data.itemoflist(INDEX: Id, field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+              @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: 12, Data: operator.length(STRING: list("Files // Current")), Uuid: data.itemoflist(INDEX: Id, LIST: list("Files // UUIDS")));
             }
           }
         }
@@ -53,45 +53,45 @@ def @originFS_Exec_file_file_data_id_input(command, Id, data_id("data id"), inpu
           @originFS_Exec_file_file_data_id_input(command: "move", Id: Id, data_id: "", input: @Parse_Directory(directory: "~/bin"));
         }
         case "immediately delete" {
-          mistsutils.patchcommand2(A: "update_count = ", B: @originFS_Path_ID(Path: (data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) .. ".folder")));
-          vars["SYSTEM // Total Disk Writes"] += operator.length(STRING: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
-          @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: "4", Data: skyhigh173JSON.json_array_remove_all(item: data.itemoflist(INDEX: Id, field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), json: @File_get_item(id: mistsutils.patchreporter(A: "update_count"), item: "4")), Uuid: data.itemoflist(INDEX: mistsutils.patchreporter(A: "update_count"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
-          @originFS_Exec_at_with_data_File_UUID(Command: "delete", Index: "", Data: "", Uuid: data.itemoflist(INDEX: Id, field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+          mistsutils.patchcommand2(A: "update_count = ", B: @originFS_Path_ID(Path: data.itemoflist(INDEX: 3, LIST: list("Files // Current")) .. ".folder"));
+          vars["SYSTEM // Total Disk Writes"] += operator.length(STRING: list("Files // Current"));
+          @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: 4, Data: skyhigh173JSON.json_array_remove_all(item: data.itemoflist(INDEX: Id, LIST: list("Files // UUIDS")), json: @File_get_item(id: mistsutils.patchreporter(A: "update_count"), item: 4)), Uuid: data.itemoflist(INDEX: mistsutils.patchreporter(A: "update_count"), LIST: list("Files // UUIDS")));
+          @originFS_Exec_at_with_data_File_UUID(Command: "delete", Index: "", Data: "", Uuid: data.itemoflist(INDEX: Id, LIST: list("Files // UUIDS")));
         }
         case "duplicate" {
-          vars["SYSTEM // Total Disk Writes"] += operator.length(STRING: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."));
-          if (data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) == ".folder") {
-            mistsutils.patchcommand2(A: "let name = ", B: @Find_Unique_Name_For(path: input, name: (data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) .. " copy"), type: "folder"));
+          vars["SYSTEM // Total Disk Writes"] += operator.length(STRING: list("Files // Current"));
+          if data.itemoflist(INDEX: 1, LIST: list("Files // Current")) == ".folder" {
+            mistsutils.patchcommand2(A: "let name = ", B: @Find_Unique_Name_For(path: input, name: data.itemoflist(INDEX: 2, LIST: list("Files // Current")) .. " copy", type: "folder"));
             mistsutils.patchcommand(A: "name = name.split(\".\"); name.pop(); name = name.join(\".\")");
-            @File_add_Data_Icon_Perms(Location: input, Name: mistsutils.patchreporter(A: "name"), Type: ".folder", Data: "[]", Icon: data.itemoflist(INDEX: 11, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Perms: data.itemoflist(INDEX: 12, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")));
+            @File_add_Data_Icon_Perms(Location: input, Name: mistsutils.patchreporter(A: "name"), Type: ".folder", Data: "[]", Icon: data.itemoflist(INDEX: 11, LIST: list("Files // Current")), Perms: data.itemoflist(INDEX: 12, LIST: list("Files // Current")));
             mistsutils.patchcommand(A: "try {");
-            mistsutils.patchcommand2(A: "let files = ", B: @Files_List_all_uuids_recursively_in(path: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "p1"), num: "14"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"))));
+            mistsutils.patchcommand2(A: "let files = ", B: @Files_List_all_uuids_recursively_in(path: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "p1"), num: 14), LIST: list("Files"))));
             mistsutils.patchcommand3(A: "let old_path = \"\"+", B: input, C: " + \"/\"");
             mistsutils.patchcommand(A: "let new_path = (old_path + name).toLowerCase()");
-            mistsutils.patchcommand2(A: "old_path += ", B: data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")));
+            mistsutils.patchcommand2(A: "old_path += ", B: data.itemoflist(INDEX: 2, LIST: list("Files // Current")));
             mistsutils.patchcommand(A: "old_path = old_path.toLowerCase()");
             mistsutils.patchcommand(A: "files.shift()");
             mistsutils.patchcommand(A: "for (let i = 0; i < files.length; i ++) {");
             @File_get_item(id: mistsutils.patchreporter(A: "files[i]"), item: "");
-            mistsutils.patchcommand3(A: "if (", B: data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), C: ".startsWith(old_path))");
-            @File_add_Data_Icon_Perms(Location: mistsutils.replace(C: mistsutils.patchreporter(A: "old_path"), A: mistsutils.patchreporter2(A: data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), B: ".toString().toLowerCase()"), B: mistsutils.patchreporter(A: "new_path")), Name: data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Type: data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Data: data.itemoflist(INDEX: 4, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Icon: data.itemoflist(INDEX: 11, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Perms: data.itemoflist(INDEX: 12, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")));
+            mistsutils.patchcommand3(A: "if (", B: data.itemoflist(INDEX: 3, LIST: list("Files // Current")), C: ".startsWith(old_path))");
+            @File_add_Data_Icon_Perms(Location: mistsutils.replace(C: mistsutils.patchreporter(A: "old_path"), A: mistsutils.patchreporter2(A: data.itemoflist(INDEX: 3, LIST: list("Files // Current")), B: ".toString().toLowerCase()"), B: mistsutils.patchreporter(A: "new_path")), Name: data.itemoflist(INDEX: 2, LIST: list("Files // Current")), Type: data.itemoflist(INDEX: 1, LIST: list("Files // Current")), Data: data.itemoflist(INDEX: 4, LIST: list("Files // Current")), Icon: data.itemoflist(INDEX: 11, LIST: list("Files // Current")), Perms: data.itemoflist(INDEX: 12, LIST: list("Files // Current")));
             mistsutils.patchcommand(A: "}");
             mistsutils.patchcommand(A: "} catch(e) { console.error(e) }");
           } else {
-            @File_add_Data_Icon_Perms(Location: input, Name: data.itemoflist(INDEX: 2, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Type: data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Data: data.itemoflist(INDEX: 4, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Icon: data.itemoflist(INDEX: 11, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), Perms: data.itemoflist(INDEX: 12, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")));
+            @File_add_Data_Icon_Perms(Location: input, Name: data.itemoflist(INDEX: 2, LIST: list("Files // Current")), Type: data.itemoflist(INDEX: 1, LIST: list("Files // Current")), Data: data.itemoflist(INDEX: 4, LIST: list("Files // Current")), Icon: data.itemoflist(INDEX: 11, LIST: list("Files // Current")), Perms: data.itemoflist(INDEX: 12, LIST: list("Files // Current")));
           }
         }
         case "move" {
-          mistsutils.patchcommand2(A: "update_count = ", B: @originFS_Path_ID(Path: (input .. ".folder")));
-          if ((vars["Network // Files Update Offset"] / 14) < mistsutils.patchreporter(A: "update_count")) {
-            if not((input == data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")))) {
-              mistsutils.patchcommand2(A: "update_count2 = ", B: @originFS_Path_ID(Path: (data.itemoflist(INDEX: 3, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) .. ".folder")));
-              if (mistsutils.patchreporter(A: "update_count2") > "0") {
-                @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "update_count2"), data_id: "4", input: skyhigh173JSON.json_array_remove_all(item: @File_get_item(id: Id, item: "14"), json: @Stringify(json: @File_get_item(id: mistsutils.patchreporter(A: "update_count2"), item: "4"))));
-                mistsutils.patchcommand2(A: "let temp = ", B: @parse(json: @File_get_item(id: mistsutils.patchreporter(A: "update_count"), item: "4")));
-                mistsutils.patchcommand3(A: "temp.push(", B: @File_get_item(id: Id, item: "14"), C: ")");
-                @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "update_count"), data_id: "4", input: @Stringify(json: mistsutils.patchreporter(A: "temp")));
-                @originFS_Exec_file_file_data_id_input(command: "replace", Id: Id, data_id: "3", input: input);
+          mistsutils.patchcommand2(A: "update_count = ", B: @originFS_Path_ID(Path: input .. ".folder"));
+          if vars["Network // Files Update Offset"] / 14 < mistsutils.patchreporter(A: "update_count") {
+            if input != data.itemoflist(INDEX: 3, LIST: list("Files // Current")) {
+              mistsutils.patchcommand2(A: "update_count2 = ", B: @originFS_Path_ID(Path: data.itemoflist(INDEX: 3, LIST: list("Files // Current")) .. ".folder"));
+              if mistsutils.patchreporter(A: "update_count2") > 0 {
+                @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "update_count2"), data_id: 4, input: skyhigh173JSON.json_array_remove_all(item: @File_get_item(id: Id, item: 14), json: @Stringify(json: @File_get_item(id: mistsutils.patchreporter(A: "update_count2"), item: 4))));
+                mistsutils.patchcommand2(A: "let temp = ", B: @parse(json: @File_get_item(id: mistsutils.patchreporter(A: "update_count"), item: 4)));
+                mistsutils.patchcommand3(A: "temp.push(", B: @File_get_item(id: Id, item: 14), C: ")");
+                @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "update_count"), data_id: 4, input: @Stringify(json: mistsutils.patchreporter(A: "temp")));
+                @originFS_Exec_file_file_data_id_input(command: "replace", Id: Id, data_id: 3, input: input);
               }
             }
           }

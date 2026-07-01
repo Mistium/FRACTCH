@@ -6,9 +6,9 @@
  * threadIndex: 145
  */
 
-def @Renderer_Clear_Screen_With_Colour(colour) "Renderer // Clear Screen With Colour %s" warp=false {
+def @Renderer_Clear_Screen_With_Colour(colour) "Renderer // Clear Screen With Colour %s" {
   motion.gotoxy(X: 0, Y: 0);
-  pen.setPenSizeTo(SIZE: (mistsutils.stagewidth() + mistsutils.stageheight()));
+  pen.setPenSizeTo(SIZE: mistsutils.stagewidth() + mistsutils.stageheight());
   pen.setPenColorToColor(COLOR: colour);
   pen.penDown();
   pen.penUp();

@@ -7,7 +7,7 @@
  */
 
 import "../procedures_definition/Log_Error__s__s.fractch";
-def @Run_Command_Object(params, command_object("command object"), value) "Run Command Object %s %s %s" warp=false {
+def @Run_Command_Object(params, command_object("command object"), value) "Run Command Object %s %s %s" {
   mistsutils.patchcommand(A: "if (typeof p1 !== \"object\" || p1 === null)");
   @Log_Error(Data: mistsutils.patchreporter(A: "`Tried to call value of type: ${typeof p1}`"), Type: "Unknown");
   if mistsutils.patchboolean(A: "p1._symbol !== origin.symbols.function") {

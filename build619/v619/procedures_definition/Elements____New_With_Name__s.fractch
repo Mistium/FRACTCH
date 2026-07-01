@@ -6,7 +6,7 @@
  * threadIndex: 217
  */
 
-def @Elements_New_With_Name(name) "Elements // New With Name %s" warp=false {
+def @Elements_New_With_Name(name) "Elements // New With Name %s" {
   mistsutils.patchcommand(A: "let temp = document.createElement(\"div\")");
   mistsutils.patchcommand(A: "temp.id = p0 + \"_OSLoverlay\"");
   mistsutils.patchcommand(A: "temp.style.display = \"none\"");

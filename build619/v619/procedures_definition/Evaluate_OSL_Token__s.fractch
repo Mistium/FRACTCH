@@ -6,7 +6,7 @@
  * threadIndex: 132
  */
 
-def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" warp=false {
+def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" {
   mistsutils.patchcommand(A: "if (p0 === null || typeof p0 !== \"object\") return p0;");
   mistsutils.patchcommand(A: "const num = p0.num");
   if mistsutils.patchboolean(A: "p0.tried_compile !== true") {
@@ -64,10 +64,10 @@ def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" warp=fal
         mistsutils.patchcommand(A: "case \"!=\": return osl_neq(left, right)");
         mistsutils.patchcommand(A: "case \"===\": return left === right");
         mistsutils.patchcommand(A: "case \"!==\": return left !== right");
-        mistsutils.patchcommand2(A: "case \">\": return ", B: (mistsutils.patchreporter(A: "left") > mistsutils.patchreporter(A: "right")));
-        mistsutils.patchcommand2(A: "case \"<\": return ", B: (mistsutils.patchreporter(A: "left") < mistsutils.patchreporter(A: "right")));
-        mistsutils.patchcommand2(A: "case \"!>\": case \"<=\": return ", B: not((mistsutils.patchreporter(A: "left") > mistsutils.patchreporter(A: "right"))));
-        mistsutils.patchcommand2(A: "case \"!<\": case \">=\": return ", B: not((mistsutils.patchreporter(A: "left") < mistsutils.patchreporter(A: "right"))));
+        mistsutils.patchcommand2(A: "case \">\": return ", B: mistsutils.patchreporter(A: "left") > mistsutils.patchreporter(A: "right"));
+        mistsutils.patchcommand2(A: "case \"<\": return ", B: mistsutils.patchreporter(A: "left") < mistsutils.patchreporter(A: "right"));
+        mistsutils.patchcommand2(A: "case \"!>\": case \"<=\": return ", B: mistsutils.patchreporter(A: "left") <= mistsutils.patchreporter(A: "right"));
+        mistsutils.patchcommand2(A: "case \"!<\": case \">=\": return ", B: mistsutils.patchreporter(A: "left") >= mistsutils.patchreporter(A: "right"));
         mistsutils.patchcommand(A: "default: ");
         @Log_Error(Data: mistsutils.patchreporter(A: "`Unknown comparison operator: ${data}`"), Type: "Unknown");
       }
@@ -213,7 +213,7 @@ def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" warp=fal
           @OSL_Find_And_Run(command: "c", input2: mistsutils.patchreporter(A: "dat"), tokens: "");
         }
         case "o" {
-          pen.setPenColorParamTo(COLOR_PARAM: pen.menu_colorParam(field colorParam: ["transparency",null]), VALUE: mistsutils.patchreporter(A: "100 - (+dat || 0)"));
+          pen.setPenColorParamTo(COLOR_PARAM: pen.menu_colorParam(field colorParam: "transparency"), VALUE: mistsutils.patchreporter(A: "100 - (+dat || 0)"));
         }
         case "w" {
           pen.setPenSizeTo(SIZE: mistsutils.patchreporter(A: "dat"));
@@ -223,7 +223,7 @@ def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" warp=fal
           @OSL_Find_And_Run(command: "hc", input2: mistsutils.patchreporter(A: "dat"), tokens: "");
         }
         case "click_c" {
-          if (mistsutils.patchreporter(A: "`${osl.mouse_down}`") == "true") {
+          if mistsutils.patchreporter(A: "`${osl.mouse_down}`") == "true" {
             mistsutils.patchcommand(A: "if (!dat.startsWith(\"#\")) dat = \"#\" + dat");
             @OSL_Find_And_Run(command: "hc", input2: mistsutils.patchreporter(A: "dat"), tokens: "");
           }
@@ -232,7 +232,7 @@ def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" warp=fal
           @OSL_Find_And_Run(command: "hs", input2: mistsutils.patchreporter(A: "dat"), tokens: "");
         }
         case "click_size" {
-          if (mistsutils.patchreporter(A: "`${osl.mouse_down}`") == "true") {
+          if mistsutils.patchreporter(A: "`${osl.mouse_down}`") == "true" {
             @OSL_Find_And_Run(command: "hs", input2: mistsutils.patchreporter(A: "dat"), tokens: "");
           }
         }

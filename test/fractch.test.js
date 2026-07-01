@@ -127,13 +127,15 @@ test('emitted calls use readable colon inputs and explicit field arguments', () 
     const text = fs.readFileSync(f, 'utf8');
     return /mistsutils\.patchcommand2\(A:/.test(text);
   });
-  const hasExplicitField = walk(outDir).some((f) => {
+  // Self-classifying field refs drop the `field` keyword (the parser
+  // re-derives it from key + value shape); everything else keeps it.
+  const hasBareFieldRef = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;
     const text = fs.readFileSync(f, 'utf8');
-    return /field BROADCAST_OPTION: broadcast\(/.test(text);
+    return /(?<!field )BROADCAST_OPTION: broadcast\(/.test(text);
   });
   assert.ok(hasColonInput, 'no readable colon input syntax found');
-  assert.ok(hasExplicitField, 'no explicit field syntax found');
+  assert.ok(hasBareFieldRef, 'no self-classifying field ref syntax found');
 
   const parsed = parseFractch('data_changevariableby(VALUE: 1, field VARIABLE: var("score", "id"));\n').calls[0];
   assert.strictEqual(parsed.args[0].sep, 'input');
@@ -162,6 +164,47 @@ test('generic opcodes can use dotted namespace aliases', () => {
 
   const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /\b[a-zA-Z][A-Za-z0-9]*\.[A-Za-z_][A-Za-z0-9_]*\(/.test(fs.readFileSync(f, 'utf8')));
   assert.ok(hit, 'no dotted opcode alias found in generated DSL');
+});
+
+test('infix expressions parse without mandatory parens, left-associative', () => {
+  // a + b * c == d -> equals(add(a, multiply(b, c)), d)
+  const eq = parseFractch('vars["r"] = a + b * c == d;\n').calls[0].args[1].value.value;
+  assert.strictEqual(eq.callee.name, 'operator_equals');
+  const add = eq.args[0].value.value;
+  assert.strictEqual(add.callee.name, 'operator_add');
+  assert.strictEqual(add.args[1].value.value.callee.name, 'operator_multiply');
+
+  // left-assoc: a - b - c -> subtract(subtract(a, b), c)
+  const sub = parseFractch('vars["r"] = a - b - c;\n').calls[0].args[1].value.value;
+  assert.strictEqual(sub.callee.name, 'operator_subtract');
+  assert.strictEqual(sub.args[0].value.value.callee.name, 'operator_subtract');
+
+  // old fully-parenthesized form builds the identical tree
+  const oldStyle = parseFractch('vars["r"] = ((a - b) - c);\n').calls[0].args[1].value.value;
+  assert.deepStrictEqual(oldStyle, sub);
+});
+
+test('negated comparisons desugar to not() wrapping the opposite operator', () => {
+  const cases = { '!=': 'operator_equals', '<=': 'operator_gt', '>=': 'operator_lt' };
+  for (const [sym, inner] of Object.entries(cases)) {
+    const stmt = parseFractch(`if a ${sym} b { }\n`).calls[0];
+    const cond = stmt.args[0].value.value;
+    assert.strictEqual(cond.callee.name, 'operator_not');
+    assert.strictEqual(cond.args[0].value.value.callee.name, inner);
+  }
+  const bang = parseFractch('if !sensing.mousedown() { }\n').calls[0].args[0].value.value;
+  assert.strictEqual(bang.callee.name, 'operator_not');
+  assert.strictEqual(bang.args[0].value.value.callee.name, 'sensing_mousedown');
+});
+
+test('def accepts bare warp and omitted proccode', () => {
+  const def = parseFractch('def @spin(turns) warp {\n  motion.turnright(DEGREES: turns);\n}\n').calls[0];
+  assert.strictEqual(def.type, 'procDef');
+  assert.strictEqual(def.warp, true);
+  assert.strictEqual(def.proccode, null);
+  const legacy = parseFractch('def @spin(turns) "spin %s" warp=false { }\n').calls[0];
+  assert.strictEqual(legacy.warp, false);
+  assert.strictEqual(legacy.proccode, 'spin %s');
 });
 
 test('switch/case blocks render as readable switch statements', () => {

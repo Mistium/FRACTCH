@@ -6,14 +6,14 @@
  * threadIndex: 81
  */
 
-def @Find_User(Name, all("all?")) "Find User %s %b" warp=true {
+def @Find_User(Name, all("all?")) "Find User %s %b" warp {
   if skyhigh173JSON.json_has_value(json: skyhigh173JSON.json_array_filter(key: "username", json: cloudlink.returnUserListData()), value: Name) {
     return Name;
   } else {
-    vars["//return"] = truefantomregexp.regexp_match_block(A: skyhigh173JSON.json_array_filter(key: "username", json: cloudlink.returnUserListData()), B: ("/(?<=\")[a-z]{3}-" .. (Name .. "§\\S{10}(?=\")/ig")), field C: ["values",null]);
-    if not(all) {
+    vars["//return"] = truefantomregexp.regexp_match_block(A: skyhigh173JSON.json_array_filter(key: "username", json: cloudlink.returnUserListData()), B: "/(?<=\")[a-z]{3}-" .. (Name .. "§\\S{10}(?=\")/ig"), field C: "values");
+    if !all {
       vars["//return"] = skyhigh173JSON.json_array_get(item: 1, json: vars["//return"]);
     }
-    return mistsutils.ifthen(A: (vars["//return"] == "undefined"), B: "", C: vars["//return"]);
+    return mistsutils.ifthen(A: vars["//return"] == "undefined", B: "", C: vars["//return"]);
   }
 }

@@ -7,12 +7,12 @@
  */
 
 import "../procedures_definition/set_stretch_to_x___s_y___s.fractch";
-def @OSL_Frame_Clear() "OSL // Frame Clear" warp=false {
-  mistsutils.patchcommand2(A: "const cur_frame = ", B: data.itemoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
+def @OSL_Frame_Clear() "OSL // Frame Clear" {
+  mistsutils.patchcommand2(A: "const cur_frame = ", B: data.itemoflist(INDEX: 1, LIST: list("OSL // Frames")));
   mistsutils.patchcommand2(A: "let max = +", B: "cur_frame.scrollMax.height");
-  mistsutils.patchcommand2(A: "let focused = ", B: (vars["Window // ID_Index"] == vars["Window // Top Index"]));
+  mistsutils.patchcommand2(A: "let focused = ", B: vars["Window // ID_Index"] == vars["Window // Top Index"]);
   mistsutils.patchcommand(A: "let scroll_val = target.scroll[`framey_${cur_frame.id}`]");
-  mistsutils.patchcommand2(A: "let change = ", B: (mistsutils.ifthen(A: @Is_pressed(key: "shift"), B: mistsutils.patchreporter(A: "0"), C: mistsutils.patchreporter(A: "-target.scroll.vel[1]")) * (vars["SYSTEM // Scroll Multiplier"] / 4)));
+  mistsutils.patchcommand2(A: "let change = ", B: mistsutils.ifthen(A: @Is_pressed(key: "shift"), B: mistsutils.patchreporter(A: 0), C: mistsutils.patchreporter(A: "-target.scroll.vel[1]")) * (vars["SYSTEM // Scroll Multiplier"] / 4));
   if mistsutils.patchboolean(A: "focused && cur_frame.mouse_touching") {
     mistsutils.patchcommand(A: "const selected = target.scroll.cur === (cur_frame.id || \"\")");
     if mistsutils.patchboolean(A: "((change < 0 && scroll_val > 0) || (change > 0 && scroll_val < cur_frame.scrollMax.height))") {
@@ -24,18 +24,18 @@ def @OSL_Frame_Clear() "OSL // Frame Clear" warp=false {
     mistsutils.patchcommand2(A: "scroll_val += ", B: "change");
   }
   mistsutils.patchcommand(A: "target.scroll[`framey_${cur_frame.id}`] = scroll_val");
-  data.deleteoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6"));
-  @set_stretch_to_x_y(x: "100", y: "100");
-  if (data.lengthoflist(field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")) == "0") {
+  data.deleteoflist(INDEX: 1, LIST: list("OSL // Frames"));
+  @set_stretch_to_x_y(x: 100, y: 100);
+  if data.lengthoflist(LIST: list("OSL // Frames")) == 0 {
     @Window_Set_Frame(min_x: "", max_y: "", max_x: "", min_y: "", id: "", focusable: null);
-    @OSL_Vars_Set(name: "scroll_y", data: "0", current_command: "");
+    @OSL_Vars_Set(name: "scroll_y", data: 0, current_command: "");
   } else {
-    mistsutils.patchcommand2(A: "let prev_frame = ", B: data.itemoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
+    mistsutils.patchcommand2(A: "let prev_frame = ", B: data.itemoflist(INDEX: 1, LIST: list("OSL // Frames")));
     vars["Frame // X"] = mistsutils.patchreporter(A: "prev_frame.x");
     vars["Frame // Y"] = mistsutils.patchreporter(A: "prev_frame.y");
     xeltallivclipblend.setClipbox(X1: mistsutils.patchreporter(A: "prev_frame.lim_left"), Y1: mistsutils.patchreporter(A: "prev_frame.lim_top"), X2: mistsutils.patchreporter(A: "prev_frame.lim_right"), Y2: mistsutils.patchreporter(A: "prev_frame.lim_bottom"));
-    @Window_Set_Frame(min_x: (vars["Frame // X"] + mistsutils.patchreporter(A: "prev_frame.left")), max_y: (vars["Frame // Y"] + mistsutils.patchreporter(A: "prev_frame.top")), max_x: (vars["Frame // X"] + mistsutils.patchreporter(A: "prev_frame.right")), min_y: (vars["Frame // Y"] + mistsutils.patchreporter(A: "prev_frame.bottom")), id: mistsutils.patchreporter(A: "prev_frame.id"), focusable: null);
-    @OSL_Vars_Set(name: ("scroll_y" .. mistsutils.patchreporter(A: "prev_frame.id")), data: mistsutils.patchreporter(A: "prev_frame.scroll"), current_command: "");
+    @Window_Set_Frame(min_x: vars["Frame // X"] + mistsutils.patchreporter(A: "prev_frame.left"), max_y: vars["Frame // Y"] + mistsutils.patchreporter(A: "prev_frame.top"), max_x: vars["Frame // X"] + mistsutils.patchreporter(A: "prev_frame.right"), min_y: vars["Frame // Y"] + mistsutils.patchreporter(A: "prev_frame.bottom"), id: mistsutils.patchreporter(A: "prev_frame.id"), focusable: null);
+    @OSL_Vars_Set(name: "scroll_y" .. mistsutils.patchreporter(A: "prev_frame.id"), data: mistsutils.patchreporter(A: "prev_frame.scroll"), current_command: "");
     vars["Frame // Interactable"] = mistsutils.patchreporter(A: "prev_frame.interactable");
   }
 }

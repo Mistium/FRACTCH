@@ -1,5 +1,19 @@
+import { LEGACY_FIELD_KEYS } from './parse.js';
+
 let CTX = {};
 export function setContext(c) { CTX = c || {}; }
+
+const PREC = {
+  '||': 1, '&&': 2,
+  '==': 3, '!=': 3, '<': 3, '>': 3, '<=': 3, '>=': 3,
+  '..': 4,
+  '+': 5, '-': 5,
+  '*': 6, '/': 6, '%': 6,
+};
+const UNARY_PREC = 7;
+const ATOM_PREC = 100;
+
+const REPARSABLE_NUMBER = /^-?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/;
 
 export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}) {
   const opcode = block.opcode;
@@ -131,9 +145,9 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     return `${w} ${name};`;
   }
 
-  const opExpr = tryOperatorExpression(block, subgraph);
+  const opExpr = tryOperatorInfo(block, subgraph);
   if (opExpr) {
-    return inline ? opExpr : opExpr + ';';
+    return inline ? opExpr.text : opExpr.text + ';';
   }
 
   const inputsStr = stringifyInputs(block, subgraph, /*cLike*/ true);
@@ -164,12 +178,22 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 }
 
 function getInputExpr(arr, subgraph) {
-  if (!Array.isArray(arr) || arr.length < 2) return 'null';
+  return getInputExprInfo(arr, subgraph).text;
+}
+
+function getInputExprInfo(arr, subgraph) {
+  if (!Array.isArray(arr) || arr.length < 2) return { text: 'null', prec: ATOM_PREC };
   const payload = arr[1];
   if (typeof payload === 'string' && subgraph[payload]) {
-    return stringifyBlockCall(subgraph[payload], subgraph, payload, /*inline*/ true);
+    return blockExprInfo(subgraph[payload], subgraph, payload);
   }
-  return formatLiteral(arr);
+  return { text: formatLiteral(arr), prec: ATOM_PREC };
+}
+
+function blockExprInfo(block, subgraph, id) {
+  const op = tryOperatorInfo(block, subgraph);
+  if (op) return op;
+  return { text: stringifyBlockCall(block, subgraph, id, /*inline*/ true), prec: ATOM_PREC };
 }
 
 export function stringifyInputs(block, subgraph, cLike = false) {
@@ -195,6 +219,11 @@ export function stringifyInputs(block, subgraph, cLike = false) {
   return args.join(', ');
 }
 
+function refCall(kind, name, id, map) {
+  const needsId = id != null && !(map && map.get(name) === id);
+  return needsId ? `${kind}(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `${kind}(${JSON.stringify(name)})`;
+}
+
 export function stringifyFields(block) {
   if (!block.fields) return '';
   const kv = Object.entries(block.fields).map(([k, v]) => {
@@ -205,13 +234,19 @@ export function stringifyFields(block) {
         const name = v[0];
         const id = v.length > 1 ? v[1] : undefined;
         if (keyLc.includes('variable')) {
-          return `field ${formatArgKey(k)}: ${id ? `var(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `var(${JSON.stringify(name)})`}`;
+          const prefix = k === 'VARIABLE' ? '' : 'field ';
+          return `${prefix}${formatArgKey(k)}: ${refCall('var', name, id, CTX.varMap)}`;
         }
         if (keyLc.includes('list') || keyLc === 'list') {
-          return `field ${formatArgKey(k)}: ${id ? `list(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `list(${JSON.stringify(name)})`}`;
+          const prefix = k === 'LIST' ? '' : 'field ';
+          return `${prefix}${formatArgKey(k)}: ${refCall('list', name, id, CTX.listMap)}`;
         }
         if (keyLc.includes('broadcast')) {
-          return `field ${formatArgKey(k)}: ${id ? `broadcast(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `broadcast(${JSON.stringify(name)})`}`;
+          const prefix = k === 'BROADCAST_OPTION' ? '' : 'field ';
+          return `${prefix}${formatArgKey(k)}: ${refCall('broadcast', name, id, CTX.broadcastNameToId)}`;
+        }
+        if (v.length <= 2 && (v.length === 1 || v[1] == null)) {
+          return `field ${formatArgKey(k)}: ${JSON.stringify(name)}`;
         }
       }
       return `field ${formatArgKey(k)}: ${JSON.stringify(v)}`;
@@ -299,8 +334,14 @@ function formatLiteral(arr) {
       const value = payload[1];
       switch (typeCode) {
         case 10: {
-          // string/text
-          return `${JSON.stringify(String(value ?? ''))}`;
+          // string/text - Scratch types most literal slots as text even when
+          // the content is a number ("0" in a comparison). Print numeric text
+          // bare when the number grammar re-reads the exact same characters;
+          // the type code (10 vs 4) is an editor-widget hint with no runtime
+          // meaning, and the payload text round-trips verbatim either way.
+          const raw = String(value ?? '');
+          if (raw !== '' && REPARSABLE_NUMBER.test(raw)) return raw;
+          return `${JSON.stringify(raw)}`;
         }
         case 4: // number (as string)
         case 6: // angle/number
@@ -311,7 +352,7 @@ function formatLiteral(arr) {
           // than normalizing through Number->String and rewriting it.
           const raw = value == null ? '' : String(value);
           if (raw === '') return '""'; // unfilled default; not "0"
-          if (/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(raw)) return raw;
+          if (REPARSABLE_NUMBER.test(raw)) return raw;
 
           const n = Number(raw);
           if (Number.isFinite(n)) return `${String(n)}`;
@@ -321,7 +362,7 @@ function formatLiteral(arr) {
           // broadcast name reference
           const name = String(value ?? '');
           const id = payload.length > 2 ? String(payload[2]) : undefined;
-          return id ? `broadcast(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `broadcast(${JSON.stringify(name)})`;
+          return refCall('broadcast', name, id, CTX.broadcastNameToId);
         }
         case 12: {
           // variable/parameter reference label -> print as bare identifier when safe
@@ -330,10 +371,10 @@ function formatLiteral(arr) {
           return `vars[${JSON.stringify(name)}]`;
         }
         case 13: {
-          // list reference (keep as list(name) for now)
+          // list reference
           const name = String(value ?? '');
           const id = payload.length > 2 ? String(payload[2]) : undefined;
-          return id ? `list(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `list(${JSON.stringify(name)})`;
+          return refCall('list', name, id, CTX.listMap);
         }
         default: {
           const compact = value != null ? JSON.stringify(value) : 'null';
@@ -356,46 +397,71 @@ function formatLiteral(arr) {
   return ``;
 }
 
-function tryOperatorExpression(block, subgraph) {
+const NEGATED_CMP = { operator_equals: '!=', operator_gt: '<=', operator_lt: '>=' };
+
+function tryOperatorInfo(block, subgraph) {
   const op = block?.opcode;
   if (typeof op !== 'string' || !op.startsWith('operator_')) return null;
-  const read = (k, alt) =>
-    getInputExpr(block.inputs?.[k] ?? (alt ? block.inputs?.[alt] : undefined) ?? [3, [10, '']], subgraph);
+  const input = (k, alt) => block.inputs?.[k] ?? (alt ? block.inputs?.[alt] : undefined) ?? [3, [10, '']];
+  const bin = (sym, k1, k2, a1, a2) =>
+    binaryInfo(sym, getInputExprInfo(input(k1, a1), subgraph), getInputExprInfo(input(k2, a2), subgraph));
   switch (op) {
     case 'operator_add':
-      return `(${read('NUM1')} + ${read('NUM2')})`;
+      return bin('+', 'NUM1', 'NUM2');
     case 'operator_subtract':
-      return `(${read('NUM1')} - ${read('NUM2')})`;
+      return bin('-', 'NUM1', 'NUM2');
     case 'operator_multiply':
-      return `(${read('NUM1')} * ${read('NUM2')})`;
+      return bin('*', 'NUM1', 'NUM2');
     case 'operator_divide':
-      return `(${read('NUM1')} / ${read('NUM2')})`;
+      return bin('/', 'NUM1', 'NUM2');
     case 'operator_mod':
-      return `(${read('NUM1')} % ${read('NUM2')})`;
+      return bin('%', 'NUM1', 'NUM2');
     case 'operator_round':
-      return `round(${read('NUM')})`;
+      return { text: `round(${getInputExpr(input('NUM'), subgraph)})`, prec: ATOM_PREC };
     case 'operator_mathop': {
       const raw = (block.fields?.OPERATOR?.[0] || 'abs').toLowerCase();
       const fn = raw === 'e ^' ? 'exp' : raw === '10 ^' ? 'exp10' : raw;
-      return `${fn}(${read('NUM')})`;
+      return { text: `${fn}(${getInputExpr(input('NUM'), subgraph)})`, prec: ATOM_PREC };
     }
     case 'operator_join':
-      return `(${read('STRING1')} .. ${read('STRING2')})`;
-
+      return bin('..', 'STRING1', 'STRING2');
     case 'operator_equals':
-      return `(${read('OPERAND1', 'NUM1')} == ${read('OPERAND2', 'NUM2')})`;
+      return bin('==', 'OPERAND1', 'OPERAND2', 'NUM1', 'NUM2');
     case 'operator_lt':
-      return `(${read('OPERAND1', 'NUM1')} < ${read('OPERAND2', 'NUM2')})`;
+      return bin('<', 'OPERAND1', 'OPERAND2', 'NUM1', 'NUM2');
     case 'operator_gt':
-      return `(${read('OPERAND1', 'NUM1')} > ${read('OPERAND2', 'NUM2')})`;
-
+      return bin('>', 'OPERAND1', 'OPERAND2', 'NUM1', 'NUM2');
     case 'operator_and':
-      return `(${read('OPERAND1')} && ${read('OPERAND2')})`;
+      return bin('&&', 'OPERAND1', 'OPERAND2');
     case 'operator_or':
-      return `(${read('OPERAND1')} || ${read('OPERAND2')})`;
+      return bin('||', 'OPERAND1', 'OPERAND2');
     case 'operator_not':
-      return `not(${read('OPERAND')})`;
+      return notInfo(block, subgraph);
     default:
       return null;
   }
+}
+
+function binaryInfo(sym, L, R) {
+  const p = PREC[sym];
+  const lt = L.prec < p ? `(${L.text})` : L.text;
+  const rt = R.prec <= p ? `(${R.text})` : R.text;
+  return { text: `${lt} ${sym} ${rt}`, prec: p };
+}
+
+function notInfo(block, subgraph) {
+  const tuple = block.inputs?.OPERAND;
+  const childId = Array.isArray(tuple) ? tuple[1] : null;
+  const child = typeof childId === 'string' ? subgraph[childId] : null;
+  if (child && NEGATED_CMP[child.opcode]) {
+    const input = (k, alt) => child.inputs?.[k] ?? child.inputs?.[alt] ?? [3, [10, '']];
+    return binaryInfo(
+      NEGATED_CMP[child.opcode],
+      getInputExprInfo(input('OPERAND1', 'NUM1'), subgraph),
+      getInputExprInfo(input('OPERAND2', 'NUM2'), subgraph)
+    );
+  }
+  const inner = Array.isArray(tuple) ? getInputExprInfo(tuple, subgraph) : { text: '""', prec: ATOM_PREC };
+  const it = inner.prec < UNARY_PREC ? `(${inner.text})` : inner.text;
+  return { text: `!${it}`, prec: UNARY_PREC };
 }

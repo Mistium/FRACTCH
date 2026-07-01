@@ -6,9 +6,9 @@
  * threadIndex: 104
  */
 
-def @Input(cursorchange, key) "Input// %s %s" warp=true {
-  if (vars["Key// Current Pressed"] == key) {
-    if ((vars["Inputs // Cursor Position"] + cursorchange) > "-1") {
+def @Input(cursorchange, key) "Input// %s %s" warp {
+  if vars["Key// Current Pressed"] == key {
+    if vars["Inputs // Cursor Position"] + cursorchange > -1 {
       vars["Inputs // Cursor Position"] += cursorchange;
     }
   }

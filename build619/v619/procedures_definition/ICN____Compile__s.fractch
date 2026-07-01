@@ -6,7 +6,7 @@
  * threadIndex: 196
  */
 
-def @ICN_Compile(value) "ICN // Compile %s" warp=true {
+def @ICN_Compile(value) "ICN // Compile %s" warp {
   mistsutils.patchcommand(A: "const cmds = window.icn_cmds");
   mistsutils.patchcommand(A: "for (let i = 0; i < p0.length; i ++) if (isFinite(p0[i])) p0[i] = (+p0[i] || 0)");
   mistsutils.patchcommand(A: "for (let i = 0; i < p0.length; i ++) {");

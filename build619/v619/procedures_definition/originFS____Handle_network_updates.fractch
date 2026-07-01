@@ -6,7 +6,7 @@
  * threadIndex: 86
  */
 
-def @originFS_Handle_network_updates() "originFS // Handle network updates" warp=true {
+def @originFS_Handle_network_updates() "originFS // Handle network updates" warp {
   mistsutils.patchcommand(A: "let val =  \"\"");
   mistsutils.patchcommand(A: "let id = randomString(32)");
   mistsutils.patchcommand(A: "const mount_points = window.origin.files.mount_points");
@@ -15,7 +15,7 @@ def @originFS_Handle_network_updates() "originFS // Handle network updates" warp
   mistsutils.patchcommand(A: "for (let i = 0; i < updates.length; i ++) {");
   mistsutils.patchcommand(A: "updates[i] = JSON.parse(updates[i])");
   mistsutils.patchcommand2(A: "const id = ", B: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "updates[i].uuid")));
-  mistsutils.patchcommand2(A: "const path = ", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: "3"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+  mistsutils.patchcommand2(A: "const path = ", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: 3), LIST: list("Files")));
   mistsutils.patchcommand2(A: "const mount = ", B: @originFS_Get_mount_url_for_path(path: mistsutils.patchreporter(A: "path")));
   mistsutils.patchcommand(A: "if (mount === \"\") { file_updates.norm.push(updates[i]); continue }");
   mistsutils.patchcommand(A: "file_updates[mount.url] ??= []");

@@ -8,16 +8,16 @@
 
 import "../procedures_definition/File___get__s_item__s.fractch";
 import "../procedures_definition/Window___create__s__s.fractch";
-def @File_open(Id) "File// open %s" warp=true {
+def @File_open(Id) "File// open %s" warp {
   @File_get_item(id: Id, item: "");
-  if (data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) == ".folder") {
-    @Window_create(name: "@File Explorer", window_data: data.itemoflist(INDEX: 14, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")));
+  if data.itemoflist(INDEX: 1, LIST: list("Files // Current")) == ".folder" {
+    @Window_create(name: "@File Explorer", window_data: data.itemoflist(INDEX: 14, LIST: list("Files // Current")));
     stop "this script";
   }
-  if (data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) == ".osl") {
-    @Window_create(name: data.itemoflist(INDEX: 14, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), window_data: "");
+  if data.itemoflist(INDEX: 1, LIST: list("Files // Current")) == ".osl" {
+    @Window_create(name: data.itemoflist(INDEX: 14, LIST: list("Files // Current")), window_data: "");
     mistsutils.patchcommand3(A: vars["OSL // Window"], B: ".children.push(", C: mistsutils.patchreporter2(A: @OSL_Vars_Get(Varname: "data"), B: ")"));
     stop "this script";
   }
-  @Window_create(name: mistsutils.patchreporter3(A: "window.osl_filetypes[", B: data.itemoflist(INDEX: 1, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), C: "]?.[2]?.[0] ?? \"\""), window_data: data.itemoflist(INDEX: 14, field LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")));
+  @Window_create(name: mistsutils.patchreporter3(A: "window.osl_filetypes[", B: data.itemoflist(INDEX: 1, LIST: list("Files // Current")), C: "]?.[2]?.[0] ?? \"\""), window_data: data.itemoflist(INDEX: 14, LIST: list("Files // Current")));
 }

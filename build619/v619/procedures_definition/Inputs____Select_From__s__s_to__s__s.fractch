@@ -6,7 +6,7 @@
  * threadIndex: 162
  */
 
-def @Inputs_Select_From_to(line, char, line2, char2) "Inputs // Select From %s %s to %s %s" warp=false {
+def @Inputs_Select_From_to(line, char, line2, char2) "Inputs // Select From %s %s to %s %s" {
   vars["Inputs // Start Line"] = line;
   vars["Inputs // Start Letter Pos"] = char;
   vars["Inputs // Current Line"] = line2;

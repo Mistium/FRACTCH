@@ -6,22 +6,22 @@
  * threadIndex: 109
  */
 
-def @Give_Permissions_of_to_app_in_all_perms(permissions, application, perms) "Give Permissions of %s to app %s in all perms %s" warp=true {
+def @Give_Permissions_of_to_app_in_all_perms(permissions, application, perms) "Give Permissions of %s to app %s in all perms %s" warp {
   if operator.contains(STRING1: permissions, STRING2: "/") {
-    if (mistsutils.item(C: 1, A: permissions, B: "/") == "Save Directory") {
-      vars["Kernel // Alert App"] = @originFS_Path_ID(Path: (@OSL_Vars_Get(Varname: "user_folder") .. ("/Application Data/" .. (mistsutils.item(C: 2, A: permissions, B: "/") .. ".folder"))));
-      if (vars["Kernel // Alert App"] == "0") {
+    if mistsutils.item(C: 1, A: permissions, B: "/") == "Save Directory" {
+      vars["Kernel // Alert App"] = @originFS_Path_ID(Path: @OSL_Vars_Get(Varname: "user_folder") .. ("/Application Data/" .. (mistsutils.item(C: 2, A: permissions, B: "/") .. ".folder")));
+      if vars["Kernel // Alert App"] == 0 {
         @File_add_Data_Icon_Perms(Location: @Parse_Directory(directory: "~/application data"), Name: mistsutils.item(C: 2, A: permissions, B: "/"), Type: ".folder", Data: "[]", Icon: "", Perms: skyhigh173JSON.json_array_push(item: application, json: "[]"));
       } else {
-        @originFS_Exec_file_file_data_id_input(command: "replace", Id: vars["Kernel // Alert App"], data_id: "13", input: skyhigh173JSON.json_array_push(item: application, json: skyhigh173JSON.json_array_remove_all(item: application, json: @File_get_item(id: vars["Kernel // Alert App"], item: "13"))));
+        @originFS_Exec_file_file_data_id_input(command: "replace", Id: vars["Kernel // Alert App"], data_id: 13, input: skyhigh173JSON.json_array_push(item: application, json: skyhigh173JSON.json_array_remove_all(item: application, json: @File_get_item(id: vars["Kernel // Alert App"], item: 13))));
       }
     }
   } else {
-    if (permissions == "Start Run") {
+    if permissions == "Start Run" {
       mistsutils.patchcommand2(A: "const temp = ", B: vars["OSL // Perms"]);
       vars["OSL // Perms"] = mistsutils.patchreporter(A: "[\"account\"]");
-      vars["Kernel // Alert App"] = data.itemoflist(INDEX: @originFS_UUID_ID(UUID: application), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-      @OSL_Parse_and_Run(Run: ("network \"update\" \"onboot\" " .. skyhigh173JSON.json_array_push(item: vars["Kernel // Alert App"], json: skyhigh173JSON.json_array_remove_all(item: vars["Kernel // Alert App"], json: skyhigh173JSON.json_get(item: "onboot", json: vars["Account// Current"])))));
+      vars["Kernel // Alert App"] = data.itemoflist(INDEX: @originFS_UUID_ID(UUID: application), LIST: list("Files // Index Path"));
+      @OSL_Parse_and_Run(Run: "network \"update\" \"onboot\" " .. skyhigh173JSON.json_array_push(item: vars["Kernel // Alert App"], json: skyhigh173JSON.json_array_remove_all(item: vars["Kernel // Alert App"], json: skyhigh173JSON.json_get(item: "onboot", json: vars["Account// Current"]))));
       vars["OSL // Perms"] = mistsutils.patchreporter(A: "temp");
     } else {
       mistsutils.patchcommand2(A: "const index = ", B: @originFS_Path_ID(Path: @Parse_Directory(directory: "~/application data/permissions.json")));
@@ -30,8 +30,8 @@ def @Give_Permissions_of_to_app_in_all_perms(permissions, application, perms) "G
         mistsutils.patchcommand2(A: "perms = ", B: skyhigh173JSON.json_set(item: application, json: mistsutils.patchreporter(A: "perms"), value: permissions));
       } else {
         mistsutils.patchcommand2(A: "let temp = ", B: skyhigh173JSON.json_get(item: application, json: mistsutils.patchreporter(A: "perms")));
-        if skyhigh173JSON.json_is(json: mistsutils.patchreporter(A: "temp"), types: skyhigh173JSON.menu_types(field types: ["Array",null])) {
-          if not(skyhigh173JSON.json_has_value(json: mistsutils.patchreporter(A: "temp"), value: permissions)) {
+        if skyhigh173JSON.json_is(json: mistsutils.patchreporter(A: "temp"), types: skyhigh173JSON.menu_types(field types: "Array")) {
+          if !skyhigh173JSON.json_has_value(json: mistsutils.patchreporter(A: "temp"), value: permissions) {
             mistsutils.patchcommand3(A: "const wins = osl_get_windows().filter(v => v?.uuid === ", B: application, C: ")");
             mistsutils.patchcommand(A: "for (let i = 0; i < wins.length; i ++)");
             @originWM_Send_global_Msg(arr: mistsutils.patchreporter(A: "[\"event\", wins[i].id, \"permission_granted\", p0]"));
@@ -41,7 +41,7 @@ def @Give_Permissions_of_to_app_in_all_perms(permissions, application, perms) "G
           mistsutils.patchcommand2(A: "perms = ", B: skyhigh173JSON.json_set(item: application, json: mistsutils.patchreporter(A: "perms"), value: skyhigh173JSON.json_array_push(item: permissions, json: "[]")));
         }
       }
-      @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "index"), data_id: "4", input: mistsutils.patchreporter(A: "perms"));
+      @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "index"), data_id: 4, input: mistsutils.patchreporter(A: "perms"));
       return mistsutils.patchreporter(A: "JSON.parse(perms)");
     }
   }

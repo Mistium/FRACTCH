@@ -6,6 +6,6 @@
  * threadIndex: 76
  */
 
-def @OSL_Window(name, data) "OSL // Window[ %s ] =  %s" warp=false {
+def @OSL_Window(name, data) "OSL // Window[ %s ] =  %s" {
   mistsutils.patchcommand2(A: "target.window", B: "[p0] = p1");
 }

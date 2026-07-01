@@ -7,7 +7,7 @@
  */
 
 import "../procedures_definition/Kernel_Log____s____s.fractch";
-def @Timed_Log(Data) "Timed Log %s" warp=false {
+def @Timed_Log(Data) "Timed Log %s" {
   mistsutils.patchcommand(A: "const time = runtime.ioDevices.clock.projectTimer()");
   mistsutils.patchcommand(A: "const dif =  time - origin.last_timer");
   mistsutils.patchcommand(A: "const log_data = [p0]");

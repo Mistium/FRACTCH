@@ -3,7 +3,7 @@ import path from 'path';
 import AdmZip from 'adm-zip';
 import crypto from 'crypto';
 import { parseFractch } from './parse.js';
-import { buildBlocksFromCalls, mergeIntoManifest, IdGen } from './buildBlocks.js';
+import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode } from './buildBlocks.js';
 import { assertValidFractch } from './lint.js';
 
 // Packing reconstructs every block purely by parsing the DSL text - there is
@@ -452,7 +452,7 @@ function ensureDictEntry(dict, name, value) {
 function registerProcDefs(procArgMaps, identToProccode, targetName, calls) {
   if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
   const procDef = calls[0];
-  const proccode = procDef.proccode || `${procDef.ident} ${procDef.params.map(() => '%s').join(' ')}`.trim();
+  const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
   if (!procArgMaps.has(targetName)) procArgMaps.set(targetName, new Map());
   if (!identToProccode.has(targetName)) identToProccode.set(targetName, new Map());
   const map = procArgMaps.get(targetName);

@@ -6,12 +6,12 @@
  * threadIndex: 205
  */
 
-def @originNM_Handle_Packet(Value, Raw_Value("Raw Value"), From) "originNM // Handle Packet %s %s %s" warp=false {
+def @originNM_Handle_Packet(Value, Raw_Value("Raw Value"), From) "originNM // Handle Packet %s %s %s" {
   vars["Network // Packets Down"] += 1;
   mistsutils.patchcommand2(A: "let packet = ", B: Raw_Value);
   vars["App // Temp2"] = From;
-  if (mistsutils.patchboolean(A: "((packet?.target ?? \"\") === 0)") && (From == vars["Server // Name"])) {
-    if (vars["Account// Current"] == "") {
+  if mistsutils.patchboolean(A: "((packet?.target ?? \"\") === 0)") && From == vars["Server // Name"] {
+    if vars["Account// Current"] == "" {
 
     } else {
       mistsutils.patchcommand2(A: "let payload = ", B: "packet.payload");

@@ -6,7 +6,7 @@
  * threadIndex: 143
  */
 
-def @Compile_OSL_Token_To_JS(token) "Compile OSL Token To JS %s" warp=false {
+def @Compile_OSL_Token_To_JS(token) "Compile OSL Token To JS %s" {
   mistsutils.patchcommand2(A: "// ", B: @OSL_Vars_Get(Varname: ""));
   mistsutils.patchcommand(A: "const data = p0.data");
   mistsutils.patchcommand(A: "thread.compToken = thread.procedures[\"WCompile OSL Token To JS %s\"];");

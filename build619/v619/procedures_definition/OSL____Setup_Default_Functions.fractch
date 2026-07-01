@@ -7,7 +7,7 @@
  */
 
 import "../procedures_definition/Add_Global_Command__s__s__s.fractch";
-def @OSL_Setup_Default_Functions() "OSL // Setup Default Functions" warp=false {
+def @OSL_Setup_Default_Functions() "OSL // Setup Default Functions" {
   @Add_Global_Command(name: "centext", parameters: "txt, sze", code: mistsutils.patchreporter(A: "\"local spl = txt.toStr().split(\\\"\\\\n\\\")\\nlocal x = x_position\\nfor i spl.len - 1 (\\nspl[i] ++= \\\"\\\\n\\\"\\n)\\nfor i spl.len (\\nchange_x spl[i].len * sze / -2\\ntext spl[i] sze\\nset_x x\\n)\""));
   @Add_Global_Command(name: "rigtext", parameters: "txt, sze", code: mistsutils.patchreporter(A: "\"local w = txt.len * sze\\nchange_x w * -1\\ntext txt sze\""));
   @Add_Global_Command(name: "bar", parameters: "w, h, r, p, c", code: mistsutils.patchreporter(A: "\"r ??= 10\\nsquare w h r\\nif p > 0 (\\nlocal n = w * p - w / 2\\nchange_x n\\ncolour c\\nsquare w * p h r\\nchange_x -n\\n)\""));

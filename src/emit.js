@@ -1,4 +1,5 @@
 import { stringifyBlockCall, setContext, renderBody } from './stringify.js';
+import { synthesizeProccode } from './buildBlocks.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -134,12 +135,17 @@ function defSignature(defBlock, subgraph, context) {
   const code = proto?.mutation?.proccode;
   const info = procInfoFor(defBlock, subgraph, context);
   const warp = proto?.mutation?.warp === true || proto?.mutation?.warp === 'true';
-  if (!info) return `def @proc() warp=${warp}`;
+  const warpLit = warp ? ' warp' : '';
+  if (!info) return `def @proc()${warpLit}`;
   const params = info.params
     .map((p) => (p.name != null && p.name !== p.ident ? `${p.ident}(${JSON.stringify(p.name)})` : p.ident))
     .join(', ');
-  const codeLit = code != null ? ` ${JSON.stringify(code)}` : '';
-  return `def @${info.ident}(${params})${codeLit} warp=${warp}`;
+  const derivable =
+    code != null &&
+    code === synthesizeProccode(info.ident, info.params.length) &&
+    info.params.every((p) => p.name === p.ident);
+  const codeLit = code != null && !derivable ? ` ${JSON.stringify(code)}` : '';
+  return `def @${info.ident}(${params})${codeLit}${warpLit}`;
 }
 
 function indentBlock(str, spaces = 2) {

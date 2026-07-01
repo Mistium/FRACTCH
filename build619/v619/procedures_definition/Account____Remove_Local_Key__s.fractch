@@ -6,8 +6,8 @@
  * threadIndex: 219
  */
 
-def @Account_Remove_Local_Key(Key) "Account // Remove Local Key %s" warp=false {
-  if not((Key == "username")) {
+def @Account_Remove_Local_Key(Key) "Account // Remove Local Key %s" {
+  if Key != "username" {
     vars["Account// Current"] = skyhigh173JSON.json_delete(item: Key, json: vars["Account// Current"]);
     mistsutils.patchcommand2(A: "const parsed = ", B: mistsutils.jsonparse(A: vars["Account// Current"]));
     @OSL_Vars_Set(name: "user_icon", data: mistsutils.patchreporter(A: "parsed.pfp"), current_command: "Global");

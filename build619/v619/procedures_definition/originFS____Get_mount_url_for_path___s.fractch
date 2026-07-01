@@ -6,7 +6,7 @@
  * threadIndex: 218
  */
 
-def @originFS_Get_mount_url_for_path(path) "originFS // Get mount url for path: %s" warp=false {
+def @originFS_Get_mount_url_for_path(path) "originFS // Get mount url for path: %s" {
   mistsutils.patchcommand(A: "const mount_points = window.origin.files.mount_points");
   mistsutils.patchcommand(A: "const keys = Object.keys(mount_points)");
   mistsutils.patchcommand(A: "const path = `${p0}/`");

@@ -6,8 +6,8 @@
  * threadIndex: 234
  */
 
-def @Kernel_Setup_postMessageHandler() "Kernel // Setup postMessageHandler" warp=false {
-  if (vars["Embed Mode"] == "0") {
+def @Kernel_Setup_postMessageHandler() "Kernel // Setup postMessageHandler" {
+  if vars["Embed Mode"] == 0 {
     mistsutils.patchcommand(A: "return");
   }
   mistsutils.patchcommand(A: "origin.parentWindow = null;");

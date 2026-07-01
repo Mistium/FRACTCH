@@ -6,7 +6,7 @@
  * threadIndex: 127
  */
 
-def @Stringify(json) "Stringify %s" warp=false {
+def @Stringify(json) {
   mistsutils.patchcommand(A: "try { if (typeof p0 === \"object\") return JSON.stringify(p0); else return p0 } catch { return p0 }");
   return json;
 }

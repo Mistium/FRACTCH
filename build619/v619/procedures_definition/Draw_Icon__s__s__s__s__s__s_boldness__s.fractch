@@ -6,7 +6,7 @@
  * threadIndex: 225
  */
 
-def @Draw_Icon_boldness(Code, Size, setsize, x, y, direction, boldness) "Draw Icon %s %s %s %s %s %s boldness %s" warp=true {
+def @Draw_Icon_boldness(Code, Size, setsize, x, y, direction, boldness) "Draw Icon %s %s %s %s %s %s boldness %s" warp {
   mistsutils.patchcommand3(A: "p1 = (+p1 || 0); if (target.y > (", B: mistsutils.patchreporter3(A: vars["Renderer // Frame Min Y"], B: " - (p1 * 20)) && target.y < (", C: vars["Renderer // Frame Max Y"]), C: " + (p1 * 20))) {");
   mistsutils.patchcommand(A: "if (p1 <= 0) return");
   mistsutils.patchcommand2(A: "p1 *= ", B: vars["Renderer // Scale"]);
@@ -15,7 +15,7 @@ def @Draw_Icon_boldness(Code, Size, setsize, x, y, direction, boldness) "Draw Ic
   mistsutils.patchcommand(A: "const ox = target.x, oy = target.y");
   mistsutils.patchcommand(A: "window.icn = { ox, oy, offx: 0, offy: 0 }");
   mistsutils.patchcommand(A: "const icn = window.icn");
-  mistsutils.patchcommand2(A: "let direction = ", B: "90");
+  mistsutils.patchcommand2(A: "let direction = ", B: 90);
   mistsutils.patchcommand(A: "const temp_dir = (+p5 || 0)");
   mistsutils.patchcommand(A: "if (p5 !== \"\" && temp_dir !== 90) direction = Math.round(temp_dir)");
   mistsutils.patchcommand(A: "vm.runtime.ext_pen._setPenSizeTo(w || 0, target);");
@@ -52,7 +52,7 @@ def @Draw_Icon_boldness(Code, Size, setsize, x, y, direction, boldness) "Draw Ic
       mistsutils.patchcommand(A: "ext_pen._penUp(target)");
       mistsutils.patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
       mistsutils.patchcommand(A: "target.setXY(target.x, target.y)");
-      @Draw_Image(url: mistsutils.patchreporter(A: "url"), width: (mistsutils.patchreporter(A: "w") * Size), height: (mistsutils.patchreporter(A: "h") * Size));
+      @Draw_Image(url: mistsutils.patchreporter(A: "url"), width: mistsutils.patchreporter(A: "w") * Size, height: mistsutils.patchreporter(A: "h") * Size);
     }
     case mistsutils.patchreporter(A: "cmds.rect[0]") {
       mistsutils.patchcommand(A: "const x = arr[++i];");
@@ -136,11 +136,11 @@ def @Draw_Icon_boldness(Code, Size, setsize, x, y, direction, boldness) "Draw Ic
       mistsutils.patchcommand(A: "const offset2 = (x, y, s) => { const xy = origin.utils.rotateVector(x, y, 90 - direction2 - direction, 0, 0); target.setXY(ox + pos[0] + xy[0] * s, oy + pos[1] + xy[1] * s) }");
       mistsutils.patchcommand(A: "let eli_temp = 0");
       mistsutils.patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils.patchcommand3(A: "offset2(0, ", B: (mistsutils.patchreporter(A: "el_temp2") * mistsutils.patchreporter(A: "el_temp3")), C: ", size)");
+      mistsutils.patchcommand3(A: "offset2(0, ", B: mistsutils.patchreporter(A: "el_temp2") * mistsutils.patchreporter(A: "el_temp3"), C: ", size)");
       mistsutils.patchcommand(A: "ext_pen._penDown(target)");
       mistsutils.patchcommand(A: "for (var a0 = 180; a0 >= 0.5; a0--) {");
       mistsutils.patchcommand(A: "eli_temp += 4");
-      mistsutils.patchcommand3(A: "offset2(", B: mistsutils.patchreporter3(A: (sin(mistsutils.patchreporter(A: "eli_temp")) * mistsutils.patchreporter(A: "el_temp2")), B: ",", C: ((cos(mistsutils.patchreporter(A: "eli_temp")) * mistsutils.patchreporter(A: "el_temp2")) * mistsutils.patchreporter(A: "el_temp3"))), C: ", size)");
+      mistsutils.patchcommand3(A: "offset2(", B: mistsutils.patchreporter3(A: sin(mistsutils.patchreporter(A: "eli_temp")) * mistsutils.patchreporter(A: "el_temp2"), B: ",", C: cos(mistsutils.patchreporter(A: "eli_temp")) * mistsutils.patchreporter(A: "el_temp2") * mistsutils.patchreporter(A: "el_temp3")), C: ", size)");
       mistsutils.patchcommand(A: "}");
     }
     case mistsutils.patchreporter(A: "cmds.icn[0]") {
@@ -148,7 +148,7 @@ def @Draw_Icon_boldness(Code, Size, setsize, x, y, direction, boldness) "Draw Ic
       mistsutils.patchcommand(A: "const s = +arr[++i]");
       mistsutils.patchcommand(A: "ext_pen._penUp(target)");
       mistsutils.patchcommand(A: "offset(+arr[++i] || 0, +arr[++i] || 0, size, target)");
-      @Draw_Icon_boldness(Code: @File_get_item(id: mistsutils.patchreporter(A: "\"origin/(A) System/Icons/\"+temp+\".icn\""), item: "4"), Size: mistsutils.patchreporter(A: "s * size"), setsize: "", x: mistsutils.patchreporter(A: "ox"), y: mistsutils.patchreporter(A: "oy"), direction: mistsutils.patchreporter(A: "direction"), boldness: "");
+      @Draw_Icon_boldness(Code: @File_get_item(id: mistsutils.patchreporter(A: "\"origin/(A) System/Icons/\"+temp+\".icn\""), item: 4), Size: mistsutils.patchreporter(A: "s * size"), setsize: "", x: mistsutils.patchreporter(A: "ox"), y: mistsutils.patchreporter(A: "oy"), direction: mistsutils.patchreporter(A: "direction"), boldness: "");
     }
     case mistsutils.patchreporter(A: "cmds.ricn[0]") {
       mistsutils.patchcommand(A: "const temp = arr[++i]");

@@ -6,10 +6,10 @@
  * threadIndex: 79
  */
 
-def @originNM_Log_Request_Payload_Recipient_Received(Payload, Recipient, received) "originNM // Log Request. Payload: %s Recipient: %s Received?: %b" warp=false {
+def @originNM_Log_Request_Payload_Recipient_Received(Payload, Recipient, received) "originNM // Log Request. Payload: %s Recipient: %s Received?: %b" {
   mistsutils.patchcommand(A: "let obj = {}");
   mistsutils.patchcommand2(A: "obj.timestamp = ", B: "Date.now()");
-  mistsutils.patchcommand2(A: "obj.payload = ", B: @letters_to_of(start: "1", end: "99", text: Payload));
+  mistsutils.patchcommand2(A: "obj.payload = ", B: @letters_to_of(start: 1, end: 99, text: Payload));
   if received {
     mistsutils.patchcommand2(A: "obj.source = ", B: Recipient);
   } else {

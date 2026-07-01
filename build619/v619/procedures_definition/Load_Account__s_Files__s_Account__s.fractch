@@ -13,7 +13,7 @@ import "../procedures_definition/Generate_Theme_Colours_From_User.fractch";
 import "../procedures_definition/originNM____Send__s_to__s.fractch";
 import "../procedures_definition/originFS____Generate_Paths_And_Uuids.fractch";
 import "../procedures_definition/Window___create__s__s.fractch";
-def @Load_Account_Files_Account(Token, Files, Account) "Load Account %s Files %s Account %s" warp=true {
+def @Load_Account_Files_Account(Token, Files, Account) "Load Account %s Files %s Account %s" warp {
   mistsutils.patchcommand3(A: "const acc = ", B: Account, C: ".payload");
   @Timed_Log(Data: "Loading Files And Preparing Runtime");
   mistsutils.patchcommand(A: "let parsed = \"\"");
@@ -21,18 +21,18 @@ def @Load_Account_Files_Account(Token, Files, Account) "Load Account %s Files %s
   mistsutils.patchcommand2(A: "parsed = ", B: mistsutils.jsonparse(A: Files));
   mistsutils.patchcommand(A: "} catch {}");
   mistsutils.patchcommand(A: "if (!Array.isArray(parsed)) {");
-  mistiumindexeddb.writeToDatabase(KEY: "last_download", VALUE: "0");
+  mistiumindexeddb.writeToDatabase(KEY: "last_download", VALUE: 0);
   mistsutils.patchcommand(A: "alert(\"Your files are likely corrupt, message @mistium on discord\")");
   runtimeoptions.greenFlag();
   mistsutils.patchcommand(A: "}");
-  if not(data.listcontainsitem(ITEM: ("Origin/(C) Users/" .. (mistsutils.patchreporter(A: "acc?.username") .. ".folder")), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"))) {
+  if !data.listcontainsitem(ITEM: "Origin/(C) Users/" .. (mistsutils.patchreporter(A: "acc?.username") .. ".folder"), LIST: list("Files // Index Path")) {
     mistsutils.patchcommand(A: "let files = Object.values(vm.runtime.getTargetForStage().variables).filter(obj => obj.name === \"Files\")[0]");
-    vars["DeString // out"] = @file_item_of_num(index: data.itemnumoflist(ITEM: "origin/(C) Users.folder", field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), num: "4");
-    data.replaceitemoflist(INDEX: vars["DeString // out"], ITEM: skyhigh173JSON.json_array_push(item: mistsutils.patchreporter(A: "parsed[13]"), json: data.itemoflist(INDEX: vars["DeString // out"], field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"))), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+    vars["DeString // out"] = @file_item_of_num(index: data.itemnumoflist(ITEM: "origin/(C) Users.folder", LIST: list("Files // Index Path")), num: 4);
+    data.replaceitemoflist(INDEX: vars["DeString // out"], ITEM: skyhigh173JSON.json_array_push(item: mistsutils.patchreporter(A: "parsed[13]"), json: data.itemoflist(INDEX: vars["DeString // out"], LIST: list("Files"))), LIST: list("Files"));
     mistsutils.patchcommand(A: "files.value = files.value.concat(parsed)");
   }
   @originFS_Handle_mounted_file_systems();
-  @Timed_Log(Data: (("Loaded: " .. data.lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"))) .. " Files"));
+  @Timed_Log(Data: "Loaded: " .. data.lengthoflist(LIST: list("Files // UUIDS")) .. " Files");
   mistsutils.patchcommand2(A: "let pass = ", B: "acc.password");
   mistsutils.patchcommand(A: "delete acc.key");
   mistsutils.patchcommand(A: "delete acc.password");
@@ -52,7 +52,7 @@ def @Load_Account_Files_Account(Token, Files, Account) "Load Account %s Files %s
     mistsutils.patchcommand(A: "const wallpaper = window.origin.wallpaper");
     mistsutils.patchcommand(A: "wallpaper.current = acc.wallpaper");
     mistsutils.patchcommand(A: "wallpaper.next = acc.wallpaper");
-    if (not((mistiumindexeddb.readFromDatabase(KEY: "user_wallpaper_url") == mistsutils.patchreporter(A: "wallpaper.current"))) || mistsutils.patchreporter(A: "(\"\"+acc.wallpaper).endsWith(\".mp4\")")) {
+    if mistiumindexeddb.readFromDatabase(KEY: "user_wallpaper_url") != mistsutils.patchreporter(A: "wallpaper.current") || mistsutils.patchreporter(A: "(\"\"+acc.wallpaper).endsWith(\".mp4\")") {
       @Renderer_Load_Wallpaper(url: mistsutils.patchreporter(A: "acc.wallpaper"));
     }
   }
@@ -66,20 +66,20 @@ def @Load_Account_Files_Account(Token, Files, Account) "Load Account %s Files %s
   mistsutils.patchcommand(A: "origin.auth.getTokenValidator = () => encrypt(\"validator lmao\",\"validator\" + token)");
   mistsutils.patchcommand3(A: "origin.auth.requestRoturValidator = function*(key) { return ", B: cloudlink.fetchURL(url: mistsutils.patchreporter(A: "`https://social.rotur.dev/generate_validator?key=${encodeURIComponent(key)}&auth=${token}`")), C: "}");
   vars["Server// Base Payload"] = skyhigh173JSON.json_set(item: "id", json: vars["Server// Base Payload"], value: ":3");
-  if not(mistsutils.starts(A: skyhigh173JSON.json_get(item: "proxy", json: vars["Account// Current"]), B: "https://")) {
+  if !mistsutils.starts(A: skyhigh173JSON.json_get(item: "proxy", json: vars["Account// Current"]), B: "https://") {
     @Account_Request_using_and(mode: "", Key: "proxy", Value: "https://apps.mistium.com/cors?url=");
   }
   vars["OSL // Perms"] = mistsutils.patchreporter(A: "[\"account\"]");
-  if not(mistsutils.patchboolean(A: "Object.hasOwn(acc, \"theme\")")) {
-    @Draw_Text(Text: "Fixing Theme", X: vars["Frame // Min X"], Y: (motion.yposition() - 40), Size: "10", Markdown_Enabled: "");
+  if !mistsutils.patchboolean(A: "Object.hasOwn(acc, \"theme\")") {
+    @Draw_Text(Text: "Fixing Theme", X: vars["Frame // Min X"], Y: motion.yposition() - 40, Size: 10, Markdown_Enabled: "");
     @OSL_Parse_and_Run(Run: "network \"update\" \"theme\" {\"primary\":\"#222\",\"secondary\":\"#555\",\"tertiary\":\"#777\",\"text\":\"#fff\",\"background\":\"#050505\",\"accent\":\"#57cdac\"}");
   }
   if mistsutils.patchboolean(A: "Object.hasOwn(acc, \"scrollspeed\")") {
     vars["SYSTEM // Scroll Multiplier"] = mistsutils.patchreporter(A: "+acc.scrollspeed");
-    @Draw_Text(Text: "Set scroll speed", X: vars["Frame // Min X"], Y: (motion.yposition() - 40), Size: "10", Markdown_Enabled: "");
+    @Draw_Text(Text: "Set scroll speed", X: vars["Frame // Min X"], Y: motion.yposition() - 40, Size: 10, Markdown_Enabled: "");
   }
   mistsutils.patchcommand(A: "origin.wallpaper.mode = acc.wallpaper_mode ?? \"fill\"");
-  @originNM_Send_to(data: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "command", json: skyhigh173JSON.json_set(item: "source", json: skyhigh173JSON.json_set(item: "id", json: vars["Server// Base Payload"], value: mistsutils.patchreporter(A: "token")), value: "0"), value: "item_public"), value: "1"), username: vars["Server // Name"]);
+  @originNM_Send_to(data: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "command", json: skyhigh173JSON.json_set(item: "source", json: skyhigh173JSON.json_set(item: "id", json: vars["Server// Base Payload"], value: mistsutils.patchreporter(A: "token")), value: 0), value: "item_public"), value: 1), username: vars["Server // Name"]);
   @Timed_Log(Data: "Generating file paths and uuid lookups");
   @originFS_Generate_Paths_And_Uuids();
   @Timed_Log(Data: "Opening onboot applications");
@@ -94,14 +94,14 @@ def @Load_Account_Files_Account(Token, Files, Account) "Load Account %s Files %s
   }
   mistsutils.patchcommand(A: "let timer_load = performance.now()");
   @Timed_Log(Data: "Waiting for wallpaper");
-  until ((mistSkins.getSkinLoaded(NAME: "wallpaper") && mistSkins.getSkinLoaded(NAME: "wallpaper_blur")) || (mistsutils.patchboolean(A: "performance.now() - timer_load > 3000") || mistsutils.patchboolean(A: "(\"\"+acc.wallpaper).endsWith(\".mp4\")"))) {
+  until mistSkins.getSkinLoaded(NAME: "wallpaper") && mistSkins.getSkinLoaded(NAME: "wallpaper_blur") || (mistsutils.patchboolean(A: "performance.now() - timer_load > 3000") || mistsutils.patchboolean(A: "(\"\"+acc.wallpaper).endsWith(\".mp4\")")) {
     wait "0";
   }
   @Timed_Log(Data: "Loaded wallpaper");
-  vars["WIndow // ID"] = "-1";
+  vars["WIndow // ID"] = -1;
   mistsutils.patchcommand2(A: "onboot = ", B: mistsutils.jsonparse(A: vars["App // Temp"]));
   @Window_create(name: "Loader", window_data: "");
-  if (sensing.keypressed(KEY_OPTION: sensing.keyoptions(field KEY_OPTION: ["t",null])) || mistsutils.patchboolean(A: "onboot.length === 0")) {
+  if sensing.keypressed(KEY_OPTION: sensing.keyoptions(field KEY_OPTION: "t")) || mistsutils.patchboolean(A: "onboot.length === 0") {
     @Window_create(name: "Terminal", window_data: "");
   } else {
     repeat mistsutils.patchreporter(A: "onboot.length") {

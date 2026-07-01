@@ -6,6 +6,6 @@
  * threadIndex: 169
  */
 
-def @Window_is_Execution_Target() "Window // is Execution Target" warp=false {
-  return ((vars["SYSTEM // Focused Application"] == vars["WIndow // ID"]) || (vars["Window // Top Index"] == vars["Window // ID_Index"]));
+def @Window_is_Execution_Target() "Window // is Execution Target" {
+  return vars["SYSTEM // Focused Application"] == vars["WIndow // ID"] || vars["Window // Top Index"] == vars["Window // ID_Index"];
 }

@@ -6,21 +6,21 @@
  * threadIndex: 98
  */
 
-def @RUSH_execute(Command) "RUSH // execute %s" warp=true {
-  if not((Command == "")) {
+def @RUSH_execute(Command) "RUSH // execute %s" warp {
+  if Command != "" {
     mistsutils.patchcommand(A: "p0 = (\"\"+p0).trim()");
     mistsutils.patchcommand2(A: "const window_index = ", B: vars["WIndow // ID"]);
     mistsutils.patchcommand(A: "const terminal = target.variables[\"*]Mn/33!d},~KykjJQ|Y\"]");
-    data.deletealloflist(field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+    data.deletealloflist(LIST: list("Terminal"));
     skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list(")./tR8V[bp)bg1K2.|v(")), json: mistsutils.jsonstringify(A: OSLUtils.tokeniseraw(CODE: mistsutils.patchreporter(A: "(\"\"+p0).trim()"))));
-    data.replaceitemoflist(INDEX: 2, ITEM: @destring(Text: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-    data.replaceitemoflist(INDEX: 3, ITEM: @destring(Text: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-    data.replaceitemoflist(INDEX: 4, ITEM: @destring(Text: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-    data.replaceitemoflist(INDEX: 5, ITEM: @destring(Text: data.itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove: "\""), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+    data.replaceitemoflist(INDEX: 2, ITEM: @destring(Text: data.itemoflist(INDEX: 2, LIST: list("Split Text")), remove: "\""), LIST: list("Split Text"));
+    data.replaceitemoflist(INDEX: 3, ITEM: @destring(Text: data.itemoflist(INDEX: 3, LIST: list("Split Text")), remove: "\""), LIST: list("Split Text"));
+    data.replaceitemoflist(INDEX: 4, ITEM: @destring(Text: data.itemoflist(INDEX: 4, LIST: list("Split Text")), remove: "\""), LIST: list("Split Text"));
+    data.replaceitemoflist(INDEX: 5, ITEM: @destring(Text: data.itemoflist(INDEX: 5, LIST: list("Split Text")), remove: "\""), LIST: list("Split Text"));
     mistsutils.patchcommand(A: "let output = \"\"");
-    switch data.itemoflist(INDEX: 1, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+    switch data.itemoflist(INDEX: 1, LIST: list("Split Text")) {
       case "shutdown" {
-        vars["Network // Files Update Timeout"] = "0";
+        vars["Network // Files Update Timeout"] = 0;
         @Clear_Data();
         runtimeoptions.greenFlag();
       }
@@ -31,96 +31,96 @@ def @RUSH_execute(Command) "RUSH // execute %s" warp=true {
         mistsutils.patchcommand3(A: "terminal.value = terminal.value.concat(JSON.safeParse(", B: skyhigh173JSON.json_vm_getlist(list: skyhigh173JSON.menu_get_list(field get_list: list("?[HcDcJb70Jr_)_.*)Kw"))), C: ").filter(v => v !== \"\"))");
       }
       case "rvoice" {
-        switch data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        switch data.itemoflist(INDEX: 2, LIST: list("Split Text")) {
           case "me" {
-            data.addtolist(ITEM: roturCall.getName(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: roturCall.getName(), LIST: list("Terminal"));
           }
           case "peer" {
-            data.addtolist(ITEM: roturCall.getCallPartner(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: roturCall.getCallPartner(), LIST: list("Terminal"));
           }
           case "connect_set" {
-            roturCall.connect(NAME: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-            data.addtolist(ITEM: roturCall.getStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            roturCall.connect(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
+            data.addtolist(ITEM: roturCall.getStatus(), LIST: list("Terminal"));
           }
           case "connect" {
             roturCall.connect(NAME: skyhigh173JSON.json_get(item: "hash", json: cloudlink.returnUserObject()));
-            data.addtolist(ITEM: roturCall.getStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: roturCall.getStatus(), LIST: list("Terminal"));
           }
           case "accept" {
             roturCall.answerCall();
-            data.addtolist(ITEM: roturCall.getCallStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: roturCall.getCallStatus(), LIST: list("Terminal"));
           }
           case "incoming" {
-            data.addtolist(ITEM: (roturCall.isCallIncoming() .. ""), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: roturCall.isCallIncoming() .. "", LIST: list("Terminal"));
           }
           case "my_status" {
-            data.addtolist(ITEM: roturCall.getStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: roturCall.getStatus(), LIST: list("Terminal"));
           }
           case "mic_status" {
-            data.addtolist(ITEM: (roturCall.hasAudio() .. ""), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: roturCall.hasAudio() .. "", LIST: list("Terminal"));
           }
           case "call_status" {
-            data.addtolist(ITEM: roturCall.getCallStatus(), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: roturCall.getCallStatus(), LIST: list("Terminal"));
           }
           case "hangup" {
             roturCall.hangup();
-            roturCall.enableAudio(mic: roturCall.menu_mic(field mic: ["disable",null]));
+            roturCall.enableAudio(mic: roturCall.menu_mic(field mic: "disable"));
           }
           case "call" {
-            roturCall.callPeer(NAME: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), WAIT: roturCall.menu_wait(field wait: ["nowait",null]));
+            roturCall.callPeer(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), WAIT: roturCall.menu_wait(field wait: "nowait"));
           }
           case "close" {
             roturCall.hangup();
             roturCall.disconnectPeer();
-            roturCall.enableAudio(mic: roturCall.menu_mic(field mic: ["disable",null]));
+            roturCall.enableAudio(mic: roturCall.menu_mic(field mic: "disable"));
           }
         }
       }
       case "upload" {
         filesExpanded.textSet(TEXT: "upload a file to originOS");
-        data.deleteoflist(INDEX: 1, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-        if (data.lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "0") {
-          data.addtolist(ITEM: "/Downloads", field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+        data.deleteoflist(INDEX: 1, LIST: list("Split Text"));
+        if data.lengthoflist(LIST: list("Split Text")) == 0 {
+          data.addtolist(ITEM: "/Downloads", LIST: list("Split Text"));
         } else {
-          data.replaceitemoflist(INDEX: 1, ITEM: list("Split Text", ")./tR8V[bp)bg1K2.|v("), field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          data.replaceitemoflist(INDEX: 1, ITEM: list("Split Text"), LIST: list("Split Text"));
         }
-        mistsutils.patchcommand2(A: "let file = ", B: filesExpanded.showPickerAs(as: filesExpanded.menu_encoding(field encoding: ["url",null])));
-        if not((mistsutils.patchreporter(A: "file") == "")) {
-          if (operator.length(STRING: mistsutils.patchreporter(A: "file")) > mistsutils.patchreporter(A: "osl.user.max_size || 0")) {
-            data.addtolist(ITEM: mistsutils.patchreporter(A: "`File Too Big: ${String(file).length} characters`"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        mistsutils.patchcommand2(A: "let file = ", B: filesExpanded.showPickerAs(as: filesExpanded.menu_encoding(field encoding: "url")));
+        if mistsutils.patchreporter(A: "file") != "" {
+          if operator.length(STRING: mistsutils.patchreporter(A: "file")) > mistsutils.patchreporter(A: "osl.user.max_size || 0") {
+            data.addtolist(ITEM: mistsutils.patchreporter(A: "`File Too Big: ${String(file).length} characters`"), LIST: list("Terminal"));
           } else {
-            if not(skyhigh173JSON.json_has_value(json: skyhigh173JSON.json_get(item: "binary_file_types", json: vars["SYSTEM // Info"]), value: mistsutils.patchreporter2(A: filesExpanded.fileInfo(FORMAT: filesExpanded.menu_FILE_INFO(field FILE_INFO: ["name",null])), B: ".split(\".\").pop().toUpperCase()"))) {
+            if !skyhigh173JSON.json_has_value(json: skyhigh173JSON.json_get(item: "binary_file_types", json: vars["SYSTEM // Info"]), value: mistsutils.patchreporter2(A: filesExpanded.fileInfo(FORMAT: filesExpanded.menu_FILE_INFO(field FILE_INFO: "name")), B: ".split(\".\").pop().toUpperCase()")) {
               mistsutils.patchcommand2(A: "file = ", B: cloudlink.fetchURL(url: mistsutils.patchreporter(A: "file")));
             }
-            @Install_System_Utility(Location: (@OSL_Vars_Get(Varname: "user_folder") .. data.itemoflist(INDEX: 1, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), Name_And_Type: filesExpanded.fileInfo(FORMAT: filesExpanded.menu_FILE_INFO(field FILE_INFO: ["name",null])), Data: mistsutils.patchreporter(A: "file"), Icon: "", not_system: mistsutils.true());
-            data.addtolist(ITEM: mistsutils.patchreporter(A: "`Uploaded ${String(file).length} Bytes Successfully`"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            @Install_System_Utility(Location: @OSL_Vars_Get(Varname: "user_folder") .. data.itemoflist(INDEX: 1, LIST: list("Split Text")), Name_And_Type: filesExpanded.fileInfo(FORMAT: filesExpanded.menu_FILE_INFO(field FILE_INFO: "name")), Data: mistsutils.patchreporter(A: "file"), Icon: "", not_system: mistsutils.true());
+            data.addtolist(ITEM: mistsutils.patchreporter(A: "`Uploaded ${String(file).length} Bytes Successfully`"), LIST: list("Terminal"));
           }
         }
       }
       case "get" {
-        switch data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        switch data.itemoflist(INDEX: 2, LIST: list("Split Text")) {
           case "filechanges" {
-            data.addtolist(ITEM: "You can only access this through the data variable", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: "You can only access this through the data variable", LIST: list("Terminal"));
             @OSL_Set_Data_Var_To(data: mistsutils.patchreporter(A: "window.origin.network.updates"));
           }
           case "filepaths" {
             mistsutils.patchcommand(A: "const index = origin.files.index.value");
             mistsutils.patchcommand(A: "for (let i = 0; i < index.length; i ++) {");
-            data.addtolist(ITEM: mistsutils.patchreporter(A: "index[i]"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: mistsutils.patchreporter(A: "index[i]"), LIST: list("Terminal"));
             mistsutils.patchcommand(A: "}");
           }
           case "mediadevices" {
-            data.addtolist(ITEM: mistsutils.jsonstringify(A: MistiumEval.reporterBlock(CODE: "navigator.mediaDevices.enumerateDevices().then((e=>{if(!e.length)return console.log(\"No media devices found.\");let i={};return e.forEach((d=>{i[d.label]||(i[d.label]={id:d.deviceId||\"N/A\",type:d.kind.includes(\"audio\")&&e.some((e=>e.deviceId===d.deviceId&&e.kind!==d.kind))?\"audioboth\":d.kind})})),i})).catch((e=>console.log(\"Error enumerating devices: \"+e)));")), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            @OSL_Set_Data_Var_To(data: data.itemoflist(INDEX: "last", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y")));
+            data.addtolist(ITEM: mistsutils.jsonstringify(A: MistiumEval.reporterBlock(CODE: "navigator.mediaDevices.enumerateDevices().then((e=>{if(!e.length)return console.log(\"No media devices found.\");let i={};return e.forEach((d=>{i[d.label]||(i[d.label]={id:d.deviceId||\"N/A\",type:d.kind.includes(\"audio\")&&e.some((e=>e.deviceId===d.deviceId&&e.kind!==d.kind))?\"audioboth\":d.kind})})),i})).catch((e=>console.log(\"Error enumerating devices: \"+e)));")), LIST: list("Terminal"));
+            @OSL_Set_Data_Var_To(data: data.itemoflist(INDEX: "last", LIST: list("Terminal")));
           }
           case "access" {
-            if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "camera") {
-              data.addtolist(ITEM: MistiumEval.reporterBlock(CODE: "navigator.permissions.query({name: 'camera'}).then(permissionStatus => {return permissionStatus.state;}).catch(e=>{return e;});"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "camera" {
+              data.addtolist(ITEM: MistiumEval.reporterBlock(CODE: "navigator.permissions.query({name: 'camera'}).then(permissionStatus => {return permissionStatus.state;}).catch(e=>{return e;});"), LIST: list("Terminal"));
             }
-            if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "microphone") {
-              data.addtolist(ITEM: MistiumEval.reporterBlock(CODE: "navigator.permissions.query({name: 'microphone'}).then(permissionStatus => {return permissionStatus.state;}).catch(e=>{return e;});"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "microphone" {
+              data.addtolist(ITEM: MistiumEval.reporterBlock(CODE: "navigator.permissions.query({name: 'microphone'}).then(permissionStatus => {return permissionStatus.state;}).catch(e=>{return e;});"), LIST: list("Terminal"));
             }
-            @OSL_Set_Data_Var_To(data: data.itemoflist(INDEX: "last", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y")));
+            @OSL_Set_Data_Var_To(data: data.itemoflist(INDEX: "last", LIST: list("Terminal")));
           }
           case "scrollspeed" {
             @OSL_Set_Data_Var_To(data: vars["SYSTEM // Scroll Multiplier"]);
@@ -128,120 +128,120 @@ def @RUSH_execute(Command) "RUSH // execute %s" warp=true {
         }
       }
       case "system" {
-        switch data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        switch data.itemoflist(INDEX: 2, LIST: list("Split Text")) {
           case "wallpapermode" {
-            mistsutils.patchcommand2(A: "window.origin.wallpaper.mode = ", B: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+            mistsutils.patchcommand2(A: "window.origin.wallpaper.mode = ", B: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
             @Renderer_Call_ReRender();
-            data.addtolist(ITEM: "Changed Background Mode", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: "Changed Background Mode", LIST: list("Terminal"));
           }
           case "scrollspeed" {
-            vars["SYSTEM // Scroll Multiplier"] = data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-            data.addtolist(ITEM: "Set Scrolling Speed", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            vars["SYSTEM // Scroll Multiplier"] = data.itemoflist(INDEX: 3, LIST: list("Split Text"));
+            data.addtolist(ITEM: "Set Scrolling Speed", LIST: list("Terminal"));
           }
           case "wallpaper" {
-            @OSL_Parse_and_Run(Run: ("network \"update\" \"wallpaper\" \"" .. (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. "\"")));
-            data.addtolist(ITEM: "Changed Background", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            @OSL_Parse_and_Run(Run: "network \"update\" \"wallpaper\" \"" .. (data.itemoflist(INDEX: 3, LIST: list("Split Text")) .. "\""));
+            data.addtolist(ITEM: "Changed Background", LIST: list("Terminal"));
           }
           case "sound" {
-            if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "get") {
-              if (data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "volume") {
-                data.addtolist(ITEM: ("System volume is currently " .. vars["SYSTEM // Volume"]), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "get" {
+              if data.itemoflist(INDEX: 4, LIST: list("Split Text")) == "volume" {
+                data.addtolist(ITEM: "System volume is currently " .. vars["SYSTEM // Volume"], LIST: list("Terminal"));
                 @OSL_Set_Data_Var_To(data: vars["SYSTEM // Volume"]);
               }
             }
-            if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "set") {
-              if (data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "volume") {
-                vars["SYSTEM // Volume"] = data.itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
-                data.addtolist(ITEM: ("System volume is now set to " .. vars["SYSTEM // Volume"]), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "set" {
+              if data.itemoflist(INDEX: 4, LIST: list("Split Text")) == "volume" {
+                vars["SYSTEM // Volume"] = data.itemoflist(INDEX: 5, LIST: list("Split Text"));
+                data.addtolist(ITEM: "System volume is now set to " .. vars["SYSTEM // Volume"], LIST: list("Terminal"));
               }
             }
           }
           case "runtime" {
-            if (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "fps_limit") {
-              runtimeoptions.setFramerate(fps: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+            if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "fps_limit" {
+              runtimeoptions.setFramerate(fps: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
             }
           }
         }
       }
       case "mini" {
-        @Terminal_Global_Message(Command: "minimise", Window_Id: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        @Terminal_Global_Message(Command: "minimise", Window_Id: data.itemoflist(INDEX: 2, LIST: list("Split Text")));
       }
       case "font.load" {
-        mistsutils.patchcommand2(A: "let Current_Font =", B: data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-        @File_get_item(id: data.itemnumoflist(ITEM: mistsutils.patchreporter(A: "`origin/(A) System/Fonts/${Current_Font}.ojff`"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), item: "4");
+        mistsutils.patchcommand2(A: "let Current_Font =", B: data.itemoflist(INDEX: 2, LIST: list("Split Text")));
+        @File_get_item(id: data.itemnumoflist(ITEM: mistsutils.patchreporter(A: "`origin/(A) System/Fonts/${Current_Font}.ojff`"), LIST: list("Files // Index Path")), item: 4);
         vars["//return"] = mistsutils.replaceall(C: newline, A: vars["//return"], B: "");
-        skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list(")./tR8V[bp)bg1K2.|v(")), json: skyhigh173JSON.json_get_all(json: vars["//return"], field Stype: ["datas",null]));
-        vars["Font// Temp"] = "0";
-        repeat data.lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list(")./tR8V[bp)bg1K2.|v(")), json: skyhigh173JSON.json_get_all(json: vars["//return"], field Stype: "datas"));
+        vars["Font// Temp"] = 0;
+        repeat data.lengthoflist(LIST: list("Split Text")) {
           vars["Font// Temp"] += 1;
-          mistsutils.patchcommand3(A: "const arr = ", B: @ICN_Compile(value: mistsutils.patchreporter2(A: skyhigh173JSON.json_array_get(item: 2, json: data.itemoflist(INDEX: vars["Font// Temp"], field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), B: ".split(\" \")")), C: ";");
-          mistsutils.patchcommand3(A: "window.icn_cache.set(\"fontorigin-\"+", B: skyhigh173JSON.json_array_get(item: 1, json: data.itemoflist(INDEX: vars["Font// Temp"], field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), C: ", arr)");
+          mistsutils.patchcommand3(A: "const arr = ", B: @ICN_Compile(value: mistsutils.patchreporter2(A: skyhigh173JSON.json_array_get(item: 2, json: data.itemoflist(INDEX: vars["Font// Temp"], LIST: list("Split Text"))), B: ".split(\" \")")), C: ";");
+          mistsutils.patchcommand3(A: "window.icn_cache.set(\"fontorigin-\"+", B: skyhigh173JSON.json_array_get(item: 1, json: data.itemoflist(INDEX: vars["Font// Temp"], LIST: list("Split Text"))), C: ", arr)");
         }
-        data.addtolist(ITEM: "Loaded Font Successfully", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-        data.addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        data.addtolist(ITEM: "Loaded Font Successfully", LIST: list("Terminal"));
+        data.addtolist(ITEM: "", LIST: list("Terminal"));
       }
       case "font" {
-        switch data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        switch data.itemoflist(INDEX: 2, LIST: list("Split Text")) {
           case "viewall" {
             vars["Font // Temp2"] = mistsutils.replaceall(C: ".ojff", A: skyhigh173JSON.json_array_remove_all(item: "README.md", json: skyhigh173JSON.json_array_filter(key: "name", json: cloudlink.fetchURL(url: "https://api.github.com/repos/Mistium/Origin-OS/contents/Fonts"))), B: "");
-            data.addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            vars["Font// Temp"] = "0";
+            data.addtolist(ITEM: "", LIST: list("Terminal"));
+            vars["Font// Temp"] = 0;
             repeat skyhigh173JSON.json_length(json: vars["Font // Temp2"]) {
               vars["Font// Temp"] += 1;
-              data.addtolist(ITEM: skyhigh173JSON.json_array_get(item: vars["Font// Temp"], json: vars["Font // Temp2"]), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+              data.addtolist(ITEM: skyhigh173JSON.json_array_get(item: vars["Font// Temp"], json: vars["Font // Temp2"]), LIST: list("Terminal"));
             }
-            data.addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: "", LIST: list("Terminal"));
           }
           case "viewinstalled" {
             vars["//return"] = @Get_Contents_Of_Folder_Path(Path: @Parse_Directory(directory: "~/fonts"), Show_UUIDS: null, data_included: null, Only_UUIDS: null);
-            data.addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            vars["Font// Temp"] = "0";
+            data.addtolist(ITEM: "", LIST: list("Terminal"));
+            vars["Font// Temp"] = 0;
             repeat skyhigh173JSON.json_length(json: vars["//return"]) {
               vars["Font// Temp"] += 1;
-              data.addtolist(ITEM: skyhigh173JSON.json_array_get(item: vars["Font// Temp"], json: vars["//return"]), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+              data.addtolist(ITEM: skyhigh173JSON.json_array_get(item: vars["Font// Temp"], json: vars["//return"]), LIST: list("Terminal"));
             }
-            data.addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: "", LIST: list("Terminal"));
           }
           case "install" {
-            vars["Font// Temp"] = cloudlink.fetchURL(url: mistsutils.ifthen(A: mistsutils.starts(A: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B: "https://"), B: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C: ("https://raw.githubusercontent.com/Mistium/Origin-OS/main/Fonts/" .. (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ".ojff"))));
-            if (vars["Font// Temp"] == "") {
-              data.addtolist(ITEM: "404: Font Does Not Exist", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            vars["Font// Temp"] = cloudlink.fetchURL(url: mistsutils.ifthen(A: mistsutils.starts(A: data.itemoflist(INDEX: 3, LIST: list("Split Text")), B: "https://"), B: data.itemoflist(INDEX: 3, LIST: list("Split Text")), C: "https://raw.githubusercontent.com/Mistium/Origin-OS/main/Fonts/" .. (data.itemoflist(INDEX: 3, LIST: list("Split Text")) .. ".ojff")));
+            if vars["Font// Temp"] == "" {
+              data.addtolist(ITEM: "404: Font Does Not Exist", LIST: list("Terminal"));
             } else {
-              if not(data.listcontainsitem(ITEM: @Parse_Directory(directory: "~/fonts.folder"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"))) {
+              if !data.listcontainsitem(ITEM: @Parse_Directory(directory: "~/fonts.folder"), LIST: list("Files // Index Path")) {
                 @Install_System_Utility(Location: @Parse_Directory(directory: "~"), Name_And_Type: "Fonts.folder", Data: "[]", Icon: "", not_system: mistsutils.true());
-                data.addtolist(ITEM: "Created Missing \"/Fonts\" Directory In User Folder", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+                data.addtolist(ITEM: "Created Missing \"/Fonts\" Directory In User Folder", LIST: list("Terminal"));
               }
-              @Install_System_Utility(Location: @Parse_Directory(directory: "~/fonts"), Name_And_Type: (data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ".ojff"), Data: vars["Font// Temp"], Icon: "", not_system: mistsutils.true());
-              data.addtolist(ITEM: ("Installed " .. (operator.length(STRING: vars["Font// Temp"]) .. " Bytes Successfully")), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+              @Install_System_Utility(Location: @Parse_Directory(directory: "~/fonts"), Name_And_Type: data.itemoflist(INDEX: 3, LIST: list("Split Text")) .. ".ojff", Data: vars["Font// Temp"], Icon: "", not_system: mistsutils.true());
+              data.addtolist(ITEM: "Installed " .. (operator.length(STRING: vars["Font// Temp"]) .. " Bytes Successfully"), LIST: list("Terminal"));
             }
           }
           case "cleardata" {
             mistsutils.patchcommand(A: "window.icn_cache = new Map();");
           }
           case "use" {
-            mistsutils.patchcommand2(A: "let Current_User_Font =", B: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-            @File_get_item(id: data.itemnumoflist(ITEM: @Parse_Directory(directory: mistsutils.patchreporter(A: "`~/fonts/${Current_User_Font}.ojff`")), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), item: "4");
+            mistsutils.patchcommand2(A: "let Current_User_Font =", B: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
+            @File_get_item(id: data.itemnumoflist(ITEM: @Parse_Directory(directory: mistsutils.patchreporter(A: "`~/fonts/${Current_User_Font}.ojff`")), LIST: list("Files // Index Path")), item: 4);
             vars["//return"] = mistsutils.replaceall(C: newline, A: vars["//return"], B: "");
             vars["Text // Font"] = mistsutils.patchreporter(A: "Current_User_Font");
-            skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list(")./tR8V[bp)bg1K2.|v(")), json: skyhigh173JSON.json_get_all(json: vars["//return"], field Stype: ["datas",null]));
-            vars["Font// Temp"] = "0";
-            repeat data.lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+            skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list(")./tR8V[bp)bg1K2.|v(")), json: skyhigh173JSON.json_get_all(json: vars["//return"], field Stype: "datas"));
+            vars["Font// Temp"] = 0;
+            repeat data.lengthoflist(LIST: list("Split Text")) {
               vars["Font// Temp"] += 1;
-              mistsutils.patchcommand3(A: "const arr = ", B: @ICN_Compile(value: mistsutils.patchreporter2(A: skyhigh173JSON.json_array_get(item: 2, json: data.itemoflist(INDEX: vars["Font// Temp"], field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), B: ".split(\" \")")), C: ";");
-              mistsutils.patchcommand3(A: "window.icn_cache.set(\"fontorigin-\"+", B: skyhigh173JSON.json_array_get(item: 1, json: data.itemoflist(INDEX: vars["Font// Temp"], field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), C: ", arr)");
+              mistsutils.patchcommand3(A: "const arr = ", B: @ICN_Compile(value: mistsutils.patchreporter2(A: skyhigh173JSON.json_array_get(item: 2, json: data.itemoflist(INDEX: vars["Font// Temp"], LIST: list("Split Text"))), B: ".split(\" \")")), C: ";");
+              mistsutils.patchcommand3(A: "window.icn_cache.set(\"fontorigin-\"+", B: skyhigh173JSON.json_array_get(item: 1, json: data.itemoflist(INDEX: vars["Font// Temp"], LIST: list("Split Text"))), C: ", arr)");
             }
-            data.addtolist(ITEM: (vars["Font// Temp"] .. " Characters"), field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            data.addtolist(ITEM: "Loaded Font Successfully", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
-            data.addtolist(ITEM: "", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+            data.addtolist(ITEM: vars["Font// Temp"] .. " Characters", LIST: list("Terminal"));
+            data.addtolist(ITEM: "Loaded Font Successfully", LIST: list("Terminal"));
+            data.addtolist(ITEM: "", LIST: list("Terminal"));
           }
         }
       }
       case "disconnect" {
         cloudlink.closeSocket();
-        data.addtolist(ITEM: "Disconnected, System should auto reconnect soon", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        data.addtolist(ITEM: "Disconnected, System should auto reconnect soon", LIST: list("Terminal"));
       }
       default {
-        data.addtolist(ITEM: "Unknown Terminal Command", field LIST: list("Terminal", "*]Mn/33!d},~KykjJQ|Y"));
+        data.addtolist(ITEM: "Unknown Terminal Command", LIST: list("Terminal"));
       }
     }
   }

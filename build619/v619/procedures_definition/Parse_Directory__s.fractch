@@ -6,7 +6,7 @@
  * threadIndex: 156
  */
 
-def @Parse_Directory(directory) "Parse Directory %s" warp=false {
+def @Parse_Directory(directory) "Parse Directory %s" {
   mistsutils.patchcommand(A: "p0 = (\"\"+p0).toLowerCase().split(\"/\")");
   mistsutils.patchcommand3(A: "let out = String(", B: "target.window.wd", C: ").toLowerCase()");
   mistsutils.patchcommand(A: "if (p0[0] === \"\") out = \"origin\"");

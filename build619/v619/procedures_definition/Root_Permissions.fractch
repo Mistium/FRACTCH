@@ -6,6 +6,6 @@
  * threadIndex: 63
  */
 
-def @Root_Permissions() "Root Permissions" warp=false {
+def @Root_Permissions() "Root Permissions" {
   return mistsutils.patchreporter3(A: "Object.keys(", B: vars["SYSTEM // Permission Info"], C: ")");
 }

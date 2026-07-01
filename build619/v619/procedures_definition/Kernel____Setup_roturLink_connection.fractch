@@ -6,7 +6,7 @@
  * threadIndex: 238
  */
 
-def @Kernel_Setup_roturLink_connection() "Kernel // Setup roturLink connection" warp=false {
+def @Kernel_Setup_roturLink_connection() "Kernel // Setup roturLink connection" {
   mistsutils.patchcommand(A: "const origin = window.origin");
   mistsutils.patchcommand(A: "const connect = () => {");
   mistsutils.patchcommand(A: "origin.roturLink.ws = new WebSocket(\"ws://127.0.0.1:5002\")");
@@ -17,7 +17,7 @@ def @Kernel_Setup_roturLink_connection() "Kernel // Setup roturLink connection" 
   switch mistsutils.patchreporter(A: "json.cmd") {
     case "handshake" {
       if mistsutils.patchboolean(A: "typeof window.scaffolding === 'undefined'") {
-        vars["Embed Mode"] = "1";
+        vars["Embed Mode"] = 1;
         mistsutils.patchcommand(A: "origin.roturLink.mode = json.mode;");
         mistsutils.patchcommand(A: "origin.roturLink.queue = []");
       }

@@ -6,13 +6,13 @@
  * threadIndex: 154
  */
 
-event.whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Dropped", "u$"));
-if (vars["Process // Type"] == "App") {
+event.whenbroadcastreceived(BROADCAST_OPTION: broadcast("Dropped"));
+if vars["Process // Type"] == "App" {
   mistsutils.patchcommand(A: "try {");
-  if (mistsutils.patchreporter(A: "origin.windows.ids.indexOf(+target?.window?.id) + 1") == vars["Window // Top Index"]) {
+  if mistsutils.patchreporter(A: "origin.windows.ids.indexOf(+target?.window?.id) + 1") == vars["Window // Top Index"] {
     mistsutils.patchcommand2(A: "let id = ", B: vars["Files // Current Dragging"]);
     mistsutils.patchcommand3(A: "let drop_loc = String(", B: vars["Move// Drop Loc"], C: ").toLowerCase()");
-    vars["Files // Current Dragging"] = "0";
+    vars["Files // Current Dragging"] = 0;
     if mistsutils.patchboolean(A: "drop_loc === \"origin/(b) local\"") {
       @OSL_Parse_and_Run(Run: "say \"Local is currently blocked because it can corrupt your user files\"");
     } else {
@@ -22,7 +22,7 @@ if (vars["Process // Type"] == "App") {
           @originFS_Exec_file_file_data_id_input(command: "move", Id: mistsutils.patchreporter(A: "id"), data_id: "", input: vars["Move// Drop Loc"]);
         }
       }
-      @OSL_Vars_Set(name: "file_dropped", data: data.itemoflist(INDEX: mistsutils.patchreporter(A: "id"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), current_command: "");
+      @OSL_Vars_Set(name: "file_dropped", data: data.itemoflist(INDEX: mistsutils.patchreporter(A: "id"), LIST: list("Files // UUIDS")), current_command: "");
       @Window_Reset_Redraw_Box();
       @Renderer_Call_ReRender();
     }

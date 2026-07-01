@@ -6,6 +6,6 @@
  * threadIndex: 111
  */
 
-def @file_item_of_num(index, num) "file: %s item of num %s" warp=true {
-  return ((index * vars["AODP File"]) - (vars["AODP File"] - num));
+def @file_item_of_num(index, num) "file: %s item of num %s" warp {
+  return index * vars["AODP File"] - (vars["AODP File"] - num);
 }

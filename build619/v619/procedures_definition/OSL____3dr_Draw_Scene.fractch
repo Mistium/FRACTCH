@@ -6,7 +6,7 @@
  * threadIndex: 198
  */
 
-def @OSL_3dr_Draw_Scene() "OSL // 3dr Draw Scene" warp=false {
+def @OSL_3dr_Draw_Scene() "OSL // 3dr Draw Scene" {
   mistsutils.patchcommand(A: "const texture = `window_${target.window.id}`");
   mistsutils.patchcommand(A: "const gl = simple3d.gl");
   mistsutils.patchcommand(A: "const mesh = simple3d.meshes.get(texture).data.texture.main");

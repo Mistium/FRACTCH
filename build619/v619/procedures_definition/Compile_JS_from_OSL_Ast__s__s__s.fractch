@@ -6,7 +6,7 @@
  * threadIndex: 142
  */
 
-def @Compile_JS_from_OSL_Ast(ast, args, name) "Compile JS from OSL Ast %s %s %s" warp=true {
+def @Compile_JS_from_OSL_Ast(ast, args, name) "Compile JS from OSL Ast %s %s %s" warp {
   mistsutils.patchcommand2(A: "// ", B: @OSL_Vars_Get(Varname: ""));
   mistsutils.patchcommand(A: "if (typeof p0 !== \"object\") return p0");
   mistsutils.patchcommand(A: "if (typeof p1 !== \"object\") p1 = []");

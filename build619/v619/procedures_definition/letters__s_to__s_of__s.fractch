@@ -6,6 +6,6 @@
  * threadIndex: 209
  */
 
-def @letters_to_of(start, end, text) "letters %s to %s of %s" warp=false {
+def @letters_to_of(start, end, text) "letters %s to %s of %s" {
   return mistsutils.patchreporter(A: "osl_substring(p0,p1,p2)");
 }
