@@ -8,79 +8,79 @@
 
 def @originNM_Handle_Packet(Value, Raw_Value("Raw Value"), From) "originNM // Handle Packet %s %s %s" warp=false {
   vars["Network // Packets Down"] += 1;
-  mistsutils_patchcommand2(A: "let packet = ", B: Raw_Value);
+  mistsutils.patchcommand2(A: "let packet = ", B: Raw_Value);
   vars["App // Temp2"] = From;
-  if (mistsutils_patchboolean(A: "((packet?.target ?? \"\") === 0)") && (From == vars["Server // Name"])) {
+  if (mistsutils.patchboolean(A: "((packet?.target ?? \"\") === 0)") && (From == vars["Server // Name"])) {
     if (vars["Account// Current"] == "") {
 
     } else {
-      mistsutils_patchcommand2(A: "let payload = ", B: "packet.payload");
-      mistsutils_patchcommand(A: "if (payload?.[0] === \"{\") payload = JSON.parse(payload)");
-      switch mistsutils_patchreporter(A: "packet.source_command") {
+      mistsutils.patchcommand2(A: "let payload = ", B: "packet.payload");
+      mistsutils.patchcommand(A: "if (payload?.[0] === \"{\") payload = JSON.parse(payload)");
+      switch mistsutils.patchreporter(A: "packet.source_command") {
         case "account_update" {
-          if mistsutils_patchboolean(A: "payload.key === \"sys._deleted\"") {
-            mistsutils_patchcommand(A: "vm.runtime.greenFlag()");
+          if mistsutils.patchboolean(A: "payload.key === \"sys._deleted\"") {
+            mistsutils.patchcommand(A: "vm.runtime.greenFlag()");
           }
-          @Account_Update_Local_Key_To(Key: mistsutils_patchreporter(A: "payload.key"), Value: mistsutils_patchreporter(A: "payload.value"));
+          @Account_Update_Local_Key_To(Key: mistsutils.patchreporter(A: "payload.key"), Value: mistsutils.patchreporter(A: "payload.value"));
         }
         case "account_removekey" {
-          @Account_Remove_Local_Key(Key: mistsutils_patchreporter(A: "payload.key"));
+          @Account_Remove_Local_Key(Key: mistsutils.patchreporter(A: "payload.key"));
         }
         case "update_files_forward" {
           vars["OSL // Perms"] = @Root_Permissions();
-          mistsutils_patchcommand(A: "const updates = origin.network.updates.slice()");
-          mistsutils_patchcommand(A: "for (let i = 0; i < packet.payload.length; i ++) {");
-          mistsutils_patchcommand(A: "const cur = JSON.safeParse(packet.payload[i])");
-          switch mistsutils_patchreporter(A: "cur.command") {
+          mistsutils.patchcommand(A: "const updates = origin.network.updates.slice()");
+          mistsutils.patchcommand(A: "for (let i = 0; i < packet.payload.length; i ++) {");
+          mistsutils.patchcommand(A: "const cur = JSON.safeParse(packet.payload[i])");
+          switch mistsutils.patchreporter(A: "cur.command") {
             case "UUIDr" {
-              @originFS_Exec_file_file_data_id_input(command: "replace", Id: @originFS_UUID_ID(UUID: mistsutils_patchreporter(A: "cur.uuid")), data_id: mistsutils_patchreporter(A: "+cur.idx"), input: mistsutils_patchreporter(A: "JSON.smartStringify(cur.dta)"));
+              @originFS_Exec_file_file_data_id_input(command: "replace", Id: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "cur.uuid")), data_id: mistsutils.patchreporter(A: "+cur.idx"), input: mistsutils.patchreporter(A: "JSON.smartStringify(cur.dta)"));
             }
             case "UUIDd" {
-              @originFS_Exec_file_file_data_id_input(command: "immediately delete", Id: @originFS_UUID_ID(UUID: mistsutils_patchreporter(A: "cur.uuid")), data_id: "", input: "");
+              @originFS_Exec_file_file_data_id_input(command: "immediately delete", Id: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "cur.uuid")), data_id: "", input: "");
             }
             case "UUIDa" {
-              mistsutils_patchcommand2(A: "const id = ", B: @originFS_UUID_ID(UUID: @File_add_Data_Icon_Perms(Location: mistsutils_patchreporter(A: "cur.dta[2]"), Name: mistsutils_patchreporter(A: "cur.dta[1]"), Type: mistsutils_patchreporter(A: "cur.dta[0]"), Data: mistsutils_patchreporter(A: "cur.dta[3]"), Icon: mistsutils_patchreporter(A: "cur.dta[10]"), Perms: mistsutils_patchreporter(A: "cur.dta[12]"))));
-              mistsutils_patchcommand(A: "files.uuids[cur.dta[13]] = id");
-              mistsutils_patchcommand(A: "for (let j = 0; j < cur.dta.length; j ++) {");
-              @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils_patchreporter(A: "id"), data_id: mistsutils_patchreporter(A: "j + 1"), input: mistsutils_patchreporter(A: "typeof cur.dta[j] === \"object\" ? JSON.stringify(cur.dta[j]) : cur.data[j]"));
-              mistsutils_patchcommand(A: "}");
+              mistsutils.patchcommand2(A: "const id = ", B: @originFS_UUID_ID(UUID: @File_add_Data_Icon_Perms(Location: mistsutils.patchreporter(A: "cur.dta[2]"), Name: mistsutils.patchreporter(A: "cur.dta[1]"), Type: mistsutils.patchreporter(A: "cur.dta[0]"), Data: mistsutils.patchreporter(A: "cur.dta[3]"), Icon: mistsutils.patchreporter(A: "cur.dta[10]"), Perms: mistsutils.patchreporter(A: "cur.dta[12]"))));
+              mistsutils.patchcommand(A: "files.uuids[cur.dta[13]] = id");
+              mistsutils.patchcommand(A: "for (let j = 0; j < cur.dta.length; j ++) {");
+              @originFS_Exec_file_file_data_id_input(command: "replace", Id: mistsutils.patchreporter(A: "id"), data_id: mistsutils.patchreporter(A: "j + 1"), input: mistsutils.patchreporter(A: "typeof cur.dta[j] === \"object\" ? JSON.stringify(cur.dta[j]) : cur.data[j]"));
+              mistsutils.patchcommand(A: "}");
             }
           }
-          mistsutils_patchcommand(A: "origin.network.updates = updates");
-          mistsutils_patchcommand(A: "}");
+          mistsutils.patchcommand(A: "origin.network.updates = updates");
+          mistsutils.patchcommand(A: "}");
         }
         case "currency_transfer" {
-          @Show_Notification(Icon: "w 1.5 ellipse 0 0 13 0.45 100 ellipse 0 0 13 0.45 160 ellipse 0 0 13 0.45 220", Title: "Rotur Transaction", Text: mistsutils_patchreporter(A: "packet.payload"), Style: "", Action: "");
+          @Show_Notification(Icon: "w 1.5 ellipse 0 0 13 0.45 100 ellipse 0 0 13 0.45 160 ellipse 0 0 13 0.45 220", Title: "Rotur Transaction", Text: mistsutils.patchreporter(A: "packet.payload"), Style: "", Action: "");
         }
         case "call" {
-          @Window_create(name: "origin/(a) system/system apps/rvoice_handler.osl", window_data: mistsutils_patchreporter(A: "{\"passed_data\":packet}"));
+          @Window_create(name: "origin/(a) system/system apps/rvoice_handler.osl", window_data: mistsutils.patchreporter(A: "{\"passed_data\":packet}"));
         }
         case "omail_recieved" {
-          mistsutils_patchcommand(A: "const name = payload.info.from");
-          mistsutils_patchcommand(A: "if (`${name}`,toLowerCase() === `$[osl.username}`.toLowerCase()) break");
-          @Show_Notification(Icon: mistsutils_patchreporter(A: "`image https://avatars.rotur.dev/${name}?radius=256 20`"), Title: mistsutils_patchreporter(A: "name + \" sent you an rmail\""), Text: "", Style: "puck", Action: "");
+          mistsutils.patchcommand(A: "const name = payload.info.from");
+          mistsutils.patchcommand(A: "if (`${name}`,toLowerCase() === `$[osl.username}`.toLowerCase()) break");
+          @Show_Notification(Icon: mistsutils.patchreporter(A: "`image https://avatars.rotur.dev/${name}?radius=256 20`"), Title: mistsutils.patchreporter(A: "name + \" sent you an rmail\""), Text: "", Style: "puck", Action: "");
         }
         case "update_files" {
-          @Account_Request_using_and(mode: "", Key: "used_size", Value: mistsutils_patchreporter(A: "packet.info.used_size"));
+          @Account_Request_using_and(mode: "", Key: "used_size", Value: mistsutils.patchreporter(A: "packet.info.used_size"));
         }
         case "alert" {
-          @Show_Notification(Icon: mistsutils_patchreporter(A: "payload.icon"), Title: mistsutils_patchreporter(A: "payload.title"), Text: mistsutils_patchreporter(A: "payload.text"), Style: mistsutils_patchreporter(A: "payload.style"), Action: "");
+          @Show_Notification(Icon: mistsutils.patchreporter(A: "payload.icon"), Title: mistsutils.patchreporter(A: "payload.title"), Text: mistsutils.patchreporter(A: "payload.text"), Style: mistsutils.patchreporter(A: "payload.style"), Action: "");
         }
       }
     }
   } else {
-    mistsutils_patchcommand3(A: "let payload = ", B: Raw_Value, C: "?.payload ?? null");
-    mistsutils_patchcommand2(A: "const raw = ", B: Raw_Value);
-    mistsutils_patchcommand2(A: "const from = ", B: From);
-    if mistsutils_patchboolean(A: "typeof raw?.target !== \"undefined\"") {
-      mistsutils_patchcommand(A: "const idx = origin.windows.network_ids.indexOf(raw?.target ?? \"\") + 1");
-      if mistsutils_patchboolean(A: "idx > 0") {
-        mistsutils_patchcommand(A: "let obj = {timestamp: raw?.timestamp ?? null, username: from ?? null, source: raw?.source ?? null, data: payload, full: packet}");
-        if mistsutils_patchboolean(A: "typeof raw?.source_command !== \"undefined\"") {
-          mistsutils_patchcommand(A: "obj.source_command = raw.source_command ?? null");
+    mistsutils.patchcommand3(A: "let payload = ", B: Raw_Value, C: "?.payload ?? null");
+    mistsutils.patchcommand2(A: "const raw = ", B: Raw_Value);
+    mistsutils.patchcommand2(A: "const from = ", B: From);
+    if mistsutils.patchboolean(A: "typeof raw?.target !== \"undefined\"") {
+      mistsutils.patchcommand(A: "const idx = origin.windows.network_ids.indexOf(raw?.target ?? \"\") + 1");
+      if mistsutils.patchboolean(A: "idx > 0") {
+        mistsutils.patchcommand(A: "let obj = {timestamp: raw?.timestamp ?? null, username: from ?? null, source: raw?.source ?? null, data: payload, full: packet}");
+        if mistsutils.patchboolean(A: "typeof raw?.source_command !== \"undefined\"") {
+          mistsutils.patchcommand(A: "obj.source_command = raw.source_command ?? null");
         }
-        mistsutils_patchcommand(A: "origin.windows.received[idx - 1].push(JSON.stringify(obj))");
-        @originNM_Log_Request_Payload_Recipient_Received(Payload: mistsutils_patchreporter(A: "payload"), Recipient: From, received: mistsutils_true());
+        mistsutils.patchcommand(A: "origin.windows.received[idx - 1].push(JSON.stringify(obj))");
+        @originNM_Log_Request_Payload_Recipient_Received(Payload: mistsutils.patchreporter(A: "payload"), Recipient: From, received: mistsutils.true());
       }
     }
   }

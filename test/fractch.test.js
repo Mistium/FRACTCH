@@ -125,7 +125,7 @@ test('emitted calls use readable colon inputs and explicit field arguments', () 
   const hasColonInput = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;
     const text = fs.readFileSync(f, 'utf8');
-    return /mistsutils_patchcommand2\(A:/.test(text);
+    return /mistsutils\.patchcommand2\(A:/.test(text);
   });
   const hasExplicitField = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;
@@ -154,6 +154,16 @@ test('variable changes render as vars assignment sugar', () => {
   assert.strictEqual(parsed.args[1].sep, 'input');
 });
 
+test('generic opcodes can use dotted namespace aliases', () => {
+  const parsed = parseFractch('motion.changexby(DX: (temp2 * 10));\n').calls[0];
+  assert.strictEqual(parsed.callee.name, 'motion_changexby');
+  assert.strictEqual(parsed.args[0].key, 'DX');
+  assert.strictEqual(parsed.args[0].sep, 'input');
+
+  const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /\b[a-zA-Z][A-Za-z0-9]*\.[A-Za-z_][A-Za-z0-9_]*\(/.test(fs.readFileSync(f, 'utf8')));
+  assert.ok(hit, 'no dotted opcode alias found in generated DSL');
+});
+
 test('switch/case blocks render as readable switch statements', () => {
   const hit = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;
@@ -164,8 +174,8 @@ test('switch/case blocks render as readable switch statements', () => {
 });
 
 test('extension opcodes are preserved literally (not renamed)', () => {
-  const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /mistsutils_patchcommand\(/.test(fs.readFileSync(f, 'utf8')));
-  assert.ok(hit, 'extension opcode mistsutils_patchcommand not found');
+  const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /mistsutils\.patchcommand\(/.test(fs.readFileSync(f, 'utf8')));
+  assert.ok(hit, 'extension opcode mistsutils.patchcommand not found');
 });
 
 test('script files carry no raw JSON block snapshot - DSL text is the only source of truth', () => {

@@ -7,11 +7,11 @@
  */
 
 def @originFS_Get_mount_url_for_path(path) "originFS // Get mount url for path: %s" warp=false {
-  mistsutils_patchcommand(A: "const mount_points = window.origin.files.mount_points");
-  mistsutils_patchcommand(A: "const keys = Object.keys(mount_points)");
-  mistsutils_patchcommand(A: "const path = `${p0}/`");
-  mistsutils_patchcommand(A: "let url = \"\", key = \"\"");
-  mistsutils_patchcommand(A: "for (let i = 0; i < keys.length; i ++)");
-  mistsutils_patchcommand(A: "if (path.startsWith(keys[i]) && keys[i]?.length > key.length) { key = keys[i]; url = mount_points[key]; url.path = key }");
-  return mistsutils_patchreporter(A: "url");
+  mistsutils.patchcommand(A: "const mount_points = window.origin.files.mount_points");
+  mistsutils.patchcommand(A: "const keys = Object.keys(mount_points)");
+  mistsutils.patchcommand(A: "const path = `${p0}/`");
+  mistsutils.patchcommand(A: "let url = \"\", key = \"\"");
+  mistsutils.patchcommand(A: "for (let i = 0; i < keys.length; i ++)");
+  mistsutils.patchcommand(A: "if (path.startsWith(keys[i]) && keys[i]?.length > key.length) { key = keys[i]; url = mount_points[key]; url.path = key }");
+  return mistsutils.patchreporter(A: "url");
 }

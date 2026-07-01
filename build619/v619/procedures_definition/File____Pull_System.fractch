@@ -9,58 +9,58 @@
 def @File_Pull_System() "File // Pull System" warp=true {
   if (vars["Embed Mode"] == "1") {
     @File_add_Data_Icon_Perms(Location: "origin/(A) System/Modules", Name: "Win-Buttons", Type: ".osl", Data: "window \"show\"", Icon: "", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
-    if mistsutils_starts(A: zxmushroom63searchparams_searchparam(ID: "embed"), B: "https://") {
-      @Install_System_Utility(Location: "origin/(A) System", Name_And_Type: "embed.osl", Data: cloudlink_fetchURL(url: zxmushroom63searchparams_searchparam(ID: "embed")), Icon: "", not_system: null);
+    if mistsutils.starts(A: zxmushroom63searchparams.searchparam(ID: "embed"), B: "https://") {
+      @Install_System_Utility(Location: "origin/(A) System", Name_And_Type: "embed.osl", Data: cloudlink.fetchURL(url: zxmushroom63searchparams.searchparam(ID: "embed")), Icon: "", not_system: null);
     } else {
-      @Install_System_Utility(Location: "origin/(A) System", Name_And_Type: "embed.osl", Data: mistsutils_patchreporter2(A: zxmushroom63searchparams_searchparam(ID: "embed"), B: ".replaceAll(\"§\", \"\\n\")"), Icon: "", not_system: null);
+      @Install_System_Utility(Location: "origin/(A) System", Name_And_Type: "embed.osl", Data: mistsutils.patchreporter2(A: zxmushroom63searchparams.searchparam(ID: "embed"), B: ".replaceAll(\"§\", \"\\n\")"), Icon: "", not_system: null);
     }
   } else {
     @Timed_Log(Data: "Installing system apps");
-    mistsutils_patchcommand(A: "const start = performance.now()");
-    mistsutils_patchcommand(A: "let installer = {}");
-    until (mistfetch_isRequestCompleted(ID: "installer") || mistsutils_patchboolean(A: "performance.now() - start > 2000")) {
+    mistsutils.patchcommand(A: "const start = performance.now()");
+    mistsutils.patchcommand(A: "let installer = {}");
+    until (mistfetch.isRequestCompleted(ID: "installer") || mistsutils.patchboolean(A: "performance.now() - start > 2000")) {
       wait "0";
     }
-    mistsutils_patchcommand(A: "try {");
-    if mistsutils_patchboolean(A: "performance.now() - start > 2000") {
-      mistsutils_patchcommand2(A: "installer = ", B: mistsutils_jsonparse(A: cloudlink_fetchURL(url: mistsutils_patchreporter(A: "origin.applySource(\"OSL%20Programs/apps/System/.Install_system.json\")"))));
+    mistsutils.patchcommand(A: "try {");
+    if mistsutils.patchboolean(A: "performance.now() - start > 2000") {
+      mistsutils.patchcommand2(A: "installer = ", B: mistsutils.jsonparse(A: cloudlink.fetchURL(url: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/apps/System/.Install_system.json\")"))));
     } else {
-      mistsutils_patchcommand2(A: "installer = ", B: mistsutils_jsonparse(A: mistfetch_getResponseBodyById(ID: "installer")));
+      mistsutils.patchcommand2(A: "installer = ", B: mistsutils.jsonparse(A: mistfetch.getResponseBodyById(ID: "installer")));
     }
-    mistsutils_patchcommand(A: "} catch {");
+    mistsutils.patchcommand(A: "} catch {");
     @SYSTEM_Crash(message: "", stack: "Unable to download and parse system index, check your network connection. Also if you have a custom source parameter, double check that its correct");
-    mistsutils_patchcommand(A: "}");
-    mistfetch_deleteRequestById(ID: "installer");
+    mistsutils.patchcommand(A: "}");
+    mistfetch.deleteRequestById(ID: "installer");
     @Timed_Log(Data: "Downloaded installer");
-    mistsutils_patchcommand2(A: "const cache = ", B: mistiumindexeddb_readFromDatabase(KEY: "application_cache"));
-    if (((mistsutils_patchreporter(A: "origin.repoSource") == mistiumindexeddb_readFromDatabase(KEY: "last_repo_source")) && mistsutils_patchboolean(A: "!origin.repoSource.startsWith(\"http://\")")) && @is_object(input: mistsutils_patchreporter(A: "cache"))) {
-      vars["Boot // Out Cache"] = mistsutils_patchreporter(A: "JSON.parse(cache)");
+    mistsutils.patchcommand2(A: "const cache = ", B: mistiumindexeddb.readFromDatabase(KEY: "application_cache"));
+    if (((mistsutils.patchreporter(A: "origin.repoSource") == mistiumindexeddb.readFromDatabase(KEY: "last_repo_source")) && mistsutils.patchboolean(A: "!origin.repoSource.startsWith(\"http://\")")) && @is_object(input: mistsutils.patchreporter(A: "cache"))) {
+      vars["Boot // Out Cache"] = mistsutils.patchreporter(A: "JSON.parse(cache)");
       @Timed_Log(Data: "Parsed application cache");
     } else {
-      vars["Boot // Out Cache"] = mistsutils_patchreporter(A: "{}");
-      mistiumindexeddb_writeToDatabase(KEY: "last_repo_source", VALUE: mistsutils_patchreporter(A: "origin.repoSource"));
+      vars["Boot // Out Cache"] = mistsutils.patchreporter(A: "{}");
+      mistiumindexeddb.writeToDatabase(KEY: "last_repo_source", VALUE: mistsutils.patchreporter(A: "origin.repoSource"));
     }
-    mistsutils_patchcommand(A: "for (let i = 0; i < installer.length; i ++) {");
-    mistsutils_patchcommand(A: "let cloud = {}, local = {}");
-    mistsutils_patchcommand2(A: "try { cloud = ", B: "installer[i] } catch {}");
-    mistsutils_patchcommand3(A: "try { local = ", B: vars["Boot // Out Cache"], C: "[cloud.name] ?? {}");
-    if mistsutils_patchboolean(A: "!(cloud.url.startsWith(\"https://origin.mistium.com/\") || installer.includes(cloud.url) || local.url.startsWith(\"https://origin.mistium.com/\"))") {
+    mistsutils.patchcommand(A: "for (let i = 0; i < installer.length; i ++) {");
+    mistsutils.patchcommand(A: "let cloud = {}, local = {}");
+    mistsutils.patchcommand2(A: "try { cloud = ", B: "installer[i] } catch {}");
+    mistsutils.patchcommand3(A: "try { local = ", B: vars["Boot // Out Cache"], C: "[cloud.name] ?? {}");
+    if mistsutils.patchboolean(A: "!(cloud.url.startsWith(\"https://origin.mistium.com/\") || installer.includes(cloud.url) || local.url.startsWith(\"https://origin.mistium.com/\"))") {
       @SYSTEM_Crash(message: "Installer tampering detected", stack: "Installer tampering detected");
     }
-    if ((mistsutils_patchreporter(A: "cloud.version") > mistsutils_patchreporter(A: "local.version")) || (mistsutils_patchreporter(A: "local.name ?? \"\"") == "")) {
-      mistsutils_patchcommand2(A: "const temp = ", B: @Install_File_From_into_path_with_name_and_icon(url: mistsutils_patchreporter(A: "cloud.name === \"login.osl\" ? \"\"+cloud.url : (\"\"+cloud.url).replace(\"https://origin.mistium.com/\", origin.repoSource)"), path: mistsutils_patchreporter(A: "cloud.path"), name: mistsutils_patchreporter(A: "cloud.name"), icon: mistsutils_patchreporter(A: "cloud.icon")));
-      mistsutils_patchcommand2(A: vars["Boot // Out Cache"], B: "[cloud.name] = (cloud.data = temp, cloud)");
-      @Timed_Log(Data: ("Downloaded: " .. mistsutils_patchreporter(A: "cloud.name")));
+    if ((mistsutils.patchreporter(A: "cloud.version") > mistsutils.patchreporter(A: "local.version")) || (mistsutils.patchreporter(A: "local.name ?? \"\"") == "")) {
+      mistsutils.patchcommand2(A: "const temp = ", B: @Install_File_From_into_path_with_name_and_icon(url: mistsutils.patchreporter(A: "cloud.name === \"login.osl\" ? \"\"+cloud.url : (\"\"+cloud.url).replace(\"https://origin.mistium.com/\", origin.repoSource)"), path: mistsutils.patchreporter(A: "cloud.path"), name: mistsutils.patchreporter(A: "cloud.name"), icon: mistsutils.patchreporter(A: "cloud.icon")));
+      mistsutils.patchcommand2(A: vars["Boot // Out Cache"], B: "[cloud.name] = (cloud.data = temp, cloud)");
+      @Timed_Log(Data: ("Downloaded: " .. mistsutils.patchreporter(A: "cloud.name")));
     } else {
-      @Install_System_Utility(Location: mistsutils_patchreporter(A: "local.path"), Name_And_Type: mistsutils_patchreporter(A: "local.name"), Data: mistsutils_patchreporter(A: "local.data"), Icon: mistsutils_patchreporter(A: "local.icon"), not_system: null);
-      @Timed_Log(Data: ("Installed from cache: " .. mistsutils_patchreporter(A: "local.name")));
+      @Install_System_Utility(Location: mistsutils.patchreporter(A: "local.path"), Name_And_Type: mistsutils.patchreporter(A: "local.name"), Data: mistsutils.patchreporter(A: "local.data"), Icon: mistsutils.patchreporter(A: "local.icon"), not_system: null);
+      @Timed_Log(Data: ("Installed from cache: " .. mistsutils.patchreporter(A: "local.name")));
     }
-    mistsutils_patchcommand(A: "} catch {}}");
+    mistsutils.patchcommand(A: "} catch {}}");
     @Timed_Log(Data: "Finished updating cache");
-    mistiumindexeddb_writeToDatabase(KEY: "application_cache", VALUE: mistsutils_jsonstringify(A: vars["Boot // Out Cache"]));
+    mistiumindexeddb.writeToDatabase(KEY: "application_cache", VALUE: mistsutils.jsonstringify(A: vars["Boot // Out Cache"]));
   }
   vars["Boot // Out Cache"] = "";
-  mistsutils_patchcommand2(A: "origin.files.system_total = ", B: data_lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
-  mistsutils_patchcommand(A: "return");
-  data_replaceitemoflist(INDEX: @file_item_of_num(index: @originFS_Path_ID(Path: "Origin/(A) System/System Apps/Dock.osl"), num: "4"), ITEM: clipboard_clipboard(), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+  mistsutils.patchcommand2(A: "origin.files.system_total = ", B: data.lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+  mistsutils.patchcommand(A: "return");
+  data.replaceitemoflist(INDEX: @file_item_of_num(index: @originFS_Path_ID(Path: "Origin/(A) System/System Apps/Dock.osl"), num: "4"), ITEM: clipboard.clipboard(), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
 }

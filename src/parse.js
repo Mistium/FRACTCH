@@ -465,12 +465,22 @@ class Parser {
       };
     }
 
+    let callee = word;
+    while (this.peek() === '.' && this.peek(1) !== '.') {
+      this.i++;
+      const part = this.expectIdentifier();
+      callee += `_${part}`;
+      this.skipWS();
+    }
+
     if (this.peek() === '(') {
       this.i++;
       const args = this.parseKeyedArgs();
       this.expectChar(')');
-      return { type: 'call', value: makeCall(word, args) };
+      return { type: 'call', value: makeCall(callee, args) };
     }
+
+    if (callee !== word) throw new ParseError(`expected call after dotted opcode '${callee.replace(/_/g, '.')}'`);
 
     return { type: 'ident', name: word };
   }

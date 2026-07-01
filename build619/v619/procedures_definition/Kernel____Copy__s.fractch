@@ -7,12 +7,12 @@
  */
 
 def @Kernel_Copy(value) "Kernel // Copy %s" warp=false {
-  mistsutils_patchcommand2(A: "let clipboard = ", B: clipboard_clipboard());
-  if not((clipboard_clipboard() == value)) {
+  mistsutils.patchcommand2(A: "let clipboard = ", B: clipboard.clipboard());
+  if not((clipboard.clipboard() == value)) {
     if not(((value == "") || (value == "0"))) {
-      clipboard_setClipboard(TEXT: value);
-      mistsutils_patchcommand2(A: "clipboard = ", B: value);
+      clipboard.setClipboard(TEXT: value);
+      mistsutils.patchcommand2(A: "clipboard = ", B: value);
     }
   }
-  mistsutils_patchcommand2(A: "if (origin.clipboard) origin.clipboard.contents = ", B: "clipboard");
+  mistsutils.patchcommand2(A: "if (origin.clipboard) origin.clipboard.contents = ", B: "clipboard");
 }

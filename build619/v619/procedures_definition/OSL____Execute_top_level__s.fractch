@@ -7,25 +7,25 @@
  */
 
 def @OSL_Execute_top_level(commands) "OSL // Execute top level %s" warp=true {
-  mistsutils_patchcommand(A: "if (thread.procedures === null) return");
-  mistsutils_patchcommand(A: "let i = 0;");
-  if (mistsutils_patchreporter(A: "osl?.user?.username") == "Mist") {
-    repeat mistsutils_patchreporter(A: "p0.length") {
-      mistsutils_patchcommand2(A: "const ret = ", B: @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "p0[i ++]")));
-      mistsutils_patchcommand(A: "if (ret && ret.type === \"exit\") break");
+  mistsutils.patchcommand(A: "if (thread.procedures === null) return");
+  mistsutils.patchcommand(A: "let i = 0;");
+  if (mistsutils.patchreporter(A: "osl?.user?.username") == "Mist") {
+    repeat mistsutils.patchreporter(A: "p0.length") {
+      mistsutils.patchcommand2(A: "const ret = ", B: @OSL_Parse_and_Run(Run: mistsutils.patchreporter(A: "p0[i ++]")));
+      mistsutils.patchcommand(A: "if (ret && ret.type === \"exit\") break");
     }
     @OSL_Parse_and_Run(Run: "window.emit(\"frame_end\")");
   } else {
-    mistsutils_patchcommand(A: "try {");
-    repeat mistsutils_patchreporter(A: "p0.length") {
-      mistsutils_patchcommand2(A: "const ret = ", B: @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "p0[i ++]")));
-      mistsutils_patchcommand(A: "if (ret && ret.type === \"exit\") break");
+    mistsutils.patchcommand(A: "try {");
+    repeat mistsutils.patchreporter(A: "p0.length") {
+      mistsutils.patchcommand2(A: "const ret = ", B: @OSL_Parse_and_Run(Run: mistsutils.patchreporter(A: "p0[i ++]")));
+      mistsutils.patchcommand(A: "if (ret && ret.type === \"exit\") break");
     }
     @OSL_Parse_and_Run(Run: "window.emit(\"frame_end\")");
-    mistsutils_patchcommand(A: "} catch(e) { if (e !== \"exit\") { const cur = p0?.[i - 1]?.[0]; console.error(`Line ${cur?.line}: ${`${window?.osl_current_command?.[0]?.source ?? cur?.source}`.split(\"\\n\", 1)[0]}`); console.error(e?.full ?? e?.stack); console.log(target.window);");
-    @Window_create(name: "popup", window_data: mistsutils_patchreporter(A: "String(e.full ?? e.stack)"));
-    data_addtolist(ITEM: skyhigh173JSON_json_set(item: "command", json: skyhigh173JSON_json_set(item: "payload", json: skyhigh173JSON_json_set(item: "source", json: vars["Server// Base Payload"], value: mistsutils_patchreporter(A: "String(target.window?.my_path ?? \"\")")), value: mistsutils_patchreporter(A: "e.full ?? e.stack")), value: "report"), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+    mistsutils.patchcommand(A: "} catch(e) { if (e !== \"exit\") { const cur = p0?.[i - 1]?.[0]; console.error(`Line ${cur?.line}: ${`${window?.osl_current_command?.[0]?.source ?? cur?.source}`.split(\"\\n\", 1)[0]}`); console.error(e?.full ?? e?.stack); console.log(target.window);");
+    @Window_create(name: "popup", window_data: mistsutils.patchreporter(A: "String(e.full ?? e.stack)"));
+    data.addtolist(ITEM: skyhigh173JSON.json_set(item: "command", json: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "source", json: vars["Server// Base Payload"], value: mistsutils.patchreporter(A: "String(target.window?.my_path ?? \"\")")), value: mistsutils.patchreporter(A: "e.full ?? e.stack")), value: "report"), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
     @Window_Close(message: "Errored, check browser console");
-    mistsutils_patchcommand(A: "}}");
+    mistsutils.patchcommand(A: "}}");
   }
 }

@@ -7,11 +7,11 @@
  */
 
 def @VFS_Switch_context(name) "VFS // Switch context %s" warp=false {
-  mistsutils_patchcommand2(A: "const prev_id = ", B: vars["OSL // Current Zip Archive"]);
-  if mistsutils_patchboolean(A: "(prev_id ?? \"\") !== \"\"") {
-    mistsutils_patchcommand3(A: vars["OSL // Zip Archives"], B: "[prev_id] = ", C: vfs_getallfiles(field EXPORT: ["json",null]));
+  mistsutils.patchcommand2(A: "const prev_id = ", B: vars["OSL // Current Zip Archive"]);
+  if mistsutils.patchboolean(A: "(prev_id ?? \"\") !== \"\"") {
+    mistsutils.patchcommand3(A: vars["OSL // Zip Archives"], B: "[prev_id] = ", C: vfs.getallfiles(field EXPORT: ["json",null]));
   }
   vars["OSL // Current Zip Archive"] = name;
-  vfs_clearall();
-  mistsutils_patchcommand3(A: vars["OSL // Zip Archives"], B: "[p0] = ", C: vfs_getallfiles(field EXPORT: ["json",null]));
+  vfs.clearall();
+  mistsutils.patchcommand3(A: vars["OSL // Zip Archives"], B: "[p0] = ", C: vfs.getallfiles(field EXPORT: ["json",null]));
 }

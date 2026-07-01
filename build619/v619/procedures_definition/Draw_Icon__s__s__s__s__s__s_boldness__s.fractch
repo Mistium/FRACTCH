@@ -7,159 +7,159 @@
  */
 
 def @Draw_Icon_boldness(Code, Size, setsize, x, y, direction, boldness) "Draw Icon %s %s %s %s %s %s boldness %s" warp=true {
-  mistsutils_patchcommand3(A: "p1 = (+p1 || 0); if (target.y > (", B: mistsutils_patchreporter3(A: vars["Renderer // Frame Min Y"], B: " - (p1 * 20)) && target.y < (", C: vars["Renderer // Frame Max Y"]), C: " + (p1 * 20))) {");
-  mistsutils_patchcommand(A: "if (p1 <= 0) return");
-  mistsutils_patchcommand2(A: "p1 *= ", B: vars["Renderer // Scale"]);
-  mistsutils_patchcommand(A: "const cmds = window.icn_cmds");
-  mistsutils_patchcommand(A: "let w = p1 * 5");
-  mistsutils_patchcommand(A: "const ox = target.x, oy = target.y");
-  mistsutils_patchcommand(A: "window.icn = { ox, oy, offx: 0, offy: 0 }");
-  mistsutils_patchcommand(A: "const icn = window.icn");
-  mistsutils_patchcommand2(A: "let direction = ", B: "90");
-  mistsutils_patchcommand(A: "const temp_dir = (+p5 || 0)");
-  mistsutils_patchcommand(A: "if (p5 !== \"\" && temp_dir !== 90) direction = Math.round(temp_dir)");
-  mistsutils_patchcommand(A: "vm.runtime.ext_pen._setPenSizeTo(w || 0, target);");
-  mistsutils_patchcommand(A: "let arr = typeof p0 === \"object\" ? p0 : icn_cache.get(p0);");
-  mistsutils_patchcommand(A: "if (!arr || (arr?.[0] === \"@dynamic\")) {");
-  mistsutils_patchcommand(A: "if (p0[0] === \"[\") arr = JSON.parse(arr);");
-  mistsutils_patchcommand(A: "else arr = p0.trim().split(/[ \\n]+/g);");
-  mistsutils_patchcommand2(A: "arr = ", B: @ICN_Compile(value: mistsutils_patchreporter(A: "arr")));
-  mistsutils_patchcommand(A: "window.icn_cache.set(p0, arr);");
-  mistsutils_patchcommand(A: "}");
-  mistsutils_patchcommand2(A: "let size = ", B: Size);
-  mistsutils_patchcommand(A: "const ext_pen = vm.runtime.ext_pen");
-  mistsutils_patchcommand(A: "if (typeof arr === \"function\" && direction === 90) { arr(ox,oy, size, w || 0); } else {");
-  mistsutils_patchcommand(A: "const offset = direction == 90 ? window.icnOffset : (x, y, s) => { const xy = origin.utils.rotateVector(icn.offx + (+x || 0), icn.offy + (+y || 0), -direction + 90, 0, 0); target.setXY(ox + xy[0] * s, oy + xy[1] * s) }");
-  mistsutils_patchcommand(A: "let res = Math.min(10000, Math.round(size * 50));");
-  mistsutils_patchcommand(A: "if (arr === undefined) return");
-  mistsutils_patchcommand(A: "for (let i = 0; i < arr.length; i ++) {");
-  switch mistsutils_patchreporter(A: "arr[i]") {
-    mistsutils_patchcommand(A: "case cmds.w[0]: ext_pen._setPenSizeTo((w = Math.abs((+arr[++i] || 0) * size) * ((+p6 || 0) + 1)) || 0, target); break");
-    mistsutils_patchcommand(A: "case cmds.c[0]: ext_pen._setPenColorToColor(arr[++i], target); break");
-    mistsutils_patchcommand(A: "case cmds.cont[0]: offset(arr[++i], arr[++i], size, target); break");
-    mistsutils_patchcommand(A: "case cmds.line[0]: ext_pen._penUp(target); offset(arr[++i], arr[++i], size, target); ext_pen._penDown(target); offset(arr[++i], arr[++i], size, target); break");
-    mistsutils_patchcommand(A: "case cmds.dot[0]: ext_pen._penUp(target); offset(arr[++i], arr[++i], size, target); ext_pen._penDown(target); break");
-    mistsutils_patchcommand(A: "case cmds.move[0]: icn.offx += arr[++i] || 0; icn.offy += arr[++i] || 0; break");
-    mistsutils_patchcommand(A: "case cmds.back[0]: icn.offx = 0; icn.offy = 0; break");
-    mistsutils_patchcommand(A: "case cmds.scale[0]: size *= arr[++i]; break");
-    case mistsutils_patchreporter(A: "cmds.image[0]") {
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "offset(0, 0, 0, target)");
-      @Draw_Image(url: mistsutils_patchreporter(A: "arr[++i]"), width: mistsutils_patchreporter(A: "arr[++i] * size"), height: "");
+  mistsutils.patchcommand3(A: "p1 = (+p1 || 0); if (target.y > (", B: mistsutils.patchreporter3(A: vars["Renderer // Frame Min Y"], B: " - (p1 * 20)) && target.y < (", C: vars["Renderer // Frame Max Y"]), C: " + (p1 * 20))) {");
+  mistsutils.patchcommand(A: "if (p1 <= 0) return");
+  mistsutils.patchcommand2(A: "p1 *= ", B: vars["Renderer // Scale"]);
+  mistsutils.patchcommand(A: "const cmds = window.icn_cmds");
+  mistsutils.patchcommand(A: "let w = p1 * 5");
+  mistsutils.patchcommand(A: "const ox = target.x, oy = target.y");
+  mistsutils.patchcommand(A: "window.icn = { ox, oy, offx: 0, offy: 0 }");
+  mistsutils.patchcommand(A: "const icn = window.icn");
+  mistsutils.patchcommand2(A: "let direction = ", B: "90");
+  mistsutils.patchcommand(A: "const temp_dir = (+p5 || 0)");
+  mistsutils.patchcommand(A: "if (p5 !== \"\" && temp_dir !== 90) direction = Math.round(temp_dir)");
+  mistsutils.patchcommand(A: "vm.runtime.ext_pen._setPenSizeTo(w || 0, target);");
+  mistsutils.patchcommand(A: "let arr = typeof p0 === \"object\" ? p0 : icn_cache.get(p0);");
+  mistsutils.patchcommand(A: "if (!arr || (arr?.[0] === \"@dynamic\")) {");
+  mistsutils.patchcommand(A: "if (p0[0] === \"[\") arr = JSON.parse(arr);");
+  mistsutils.patchcommand(A: "else arr = p0.trim().split(/[ \\n]+/g);");
+  mistsutils.patchcommand2(A: "arr = ", B: @ICN_Compile(value: mistsutils.patchreporter(A: "arr")));
+  mistsutils.patchcommand(A: "window.icn_cache.set(p0, arr);");
+  mistsutils.patchcommand(A: "}");
+  mistsutils.patchcommand2(A: "let size = ", B: Size);
+  mistsutils.patchcommand(A: "const ext_pen = vm.runtime.ext_pen");
+  mistsutils.patchcommand(A: "if (typeof arr === \"function\" && direction === 90) { arr(ox,oy, size, w || 0); } else {");
+  mistsutils.patchcommand(A: "const offset = direction == 90 ? window.icnOffset : (x, y, s) => { const xy = origin.utils.rotateVector(icn.offx + (+x || 0), icn.offy + (+y || 0), -direction + 90, 0, 0); target.setXY(ox + xy[0] * s, oy + xy[1] * s) }");
+  mistsutils.patchcommand(A: "let res = Math.min(10000, Math.round(size * 50));");
+  mistsutils.patchcommand(A: "if (arr === undefined) return");
+  mistsutils.patchcommand(A: "for (let i = 0; i < arr.length; i ++) {");
+  switch mistsutils.patchreporter(A: "arr[i]") {
+    mistsutils.patchcommand(A: "case cmds.w[0]: ext_pen._setPenSizeTo((w = Math.abs((+arr[++i] || 0) * size) * ((+p6 || 0) + 1)) || 0, target); break");
+    mistsutils.patchcommand(A: "case cmds.c[0]: ext_pen._setPenColorToColor(arr[++i], target); break");
+    mistsutils.patchcommand(A: "case cmds.cont[0]: offset(arr[++i], arr[++i], size, target); break");
+    mistsutils.patchcommand(A: "case cmds.line[0]: ext_pen._penUp(target); offset(arr[++i], arr[++i], size, target); ext_pen._penDown(target); offset(arr[++i], arr[++i], size, target); break");
+    mistsutils.patchcommand(A: "case cmds.dot[0]: ext_pen._penUp(target); offset(arr[++i], arr[++i], size, target); ext_pen._penDown(target); break");
+    mistsutils.patchcommand(A: "case cmds.move[0]: icn.offx += arr[++i] || 0; icn.offy += arr[++i] || 0; break");
+    mistsutils.patchcommand(A: "case cmds.back[0]: icn.offx = 0; icn.offy = 0; break");
+    mistsutils.patchcommand(A: "case cmds.scale[0]: size *= arr[++i]; break");
+    case mistsutils.patchreporter(A: "cmds.image[0]") {
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "offset(0, 0, 0, target)");
+      @Draw_Image(url: mistsutils.patchreporter(A: "arr[++i]"), width: mistsutils.patchreporter(A: "arr[++i] * size"), height: "");
     }
-    case mistsutils_patchreporter(A: "cmds.pimg[0]") {
-      mistsutils_patchcommand(A: "const url = arr[++i], w = arr[++i], h = arr[++i]");
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
-      mistsutils_patchcommand(A: "target.setXY(target.x, target.y)");
-      @Draw_Image(url: mistsutils_patchreporter(A: "url"), width: (mistsutils_patchreporter(A: "w") * Size), height: (mistsutils_patchreporter(A: "h") * Size));
+    case mistsutils.patchreporter(A: "cmds.pimg[0]") {
+      mistsutils.patchcommand(A: "const url = arr[++i], w = arr[++i], h = arr[++i]");
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
+      mistsutils.patchcommand(A: "target.setXY(target.x, target.y)");
+      @Draw_Image(url: mistsutils.patchreporter(A: "url"), width: (mistsutils.patchreporter(A: "w") * Size), height: (mistsutils.patchreporter(A: "h") * Size));
     }
-    case mistsutils_patchreporter(A: "cmds.rect[0]") {
-      mistsutils_patchcommand(A: "const x = arr[++i];");
-      mistsutils_patchcommand(A: "const y = arr[++i];");
-      mistsutils_patchcommand(A: "const rw = arr[++i]");
-      mistsutils_patchcommand(A: "const rh = arr[++i]");
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "offset(x + rw, y + rh, size, target); const pos1 = [target.x, target.y]");
-      mistsutils_patchcommand(A: "offset(x - rw, y - rh, size, target); const pos2 = [target.x, target.y]");
-      mistsutils_patchcommand(A: "offset(x - rw, y + rh, size, target); const pos3 = [target.x, target.y]");
-      mistsutils_patchcommand(A: "offset(x + rw, y - rh, size, target); const pos4 = [target.x, target.y]");
-      @fillTri(a: mistsutils_patchreporter(A: "pos1[0]"), b: mistsutils_patchreporter(A: "pos1[1]"), c: mistsutils_patchreporter(A: "pos4[0]"), d: mistsutils_patchreporter(A: "pos4[1]"), e: mistsutils_patchreporter(A: "pos3[0]"), f: mistsutils_patchreporter(A: "pos3[1]"), r: mistsutils_patchreporter(A: "w"));
-      @fillTri(a: mistsutils_patchreporter(A: "pos2[0]"), b: mistsutils_patchreporter(A: "pos2[1]"), c: mistsutils_patchreporter(A: "pos4[0]"), d: mistsutils_patchreporter(A: "pos4[1]"), e: mistsutils_patchreporter(A: "pos3[0]"), f: mistsutils_patchreporter(A: "pos3[1]"), r: mistsutils_patchreporter(A: "w"));
-      mistsutils_patchcommand(A: "offset(0, 0, 1, target)");
+    case mistsutils.patchreporter(A: "cmds.rect[0]") {
+      mistsutils.patchcommand(A: "const x = arr[++i];");
+      mistsutils.patchcommand(A: "const y = arr[++i];");
+      mistsutils.patchcommand(A: "const rw = arr[++i]");
+      mistsutils.patchcommand(A: "const rh = arr[++i]");
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "offset(x + rw, y + rh, size, target); const pos1 = [target.x, target.y]");
+      mistsutils.patchcommand(A: "offset(x - rw, y - rh, size, target); const pos2 = [target.x, target.y]");
+      mistsutils.patchcommand(A: "offset(x - rw, y + rh, size, target); const pos3 = [target.x, target.y]");
+      mistsutils.patchcommand(A: "offset(x + rw, y - rh, size, target); const pos4 = [target.x, target.y]");
+      @fillTri(a: mistsutils.patchreporter(A: "pos1[0]"), b: mistsutils.patchreporter(A: "pos1[1]"), c: mistsutils.patchreporter(A: "pos4[0]"), d: mistsutils.patchreporter(A: "pos4[1]"), e: mistsutils.patchreporter(A: "pos3[0]"), f: mistsutils.patchreporter(A: "pos3[1]"), r: mistsutils.patchreporter(A: "w"));
+      @fillTri(a: mistsutils.patchreporter(A: "pos2[0]"), b: mistsutils.patchreporter(A: "pos2[1]"), c: mistsutils.patchreporter(A: "pos4[0]"), d: mistsutils.patchreporter(A: "pos4[1]"), e: mistsutils.patchreporter(A: "pos3[0]"), f: mistsutils.patchreporter(A: "pos3[1]"), r: mistsutils.patchreporter(A: "w"));
+      mistsutils.patchcommand(A: "offset(0, 0, 1, target)");
     }
-    case mistsutils_patchreporter(A: "cmds.tri[0]") {
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
-      mistsutils_patchcommand(A: "const pos1 = [target.x, target.y]");
-      mistsutils_patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
-      mistsutils_patchcommand(A: "const pos2 = [target.x, target.y]");
-      mistsutils_patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
-      @fillTri(a: mistsutils_patchreporter(A: "pos1[0]"), b: mistsutils_patchreporter(A: "pos1[1]"), c: mistsutils_patchreporter(A: "pos2[0]"), d: mistsutils_patchreporter(A: "pos2[1]"), e: mistsutils_patchreporter(A: "target.x"), f: mistsutils_patchreporter(A: "target.y"), r: mistsutils_patchreporter(A: "w"));
-      mistsutils_patchcommand(A: "offset(0, 0, 1, target)");
+    case mistsutils.patchreporter(A: "cmds.tri[0]") {
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
+      mistsutils.patchcommand(A: "const pos1 = [target.x, target.y]");
+      mistsutils.patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
+      mistsutils.patchcommand(A: "const pos2 = [target.x, target.y]");
+      mistsutils.patchcommand(A: "offset(arr[++i], arr[++i], size, target)");
+      @fillTri(a: mistsutils.patchreporter(A: "pos1[0]"), b: mistsutils.patchreporter(A: "pos1[1]"), c: mistsutils.patchreporter(A: "pos2[0]"), d: mistsutils.patchreporter(A: "pos2[1]"), e: mistsutils.patchreporter(A: "target.x"), f: mistsutils.patchreporter(A: "target.y"), r: mistsutils.patchreporter(A: "w"));
+      mistsutils.patchcommand(A: "offset(0, 0, 1, target)");
     }
-    case mistsutils_patchreporter(A: "cmds.square[0]") {
-      mistsutils_patchcommand(A: "const temp = +arr[++i] || 0;");
-      mistsutils_patchcommand(A: "const sq_temp1 = +arr[++i] || 0;");
-      mistsutils_patchcommand(A: "const sq_temp2 = +arr[++i] || 0; ");
-      mistsutils_patchcommand(A: "const sq_temp3 = +arr[++i] || 0");
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "offset(temp + sq_temp2, sq_temp1 + sq_temp3, size, target)");
-      mistsutils_patchcommand(A: "ext_pen._penDown(target)");
-      mistsutils_patchcommand(A: "offset(temp - sq_temp2, sq_temp1 + sq_temp3, size, target)");
-      mistsutils_patchcommand(A: "offset(temp - sq_temp2, sq_temp1 - sq_temp3, size, target)");
-      mistsutils_patchcommand(A: "offset(temp + sq_temp2, sq_temp1 - sq_temp3, size, target)");
-      mistsutils_patchcommand(A: "offset(temp + sq_temp2, sq_temp1 + sq_temp3, size, target)");
+    case mistsutils.patchreporter(A: "cmds.square[0]") {
+      mistsutils.patchcommand(A: "const temp = +arr[++i] || 0;");
+      mistsutils.patchcommand(A: "const sq_temp1 = +arr[++i] || 0;");
+      mistsutils.patchcommand(A: "const sq_temp2 = +arr[++i] || 0; ");
+      mistsutils.patchcommand(A: "const sq_temp3 = +arr[++i] || 0");
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "offset(temp + sq_temp2, sq_temp1 + sq_temp3, size, target)");
+      mistsutils.patchcommand(A: "ext_pen._penDown(target)");
+      mistsutils.patchcommand(A: "offset(temp - sq_temp2, sq_temp1 + sq_temp3, size, target)");
+      mistsutils.patchcommand(A: "offset(temp - sq_temp2, sq_temp1 - sq_temp3, size, target)");
+      mistsutils.patchcommand(A: "offset(temp + sq_temp2, sq_temp1 - sq_temp3, size, target)");
+      mistsutils.patchcommand(A: "offset(temp + sq_temp2, sq_temp1 + sq_temp3, size, target)");
     }
-    case mistsutils_patchreporter(A: "cmds.curve[0]") {
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "let x1 = arr[++i], y1 = +arr[++i]");
-      mistsutils_patchcommand(A: "if (x1 === \"res\") break; else { x1 = +x1");
-      mistsutils_patchcommand(A: "let x2 = +arr[++i], y2 = +arr[++i], x3 = +arr[++i], y3 = +arr[++i];");
-      mistsutils_patchcommand(A: "let cx1 = x3 - x1, cy1 = y3 - y1, cx2 = x3 - x2, cy2 = y3 - y2;");
-      mistsutils_patchcommand(A: "x2 = x3; y2 = y3");
-      mistsutils_patchcommand(A: "offset(x1, y1, size, target)");
-      mistsutils_patchcommand(A: "ext_pen._penDown(target)");
-      mistsutils_patchcommand(A: "for (let i = 1; i <= res; i++) {");
-      mistsutils_patchcommand(A: "x1 += cx1 / res");
-      mistsutils_patchcommand(A: "y1 += cy1 / res");
-      mistsutils_patchcommand(A: "x2 -= cx2 / res");
-      mistsutils_patchcommand(A: "y2 -= cy2 / res");
-      mistsutils_patchcommand(A: "const per = i / res");
-      mistsutils_patchcommand(A: "const cx = x2 - x1");
-      mistsutils_patchcommand(A: "const cy = y2 - y1");
-      mistsutils_patchcommand(A: "offset(cx * per + x1, cy * per + y1, size, target)");
-      mistsutils_patchcommand(A: "}}");
+    case mistsutils.patchreporter(A: "cmds.curve[0]") {
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "let x1 = arr[++i], y1 = +arr[++i]");
+      mistsutils.patchcommand(A: "if (x1 === \"res\") break; else { x1 = +x1");
+      mistsutils.patchcommand(A: "let x2 = +arr[++i], y2 = +arr[++i], x3 = +arr[++i], y3 = +arr[++i];");
+      mistsutils.patchcommand(A: "let cx1 = x3 - x1, cy1 = y3 - y1, cx2 = x3 - x2, cy2 = y3 - y2;");
+      mistsutils.patchcommand(A: "x2 = x3; y2 = y3");
+      mistsutils.patchcommand(A: "offset(x1, y1, size, target)");
+      mistsutils.patchcommand(A: "ext_pen._penDown(target)");
+      mistsutils.patchcommand(A: "for (let i = 1; i <= res; i++) {");
+      mistsutils.patchcommand(A: "x1 += cx1 / res");
+      mistsutils.patchcommand(A: "y1 += cy1 / res");
+      mistsutils.patchcommand(A: "x2 -= cx2 / res");
+      mistsutils.patchcommand(A: "y2 -= cy2 / res");
+      mistsutils.patchcommand(A: "const per = i / res");
+      mistsutils.patchcommand(A: "const cx = x2 - x1");
+      mistsutils.patchcommand(A: "const cy = y2 - y1");
+      mistsutils.patchcommand(A: "offset(cx * per + x1, cy * per + y1, size, target)");
+      mistsutils.patchcommand(A: "}}");
     }
-    case mistsutils_patchreporter(A: "cmds.cutcircle[0]") {
-      mistsutils_patchcommand(A: "const x = arr[++i]");
-      mistsutils_patchcommand(A: "const y = arr[++i]");
-      mistsutils_patchcommand(A: "const r = arr[++i]");
-      mistsutils_patchcommand(A: "let cut_temp = +arr[++i]");
-      mistsutils_patchcommand(A: "const loops = +arr[++i]");
-      mistsutils_patchcommand2(A: "cut_temp = ", B: "(cut_temp || 0) * 10 - (loops || 0)");
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "offset(((+x || 0) + ((((Math.round(Math.sin((Math.PI * (+cut_temp || 0)) / 180) * 1e10) / 1e10) || 0) * (+r || 0)) || 0)),((+y || 0) + ((((Math.round(Math.cos((Math.PI * (+cut_temp || 0)) / 180) * 1e10) / 1e10) || 0) * (+r || 0)) || 0)),size, target)");
-      mistsutils_patchcommand(A: "ext_pen._penDown(target)");
-      mistsutils_patchcommand(A: "for (var a0 = ((loops / 3) || 0); a0 >= 0.5; a0--) {");
-      mistsutils_patchcommand(A: "cut_temp += 6");
-      mistsutils_patchcommand(A: "offset(((+x || 0) + ((((Math.round(Math.sin((Math.PI * (+cut_temp || 0)) / 180) * 1e10) / 1e10) || 0) * (+r || 0)) || 0)),((+y || 0) + ((((Math.round(Math.cos((Math.PI * (+cut_temp || 0)) / 180) * 1e10) / 1e10) || 0) * (+r || 0)) || 0)),size, target)");
-      mistsutils_patchcommand(A: "}");
+    case mistsutils.patchreporter(A: "cmds.cutcircle[0]") {
+      mistsutils.patchcommand(A: "const x = arr[++i]");
+      mistsutils.patchcommand(A: "const y = arr[++i]");
+      mistsutils.patchcommand(A: "const r = arr[++i]");
+      mistsutils.patchcommand(A: "let cut_temp = +arr[++i]");
+      mistsutils.patchcommand(A: "const loops = +arr[++i]");
+      mistsutils.patchcommand2(A: "cut_temp = ", B: "(cut_temp || 0) * 10 - (loops || 0)");
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "offset(((+x || 0) + ((((Math.round(Math.sin((Math.PI * (+cut_temp || 0)) / 180) * 1e10) / 1e10) || 0) * (+r || 0)) || 0)),((+y || 0) + ((((Math.round(Math.cos((Math.PI * (+cut_temp || 0)) / 180) * 1e10) / 1e10) || 0) * (+r || 0)) || 0)),size, target)");
+      mistsutils.patchcommand(A: "ext_pen._penDown(target)");
+      mistsutils.patchcommand(A: "for (var a0 = ((loops / 3) || 0); a0 >= 0.5; a0--) {");
+      mistsutils.patchcommand(A: "cut_temp += 6");
+      mistsutils.patchcommand(A: "offset(((+x || 0) + ((((Math.round(Math.sin((Math.PI * (+cut_temp || 0)) / 180) * 1e10) / 1e10) || 0) * (+r || 0)) || 0)),((+y || 0) + ((((Math.round(Math.cos((Math.PI * (+cut_temp || 0)) / 180) * 1e10) / 1e10) || 0) * (+r || 0)) || 0)),size, target)");
+      mistsutils.patchcommand(A: "}");
     }
-    case mistsutils_patchreporter(A: "cmds.ellipse[0]") {
-      mistsutils_patchcommand(A: "const temp = arr[++i]");
-      mistsutils_patchcommand(A: "const el_temp1 = arr[++i]");
-      mistsutils_patchcommand(A: "const el_temp2 = arr[++i]");
-      mistsutils_patchcommand(A: "const el_temp3 = arr[++i]");
-      mistsutils_patchcommand(A: "const direction2 = arr[++i]");
-      mistsutils_patchcommand(A: "const pos = origin.utils.rotateVector(temp * size, el_temp1 * size, 90 - direction, 0, 0)");
-      mistsutils_patchcommand(A: "const offset2 = (x, y, s) => { const xy = origin.utils.rotateVector(x, y, 90 - direction2 - direction, 0, 0); target.setXY(ox + pos[0] + xy[0] * s, oy + pos[1] + xy[1] * s) }");
-      mistsutils_patchcommand(A: "let eli_temp = 0");
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand3(A: "offset2(0, ", B: (mistsutils_patchreporter(A: "el_temp2") * mistsutils_patchreporter(A: "el_temp3")), C: ", size)");
-      mistsutils_patchcommand(A: "ext_pen._penDown(target)");
-      mistsutils_patchcommand(A: "for (var a0 = 180; a0 >= 0.5; a0--) {");
-      mistsutils_patchcommand(A: "eli_temp += 4");
-      mistsutils_patchcommand3(A: "offset2(", B: mistsutils_patchreporter3(A: (sin(mistsutils_patchreporter(A: "eli_temp")) * mistsutils_patchreporter(A: "el_temp2")), B: ",", C: ((cos(mistsutils_patchreporter(A: "eli_temp")) * mistsutils_patchreporter(A: "el_temp2")) * mistsutils_patchreporter(A: "el_temp3"))), C: ", size)");
-      mistsutils_patchcommand(A: "}");
+    case mistsutils.patchreporter(A: "cmds.ellipse[0]") {
+      mistsutils.patchcommand(A: "const temp = arr[++i]");
+      mistsutils.patchcommand(A: "const el_temp1 = arr[++i]");
+      mistsutils.patchcommand(A: "const el_temp2 = arr[++i]");
+      mistsutils.patchcommand(A: "const el_temp3 = arr[++i]");
+      mistsutils.patchcommand(A: "const direction2 = arr[++i]");
+      mistsutils.patchcommand(A: "const pos = origin.utils.rotateVector(temp * size, el_temp1 * size, 90 - direction, 0, 0)");
+      mistsutils.patchcommand(A: "const offset2 = (x, y, s) => { const xy = origin.utils.rotateVector(x, y, 90 - direction2 - direction, 0, 0); target.setXY(ox + pos[0] + xy[0] * s, oy + pos[1] + xy[1] * s) }");
+      mistsutils.patchcommand(A: "let eli_temp = 0");
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand3(A: "offset2(0, ", B: (mistsutils.patchreporter(A: "el_temp2") * mistsutils.patchreporter(A: "el_temp3")), C: ", size)");
+      mistsutils.patchcommand(A: "ext_pen._penDown(target)");
+      mistsutils.patchcommand(A: "for (var a0 = 180; a0 >= 0.5; a0--) {");
+      mistsutils.patchcommand(A: "eli_temp += 4");
+      mistsutils.patchcommand3(A: "offset2(", B: mistsutils.patchreporter3(A: (sin(mistsutils.patchreporter(A: "eli_temp")) * mistsutils.patchreporter(A: "el_temp2")), B: ",", C: ((cos(mistsutils.patchreporter(A: "eli_temp")) * mistsutils.patchreporter(A: "el_temp2")) * mistsutils.patchreporter(A: "el_temp3"))), C: ", size)");
+      mistsutils.patchcommand(A: "}");
     }
-    case mistsutils_patchreporter(A: "cmds.icn[0]") {
-      mistsutils_patchcommand(A: "const temp = arr[++i]");
-      mistsutils_patchcommand(A: "const s = +arr[++i]");
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "offset(+arr[++i] || 0, +arr[++i] || 0, size, target)");
-      @Draw_Icon_boldness(Code: @File_get_item(id: mistsutils_patchreporter(A: "\"origin/(A) System/Icons/\"+temp+\".icn\""), item: "4"), Size: mistsutils_patchreporter(A: "s * size"), setsize: "", x: mistsutils_patchreporter(A: "ox"), y: mistsutils_patchreporter(A: "oy"), direction: mistsutils_patchreporter(A: "direction"), boldness: "");
+    case mistsutils.patchreporter(A: "cmds.icn[0]") {
+      mistsutils.patchcommand(A: "const temp = arr[++i]");
+      mistsutils.patchcommand(A: "const s = +arr[++i]");
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "offset(+arr[++i] || 0, +arr[++i] || 0, size, target)");
+      @Draw_Icon_boldness(Code: @File_get_item(id: mistsutils.patchreporter(A: "\"origin/(A) System/Icons/\"+temp+\".icn\""), item: "4"), Size: mistsutils.patchreporter(A: "s * size"), setsize: "", x: mistsutils.patchreporter(A: "ox"), y: mistsutils.patchreporter(A: "oy"), direction: mistsutils.patchreporter(A: "direction"), boldness: "");
     }
-    case mistsutils_patchreporter(A: "cmds.ricn[0]") {
-      mistsutils_patchcommand(A: "const temp = arr[++i]");
-      mistsutils_patchcommand(A: "const s = +arr[++i]");
-      mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-      mistsutils_patchcommand(A: "offset(+arr[++i], +arr[++i], size, target)");
-      @Draw_Icon_boldness(Code: mistsutils_patchreporter(A: "temp"), Size: mistsutils_patchreporter(A: "s * size"), setsize: "", x: mistsutils_patchreporter(A: "ox"), y: mistsutils_patchreporter(A: "oy"), direction: mistsutils_patchreporter(A: "direction"), boldness: "");
+    case mistsutils.patchreporter(A: "cmds.ricn[0]") {
+      mistsutils.patchcommand(A: "const temp = arr[++i]");
+      mistsutils.patchcommand(A: "const s = +arr[++i]");
+      mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+      mistsutils.patchcommand(A: "offset(+arr[++i], +arr[++i], size, target)");
+      @Draw_Icon_boldness(Code: mistsutils.patchreporter(A: "temp"), Size: mistsutils.patchreporter(A: "s * size"), setsize: "", x: mistsutils.patchreporter(A: "ox"), y: mistsutils.patchreporter(A: "oy"), direction: mistsutils.patchreporter(A: "direction"), boldness: "");
     }
   }
-  mistsutils_patchcommand(A: "}}");
-  mistsutils_patchcommand(A: "ext_pen._penUp(target)");
-  mistsutils_patchcommand(A: "target.setXY(ox, oy)");
-  mistsutils_patchcommand(A: "}");
+  mistsutils.patchcommand(A: "}}");
+  mistsutils.patchcommand(A: "ext_pen._penUp(target)");
+  mistsutils.patchcommand(A: "target.setXY(ox, oy)");
+  mistsutils.patchcommand(A: "}");
 }

@@ -7,5 +7,5 @@
  */
 
 def @OSL_Thread_Close() "OSL // Thread Close" warp=false {
-  mistsutils_patchcommand(A: "target.closeOSLThread(target)");
+  mistsutils.patchcommand(A: "target.closeOSLThread(target)");
 }

@@ -7,6 +7,6 @@
  */
 
 def @Timestamp_Convert(data) "Timestamp // Convert %s" warp=false {
-  mistsutils_patchcommand(A: "const diffMs = Math.round(+p0 || 0) - Date.now(); const diffSec = Math.round(diffMs / 1000); const abs = Math.abs(diffSec); const units = [ { name: 'year', seconds: 31536000 }, { name: 'month', seconds: 2592000 }, { name: 'day', seconds: 86400 }, { name: 'hour', seconds: 3600 }, { name: 'minute', seconds: 60 }, { name: 'second', seconds: 1 } ]; for (const unit of units) { if (abs >= unit.seconds) { const value = Math.round(abs / unit.seconds); const label = unit.name + (value !== 1 ? 's' : ''); return diffSec < 0 ? `${value} ${label} ago` : `${value} ${label} from now`; } } return 'just now';");
+  mistsutils.patchcommand(A: "const diffMs = Math.round(+p0 || 0) - Date.now(); const diffSec = Math.round(diffMs / 1000); const abs = Math.abs(diffSec); const units = [ { name: 'year', seconds: 31536000 }, { name: 'month', seconds: 2592000 }, { name: 'day', seconds: 86400 }, { name: 'hour', seconds: 3600 }, { name: 'minute', seconds: 60 }, { name: 'second', seconds: 1 } ]; for (const unit of units) { if (abs >= unit.seconds) { const value = Math.round(abs / unit.seconds); const label = unit.name + (value !== 1 ? 's' : ''); return diffSec < 0 ? `${value} ${label} ago` : `${value} ${label} from now`; } } return 'just now';");
   return "";
 }

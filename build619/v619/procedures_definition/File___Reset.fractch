@@ -19,54 +19,54 @@ def @File_Reset() "File// Reset" warp=false {
   @File_add_Data_Icon_Perms(Location: "origin", Name: "(D) Temp", Type: ".folder", Data: "", Icon: "c #772d1c square 0 2 10 4 c #ff724f square -8 6 2 2 line -5 7 3 0 square 0 -1 10 5 w 8 square 0 -0.5 5 0 c #772d1c", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
   @File_add_Data_Icon_Perms(Location: "origin/(A) System", Name: "Fonts", Type: ".folder", Data: "", Icon: "", Perms: "[\"File Viewer\",\"File Editor\",\"System\"]");
   if (vars["Embed Mode"] == "0") {
-    if mistsutils_patchboolean(A: "!navigator.onLine") {
+    if mistsutils.patchboolean(A: "!navigator.onLine") {
       stop "other scripts in sprite";
       vars["Frame // Min Y"] = "-100";
-      motion_gotoxy(X: 0, Y: 0);
-      motion_pointindirection(DIRECTION: "90");
+      motion.gotoxy(X: 0, Y: 0);
+      motion.pointindirection(DIRECTION: "90");
       @Draw_Icon_boldness(Code: "w 99999999 c #000 c #fff w 3 cutcircle 0 -7 14 0 50 cutcircle 0 -7 7 0 50 w 4 dot 0 -7 w 3 line -9 -9 9 9", Size: "5", setsize: "", x: "0", y: "0", direction: "", boldness: "");
       stop "all";
     }
-    if MistKeyHistoryExtension_iskeyPressed(KEY: "alt") {
+    if MistKeyHistoryExtension.iskeyPressed(KEY: "alt") {
       @Install_File_From_into_path_with_name_and_icon(url: "https://origin.mistium.com/Fonts/origin.ojff", path: "Origin/(A) System/Fonts", name: "origin.ojff", icon: "");
       @RUSH_execute(Command: "font cleardata");
       @RUSH_execute(Command: "font.load origin");
-      mistsutils_patchcommand2(A: "const branches = ", B: mistsutils_jsonparse(A: skyhigh173JSON_json_array_filter(key: "name", json: mistsutils_patchreporter2(A: cloudlink_fetchURL(url: "https://api.github.com/repos/Mistium/Origin-OS/branches"), B: ".replace(/\\s/gi, \"\")"))));
-      mistsutils_patchcommand(A: "let current = 0");
+      mistsutils.patchcommand2(A: "const branches = ", B: mistsutils.jsonparse(A: skyhigh173JSON.json_array_filter(key: "name", json: mistsutils.patchreporter2(A: cloudlink.fetchURL(url: "https://api.github.com/repos/Mistium/Origin-OS/branches"), B: ".replace(/\\s/gi, \"\")"))));
+      mistsutils.patchcommand(A: "let current = 0");
       stop "other scripts in sprite";
       forever {
-        motion_gotoxy(X: 0, Y: 0);
+        motion.gotoxy(X: 0, Y: 0);
         @Draw_Icon_boldness(Code: "w 999999 c #000 dot 0 0 c #fff", Size: "5", setsize: "", x: "0", y: "0", direction: "", boldness: "");
-        mistsutils_patchcommand(A: "for (let i = 0; i < branches.length; i ++) {");
-        mistsutils_patchcommand(A: "const message = (current === i ? \"> \" : \"\") + `Boot from ${branches[i]}`");
-        @Draw_Text(Text: mistsutils_patchreporter(A: "message"), X: mistsutils_patchreporter(A: "message.length * -5"), Y: mistsutils_patchreporter(A: "i * -20"), Size: "10", Markdown_Enabled: "");
-        mistsutils_patchcommand(A: "}");
-        if MistKeyHistoryExtension_iskeyhit(KEY: "arrowup") {
-          mistsutils_patchcommand(A: "current --");
+        mistsutils.patchcommand(A: "for (let i = 0; i < branches.length; i ++) {");
+        mistsutils.patchcommand(A: "const message = (current === i ? \"> \" : \"\") + `Boot from ${branches[i]}`");
+        @Draw_Text(Text: mistsutils.patchreporter(A: "message"), X: mistsutils.patchreporter(A: "message.length * -5"), Y: mistsutils.patchreporter(A: "i * -20"), Size: "10", Markdown_Enabled: "");
+        mistsutils.patchcommand(A: "}");
+        if MistKeyHistoryExtension.iskeyhit(KEY: "arrowup") {
+          mistsutils.patchcommand(A: "current --");
         }
-        if MistKeyHistoryExtension_iskeyhit(KEY: "arrowdown") {
-          mistsutils_patchcommand(A: "current ++");
+        if MistKeyHistoryExtension.iskeyhit(KEY: "arrowdown") {
+          mistsutils.patchcommand(A: "current ++");
         }
-        mistsutils_patchcommand(A: "current %= branches.length");
-        if MistKeyHistoryExtension_iskeyhit(KEY: "enter") {
-          if mistsutils_patchboolean(A: "branches[current] === \"main\"") {
-            zxmushroom63searchparams_deletesearchparam(ID: "source");
+        mistsutils.patchcommand(A: "current %= branches.length");
+        if MistKeyHistoryExtension.iskeyhit(KEY: "enter") {
+          if mistsutils.patchboolean(A: "branches[current] === \"main\"") {
+            zxmushroom63searchparams.deletesearchparam(ID: "source");
           } else {
-            zxmushroom63searchparams_setsearchparam(ID: "source", VAL: mistsutils_patchreporter(A: "`https://raw.githubusercontent.com/Mistium/Origin-OS/refs/heads/${branches[current]}/`"));
+            zxmushroom63searchparams.setsearchparam(ID: "source", VAL: mistsutils.patchreporter(A: "`https://raw.githubusercontent.com/Mistium/Origin-OS/refs/heads/${branches[current]}/`"));
           }
-          runtimeoptions_greenFlag();
+          runtimeoptions.greenFlag();
         }
       }
     }
   }
-  wait_until mistfetch_isRequestCompleted(ID: "font");
-  @Install_System_Utility(Location: "Origin/(A) System/Fonts", Name_And_Type: "origin.ojff", Data: mistfetch_getResponseBodyById(ID: "font"), Icon: "", not_system: null);
+  wait_until mistfetch.isRequestCompleted(ID: "font");
+  @Install_System_Utility(Location: "Origin/(A) System/Fonts", Name_And_Type: "origin.ojff", Data: mistfetch.getResponseBodyById(ID: "font"), Icon: "", not_system: null);
   @RUSH_execute(Command: "font cleardata");
   @RUSH_execute(Command: "font.load origin");
-  mistfetch_deleteRequestById(ID: "font");
-  @Draw_Text(Text: HyperSenseSP_getSpriteName(), X: vars["Frame // Min X"], Y: (vars["Frame // Max Y"] - 20), Size: "10", Markdown_Enabled: "");
-  mistsutils_patchcommand(A: "let msg = \"Working on system cache\"");
-  @Draw_Text(Text: mistsutils_patchreporter(A: "msg"), X: mistsutils_patchreporter(A: "msg.length * -5"), Y: "-150", Size: "10", Markdown_Enabled: "");
+  mistfetch.deleteRequestById(ID: "font");
+  @Draw_Text(Text: HyperSenseSP.getSpriteName(), X: vars["Frame // Min X"], Y: (vars["Frame // Max Y"] - 20), Size: "10", Markdown_Enabled: "");
+  mistsutils.patchcommand(A: "let msg = \"Working on system cache\"");
+  @Draw_Text(Text: mistsutils.patchreporter(A: "msg"), X: mistsutils.patchreporter(A: "msg.length * -5"), Y: "-150", Size: "10", Markdown_Enabled: "");
   @File_add_Data_Icon_Perms(Location: "origin/(A) System", Name: "Kernel And Setup", Type: ".folder", Data: "", Icon: "", Perms: "");
   @File_add_Data_Icon_Perms(Location: "origin/(A) System/Kernel And Setup", Name: "setup", Type: ".osl", Data: "", Icon: "", Perms: "");
   @File_add_Data_Icon_Perms(Location: "origin/(A) System", Name: "System Data", Type: ".folder", Data: "", Icon: "", Perms: "");

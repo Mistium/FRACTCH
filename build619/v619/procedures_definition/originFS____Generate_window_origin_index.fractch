@@ -7,24 +7,24 @@
  */
 
 def @originFS_Generate_window_origin_index() "originFS // Generate window.origin index" warp=true {
-  mistsutils_patchcommand(A: "window.files = {\"uuids\":{},\"paths\":{},\"folders\":{}}");
-  mistsutils_patchcommand(A: "const paths = window.files.paths");
-  mistsutils_patchcommand(A: "let i = 1");
-  repeat data_lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")) {
-    mistsutils_patchcommand3(A: "paths[", B: data_itemoflist(INDEX: mistsutils_patchreporter(A: "i"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), C: ".toLowerCase()] = i");
-    mistsutils_patchcommand3(A: "window.files.uuids[", B: data_itemoflist(INDEX: mistsutils_patchreporter(A: "i"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), C: "] = i ++");
+  mistsutils.patchcommand(A: "window.files = {\"uuids\":{},\"paths\":{},\"folders\":{}}");
+  mistsutils.patchcommand(A: "const paths = window.files.paths");
+  mistsutils.patchcommand(A: "let i = 1");
+  repeat data.lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")) {
+    mistsutils.patchcommand3(A: "paths[", B: data.itemoflist(INDEX: mistsutils.patchreporter(A: "i"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), C: ".toLowerCase()] = i");
+    mistsutils.patchcommand3(A: "window.files.uuids[", B: data.itemoflist(INDEX: mistsutils.patchreporter(A: "i"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), C: "] = i ++");
   }
-  mistsutils_patchcommand(A: "let files = Object.entries(paths); let folders = {}; for (let i = 0; i < files.length; i ++) { let path = files[i][0].split(\"/\"); path.pop(); path = path.join(\"/\"); folders[path] ??= []; folders[path].push(files[i][1])}; window.files.folders = folders");
-  mistsutils_patchcommand(A: "i = 0; folders = Object.entries(window.files.folders)");
-  repeat mistsutils_patchreporter(A: "folders.length") {
-    mistsutils_patchcommand(A: "const cur = folders[i++]");
-    mistsutils_patchcommand2(A: "let id = ", B: data_itemoflist(INDEX: mistsutils_patchreporter(A: "paths[`${cur[0]}.folder`]"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
-    mistsutils_patchcommand(A: "if (String(id) === \"\") continue");
-    mistsutils_patchcommand2(A: "const idx = ", B: @file_item_of_num(index: @originFS_UUID_ID(UUID: mistsutils_patchreporter(A: "id")), num: "4"));
-    mistsutils_patchcommand3(A: "const contents = cur[1].map(v => ", B: data_itemoflist(INDEX: mistsutils_patchreporter(A: "v"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), C: ")");
-    mistsutils_patchcommand3(A: "let oldContents = []; try { oldContents = JSON.parse(", B: data_itemoflist(INDEX: mistsutils_patchreporter(A: "idx"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: ") } catch {}");
-    mistsutils_patchcommand(A: "for (let i = 0; i < contents.length; i ++) if (!oldContents.includes(contents[i])) oldContents.push(contents[i])");
-    mistsutils_patchcommand(A: "// only change locally to not overwrite things on server that dont need to be");
-    data_replaceitemoflist(INDEX: mistsutils_patchreporter(A: "idx"), ITEM: mistsutils_patchreporter(A: "JSON.stringify(oldContents)"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+  mistsutils.patchcommand(A: "let files = Object.entries(paths); let folders = {}; for (let i = 0; i < files.length; i ++) { let path = files[i][0].split(\"/\"); path.pop(); path = path.join(\"/\"); folders[path] ??= []; folders[path].push(files[i][1])}; window.files.folders = folders");
+  mistsutils.patchcommand(A: "i = 0; folders = Object.entries(window.files.folders)");
+  repeat mistsutils.patchreporter(A: "folders.length") {
+    mistsutils.patchcommand(A: "const cur = folders[i++]");
+    mistsutils.patchcommand2(A: "let id = ", B: data.itemoflist(INDEX: mistsutils.patchreporter(A: "paths[`${cur[0]}.folder`]"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+    mistsutils.patchcommand(A: "if (String(id) === \"\") continue");
+    mistsutils.patchcommand2(A: "const idx = ", B: @file_item_of_num(index: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "id")), num: "4"));
+    mistsutils.patchcommand3(A: "const contents = cur[1].map(v => ", B: data.itemoflist(INDEX: mistsutils.patchreporter(A: "v"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), C: ")");
+    mistsutils.patchcommand3(A: "let oldContents = []; try { oldContents = JSON.parse(", B: data.itemoflist(INDEX: mistsutils.patchreporter(A: "idx"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), C: ") } catch {}");
+    mistsutils.patchcommand(A: "for (let i = 0; i < contents.length; i ++) if (!oldContents.includes(contents[i])) oldContents.push(contents[i])");
+    mistsutils.patchcommand(A: "// only change locally to not overwrite things on server that dont need to be");
+    data.replaceitemoflist(INDEX: mistsutils.patchreporter(A: "idx"), ITEM: mistsutils.patchreporter(A: "JSON.stringify(oldContents)"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
   }
 }

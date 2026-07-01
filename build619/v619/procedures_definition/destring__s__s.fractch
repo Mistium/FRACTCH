@@ -7,6 +7,6 @@
  */
 
 def @destring(Text, remove) "destring %s %s" warp=true {
-  mistsutils_patchcommand(A: "b0.value = destr(p0,p1)");
+  mistsutils.patchcommand(A: "b0.value = destr(p0,p1)");
   return vars["DeString // out"];
 }

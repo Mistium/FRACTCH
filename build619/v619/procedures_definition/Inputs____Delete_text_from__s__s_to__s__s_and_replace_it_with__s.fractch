@@ -7,14 +7,14 @@
  */
 
 def @Inputs_Delete_text_from_to_and_replace_it_with(line, char, line2, char2, replace) "Inputs // Delete text from %s %s to %s %s and replace it with %s" warp=true {
-  mistsutils_patchcommand(A: "if (p0 > p2) { let temp = p0; p0 = p2; p2 = temp; if (p1 < p3) { let temp = p3; p3 = p1; p1 = temp; } }");
+  mistsutils.patchcommand(A: "if (p0 > p2) { let temp = p0; p0 = p2; p2 = temp; if (p1 < p3) { let temp = p3; p3 = p1; p1 = temp; } }");
   if (line2 == line) {
-    data_replaceitemoflist(INDEX: line, ITEM: @letters_to_of_replaced_with(_1: (char + 1), _2: char2, string: data_itemoflist(INDEX: line, field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), string2: ""), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+    data.replaceitemoflist(INDEX: line, ITEM: @letters_to_of_replaced_with(_1: (char + 1), _2: char2, string: data.itemoflist(INDEX: line, field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF")), string2: ""), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
   } else {
-    data_replaceitemoflist(INDEX: line, ITEM: (@letters_to_of(start: "1", end: char, text: data_itemoflist(INDEX: line, field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))) .. (replace .. @letters_to_of(start: (char2 + 1), end: "-1", text: data_itemoflist(INDEX: line2, field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))))), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+    data.replaceitemoflist(INDEX: line, ITEM: (@letters_to_of(start: "1", end: char, text: data.itemoflist(INDEX: line, field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))) .. (replace .. @letters_to_of(start: (char2 + 1), end: "-1", text: data.itemoflist(INDEX: line2, field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"))))), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
     if (line2 > line) {
       repeat (line2 - line) {
-        data_deleteoflist(INDEX: (line + 1), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
+        data.deleteoflist(INDEX: (line + 1), field LIST: list("App // Data", "IM@5kK4sMM=*Wu!`#VFF"));
       }
     }
   }

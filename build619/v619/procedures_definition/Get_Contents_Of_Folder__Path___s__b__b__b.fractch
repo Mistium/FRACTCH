@@ -7,9 +7,9 @@
  */
 
 def @Get_Contents_Of_Folder_Path(Path, Show_UUIDS("Show UUIDS"), data_included("data included"), Only_UUIDS("Only UUIDS")) "Get Contents Of Folder (Path) %s %b %b %b" warp=true {
-  mistsutils_patchcommand2(A: "const temp = ", B: @File_get_item(id: (@Find_Directory(Directory: Path) .. ".folder"), item: "4"));
+  mistsutils.patchcommand2(A: "const temp = ", B: @File_get_item(id: (@Find_Directory(Directory: Path) .. ".folder"), item: "4"));
   if Only_UUIDS {
-    return mistsutils_patchreporter(A: "temp");
+    return mistsutils.patchreporter(A: "temp");
   }
   if (Show_UUIDS || data_included) {
     vars["temp2"] = "{}";
@@ -17,17 +17,17 @@ def @Get_Contents_Of_Folder_Path(Path, Show_UUIDS("Show UUIDS"), data_included("
     vars["temp2"] = "[]";
   }
   vars["OSL// Temp5"] = "0";
-  repeat skyhigh173JSON_json_length(json: mistsutils_patchreporter(A: "temp")) {
+  repeat skyhigh173JSON.json_length(json: mistsutils.patchreporter(A: "temp")) {
     vars["OSL// Temp5"] += 1;
-    vars["temp3"] = skyhigh173JSON_json_array_get(item: vars["OSL// Temp5"], json: mistsutils_patchreporter(A: "temp"));
+    vars["temp3"] = skyhigh173JSON.json_array_get(item: vars["OSL// Temp5"], json: mistsutils.patchreporter(A: "temp"));
     vars["temp3"] = (@File_get_item(id: temp3, item: "2") .. @File_get_item(id: temp3, item: "1"));
     if Show_UUIDS {
-      vars["temp2"] = skyhigh173JSON_json_set(item: temp3, json: temp2, value: skyhigh173JSON_json_array_get(item: vars["OSL// Temp5"], json: mistsutils_patchreporter(A: "temp")));
+      vars["temp2"] = skyhigh173JSON.json_set(item: temp3, json: temp2, value: skyhigh173JSON.json_array_get(item: vars["OSL// Temp5"], json: mistsutils.patchreporter(A: "temp")));
     } else {
       if data_included {
-        vars["temp2"] = skyhigh173JSON_json_set(item: temp3, json: temp2, value: @File_get_item(id: skyhigh173JSON_json_array_get(item: vars["OSL// Temp5"], json: mistsutils_patchreporter(A: "temp")), item: "4"));
+        vars["temp2"] = skyhigh173JSON.json_set(item: temp3, json: temp2, value: @File_get_item(id: skyhigh173JSON.json_array_get(item: vars["OSL// Temp5"], json: mistsutils.patchreporter(A: "temp")), item: "4"));
       } else {
-        vars["temp2"] = skyhigh173JSON_json_array_push(item: temp3, json: temp2);
+        vars["temp2"] = skyhigh173JSON.json_array_push(item: temp3, json: temp2);
       }
     }
   }

@@ -6,39 +6,39 @@
  * threadIndex: 77
  */
 
-event_whenflagclicked();
-mistsutils_patchcommand2(A: "let last_5 = ", B: sensing_timer());
-mistsutils_patchcommand(A: "let last_fetch = Date.now()");
+event.whenflagclicked();
+mistsutils.patchcommand2(A: "let last_5 = ", B: sensing.timer());
+mistsutils.patchcommand(A: "let last_fetch = Date.now()");
 forever {
-  mistsutils_patchcommand(A: "try {");
-  mistsutils_patchcommand(A: "if (!origin.fetches) { yield; continue }");
-  mistsutils_patchcommand(A: "const videos = origin.fetches.video");
-  mistsutils_patchcommand(A: "const web = origin.fetches.web");
-  mistsutils_patchcommand(A: "const downloads = origin.fetches.downloads");
-  if mistsutils_patchboolean(A: "videos.length > 0") {
-    mistsutils_patchcommand2(A: "const rand = ", B: operator_random(FROM: 0, TO: mistsutils_patchreporter(A: "videos.length - 1")));
-    mistsutils_patchcommand2(A: "const url = ", B: "videos[rand]");
-    mistsutils_patchcommand(A: "const spl = url.split(\"_\")");
-    lmsVideo_loadVideoURL(URL: mistsutils_patchreporter(A: "isNaN(+spl[0]) ? url : spl.slice(1).join(\"_\")"), NAME: mistsutils_patchreporter(A: "url"));
-    mistsutils_patchcommand(A: "videos.splice(rand, 1)");
+  mistsutils.patchcommand(A: "try {");
+  mistsutils.patchcommand(A: "if (!origin.fetches) { yield; continue }");
+  mistsutils.patchcommand(A: "const videos = origin.fetches.video");
+  mistsutils.patchcommand(A: "const web = origin.fetches.web");
+  mistsutils.patchcommand(A: "const downloads = origin.fetches.downloads");
+  if mistsutils.patchboolean(A: "videos.length > 0") {
+    mistsutils.patchcommand2(A: "const rand = ", B: operator.random(FROM: 0, TO: mistsutils.patchreporter(A: "videos.length - 1")));
+    mistsutils.patchcommand2(A: "const url = ", B: "videos[rand]");
+    mistsutils.patchcommand(A: "const spl = url.split(\"_\")");
+    lmsVideo.loadVideoURL(URL: mistsutils.patchreporter(A: "isNaN(+spl[0]) ? url : spl.slice(1).join(\"_\")"), NAME: mistsutils.patchreporter(A: "url"));
+    mistsutils.patchcommand(A: "videos.splice(rand, 1)");
   }
-  if mistsutils_patchboolean(A: "web.length > 0") {
-    mistsutils_patchcommand2(A: "const rand = ", B: operator_random(FROM: 0, TO: mistsutils_patchreporter(A: "web.length - 1")));
-    mistsutils_patchcommand2(A: "const url = ", B: "web[rand]");
-    mistsutils_patchcommand(A: "downloads.push({url: url, bytes: 0})");
-    mistsutils_patchcommand(A: "web.splice(rand, 1)");
-    mistfetch_deleteRequestById(ID: mistsutils_patchreporter(A: "url"));
-    mistfetch_fetchUrlWithId(method: mistfetch_menu_METHODS(field METHODS: ["GET",null]), URL: mistsutils_patchreporter(A: "url"), ID: mistsutils_patchreporter(A: "url"), headers: "{}", body: "{}");
+  if mistsutils.patchboolean(A: "web.length > 0") {
+    mistsutils.patchcommand2(A: "const rand = ", B: operator.random(FROM: 0, TO: mistsutils.patchreporter(A: "web.length - 1")));
+    mistsutils.patchcommand2(A: "const url = ", B: "web[rand]");
+    mistsutils.patchcommand(A: "downloads.push({url: url, bytes: 0})");
+    mistsutils.patchcommand(A: "web.splice(rand, 1)");
+    mistfetch.deleteRequestById(ID: mistsutils.patchreporter(A: "url"));
+    mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: mistsutils.patchreporter(A: "url"), ID: mistsutils.patchreporter(A: "url"), headers: "{}", body: "{}");
   }
-  mistsutils_patchcommand(A: "} catch(e) { console.error(e) }");
-  if (sensing_timer() > mistsutils_patchreporter(A: "last_5 + 5")) {
-    mistsutils_patchcommand2(A: "last_5 = ", B: sensing_timer());
-    mistsutils_patchcommand(A: "try {");
-    mistsutils_patchcommand(A: "origin.fetches.web = []");
-    if (mistsutils_patchboolean(A: "Date.now() - 3600000 > last_fetch") && skyhigh173JSON_json_is(json: vars["SYSTEM // Time"], types: skyhigh173JSON_menu_types(field types: ["Object",null]))) {
-      mistsutils_patchcommand(A: "last_fetch = Date.now()");
+  mistsutils.patchcommand(A: "} catch(e) { console.error(e) }");
+  if (sensing.timer() > mistsutils.patchreporter(A: "last_5 + 5")) {
+    mistsutils.patchcommand2(A: "last_5 = ", B: sensing.timer());
+    mistsutils.patchcommand(A: "try {");
+    mistsutils.patchcommand(A: "origin.fetches.web = []");
+    if (mistsutils.patchboolean(A: "Date.now() - 3600000 > last_fetch") && skyhigh173JSON.json_is(json: vars["SYSTEM // Time"], types: skyhigh173JSON.menu_types(field types: ["Object",null]))) {
+      mistsutils.patchcommand(A: "last_fetch = Date.now()");
       @Time_Sync_Proxied(Proxy: null);
     }
-    mistsutils_patchcommand(A: "} catch {}");
+    mistsutils.patchcommand(A: "} catch {}");
   }
 }

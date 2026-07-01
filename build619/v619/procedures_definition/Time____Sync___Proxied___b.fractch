@@ -7,6 +7,6 @@
  */
 
 def @Time_Sync_Proxied(Proxy) "Time // Sync | Proxied: %b" warp=false {
-  mistsutils_patchcommand(A: "window.origin.time = {start: Date.now(), proxy: p0}");
-  mistfetch_fetchUrlWithId(method: mistfetch_menu_METHODS(field METHODS: ["GET",null]), URL: (mistsutils_ifthen(A: Proxy, B: "https://apps.mistium.com/cors?url=", C: "") .. "https://api.ipgeolocation.io/timezone?apiKey=3bcc5fda47224a869033f6c5ab64974f"), ID: "systemTime", headers: "{}", body: "{}");
+  mistsutils.patchcommand(A: "window.origin.time = {start: Date.now(), proxy: p0}");
+  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: ["GET",null]), URL: (mistsutils.ifthen(A: Proxy, B: "https://apps.mistium.com/cors?url=", C: "") .. "https://api.ipgeolocation.io/timezone?apiKey=3bcc5fda47224a869033f6c5ab64974f"), ID: "systemTime", headers: "{}", body: "{}");
 }

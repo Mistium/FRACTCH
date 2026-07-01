@@ -6,12 +6,12 @@
  * threadIndex: 195
  */
 
-event_whenflagclicked();
+event.whenflagclicked();
 forever {
-  mistsutils_patchcommand(A: "const tra = window?.origin?.sudoTransmit");
-  mistsutils_patchcommand(A: "if (!tra?.length) { yield; continue }");
-  mistsutils_patchcommand(A: "for (let i = 0; i < tra.length; i ++) {");
-  vars["SYSTEM // Global Message"] = mistsutils_patchreporter(A: "tra.shift().data");
+  mistsutils.patchcommand(A: "const tra = window?.origin?.sudoTransmit");
+  mistsutils.patchcommand(A: "if (!tra?.length) { yield; continue }");
+  mistsutils.patchcommand(A: "for (let i = 0; i < tra.length; i ++) {");
+  vars["SYSTEM // Global Message"] = mistsutils.patchreporter(A: "tra.shift().data");
   broadcast_wait "Send Global Message";
-  mistsutils_patchcommand(A: "}");
+  mistsutils.patchcommand(A: "}");
 }

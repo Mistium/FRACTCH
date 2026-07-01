@@ -7,61 +7,61 @@
  */
 
 def @OSL_Commands_ZIP() "OSL // Commands - ZIP" warp=false {
-  mistsutils_patchcommand2(A: "let destr = ", B: data_itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-  mistsutils_patchcommand2(A: "let destr2 = ", B: data_itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+  mistsutils.patchcommand2(A: "let destr = ", B: data.itemoflist(INDEX: 3, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+  mistsutils.patchcommand2(A: "let destr2 = ", B: data.itemoflist(INDEX: 4, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
   if (vars["OSL // Current Zip Archive"] == "") {
-    if (data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "new") {
-      @VFS_Switch_context(name: (vars["WIndow // ID"] .. mistsutils_patchreporter(A: "\"-\" + destr")));
+    if (data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "new") {
+      @VFS_Switch_context(name: (vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\"-\" + destr")));
     } else {
-      if (data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "open") {
-        @VFS_Switch_context(name: ((vars["WIndow // ID"] .. "-") .. data_itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
-        vfs_importfiles(FILES: mistsutils_patchreporter(A: "String(destr)"), field EXPORT: ["zip",null]);
+      if (data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "open") {
+        @VFS_Switch_context(name: ((vars["WIndow // ID"] .. "-") .. data.itemoflist(INDEX: 5, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+        vfs.importfiles(FILES: mistsutils.patchreporter(A: "String(destr)"), field EXPORT: ["zip",null]);
       } else {
         @Log_Error(Data: "ZIP - Invalid Command While No Directory Is Open", Type: "ZIP");
       }
     }
     stop "this script";
   } else {
-    switch data_itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+    switch data.itemoflist(INDEX: 2, field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
       case "switch" {
         vars["OSL // Current Zip Archive"] = "";
-        @VFS_Switch_context(name: (vars["WIndow // ID"] .. mistsutils_patchreporter(A: "\"-\" + destr")));
+        @VFS_Switch_context(name: (vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\"-\" + destr")));
       }
       case "remove" {
-        mistsutils_patchcommand2(A: "const id = ", B: vars["OSL // Current Zip Archive"]);
-        mistsutils_patchcommand3(A: "delete ", B: vars["OSL // Zip Archives"], C: "[id]");
-        vfs_clearall();
+        mistsutils.patchcommand2(A: "const id = ", B: vars["OSL // Current Zip Archive"]);
+        mistsutils.patchcommand3(A: "delete ", B: vars["OSL // Zip Archives"], C: "[id]");
+        vfs.clearall();
       }
       case "new_directory" {
-        vfs_createDirectory(DIR_PATH: mistsutils_patchreporter(A: "destr"));
+        vfs.createDirectory(DIR_PATH: mistsutils.patchreporter(A: "destr"));
       }
       case "list" {
-        @OSL_Set_Data_Var_To(data: vfs_listDirectory(DIR_PATH: mistsutils_patchreporter(A: "destr")));
+        @OSL_Set_Data_Var_To(data: vfs.listDirectory(DIR_PATH: mistsutils.patchreporter(A: "destr")));
       }
       case "write" {
-        vfs_createFile(FILE_PATH: mistsutils_patchreporter(A: "destr"));
-        vfs_writeFile(CONTENT: mistsutils_patchreporter(A: "destr2"), FILE_PATH: mistsutils_patchreporter(A: "destr"));
+        vfs.createFile(FILE_PATH: mistsutils.patchreporter(A: "destr"));
+        vfs.writeFile(CONTENT: mistsutils.patchreporter(A: "destr2"), FILE_PATH: mistsutils.patchreporter(A: "destr"));
       }
       case "rename" {
-        vfs_moveFile(FILE_PATH: mistsutils_patchreporter(A: "destr"), NEW_FILE_PATH: mistsutils_patchreporter(A: "destr2"));
+        vfs.moveFile(FILE_PATH: mistsutils.patchreporter(A: "destr"), NEW_FILE_PATH: mistsutils.patchreporter(A: "destr2"));
       }
       case "copy" {
-        vfs_copyFile(FILE_PATH: mistsutils_patchreporter(A: "destr"), NEW_FILE_PATH: mistsutils_patchreporter(A: "destr2"));
+        vfs.copyFile(FILE_PATH: mistsutils.patchreporter(A: "destr"), NEW_FILE_PATH: mistsutils.patchreporter(A: "destr2"));
       }
       case "read" {
-        @OSL_Set_Data_Var_To(data: vfs_readFile(FILE_PATH: mistsutils_patchreporter(A: "destr")));
+        @OSL_Set_Data_Var_To(data: vfs.readFile(FILE_PATH: mistsutils.patchreporter(A: "destr")));
       }
       case "delete" {
-        vfs_deleteFile(FILE_PATH: mistsutils_patchreporter(A: "destr"));
+        vfs.deleteFile(FILE_PATH: mistsutils.patchreporter(A: "destr"));
       }
       case "export_json" {
-        @OSL_Set_Data_Var_To(data: vfs_getallfiles(field EXPORT: ["json",null]));
+        @OSL_Set_Data_Var_To(data: vfs.getallfiles(field EXPORT: ["json",null]));
       }
       case "export_zip" {
-        @OSL_Set_Data_Var_To(data: vfs_getallfiles(field EXPORT: ["zip",null]));
+        @OSL_Set_Data_Var_To(data: vfs.getallfiles(field EXPORT: ["zip",null]));
       }
       default {
-        @Log_Error(Data: mistsutils_patchreporter(A: "`Unknown ZIP command: ${p0}`"), Type: "Unknown Command");
+        @Log_Error(Data: mistsutils.patchreporter(A: "`Unknown ZIP command: ${p0}`"), Type: "Unknown Command");
       }
     }
   }

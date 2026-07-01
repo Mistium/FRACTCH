@@ -7,10 +7,10 @@
  */
 
 def @Files_Set_ID_To_Path(ID, Path) "Files // Set ID %s To Path %s" warp=false {
-  mistsutils_patchcommand(A: "const paths = window?.files?.paths");
-  mistsutils_patchcommand(A: "const path = (\"\"+p1).toLowerCase()");
-  mistsutils_patchcommand2(A: "const oldPath = ", B: data_itemoflist(INDEX: ID, field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")));
-  mistsutils_patchcommand(A: "delete paths[oldPath]");
-  data_replaceitemoflist(INDEX: ID, ITEM: Path, field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-  mistsutils_patchcommand(A: "paths[path] = p0");
+  mistsutils.patchcommand(A: "const paths = window?.files?.paths");
+  mistsutils.patchcommand(A: "const path = (\"\"+p1).toLowerCase()");
+  mistsutils.patchcommand2(A: "const oldPath = ", B: data.itemoflist(INDEX: ID, field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")));
+  mistsutils.patchcommand(A: "delete paths[oldPath]");
+  data.replaceitemoflist(INDEX: ID, ITEM: Path, field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+  mistsutils.patchcommand(A: "paths[path] = p0");
 }

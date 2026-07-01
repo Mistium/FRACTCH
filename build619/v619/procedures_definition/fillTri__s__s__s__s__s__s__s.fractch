@@ -13,44 +13,44 @@ def @fillTri(a, b, c, d, e, f, r) "fillTri %s %s %s %s %s %s %s" warp=true {
   vars["_tri1"] = ((_tri2 + (_tri3 + _tri4)) / 2);
   vars["_tri0"] = (2 * sqrt((((_tri1 - _tri2) * ((_tri1 - _tri3) * (_tri1 - _tri4))) / _tri1)));
   vars["_tri1"] += _tri1;
-  motion_gotoxy(X: ((((_tri2 * a) + (_tri3 * c)) + (_tri4 * e)) / _tri1), Y: ((((_tri2 * b) + (_tri3 * d)) + (_tri4 * f)) / _tri1));
-  pen_setPenSizeTo(SIZE: _tri0);
-  pen_penDown();
+  motion.gotoxy(X: ((((_tri2 * a) + (_tri3 * c)) + (_tri4 * e)) / _tri1), Y: ((((_tri2 * b) + (_tri3 * d)) + (_tri4 * f)) / _tri1));
+  pen.setPenSizeTo(SIZE: _tri0);
+  pen.penDown();
   if (_tri0 > "0") {
     if ((_tri3 < _tri2) || (_tri4 < _tri2)) {
       if (_tri4 < _tri3) {
-        vars["_tri1"] = (motion_xposition() - e);
-        vars["_tri2"] = (motion_yposition() - f);
+        vars["_tri1"] = (motion.xposition() - e);
+        vars["_tri2"] = (motion.yposition() - f);
       } else {
-        vars["_tri1"] = (motion_xposition() - c);
-        vars["_tri2"] = (motion_yposition() - d);
+        vars["_tri1"] = (motion.xposition() - c);
+        vars["_tri2"] = (motion.yposition() - d);
       }
     } else {
-      vars["_tri1"] = (motion_xposition() - a);
-      vars["_tri2"] = (motion_yposition() - b);
+      vars["_tri1"] = (motion.xposition() - a);
+      vars["_tri2"] = (motion.yposition() - b);
     }
     vars["_tri1"] = (sqrt(((_tri1 * _tri1) + (_tri2 * _tri2))) / (_tri0 / 2));
-    mistsutils_patchcommand2(A: "const tri8 = ", B: (((_tri1 * mistsutils_min(A: r, B: 0)) / (_tri1 - 1)) + .25));
-    vars["_tri1"] = mistsutils_patchreporter2(A: ".5 - .5 / ", B: _tri1);
-    vars["_tri2"] = ((motion_xposition() - a) / _tri0);
-    vars["_tri3"] = ((motion_yposition() - b) / _tri0);
-    vars["_tri4"] = ((motion_xposition() - c) / _tri0);
-    vars["_tri5"] = ((motion_yposition() - d) / _tri0);
-    vars["_tri6"] = ((motion_xposition() - e) / _tri0);
-    vars["_tri7"] = ((motion_yposition() - f) / _tri0);
-    mistsutils_patchcommand3(A: "while (!", B: (_tri0 < mistsutils_patchreporter(A: "tri8")), C: ") {");
+    mistsutils.patchcommand2(A: "const tri8 = ", B: (((_tri1 * mistsutils.min(A: r, B: 0)) / (_tri1 - 1)) + .25));
+    vars["_tri1"] = mistsutils.patchreporter2(A: ".5 - .5 / ", B: _tri1);
+    vars["_tri2"] = ((motion.xposition() - a) / _tri0);
+    vars["_tri3"] = ((motion.yposition() - b) / _tri0);
+    vars["_tri4"] = ((motion.xposition() - c) / _tri0);
+    vars["_tri5"] = ((motion.yposition() - d) / _tri0);
+    vars["_tri6"] = ((motion.xposition() - e) / _tri0);
+    vars["_tri7"] = ((motion.yposition() - f) / _tri0);
+    mistsutils.patchcommand3(A: "while (!", B: (_tri0 < mistsutils.patchreporter(A: "tri8")), C: ") {");
     vars["_tri0"] = (_tri1 * _tri0);
-    pen_setPenSizeTo(SIZE: (_tri0 + .5));
-    motion_gotoxy(X: (a + (_tri0 * _tri2)), Y: (b + (_tri0 * _tri3)));
-    motion_gotoxy(X: (c + (_tri0 * _tri4)), Y: (d + (_tri0 * _tri5)));
-    motion_gotoxy(X: (e + (_tri0 * _tri6)), Y: (f + (_tri0 * _tri7)));
-    motion_gotoxy(X: (a + (_tri0 * _tri2)), Y: (b + (_tri0 * _tri3)));
-    mistsutils_patchcommand(A: "}");
+    pen.setPenSizeTo(SIZE: (_tri0 + .5));
+    motion.gotoxy(X: (a + (_tri0 * _tri2)), Y: (b + (_tri0 * _tri3)));
+    motion.gotoxy(X: (c + (_tri0 * _tri4)), Y: (d + (_tri0 * _tri5)));
+    motion.gotoxy(X: (e + (_tri0 * _tri6)), Y: (f + (_tri0 * _tri7)));
+    motion.gotoxy(X: (a + (_tri0 * _tri2)), Y: (b + (_tri0 * _tri3)));
+    mistsutils.patchcommand(A: "}");
   }
-  pen_setPenSizeTo(SIZE: r);
-  motion_gotoxy(X: a, Y: b);
-  motion_gotoxy(X: c, Y: d);
-  motion_gotoxy(X: e, Y: f);
-  motion_gotoxy(X: a, Y: b);
-  pen_penUp();
+  pen.setPenSizeTo(SIZE: r);
+  motion.gotoxy(X: a, Y: b);
+  motion.gotoxy(X: c, Y: d);
+  motion.gotoxy(X: e, Y: f);
+  motion.gotoxy(X: a, Y: b);
+  pen.penUp();
 }

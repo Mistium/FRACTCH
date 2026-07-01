@@ -7,44 +7,44 @@
  */
 
 def @originFS_Handle_network_updates() "originFS // Handle network updates" warp=true {
-  mistsutils_patchcommand(A: "let val =  \"\"");
-  mistsutils_patchcommand(A: "let id = randomString(32)");
-  mistsutils_patchcommand(A: "const mount_points = window.origin.files.mount_points");
-  mistsutils_patchcommand(A: "let updates = origin.network.updates");
-  mistsutils_patchcommand(A: "let file_updates = {norm: []}");
-  mistsutils_patchcommand(A: "for (let i = 0; i < updates.length; i ++) {");
-  mistsutils_patchcommand(A: "updates[i] = JSON.parse(updates[i])");
-  mistsutils_patchcommand2(A: "const id = ", B: @originFS_UUID_ID(UUID: mistsutils_patchreporter(A: "updates[i].uuid")));
-  mistsutils_patchcommand2(A: "const path = ", B: data_itemoflist(INDEX: @file_item_of_num(index: mistsutils_patchreporter(A: "id"), num: "3"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
-  mistsutils_patchcommand2(A: "const mount = ", B: @originFS_Get_mount_url_for_path(path: mistsutils_patchreporter(A: "path")));
-  mistsutils_patchcommand(A: "if (mount === \"\") { file_updates.norm.push(updates[i]); continue }");
-  mistsutils_patchcommand(A: "file_updates[mount.url] ??= []");
-  switch mistsutils_patchreporter(A: "updates[i].command") {
+  mistsutils.patchcommand(A: "let val =  \"\"");
+  mistsutils.patchcommand(A: "let id = randomString(32)");
+  mistsutils.patchcommand(A: "const mount_points = window.origin.files.mount_points");
+  mistsutils.patchcommand(A: "let updates = origin.network.updates");
+  mistsutils.patchcommand(A: "let file_updates = {norm: []}");
+  mistsutils.patchcommand(A: "for (let i = 0; i < updates.length; i ++) {");
+  mistsutils.patchcommand(A: "updates[i] = JSON.parse(updates[i])");
+  mistsutils.patchcommand2(A: "const id = ", B: @originFS_UUID_ID(UUID: mistsutils.patchreporter(A: "updates[i].uuid")));
+  mistsutils.patchcommand2(A: "const path = ", B: data.itemoflist(INDEX: @file_item_of_num(index: mistsutils.patchreporter(A: "id"), num: "3"), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")));
+  mistsutils.patchcommand2(A: "const mount = ", B: @originFS_Get_mount_url_for_path(path: mistsutils.patchreporter(A: "path")));
+  mistsutils.patchcommand(A: "if (mount === \"\") { file_updates.norm.push(updates[i]); continue }");
+  mistsutils.patchcommand(A: "file_updates[mount.url] ??= []");
+  switch mistsutils.patchreporter(A: "updates[i].command") {
     case "UUIDa" {
-      mistsutils_patchcommand(A: "updates[i].dta[2] = updates[i].dta[2].replace(mount.path.slice(0, -1), \"\")");
+      mistsutils.patchcommand(A: "updates[i].dta[2] = updates[i].dta[2].replace(mount.path.slice(0, -1), \"\")");
     }
   }
-  mistsutils_patchcommand(A: "file_updates[mount.url].push(updates[i])");
-  mistsutils_patchcommand(A: "}");
-  if mistsutils_patchboolean(A: "file_updates.norm.length > 0") {
-    mistsutils_patchcommand2(A: "const base = ", B: mistsutils_jsonparse(A: vars["Server// Base Payload"]));
-    mistsutils_patchcommand(A: "const data_len = file_updates.norm.join(\",\").length");
-    mistsutils_patchcommand(A: "base.type = \"norm\"");
-    mistsutils_patchcommand(A: "base.payload = file_updates.norm");
-    mistsutils_patchcommand(A: "base.offset = \"UUID\"");
-    mistsutils_patchcommand(A: "base.source = 0");
-    mistsutils_patchcommand(A: "base.command = \"Update_Files\"");
-    vars["Network // Upload"] += mistsutils_patchreporter(A: "data_len");
-    mistsutils_patchcommand(A: "origin.sendUpdates(file_updates.norm)");
+  mistsutils.patchcommand(A: "file_updates[mount.url].push(updates[i])");
+  mistsutils.patchcommand(A: "}");
+  if mistsutils.patchboolean(A: "file_updates.norm.length > 0") {
+    mistsutils.patchcommand2(A: "const base = ", B: mistsutils.jsonparse(A: vars["Server// Base Payload"]));
+    mistsutils.patchcommand(A: "const data_len = file_updates.norm.join(\",\").length");
+    mistsutils.patchcommand(A: "base.type = \"norm\"");
+    mistsutils.patchcommand(A: "base.payload = file_updates.norm");
+    mistsutils.patchcommand(A: "base.offset = \"UUID\"");
+    mistsutils.patchcommand(A: "base.source = 0");
+    mistsutils.patchcommand(A: "base.command = \"Update_Files\"");
+    vars["Network // Upload"] += mistsutils.patchreporter(A: "data_len");
+    mistsutils.patchcommand(A: "origin.sendUpdates(file_updates.norm)");
   }
-  mistsutils_patchcommand(A: "const mounts = Object.keys(file_updates)");
-  mistsutils_patchcommand(A: "for (let i = 0; i < mounts.length; i ++) {");
-  mistsutils_patchcommand(A: "if (mounts[i] === \"norm\") continue");
-  mistsutils_patchcommand(A: "const data = JSON.stringify(file_updates[mounts[i]])");
-  vars["Network // Upload"] += mistsutils_patchreporter(A: "data.length");
-  mistsutils_patchcommand2(A: "void ", B: cloudlink_requestURL(method: "POST", url: mistsutils_patchreporter(A: "mounts[i]"), data: mistsutils_patchreporter(A: "data"), headers: "{\"content-type\":\"application/json\"}"));
-  mistsutils_patchcommand(A: "file_updates[mounts[i]] = undefined");
-  mistsutils_patchcommand(A: "}");
-  mistsutils_patchcommand(A: "origin.network.updates = []");
-  mistsutils_patchcommand(A: "origin.network.update_ids = []");
+  mistsutils.patchcommand(A: "const mounts = Object.keys(file_updates)");
+  mistsutils.patchcommand(A: "for (let i = 0; i < mounts.length; i ++) {");
+  mistsutils.patchcommand(A: "if (mounts[i] === \"norm\") continue");
+  mistsutils.patchcommand(A: "const data = JSON.stringify(file_updates[mounts[i]])");
+  vars["Network // Upload"] += mistsutils.patchreporter(A: "data.length");
+  mistsutils.patchcommand2(A: "void ", B: cloudlink.requestURL(method: "POST", url: mistsutils.patchreporter(A: "mounts[i]"), data: mistsutils.patchreporter(A: "data"), headers: "{\"content-type\":\"application/json\"}"));
+  mistsutils.patchcommand(A: "file_updates[mounts[i]] = undefined");
+  mistsutils.patchcommand(A: "}");
+  mistsutils.patchcommand(A: "origin.network.updates = []");
+  mistsutils.patchcommand(A: "origin.network.update_ids = []");
 }

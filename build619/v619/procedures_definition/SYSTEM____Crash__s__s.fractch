@@ -10,13 +10,13 @@ import "../procedures_definition/Renderer____Clear_Screen_With_Colour__s.fractch
 import "../procedures_definition/___Draw_Text__s__s__s__s__s.fractch";
 def @SYSTEM_Crash(message, stack) "SYSTEM // Crash %s %s" warp=false {
   stop "other scripts in sprite";
-  theshovelcanvaseffects_cleareffects();
-  mistsutils_patchcommand3(A: "console.error(", B: message, C: ")");
-  pen_clear();
+  theshovelcanvaseffects.cleareffects();
+  mistsutils.patchcommand3(A: "console.error(", B: message, C: ")");
+  pen.clear();
   @Renderer_Clear_Screen_With_Colour(colour: "#00f");
-  pen_setPenColorToColor(COLOR: "#ffffff");
+  pen.setPenColorToColor(COLOR: "#ffffff");
   vars["Text // Line Spacing"] = "2";
-  mistsutils_patchcommand2(A: "const w = ", B: ((mistsutils_stagewidth() / 10) - 10));
-  @Draw_Text(Text: mistsutils_patchreporter(A: "window.wordWrap(p1,w)"), X: (vars["Screen Size X"] / -2), Y: ((vars["Screen Size Y"] / 2) - 10), Size: "10", Markdown_Enabled: "");
+  mistsutils.patchcommand2(A: "const w = ", B: ((mistsutils.stagewidth() / 10) - 10));
+  @Draw_Text(Text: mistsutils.patchreporter(A: "window.wordWrap(p1,w)"), X: (vars["Screen Size X"] / -2), Y: ((vars["Screen Size Y"] / 2) - 10), Size: "10", Markdown_Enabled: "");
   stop "all";
 }

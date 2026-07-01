@@ -7,5 +7,5 @@
  */
 
 def @Root_Permissions() "Root Permissions" warp=false {
-  return mistsutils_patchreporter3(A: "Object.keys(", B: vars["SYSTEM // Permission Info"], C: ")");
+  return mistsutils.patchreporter3(A: "Object.keys(", B: vars["SYSTEM // Permission Info"], C: ")");
 }

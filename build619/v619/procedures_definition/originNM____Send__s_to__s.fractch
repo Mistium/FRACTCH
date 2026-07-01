@@ -7,8 +7,8 @@
  */
 
 def @originNM_Send_to(data, username) "originNM // Send %s to %s" warp=true {
-  mistsutils_patchcommand(A: "try { const obj = JSON.parse(p0); obj.timestamp = Date.now(); const obj2 = JSON.stringify(obj)");
-  vars["Network // Upload"] += mistsutils_patchreporter(A: "obj2.length");
-  cloudlink_sendPData(DATA: mistsutils_patchreporter(A: "obj2"), ID: username);
-  mistsutils_patchcommand(A: "} catch(e) {console.error(\"Network Send\", e)}");
+  mistsutils.patchcommand(A: "try { const obj = JSON.parse(p0); obj.timestamp = Date.now(); const obj2 = JSON.stringify(obj)");
+  vars["Network // Upload"] += mistsutils.patchreporter(A: "obj2.length");
+  cloudlink.sendPData(DATA: mistsutils.patchreporter(A: "obj2"), ID: username);
+  mistsutils.patchcommand(A: "} catch(e) {console.error(\"Network Send\", e)}");
 }

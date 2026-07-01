@@ -7,10 +7,10 @@
  */
 
 def @OSL_Load_Permissions() "OSL // Load Permissions" warp=false {
-  mistsutils_patchcommand3(A: "const perms = origin.permissions.getPermissions(", B: vars["Window // UUID"], C: ")");
-  mistsutils_patchcommand2(A: vars["OSL // Perms"], B: " = perms");
-  if (((vars["Network // Files Update Offset"] / 14) > vars["Window // File ID"]) || mistsutils_starts(A: mistsutils_patchreporter(A: "String(target.window?.my_path ?? \"\")"), B: @Find_Directory(Directory: "user/applications"))) {
-    mistsutils_patchcommand3(A: vars["OSL // Perms"], B: " = ", C: @Root_Permissions());
+  mistsutils.patchcommand3(A: "const perms = origin.permissions.getPermissions(", B: vars["Window // UUID"], C: ")");
+  mistsutils.patchcommand2(A: vars["OSL // Perms"], B: " = perms");
+  if (((vars["Network // Files Update Offset"] / 14) > vars["Window // File ID"]) || mistsutils.starts(A: mistsutils.patchreporter(A: "String(target.window?.my_path ?? \"\")"), B: @Find_Directory(Directory: "user/applications"))) {
+    mistsutils.patchcommand3(A: vars["OSL // Perms"], B: " = ", C: @Root_Permissions());
   }
-  mistsutils_patchcommand3(A: vars["OSL // Window"], B: ".permissions = ", C: vars["OSL // Perms"]);
+  mistsutils.patchcommand3(A: vars["OSL // Window"], B: ".permissions = ", C: vars["OSL // Perms"]);
 }

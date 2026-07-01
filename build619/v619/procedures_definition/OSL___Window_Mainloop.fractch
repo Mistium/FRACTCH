@@ -10,46 +10,46 @@ import "../procedures_definition/OSL____Load_Permissions.fractch";
 import "../procedures_definition/set_stretch_to_x___s_y___s.fractch";
 import "../procedures_definition/OSL____Execute_top_level__s.fractch";
 def @OSL_Window_Mainloop() "OSL// Window Mainloop" warp=true {
-  mistsutils_patchcommand(A: "const transmit = target.transmit");
-  mistsutils_patchcommand(A: "try {");
-  if (mistsutils_patchboolean(A: "transmit.length > 0") && (@OSL_Vars_Get(Varname: "new_transmit") == "false")) {
-    mistsutils_patchcommand(A: "const packet = transmit.pop()");
-    mistsutils_patchcommand(A: "const source = packet.source");
-    if mistsutils_patchboolean(A: "packet.type === \"system\"") {
-      if mistsutils_patchboolean(A: "packet.data === \"closed\"") {
-        mistsutils_patchcommand(A: "target.window.children = target.window.children.filter(v => v !== source)");
+  mistsutils.patchcommand(A: "const transmit = target.transmit");
+  mistsutils.patchcommand(A: "try {");
+  if (mistsutils.patchboolean(A: "transmit.length > 0") && (@OSL_Vars_Get(Varname: "new_transmit") == "false")) {
+    mistsutils.patchcommand(A: "const packet = transmit.pop()");
+    mistsutils.patchcommand(A: "const source = packet.source");
+    if mistsutils.patchboolean(A: "packet.type === \"system\"") {
+      if mistsutils.patchboolean(A: "packet.data === \"closed\"") {
+        mistsutils.patchcommand(A: "target.window.children = target.window.children.filter(v => v !== source)");
       }
     } else {
       @OSL_Vars_Set(name: "new_transmit", data: "true", current_command: "");
-      @OSL_Vars_Set(name: "transmit_data", data: mistsutils_patchreporter(A: "packet.data"), current_command: "");
-      @OSL_Vars_Set(name: "transmit_source", data: mistsutils_patchreporter(A: "source"), current_command: "");
-      @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "`window.emit(\"transmit\", ${JSON.stringify(packet)})`"));
+      @OSL_Vars_Set(name: "transmit_data", data: mistsutils.patchreporter(A: "packet.data"), current_command: "");
+      @OSL_Vars_Set(name: "transmit_source", data: mistsutils.patchreporter(A: "source"), current_command: "");
+      @OSL_Parse_and_Run(Run: mistsutils.patchreporter(A: "`window.emit(\"transmit\", ${JSON.stringify(packet)})`"));
     }
   }
-  mistsutils_patchcommand(A: "} catch(e) { console.warn(e) }");
-  mistsutils_patchcommand3(A: "const received = origin.windows.received[", B: vars["Window // ID_Index"], C: "-1]");
-  mistsutils_patchcommand(A: "try {");
-  if (mistsutils_patchboolean(A: "received.length > 0") && (@OSL_Vars_Get(Varname: "new_network_data") == "false")) {
-    mistsutils_patchcommand2(A: "let packet = ", B: mistsutils_jsonparse(A: mistsutils_patchreporter(A: "received.shift()")));
+  mistsutils.patchcommand(A: "} catch(e) { console.warn(e) }");
+  mistsutils.patchcommand3(A: "const received = origin.windows.received[", B: vars["Window // ID_Index"], C: "-1]");
+  mistsutils.patchcommand(A: "try {");
+  if (mistsutils.patchboolean(A: "received.length > 0") && (@OSL_Vars_Get(Varname: "new_network_data") == "false")) {
+    mistsutils.patchcommand2(A: "let packet = ", B: mistsutils.jsonparse(A: mistsutils.patchreporter(A: "received.shift()")));
     @OSL_Vars_Set(name: "new_network_data", data: "true", current_command: "");
-    @OSL_Vars_Set(name: "packet", data: mistsutils_patchreporter(A: "packet"), current_command: "");
-    @OSL_Vars_Set(name: "network_data", data: mistsutils_patchreporter(A: "packet.data"), current_command: "");
-    @OSL_Vars_Set(name: "network_data_source", data: mistsutils_patchreporter(A: "packet.source"), current_command: "");
-    @OSL_Vars_Set(name: "network_data_from", data: mistsutils_patchreporter(A: "packet.username"), current_command: "");
-    @OSL_Vars_Set(name: "network_data_command", data: mistsutils_patchreporter(A: "packet.source_command"), current_command: "");
-    @OSL_Vars_Set(name: "network_data_client", data: mistsutils_patchreporter(A: "packet.client"), current_command: "");
-    @OSL_Parse_and_Run(Run: mistsutils_patchreporter(A: "`window.emit(\"packet\",${packet})`"));
+    @OSL_Vars_Set(name: "packet", data: mistsutils.patchreporter(A: "packet"), current_command: "");
+    @OSL_Vars_Set(name: "network_data", data: mistsutils.patchreporter(A: "packet.data"), current_command: "");
+    @OSL_Vars_Set(name: "network_data_source", data: mistsutils.patchreporter(A: "packet.source"), current_command: "");
+    @OSL_Vars_Set(name: "network_data_from", data: mistsutils.patchreporter(A: "packet.username"), current_command: "");
+    @OSL_Vars_Set(name: "network_data_command", data: mistsutils.patchreporter(A: "packet.source_command"), current_command: "");
+    @OSL_Vars_Set(name: "network_data_client", data: mistsutils.patchreporter(A: "packet.client"), current_command: "");
+    @OSL_Parse_and_Run(Run: mistsutils.patchreporter(A: "`window.emit(\"packet\",${packet})`"));
   }
-  mistsutils_patchcommand(A: "} catch(e) { console.warn(e) }");
+  mistsutils.patchcommand(A: "} catch(e) { console.warn(e) }");
   vars["OSL // Tooltip"] = "";
   @OSL_Load_Permissions();
   if (vars["Window // Interactable?"] == "true") {
     @OSL_Vars_Set(name: "selected_input", data: "unselected", current_command: "");
   }
-  motion_gotoxy(X: vars["Frame // X"], Y: vars["Frame // Y"]);
+  motion.gotoxy(X: vars["Frame // X"], Y: vars["Frame // Y"]);
   @set_stretch_to_x_y(x: "100", y: "100");
   vars["Renderer // Scale"] = "1";
   vars["IMPORT // Name"] = "Main.Process";
   vars["Import // Current Package"] = "";
-  @OSL_Execute_top_level(commands: mistsutils_patchreporter(A: "target.window.ast.main"));
+  @OSL_Execute_top_level(commands: mistsutils.patchreporter(A: "target.window.ast.main"));
 }

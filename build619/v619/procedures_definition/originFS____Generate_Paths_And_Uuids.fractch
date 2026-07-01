@@ -8,16 +8,16 @@
 
 import "../procedures_definition/originFS____Generate_window_origin_index.fractch";
 def @originFS_Generate_Paths_And_Uuids() "originFS // Generate Paths And Uuids" warp=true {
-  data_deletealloflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-  data_deletealloflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+  data.deletealloflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+  data.deletealloflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
   vars["//return"] = ((vars["AODP File"] * -1) + 3);
-  data_addtolist(ITEM: "origin.folder", field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-  data_addtolist(ITEM: data_itemoflist(INDEX: 14, field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+  data.addtolist(ITEM: "origin.folder", field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+  data.addtolist(ITEM: data.itemoflist(INDEX: 14, field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
   vars["//return"] += vars["AODP File"];
-  repeat ((data_lengthoflist(field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")) / vars["AODP File"]) - 1) {
+  repeat ((data.lengthoflist(field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")) / vars["AODP File"]) - 1) {
     vars["//return"] += vars["AODP File"];
-    data_addtolist(ITEM: @originFS_ID_Path(id: (data_lengthoflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) + 1)), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-    data_addtolist(ITEM: data_itemoflist(INDEX: (vars["//return"] + 11), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+    data.addtolist(ITEM: @originFS_ID_Path(id: (data.lengthoflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) + 1)), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+    data.addtolist(ITEM: data.itemoflist(INDEX: (vars["//return"] + 11), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
   }
   @originFS_Generate_window_origin_index();
 }

@@ -7,106 +7,106 @@
  */
 
 def @OSL_Parse_and_Run(Run) "OSL // Parse and Run %s" warp=false {
-  mistsutils_patchcommand(A: "if (!p0) return;");
-  mistsutils_patchcommand(A: "// origin.renderer.frame.push(p0)");
-  mistsutils_patchcommand2(A: "// ", B: @Evaluate_OSL_Token(Token_Obj: ""));
-  mistsutils_patchcommand2(A: "// ", B: data_lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
-  mistsutils_patchcommand(A: "thread.evalToken = thread.procedures[\"WEvaluate OSL Token %s\"];");
-  mistsutils_patchcommand3(A: "if (typeof p0 === \"string\") { const cac = origin.osl_ast_cache; if (cac.has(p0)) p0 = cac.get(p0); else { const k = p0; p0 = ", B: OSLUtils_generateFullAST(CODE: Run), C: "[0]; cac.set(k, p0) } }");
-  mistsutils_patchcommand(A: "const token_ast = p0;");
-  mistsutils_patchcommand(A: "window.osl_current_command = p0;");
-  mistsutils_patchcommand(A: "if ((token_ast?.length || 0) === 0) return;");
-  mistsutils_patchcommand(A: "const first = token_ast[0]");
-  mistsutils_patchcommand(A: "const type = first.num;");
-  mistsutils_patchcommand(A: "if (type === osl_tkn.asi) {");
-  mistsutils_patchcommand2(A: "const node =", B: "first");
-  mistsutils_patchcommand3(A: "const value = !node.right ? null : (node.right.staticAssignment === true ? node.right.data : (", B: @Evaluate_OSL_Token(Token_Obj: mistsutils_patchreporter(A: "node.right")), C: "))");
-  mistsutils_patchcommand(A: "let type = node.set_type ?? null");
-  mistsutils_patchcommand(A: "let obj = {}");
-  mistsutils_patchcommand(A: "const node_type = node.left.num");
-  mistsutils_patchcommand(A: "let name, id, end;");
-  if mistsutils_patchboolean(A: "node_type === osl_tkn.rmt || node_type === osl_tkn.mtd") {
-    mistsutils_patchcommand(A: "let values = node.left.objPath");
-    mistsutils_patchcommand(A: "end = node.left.final");
-    mistsutils_patchcommand(A: "if (end === undefined) { values = node.left.data.slice(); end = values.pop(); if (end === undefined) return }");
-    mistsutils_patchcommand(A: "node.__ASI_TEMP__ ??= { num: osl_tkn.mtd, type: \"mtd\", data: values, source: node.source }");
-    mistsutils_patchcommand2(A: "obj = ", B: @Evaluate_OSL_Token(Token_Obj: mistsutils_patchreporter(A: "values.length === 1 ? values[0] : node.__ASI_TEMP__")));
-    mistsutils_patchcommand(A: "obj ??= {}");
-    if mistsutils_patchboolean(A: "end.type === \"mtv\" && end.parameters !== undefined") {
-      switch mistsutils_patchreporter(A: "end.data") {
+  mistsutils.patchcommand(A: "if (!p0) return;");
+  mistsutils.patchcommand(A: "// origin.renderer.frame.push(p0)");
+  mistsutils.patchcommand2(A: "// ", B: @Evaluate_OSL_Token(Token_Obj: ""));
+  mistsutils.patchcommand2(A: "// ", B: data.lengthoflist(field LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+  mistsutils.patchcommand(A: "thread.evalToken = thread.procedures[\"WEvaluate OSL Token %s\"];");
+  mistsutils.patchcommand3(A: "if (typeof p0 === \"string\") { const cac = origin.osl_ast_cache; if (cac.has(p0)) p0 = cac.get(p0); else { const k = p0; p0 = ", B: OSLUtils.generateFullAST(CODE: Run), C: "[0]; cac.set(k, p0) } }");
+  mistsutils.patchcommand(A: "const token_ast = p0;");
+  mistsutils.patchcommand(A: "window.osl_current_command = p0;");
+  mistsutils.patchcommand(A: "if ((token_ast?.length || 0) === 0) return;");
+  mistsutils.patchcommand(A: "const first = token_ast[0]");
+  mistsutils.patchcommand(A: "const type = first.num;");
+  mistsutils.patchcommand(A: "if (type === osl_tkn.asi) {");
+  mistsutils.patchcommand2(A: "const node =", B: "first");
+  mistsutils.patchcommand3(A: "const value = !node.right ? null : (node.right.staticAssignment === true ? node.right.data : (", B: @Evaluate_OSL_Token(Token_Obj: mistsutils.patchreporter(A: "node.right")), C: "))");
+  mistsutils.patchcommand(A: "let type = node.set_type ?? null");
+  mistsutils.patchcommand(A: "let obj = {}");
+  mistsutils.patchcommand(A: "const node_type = node.left.num");
+  mistsutils.patchcommand(A: "let name, id, end;");
+  if mistsutils.patchboolean(A: "node_type === osl_tkn.rmt || node_type === osl_tkn.mtd") {
+    mistsutils.patchcommand(A: "let values = node.left.objPath");
+    mistsutils.patchcommand(A: "end = node.left.final");
+    mistsutils.patchcommand(A: "if (end === undefined) { values = node.left.data.slice(); end = values.pop(); if (end === undefined) return }");
+    mistsutils.patchcommand(A: "node.__ASI_TEMP__ ??= { num: osl_tkn.mtd, type: \"mtd\", data: values, source: node.source }");
+    mistsutils.patchcommand2(A: "obj = ", B: @Evaluate_OSL_Token(Token_Obj: mistsutils.patchreporter(A: "values.length === 1 ? values[0] : node.__ASI_TEMP__")));
+    mistsutils.patchcommand(A: "obj ??= {}");
+    if mistsutils.patchboolean(A: "end.type === \"mtv\" && end.parameters !== undefined") {
+      switch mistsutils.patchreporter(A: "end.data") {
         case "item" {
-          mistsutils_patchcommand2(A: "name = ", B: @Evaluate_OSL_Token(Token_Obj: mistsutils_patchreporter(A: "end.parameters[0]")));
+          mistsutils.patchcommand2(A: "name = ", B: @Evaluate_OSL_Token(Token_Obj: mistsutils.patchreporter(A: "end.parameters[0]")));
         }
         default {
-          @Log_Error(Data: mistsutils_patchreporter(A: "`Cannot use \"${end.data}\" as a final assignment method`"), Type: "Variable");
+          @Log_Error(Data: mistsutils.patchreporter(A: "`Cannot use \"${end.data}\" as a final assignment method`"), Type: "Variable");
         }
       }
     } else {
-      mistsutils_patchcommand(A: "name = end.data");
+      mistsutils.patchcommand(A: "name = end.data");
     }
-    if mistsutils_patchboolean(A: "obj === target.osl_this") {
-      mistsutils_patchcommand(A: "name = target.getThisIdx(target, name)");
+    if mistsutils.patchboolean(A: "obj === target.osl_this") {
+      mistsutils.patchcommand(A: "name = target.getThisIdx(target, name)");
     } else {
-      mistsutils_patchcommand3(A: "if (Array.isArray(", B: "obj", C: ")) {");
-      mistsutils_patchcommand2(A: "const ori = ", B: "name");
-      mistsutils_patchcommand(A: "name |= 0");
-      mistsutils_patchcommand(A: "name -= 1");
-      mistsutils_patchcommand(A: "if (name === -1) { if (typeof ori === \"string\")");
-      @Log_Error(Data: mistsutils_patchreporter(A: "`Tried to set \"${ori}\" (a ${typeof ori}) on an array type, this is not allowed. Arrays only allow number indexes.`"), Type: "Variable");
-      @Log_Error(Data: mistsutils_patchreporter(A: "`Tried to set ${end.parameters[0].source} with an index less than 1.`"), Type: "Variable");
-      mistsutils_patchcommand(A: "}");
-      mistsutils_patchcommand(A: "if (name < 0) name = obj.length + name + 1 }");
+      mistsutils.patchcommand3(A: "if (Array.isArray(", B: "obj", C: ")) {");
+      mistsutils.patchcommand2(A: "const ori = ", B: "name");
+      mistsutils.patchcommand(A: "name |= 0");
+      mistsutils.patchcommand(A: "name -= 1");
+      mistsutils.patchcommand(A: "if (name === -1) { if (typeof ori === \"string\")");
+      @Log_Error(Data: mistsutils.patchreporter(A: "`Tried to set \"${ori}\" (a ${typeof ori}) on an array type, this is not allowed. Arrays only allow number indexes.`"), Type: "Variable");
+      @Log_Error(Data: mistsutils.patchreporter(A: "`Tried to set ${end.parameters[0].source} with an index less than 1.`"), Type: "Variable");
+      mistsutils.patchcommand(A: "}");
+      mistsutils.patchcommand(A: "if (name < 0) name = obj.length + name + 1 }");
     }
   } else {
-    mistsutils_patchcommand(A: "end = node.left");
-    mistsutils_patchcommand(A: "name = end.data");
-    if mistsutils_patchboolean(A: "Object.hasOwn(target.osl_local_map, name)") {
-      mistsutils_patchcommand(A: "obj = target.osl_this");
-      mistsutils_patchcommand(A: "name = target.getThisIdx(target, name)");
+    mistsutils.patchcommand(A: "end = node.left");
+    mistsutils.patchcommand(A: "name = end.data");
+    if mistsutils.patchboolean(A: "Object.hasOwn(target.osl_local_map, name)") {
+      mistsutils.patchcommand(A: "obj = target.osl_this");
+      mistsutils.patchcommand(A: "name = target.getThisIdx(target, name)");
     } else {
-      if mistsutils_notequals(A: vars["Import // Current Package"], B: "") {
-        mistsutils_patchcommand2(A: "obj = ", B: "target.osl_vars.__self__");
+      if mistsutils.notequals(A: vars["Import // Current Package"], B: "") {
+        mistsutils.patchcommand2(A: "obj = ", B: "target.osl_vars.__self__");
       } else {
-        if mistsutils_patchboolean(A: "type !== null && target.osl_local_scopes?.length > 1") {
-          mistsutils_patchcommand(A: "obj = target.osl_this");
-          mistsutils_patchcommand(A: "name = target.getThisIdx(target, name)");
+        if mistsutils.patchboolean(A: "type !== null && target.osl_local_scopes?.length > 1") {
+          mistsutils.patchcommand(A: "obj = target.osl_this");
+          mistsutils.patchcommand(A: "name = target.getThisIdx(target, name)");
         } else {
-          mistsutils_patchcommand(A: "name = name.toLowerCase()");
-          mistsutils_patchcommand3(A: "obj = osl_clone[", B: vars["WIndow // ID"], C: "]");
+          mistsutils.patchcommand(A: "name = name.toLowerCase()");
+          mistsutils.patchcommand3(A: "obj = osl_clone[", B: vars["WIndow // ID"], C: "]");
         }
       }
     }
   }
-  mistsutils_patchcommand(A: "let out = null");
-  mistsutils_patchcommand(A: "const cur = obj?.[name] ?? null");
-  switch mistsutils_patchreporter(A: "node.data") {
-    mistsutils_patchcommand(A: "case \"=\": out = (typeof value === \"object\" && value !== null) ? Object.clone(value) : value; break;");
-    mistsutils_patchcommand(A: "case \"@=\": out = value; break;");
-    mistsutils_patchcommand3(A: "case \"++\": out = ", B: (mistsutils_patchreporter(A: "cur") + 1), C: "; break;");
-    mistsutils_patchcommand3(A: "case \"--\": out = ", B: (mistsutils_patchreporter(A: "cur") - 1), C: "; break;");
-    mistsutils_patchcommand(A: "case \"=??\": if ((value ?? \"\") === \"\") return; out = (typeof value === \"object\" && value !== null && value !== cur) ? Object.clone(value) : value; break");
-    mistsutils_patchcommand2(A: "default: out = ", B: "osl_maths(cur, node.data.slice(0, -1), value);");
+  mistsutils.patchcommand(A: "let out = null");
+  mistsutils.patchcommand(A: "const cur = obj?.[name] ?? null");
+  switch mistsutils.patchreporter(A: "node.data") {
+    mistsutils.patchcommand(A: "case \"=\": out = (typeof value === \"object\" && value !== null) ? Object.clone(value) : value; break;");
+    mistsutils.patchcommand(A: "case \"@=\": out = value; break;");
+    mistsutils.patchcommand3(A: "case \"++\": out = ", B: (mistsutils.patchreporter(A: "cur") + 1), C: "; break;");
+    mistsutils.patchcommand3(A: "case \"--\": out = ", B: (mistsutils.patchreporter(A: "cur") - 1), C: "; break;");
+    mistsutils.patchcommand(A: "case \"=??\": if ((value ?? \"\") === \"\") return; out = (typeof value === \"object\" && value !== null && value !== cur) ? Object.clone(value) : value; break");
+    mistsutils.patchcommand2(A: "default: out = ", B: "osl_maths(cur, node.data.slice(0, -1), value);");
   }
-  mistsutils_patchcommand3(A: "if (cur?._set !== undefined) return ", B: @Run_Command_Object(params: mistsutils_patchreporter(A: "[out]"), command_object: mistsutils_patchreporter(A: "cur._set"), value: mistsutils_patchreporter(A: "obj")), C: ";");
-  mistsutils_patchcommand(A: "if (typeof name !== \"symbol\" && obj !== target.osl_this) name = `${name}`");
-  if mistsutils_patchboolean(A: "type === null || type === undefined || type === \"any\" || type === \"\"") {
-    mistsutils_patchcommand(A: "obj[name] = out");
+  mistsutils.patchcommand3(A: "if (cur?._set !== undefined) return ", B: @Run_Command_Object(params: mistsutils.patchreporter(A: "[out]"), command_object: mistsutils.patchreporter(A: "cur._set"), value: mistsutils.patchreporter(A: "obj")), C: ";");
+  mistsutils.patchcommand(A: "if (typeof name !== \"symbol\" && obj !== target.osl_this) name = `${name}`");
+  if mistsutils.patchboolean(A: "type === null || type === undefined || type === \"any\" || type === \"\"") {
+    mistsutils.patchcommand(A: "obj[name] = out");
   } else {
-    if mistsutils_patchboolean(A: "type === \"auto\"") {
-      mistsutils_patchcommand(A: "type = osl.typeof.code(out)");
+    if mistsutils.patchboolean(A: "type === \"auto\"") {
+      mistsutils.patchcommand(A: "type = osl.typeof.code(out)");
     }
-    mistsutils_patchcommand(A: "defineTypedProperty(obj, name, out, type, target)");
+    mistsutils.patchcommand(A: "defineTypedProperty(obj, name, out, type, target)");
   }
-  mistsutils_patchcommand(A: "return null");
-  mistsutils_patchcommand(A: "} else if (type === osl_tkn.fnc && first.data.length > 0) {");
-  mistsutils_patchcommand(A: "for (let i = 0, tot = token_ast.length; i < tot; i++) yield* thread.evalToken(token_ast[i]); return;");
-  mistsutils_patchcommand(A: "} else if (first.isStatic) {");
-  mistsutils_patchcommand(A: "b0.value = first.full.slice()");
-  mistsutils_patchcommand2(A: "if (b0.value[0]) return ", B: @OSL_Find_And_Run(command: mistsutils_patchreporter(A: "b0.value[0]"), input2: mistsutils_patchreporter(A: "b0.value[1] ?? null"), tokens: mistsutils_patchreporter(A: "token_ast")));
-  mistsutils_patchcommand(A: "} else {");
-  mistsutils_patchcommand(A: "const tot = token_ast.length");
-  mistsutils_patchcommand(A: "b0.value = new Array(tot)");
-  mistsutils_patchcommand(A: "for (let i = 0; i < tot; i++) b0.value[i] = yield* thread.evalToken(token_ast[i])");
-  mistsutils_patchcommand2(A: "if (b0.value[0]) return ", B: @OSL_Find_And_Run(command: mistsutils_patchreporter(A: "b0.value[0]"), input2: mistsutils_patchreporter(A: "b0.value[1] ?? null"), tokens: mistsutils_patchreporter(A: "token_ast")));
-  mistsutils_patchcommand(A: "}");
+  mistsutils.patchcommand(A: "return null");
+  mistsutils.patchcommand(A: "} else if (type === osl_tkn.fnc && first.data.length > 0) {");
+  mistsutils.patchcommand(A: "for (let i = 0, tot = token_ast.length; i < tot; i++) yield* thread.evalToken(token_ast[i]); return;");
+  mistsutils.patchcommand(A: "} else if (first.isStatic) {");
+  mistsutils.patchcommand(A: "b0.value = first.full.slice()");
+  mistsutils.patchcommand2(A: "if (b0.value[0]) return ", B: @OSL_Find_And_Run(command: mistsutils.patchreporter(A: "b0.value[0]"), input2: mistsutils.patchreporter(A: "b0.value[1] ?? null"), tokens: mistsutils.patchreporter(A: "token_ast")));
+  mistsutils.patchcommand(A: "} else {");
+  mistsutils.patchcommand(A: "const tot = token_ast.length");
+  mistsutils.patchcommand(A: "b0.value = new Array(tot)");
+  mistsutils.patchcommand(A: "for (let i = 0; i < tot; i++) b0.value[i] = yield* thread.evalToken(token_ast[i])");
+  mistsutils.patchcommand2(A: "if (b0.value[0]) return ", B: @OSL_Find_And_Run(command: mistsutils.patchreporter(A: "b0.value[0]"), input2: mistsutils.patchreporter(A: "b0.value[1] ?? null"), tokens: mistsutils.patchreporter(A: "token_ast")));
+  mistsutils.patchcommand(A: "}");
 }

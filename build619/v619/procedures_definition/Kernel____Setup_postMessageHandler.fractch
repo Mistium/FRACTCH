@@ -8,31 +8,31 @@
 
 def @Kernel_Setup_postMessageHandler() "Kernel // Setup postMessageHandler" warp=false {
   if (vars["Embed Mode"] == "0") {
-    mistsutils_patchcommand(A: "return");
+    mistsutils.patchcommand(A: "return");
   }
-  mistsutils_patchcommand(A: "origin.parentWindow = null;");
-  mistsutils_patchcommand(A: "origin.parentOrigin = null;");
-  mistsutils_patchcommand(A: "if (window.postMessageHandler) window.removeEventListener(\"message\", window.postMessageHandler)");
-  mistsutils_patchcommand(A: "window.postMessageHandler = (event) => {");
-  mistsutils_patchcommand(A: "const msg = event.data;");
-  mistsutils_patchcommand(A: "if (!msg || typeof msg !== \"object\") return;");
-  if mistsutils_patchboolean(A: "msg.type === \"handshake\"") {
-    mistsutils_patchcommand(A: "origin.parentWindow = event.source;");
-    mistsutils_patchcommand(A: "origin.parentOrigin = event.origin;");
-    mistsutils_patchcommand(A: "origin.parentWindow.postMessage({ type: \"handshake-ack\" }, origin.parentOrigin);");
-    mistsutils_patchcommand(A: "return");
+  mistsutils.patchcommand(A: "origin.parentWindow = null;");
+  mistsutils.patchcommand(A: "origin.parentOrigin = null;");
+  mistsutils.patchcommand(A: "if (window.postMessageHandler) window.removeEventListener(\"message\", window.postMessageHandler)");
+  mistsutils.patchcommand(A: "window.postMessageHandler = (event) => {");
+  mistsutils.patchcommand(A: "const msg = event.data;");
+  mistsutils.patchcommand(A: "if (!msg || typeof msg !== \"object\") return;");
+  if mistsutils.patchboolean(A: "msg.type === \"handshake\"") {
+    mistsutils.patchcommand(A: "origin.parentWindow = event.source;");
+    mistsutils.patchcommand(A: "origin.parentOrigin = event.origin;");
+    mistsutils.patchcommand(A: "origin.parentWindow.postMessage({ type: \"handshake-ack\" }, origin.parentOrigin);");
+    mistsutils.patchcommand(A: "return");
   }
-  if mistsutils_patchboolean(A: "event.source !== origin.parentWindow || event.origin !== origin.parentOrigin") {
-    mistsutils_patchcommand(A: "return");
+  if mistsutils.patchboolean(A: "event.source !== origin.parentWindow || event.origin !== origin.parentOrigin") {
+    mistsutils.patchcommand(A: "return");
   }
-  if mistsutils_patchboolean(A: "msg.type === \"run\"") {
-    mistsutils_patchcommand(A: "const { code } = msg;");
-    mistsutils_patchcommand(A: "if (typeof code !== \"string\") return");
-    mistsutils_patchcommand(A: "const files = vm.runtime.getTargetForStage().variables[\"m~?pufmd(#?1E)uvMQ*-\"].value");
-    mistsutils_patchcommand(A: "const idx = origin.files.index.value.indexOf(\"origin/(a) system/embed.osl\")");
-    mistsutils_patchcommand(A: "files[idx * 14 + 3] = code");
-    mistsutils_patchcommand(A: "thread.procedures[\"WWindow// create %s %s\"](\"origin/(a) system/embed.osl\",\"\")");
+  if mistsutils.patchboolean(A: "msg.type === \"run\"") {
+    mistsutils.patchcommand(A: "const { code } = msg;");
+    mistsutils.patchcommand(A: "if (typeof code !== \"string\") return");
+    mistsutils.patchcommand(A: "const files = vm.runtime.getTargetForStage().variables[\"m~?pufmd(#?1E)uvMQ*-\"].value");
+    mistsutils.patchcommand(A: "const idx = origin.files.index.value.indexOf(\"origin/(a) system/embed.osl\")");
+    mistsutils.patchcommand(A: "files[idx * 14 + 3] = code");
+    mistsutils.patchcommand(A: "thread.procedures[\"WWindow// create %s %s\"](\"origin/(a) system/embed.osl\",\"\")");
   }
-  mistsutils_patchcommand(A: "}");
-  mistsutils_patchcommand(A: "window.addEventListener(\"message\", postMessageHandler)");
+  mistsutils.patchcommand(A: "}");
+  mistsutils.patchcommand(A: "window.addEventListener(\"message\", postMessageHandler)");
 }

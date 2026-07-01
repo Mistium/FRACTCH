@@ -7,5 +7,5 @@
  */
 
 def @parse(json) "parse %s" warp=false {
-  return mistsutils_patchreporter(A: "JSON.safeParse(p0)");
+  return mistsutils.patchreporter(A: "JSON.safeParse(p0)");
 }

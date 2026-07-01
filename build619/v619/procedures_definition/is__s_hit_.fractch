@@ -7,7 +7,7 @@
  */
 
 def @is_hit(key) "is %s hit?" warp=false {
-  mistsutils_patchcommand(A: "if (p0 === \"space\") p0 = \" \"");
-  mistsutils_patchcommand3(A: "return ", B: vars["Inputs // Last Keys Down"], C: ".indexOf((p0+\"\").toLowerCase()) !== -1");
-  return mistsutils_false();
+  mistsutils.patchcommand(A: "if (p0 === \"space\") p0 = \" \"");
+  mistsutils.patchcommand3(A: "return ", B: vars["Inputs // Last Keys Down"], C: ".indexOf((p0+\"\").toLowerCase()) !== -1");
+  return mistsutils.false();
 }

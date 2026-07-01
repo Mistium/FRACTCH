@@ -6,22 +6,22 @@
  * threadIndex: 153
  */
 
-event_whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Load Files", "p$"));
-wait_until mistfetch_isRequestCompleted(ID: "systemTime");
-mistsutils_patchcommand(A: "let request_duration = Date.now() - (Date.now() - window.origin.time.start)");
-vars["SYSTEM // Time"] = mistfetch_getResponseBodyById(ID: "systemTime");
-mistfetch_deleteRequestById(ID: "systemTime");
-if skyhigh173JSON_json_has_key(json: vars["SYSTEM // Time"], key: "date_time_unix") {
-  vars["SYSTEM // Timestamp Offset"] = ((skyhigh173JSON_json_get(item: "date_time_unix", json: vars["SYSTEM // Time"]) * 1000) - mistsutils_patchreporter(A: "request_duration"));
-  vars["SYSTEM // Time"] = skyhigh173JSON_json_set(item: "timestamp_at_request", json: skyhigh173JSON_json_set(item: "timestamp_offset", json: vars["SYSTEM // Time"], value: vars["SYSTEM // Timestamp Offset"]), value: mistsutils_patchreporter(A: "Date.now()"));
+event.whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Load Files", "p$"));
+wait_until mistfetch.isRequestCompleted(ID: "systemTime");
+mistsutils.patchcommand(A: "let request_duration = Date.now() - (Date.now() - window.origin.time.start)");
+vars["SYSTEM // Time"] = mistfetch.getResponseBodyById(ID: "systemTime");
+mistfetch.deleteRequestById(ID: "systemTime");
+if skyhigh173JSON.json_has_key(json: vars["SYSTEM // Time"], key: "date_time_unix") {
+  vars["SYSTEM // Timestamp Offset"] = ((skyhigh173JSON.json_get(item: "date_time_unix", json: vars["SYSTEM // Time"]) * 1000) - mistsutils.patchreporter(A: "request_duration"));
+  vars["SYSTEM // Time"] = skyhigh173JSON.json_set(item: "timestamp_at_request", json: skyhigh173JSON.json_set(item: "timestamp_offset", json: vars["SYSTEM // Time"], value: vars["SYSTEM // Timestamp Offset"]), value: mistsutils.patchreporter(A: "Date.now()"));
 } else {
-  if mistsutils_patchboolean(A: "window.origin.time_sync.proxy") {
-    @Time_Sync_Proxied(Proxy: mistsutils_true());
+  if mistsutils.patchboolean(A: "window.origin.time_sync.proxy") {
+    @Time_Sync_Proxied(Proxy: mistsutils.true());
   } else {
     vars["SYSTEM // Timestamp Offset"] = "0";
-    vars["SYSTEM // Time"] = skyhigh173JSON_json_set(item: "timestamp_at_request", json: "{\"timestamp_offset\":0}", value: mistsutils_patchreporter(A: "Date.now()"));
+    vars["SYSTEM // Time"] = skyhigh173JSON.json_set(item: "timestamp_at_request", json: "{\"timestamp_offset\":0}", value: mistsutils.patchreporter(A: "Date.now()"));
   }
 }
-mistsutils_patchcommand2(A: "let time = ", B: mistsutils_jsonparse(A: vars["SYSTEM // Time"]));
-mistsutils_patchcommand(A: "osl.time = {offset: time.timestamp_offset, daylight_savings: time.is_dst}");
-vars["SYSTEM // Weather"] = cloudlink_fetchURL(url: mistsutils_patchreporter(A: "`https://api.open-meteo.com/v1/forecast?latitude=${time.geo.latitude}&longitude=${time.geo.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m`"));
+mistsutils.patchcommand2(A: "let time = ", B: mistsutils.jsonparse(A: vars["SYSTEM // Time"]));
+mistsutils.patchcommand(A: "osl.time = {offset: time.timestamp_offset, daylight_savings: time.is_dst}");
+vars["SYSTEM // Weather"] = cloudlink.fetchURL(url: mistsutils.patchreporter(A: "`https://api.open-meteo.com/v1/forecast?latitude=${time.geo.latitude}&longitude=${time.geo.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m`"));

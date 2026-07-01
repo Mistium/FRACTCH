@@ -7,11 +7,11 @@
  */
 
 def @BOOT_Setup_account_perms(username) "BOOT // Setup account perms %s" warp=true {
-  mistsutils_patchcommand2(A: "const path = ", B: ("Origin/(C) Users/" .. username));
-  if data_listcontainsitem(ITEM: (mistsutils_patchreporter(A: "path") .. "/Application Data/permissions.json"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) {
-    return @File_get_item(id: (mistsutils_patchreporter(A: "path") .. "/Application Data/permissions.json"), item: "4");
+  mistsutils.patchcommand2(A: "const path = ", B: ("Origin/(C) Users/" .. username));
+  if data.listcontainsitem(ITEM: (mistsutils.patchreporter(A: "path") .. "/Application Data/permissions.json"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) {
+    return @File_get_item(id: (mistsutils.patchreporter(A: "path") .. "/Application Data/permissions.json"), item: "4");
   } else {
-    @File_add_Data_Icon_Perms(Location: mistsutils_patchreporter(A: "`${path}/application data`"), Name: "permissions", Type: ".json", Data: "{}", Icon: "", Perms: "");
+    @File_add_Data_Icon_Perms(Location: mistsutils.patchreporter(A: "`${path}/application data`"), Name: "permissions", Type: ".json", Data: "{}", Icon: "", Perms: "");
     return "{}";
   }
 }

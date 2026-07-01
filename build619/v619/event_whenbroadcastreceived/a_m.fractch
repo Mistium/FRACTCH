@@ -6,16 +6,16 @@
  * threadIndex: 48
  */
 
-event_whenbroadcastreceived(field BROADCAST_OPTION: broadcast("// right click", "i$"));
+event.whenbroadcastreceived(field BROADCAST_OPTION: broadcast("// right click", "i$"));
 if (vars["Process // Type"] == "App") {
-  if ((data_itemoflist(INDEX: 4, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) == vars["WIndow // ID"]) && mistsutils_patchboolean(A: "!target.isOriginal")) {
-    wait_until not(sensing_mousedown());
-    if (skyhigh173JSON_json_length(json: vars["Right Click Target Data"]) == "1") {
-      vars["Right Click Target Data"] = skyhigh173JSON_json_array_get(item: 1, json: vars["Right Click Target Data"]);
+  if ((data.itemoflist(INDEX: 4, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) == vars["WIndow // ID"]) && mistsutils.patchboolean(A: "!target.isOriginal")) {
+    wait_until not(sensing.mousedown());
+    if (skyhigh173JSON.json_length(json: vars["Right Click Target Data"]) == "1") {
+      vars["Right Click Target Data"] = skyhigh173JSON.json_array_get(item: 1, json: vars["Right Click Target Data"]);
     }
     @Rightclick_Actions(Action: vars["Right Click Output"], file: vars["Right Click Target Data"], Type: vars["RightClick// Type"]);
     @Renderer_Call_ReRender();
-    data_deletealloflist(field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?"));
-    data_deletealloflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
+    data.deletealloflist(field LIST: list("Right Click Menu Depth", "DNmC|%GVPH^UT,?,0+}?"));
+    data.deletealloflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu"));
   }
 }

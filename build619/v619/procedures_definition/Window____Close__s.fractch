@@ -12,83 +12,83 @@ import "../procedures_definition/Window____Reset_Redraw_Box.fractch";
 import "../procedures_definition/Renderer____Call_ReRender.fractch";
 def @Window_Close(message) "Window // Close %s" warp=true {
   stop "other scripts in sprite";
-  procedures_call(arg0: ("Window Closed: " .. message), mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
+  procedures.call(arg0: ("Window Closed: " .. message), mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
   if (vars["Embed Mode"] == "1") {
-    zxmushroom63searchparams_setsearchparam(ID: "embedclose", VAL: "true");
-    if mistsutils_patchboolean(A: "origin.parentWindow") {
-      mistsutils_patchcommand(A: "origin.parentWindow.postMessage({ type: \"end\" }, origin.parentOrigin)");
+    zxmushroom63searchparams.setsearchparam(ID: "embedclose", VAL: "true");
+    if mistsutils.patchboolean(A: "origin.parentWindow") {
+      mistsutils.patchcommand(A: "origin.parentWindow.postMessage({ type: \"end\" }, origin.parentOrigin)");
     }
   }
-  mistsutils_patchcommand(A: "const id = target.window.id");
-  vars["Window // Name"] = data_itemnumoflist(ITEM: vars["WIndow // ID"], field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
-  pointerlock_setLocked(enabled: pointerlock_menu_enabled(field enabled: ["false",null]));
-  mistsutils_patchcommand2(A: "const videos = ", B: mistsutils_jsonparse(A: lmsVideo_getLoadedVideos()));
-  repeat mistsutils_patchreporter(A: "videos.length") {
-    mistsutils_patchcommand(A: "const vid = videos.shift()");
-    if mistsutils_starts(A: mistsutils_patchreporter(A: "vid"), B: (vars["WIndow // ID"] .. "_")) {
-      lmsVideo_deleteVideoURL(NAME: mistsutils_patchreporter(A: "vid"));
+  mistsutils.patchcommand(A: "const id = target.window.id");
+  vars["Window // Name"] = data.itemnumoflist(ITEM: vars["WIndow // ID"], field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
+  pointerlock.setLocked(enabled: pointerlock.menu_enabled(field enabled: ["false",null]));
+  mistsutils.patchcommand2(A: "const videos = ", B: mistsutils.jsonparse(A: lmsVideo.getLoadedVideos()));
+  repeat mistsutils.patchreporter(A: "videos.length") {
+    mistsutils.patchcommand(A: "const vid = videos.shift()");
+    if mistsutils.starts(A: mistsutils.patchreporter(A: "vid"), B: (vars["WIndow // ID"] .. "_")) {
+      lmsVideo.deleteVideoURL(NAME: mistsutils.patchreporter(A: "vid"));
     }
   }
-  mistsutils_patchcommand2(A: "const canvases = ", B: mistsutils_jsonparse(A: MistiumCanvas_getCanvasList()));
-  repeat mistsutils_patchreporter(A: "canvases.length") {
-    mistsutils_patchcommand(A: "const c = canvases.shift()");
-    if mistsutils_starts(A: mistsutils_patchreporter(A: "c"), B: (vars["WIndow // ID"] .. "-")) {
-      MistiumCanvas_deleteCanvas(CANVAS_ID: mistsutils_patchreporter(A: "c"));
+  mistsutils.patchcommand2(A: "const canvases = ", B: mistsutils.jsonparse(A: MistiumCanvas.getCanvasList()));
+  repeat mistsutils.patchreporter(A: "canvases.length") {
+    mistsutils.patchcommand(A: "const c = canvases.shift()");
+    if mistsutils.starts(A: mistsutils.patchreporter(A: "c"), B: (vars["WIndow // ID"] .. "-")) {
+      MistiumCanvas.deleteCanvas(CANVAS_ID: mistsutils.patchreporter(A: "c"));
     }
   }
-  mistsutils_patchcommand2(A: "const shaders = ", B: mistsutils_jsonparse(A: mistiumshaders_allShaders()));
-  repeat mistsutils_patchreporter(A: "shaders.length") {
-    mistsutils_patchcommand(A: "const c = shaders.shift()");
-    if mistsutils_starts(A: mistsutils_patchreporter(A: "c"), B: (vars["WIndow // ID"] .. "-")) {
-      mistiumshaders_deleteShader(ID: mistsutils_patchreporter(A: "c"));
+  mistsutils.patchcommand2(A: "const shaders = ", B: mistsutils.jsonparse(A: mistiumshaders.allShaders()));
+  repeat mistsutils.patchreporter(A: "shaders.length") {
+    mistsutils.patchcommand(A: "const c = shaders.shift()");
+    if mistsutils.starts(A: mistsutils.patchreporter(A: "c"), B: (vars["WIndow // ID"] .. "-")) {
+      mistiumshaders.deleteShader(ID: mistsutils.patchreporter(A: "c"));
     }
   }
-  mistsutils_patchcommand2(A: "const ws = ", B: "target.window.ws");
-  repeat mistsutils_patchreporter(A: "ws.length") {
-    webSocketPlus_disconnectFromConnection(ID: mistsutils_patchreporter(A: "ws.shift()"));
+  mistsutils.patchcommand2(A: "const ws = ", B: "target.window.ws");
+  repeat mistsutils.patchreporter(A: "ws.length") {
+    webSocketPlus.disconnectFromConnection(ID: mistsutils.patchreporter(A: "ws.shift()"));
   }
-  mistsutils_patchcommand2(A: "const meshes = ", B: mistsutils_jsonparse(A: vars["3dr // All Meshes"]));
-  repeat mistsutils_patchreporter(A: "meshes.length") {
-    xeltallivSimple3D_deleteMesh(NAME: mistsutils_patchreporter(A: "meshes.shift()"));
+  mistsutils.patchcommand2(A: "const meshes = ", B: mistsutils.jsonparse(A: vars["3dr // All Meshes"]));
+  repeat mistsutils.patchreporter(A: "meshes.length") {
+    xeltallivSimple3D.deleteMesh(NAME: mistsutils.patchreporter(A: "meshes.shift()"));
   }
-  repeat data_lengthoflist(field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l")) {
-    SPtuneShark_deleteSound(NAME: data_itemoflist(INDEX: 1, field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l")));
-    data_deleteoflist(INDEX: 1, field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
+  repeat data.lengthoflist(field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l")) {
+    SPtuneShark.deleteSound(NAME: data.itemoflist(INDEX: 1, field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l")));
+    data.deleteoflist(INDEX: 1, field LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
   }
-  mistsutils_patchcommand(A: "const web = origin.fetches.web");
-  mistsutils_patchcommand2(A: "const cache = ", B: vars["OSL // Web Cache"]);
-  repeat mistsutils_patchreporter(A: "cache.length") {
-    mistsutils_patchcommand3(A: "delete ", B: vars["NETWORK // Get Web Outputs"], C: "[cache[0]]");
-    mistfetch_cancelRequestById(ID: mistsutils_patchreporter(A: "cache[0]"));
-    mistsutils_patchcommand(A: "web.splice(web.indexOf(cache.shift(), 1))");
+  mistsutils.patchcommand(A: "const web = origin.fetches.web");
+  mistsutils.patchcommand2(A: "const cache = ", B: vars["OSL // Web Cache"]);
+  repeat mistsutils.patchreporter(A: "cache.length") {
+    mistsutils.patchcommand3(A: "delete ", B: vars["NETWORK // Get Web Outputs"], C: "[cache[0]]");
+    mistfetch.cancelRequestById(ID: mistsutils.patchreporter(A: "cache[0]"));
+    mistsutils.patchcommand(A: "web.splice(web.indexOf(cache.shift(), 1))");
   }
-  mistsutils_patchcommand(A: "delete window.osl_extensions[id]");
-  @Kernel_Log(Thing: "originWM", Value: (mistsutils_patchreporter(A: "`Closed ${id}: `") .. message));
-  data_deleteoflist(INDEX: vars["Window // Name"], field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
-  vars["SYSTEM // Focused Application"] = data_itemoflist(INDEX: 1, field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
-  mistsutils_patchcommand(A: "const mini = origin.windows.minimised");
-  mistsutils_patchcommand(A: "const idx = mini.indexOf(id)");
-  mistsutils_patchcommand(A: "if (idx !== -1) mini.splice(idx, 1)");
-  mistsutils_patchcommand(A: "window.osl_clone[id].window.dead = true");
-  mistsutils_patchcommand(A: "delete window.osl_clone[id]");
-  mistsutils_patchcommand(A: "delete origin.targets[id]");
-  mistsutils_patchcommand(A: "delete origin.workers[id]");
-  mistsutils_patchcommand(A: "origin.processes.splice(origin.processes.findIndex(v => v.win_id === id), 1)");
-  mistsutils_patchcommand(A: "const parent_id = target.window.parent.id");
-  mistsutils_patchcommand(A: "const index = origin.windows.ids.indexOf(parent_id) + 1");
-  mistsutils_patchcommand(A: "if (target.drawCacheSkin !== undefined) vm.renderer.destroySkin(target.drawCacheSkin);");
-  mistsutils_patchcommand(A: "if (target.drawCacheSkinBlurred !== undefined) vm.renderer.destroySkin(target.drawCacheSkinBlurred);");
-  if mistsutils_patchboolean(A: "index > 0") {
-    mistsutils_patchcommand(A: "try {");
-    mistsutils_patchcommand3(A: "origin.targets[parent_id].transmit.push({\"data\":\"closed\",\"type\":\"system\",\"source\":", B: "id", C: "})");
-    mistsutils_patchcommand(A: "} catch {}");
+  mistsutils.patchcommand(A: "delete window.osl_extensions[id]");
+  @Kernel_Log(Thing: "originWM", Value: (mistsutils.patchreporter(A: "`Closed ${id}: `") .. message));
+  data.deleteoflist(INDEX: vars["Window // Name"], field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
+  vars["SYSTEM // Focused Application"] = data.itemoflist(INDEX: 1, field LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
+  mistsutils.patchcommand(A: "const mini = origin.windows.minimised");
+  mistsutils.patchcommand(A: "const idx = mini.indexOf(id)");
+  mistsutils.patchcommand(A: "if (idx !== -1) mini.splice(idx, 1)");
+  mistsutils.patchcommand(A: "window.osl_clone[id].window.dead = true");
+  mistsutils.patchcommand(A: "delete window.osl_clone[id]");
+  mistsutils.patchcommand(A: "delete origin.targets[id]");
+  mistsutils.patchcommand(A: "delete origin.workers[id]");
+  mistsutils.patchcommand(A: "origin.processes.splice(origin.processes.findIndex(v => v.win_id === id), 1)");
+  mistsutils.patchcommand(A: "const parent_id = target.window.parent.id");
+  mistsutils.patchcommand(A: "const index = origin.windows.ids.indexOf(parent_id) + 1");
+  mistsutils.patchcommand(A: "if (target.drawCacheSkin !== undefined) vm.renderer.destroySkin(target.drawCacheSkin);");
+  mistsutils.patchcommand(A: "if (target.drawCacheSkinBlurred !== undefined) vm.renderer.destroySkin(target.drawCacheSkinBlurred);");
+  if mistsutils.patchboolean(A: "index > 0") {
+    mistsutils.patchcommand(A: "try {");
+    mistsutils.patchcommand3(A: "origin.targets[parent_id].transmit.push({\"data\":\"closed\",\"type\":\"system\",\"source\":", B: "id", C: "})");
+    mistsutils.patchcommand(A: "} catch {}");
   }
   vars["Can Click?"] = "false";
   @Window_Reset_Redraw_Box();
   @Renderer_Call_ReRender();
-  mistsutils_patchcommand2(A: "let images = ", B: vars["OSL // Images"]);
-  mistsutils_patchcommand(A: "try { for (image of images.keys()) {");
-  mistSkins_deleteSkin(NAME: mistsutils_patchreporter(A: "image"));
-  mistsutils_patchcommand(A: "} } catch {}");
-  control_delete_this_clone();
+  mistsutils.patchcommand2(A: "let images = ", B: vars["OSL // Images"]);
+  mistsutils.patchcommand(A: "try { for (image of images.keys()) {");
+  mistSkins.deleteSkin(NAME: mistsutils.patchreporter(A: "image"));
+  mistsutils.patchcommand(A: "} } catch {}");
+  control.delete_this_clone();
 }

@@ -9,8 +9,8 @@
 import "../procedures_definition/Timed_Log__s.fractch";
 import "../procedures_definition/Install_System_Utility__s__s__s__s__b.fractch";
 def @Install_File_From_into_path_with_name_and_icon(url, path, name, icon) "Install File From: %s into path %s with name %s and icon %s" warp=false {
-  @Timed_Log(Data: mistsutils_patchreporter(A: "`Installing ${p1}/${p2}`"));
-  mistsutils_patchcommand3(A: "const ret = ", B: cloudlink_fetchURL(url: url), C: ".replace(/\\t/gi, \"  \")");
-  @Install_System_Utility(Location: path, Name_And_Type: name, Data: mistsutils_patchreporter(A: "ret"), Icon: icon, not_system: null);
-  return mistsutils_patchreporter(A: "ret");
+  @Timed_Log(Data: mistsutils.patchreporter(A: "`Installing ${p1}/${p2}`"));
+  mistsutils.patchcommand3(A: "const ret = ", B: cloudlink.fetchURL(url: url), C: ".replace(/\\t/gi, \"  \")");
+  @Install_System_Utility(Location: path, Name_And_Type: name, Data: mistsutils.patchreporter(A: "ret"), Icon: icon, not_system: null);
+  return mistsutils.patchreporter(A: "ret");
 }

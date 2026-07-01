@@ -7,153 +7,153 @@
  */
 
 import "../procedures_definition/Window____Setup_OSL_compilables.fractch";
-control_start_as_clone();
-sensing_setdragmode(field DRAG_MODE: ["not draggable",null]);
-looks_cleargraphiceffects();
-mistsutils_patchcommand(A: "target.self = target.variables[\"Xw\"]");
-mistsutils_patchcommand(A: "target._customState[\"Scratch.pen\"].getColour=window.getPenColour");
-mistsutils_patchcommand(A: "target.JScompCache = new Map()");
-mistsutils_patchcommand(A: "target.replaceConstants = function(t,r){return t.map((function t(e){if(!e||\"object\"!=typeof e)return e;if(\"var\"===e.type){const t=r[e.data];if(void 0!==t)return t}return e.left&&(e.left=t(e.left)),e.right&&(e.right=t(e.right)),e}))};");
-mistsutils_patchcommand(A: "target.last_ui_cache = \"\"");
-mistsutils_patchcommand(A: "target.cache = {}");
-mistsutils_patchcommand(A: "target.osl_local_scopes = []");
-mistsutils_patchcommand(A: "target.osl_this = []");
-mistsutils_patchcommand(A: "target.currentFrame = 0");
-mistsutils_patchcommand(A: "target.last_rendered = {}");
-mistsutils_patchcommand2(A: "//", B: @Find_And_Run_Method(input: "", command: "", params: ""));
-mistsutils_patchcommand(A: "target._method = thread.procedures[\"ZFind And Run Method %s %s %s\"]");
-mistsutils_patchcommand2(A: "//", B: @OSL_Find_And_Run(command: "", input2: "", tokens: ""));
-mistsutils_patchcommand(A: "target._runosl =  thread.procedures[\"ZOSL // Find And Run %s %s %s\"]");
-mistsutils_patchcommand2(A: "//", B: @run_func(command: "", params: ""));
-mistsutils_patchcommand(A: "target._function =  thread.procedures[\"Wrun func %s %s\"]");
-mistsutils_patchcommand2(A: "//", B: @Evaluate_OSL_Token(Token_Obj: ""));
-mistsutils_patchcommand(A: "target._evaltkn =  thread.procedures[\"ZEvaluate OSL Token %s\"]");
-mistsutils_patchcommand2(A: "//", B: @Log_Error(Data: "", Type: ""));
-mistsutils_patchcommand(A: "target._oslError = thread.procedures[\"ZLog Error %s %s\"]");
-mistsutils_patchcommand(A: "target.frames = {}");
-mistsutils_patchcommand2(A: "const embed_mode = ", B: (vars["Embed Mode"] == "1"));
-mistsutils_patchcommand(A: "target.getThisIdx = (target, name) => { const obj = target.osl_this; const map = target.osl_local_map; if (Object.hasOwn(map, name)) { return map[name]; } const idx = obj.length; map[name] = idx; obj.push(null); return idx; };");
-mistsutils_patchcommand(A: "const test_mode = embed_mode && origin.roturLink.mode === 'test'");
-if mistsutils_patchboolean(A: "test_mode") {
-  mistsutils_patchcommand(A: "console.log(target.setup.passed_data)");
+control.start_as_clone();
+sensing.setdragmode(field DRAG_MODE: ["not draggable",null]);
+looks.cleargraphiceffects();
+mistsutils.patchcommand(A: "target.self = target.variables[\"Xw\"]");
+mistsutils.patchcommand(A: "target._customState[\"Scratch.pen\"].getColour=window.getPenColour");
+mistsutils.patchcommand(A: "target.JScompCache = new Map()");
+mistsutils.patchcommand(A: "target.replaceConstants = function(t,r){return t.map((function t(e){if(!e||\"object\"!=typeof e)return e;if(\"var\"===e.type){const t=r[e.data];if(void 0!==t)return t}return e.left&&(e.left=t(e.left)),e.right&&(e.right=t(e.right)),e}))};");
+mistsutils.patchcommand(A: "target.last_ui_cache = \"\"");
+mistsutils.patchcommand(A: "target.cache = {}");
+mistsutils.patchcommand(A: "target.osl_local_scopes = []");
+mistsutils.patchcommand(A: "target.osl_this = []");
+mistsutils.patchcommand(A: "target.currentFrame = 0");
+mistsutils.patchcommand(A: "target.last_rendered = {}");
+mistsutils.patchcommand2(A: "//", B: @Find_And_Run_Method(input: "", command: "", params: ""));
+mistsutils.patchcommand(A: "target._method = thread.procedures[\"ZFind And Run Method %s %s %s\"]");
+mistsutils.patchcommand2(A: "//", B: @OSL_Find_And_Run(command: "", input2: "", tokens: ""));
+mistsutils.patchcommand(A: "target._runosl =  thread.procedures[\"ZOSL // Find And Run %s %s %s\"]");
+mistsutils.patchcommand2(A: "//", B: @run_func(command: "", params: ""));
+mistsutils.patchcommand(A: "target._function =  thread.procedures[\"Wrun func %s %s\"]");
+mistsutils.patchcommand2(A: "//", B: @Evaluate_OSL_Token(Token_Obj: ""));
+mistsutils.patchcommand(A: "target._evaltkn =  thread.procedures[\"ZEvaluate OSL Token %s\"]");
+mistsutils.patchcommand2(A: "//", B: @Log_Error(Data: "", Type: ""));
+mistsutils.patchcommand(A: "target._oslError = thread.procedures[\"ZLog Error %s %s\"]");
+mistsutils.patchcommand(A: "target.frames = {}");
+mistsutils.patchcommand2(A: "const embed_mode = ", B: (vars["Embed Mode"] == "1"));
+mistsutils.patchcommand(A: "target.getThisIdx = (target, name) => { const obj = target.osl_this; const map = target.osl_local_map; if (Object.hasOwn(map, name)) { return map[name]; } const idx = obj.length; map[name] = idx; obj.push(null); return idx; };");
+mistsutils.patchcommand(A: "const test_mode = embed_mode && origin.roturLink.mode === 'test'");
+if mistsutils.patchboolean(A: "test_mode") {
+  mistsutils.patchcommand(A: "console.log(target.setup.passed_data)");
 }
-mistsutils_patchcommand(A: "target.log = (mode, ...logs) => { ");
-mistsutils_patchcommand(A: "console[mode](...logs)");
-mistsutils_patchcommand(A: "const origin = window.origin");
-if mistsutils_patchboolean(A: "test_mode") {
-  mistsutils_patchcommand(A: "origin.roturLink.ws.send(JSON.stringify({log: logs[0], id: target.passed_data }))");
+mistsutils.patchcommand(A: "target.log = (mode, ...logs) => { ");
+mistsutils.patchcommand(A: "console[mode](...logs)");
+mistsutils.patchcommand(A: "const origin = window.origin");
+if mistsutils.patchboolean(A: "test_mode") {
+  mistsutils.patchcommand(A: "origin.roturLink.ws.send(JSON.stringify({log: logs[0], id: target.passed_data }))");
 }
-if mistsutils_patchboolean(A: "embed_mode && origin.parentWindow") {
-  mistsutils_patchcommand(A: "origin.parentWindow.postMessage({ type: mode, data: logs }, origin.parentOrigin)");
+if mistsutils.patchboolean(A: "embed_mode && origin.parentWindow") {
+  mistsutils.patchcommand(A: "origin.parentWindow.postMessage({ type: mode, data: logs }, origin.parentOrigin)");
 }
-mistsutils_patchcommand(A: "}");
+mistsutils.patchcommand(A: "}");
 @Window_Setup_OSL_compilables();
 if (vars["Process // Type"] == "App") {
-  if mistsutils_patchboolean(A: "embed_mode && origin.parentWindow") {
-    mistsutils_patchcommand(A: "origin.parentWindow.postMessage({ type: \"start\" }, origin.parentOrigin)");
+  if mistsutils.patchboolean(A: "embed_mode && origin.parentWindow") {
+    mistsutils.patchcommand(A: "origin.parentWindow.postMessage({ type: \"start\" }, origin.parentOrigin)");
   }
-  mistsutils_patchcommand(A: "target.parentCtx = Object.create(null)");
-  mistsutils_patchcommand2(A: "let newWindow = ", B: vars["New Window Created?"]);
-  mistsutils_patchcommand(A: "target.displayCache = undefined");
+  mistsutils.patchcommand(A: "target.parentCtx = Object.create(null)");
+  mistsutils.patchcommand2(A: "let newWindow = ", B: vars["New Window Created?"]);
+  mistsutils.patchcommand(A: "target.displayCache = undefined");
   @Setup_Window();
   @OSL_Setup_Default_Functions();
-  vars["Window // Created Timestamp"] = mistsutils_patchreporter(A: "Date.now()");
-  @OSL_Vars_Set(name: "file_dropped", data: mistsutils_patchreporter(A: "0"), current_command: "");
-  @OSL_Vars_Set(name: "passed_data", data: mistsutils_patchreporter(A: "target.passed_data"), current_command: "");
-  mistsutils_patchcommand2(A: "const win_id = ", B: vars["WIndow // ID"]);
-  mistsutils_patchcommand2(A: "target.window = ", B: vars["OSL // Window"]);
+  vars["Window // Created Timestamp"] = mistsutils.patchreporter(A: "Date.now()");
+  @OSL_Vars_Set(name: "file_dropped", data: mistsutils.patchreporter(A: "0"), current_command: "");
+  @OSL_Vars_Set(name: "passed_data", data: mistsutils.patchreporter(A: "target.passed_data"), current_command: "");
+  mistsutils.patchcommand2(A: "const win_id = ", B: vars["WIndow // ID"]);
+  mistsutils.patchcommand2(A: "target.window = ", B: vars["OSL // Window"]);
   @OSL_Vars_Set(name: "window", data: vars["OSL // Window"], current_command: "");
-  mistsutils_patchcommand2(A: "// ", B: @OSL_Function(name: "", parameters: "", code: ""));
-  mistsutils_patchcommand(A: "target.window.ws = []");
-  mistsutils_patchcommand(A: "target.window.wd = osl.user_folder");
-  mistsutils_patchcommand(A: "deepFreeze(target.window.file)");
-  mistsutils_patchcommand(A: "const f = function(val, params) { return thread.procedures[\"WOSL Function %s ( %s ) ( %s )\"](\"\",params ?? \"\",val).next().value }");
-  mistsutils_patchcommand(A: "target.osl_func = f");
+  mistsutils.patchcommand2(A: "// ", B: @OSL_Function(name: "", parameters: "", code: ""));
+  mistsutils.patchcommand(A: "target.window.ws = []");
+  mistsutils.patchcommand(A: "target.window.wd = osl.user_folder");
+  mistsutils.patchcommand(A: "deepFreeze(target.window.file)");
+  mistsutils.patchcommand(A: "const f = function(val, params) { return thread.procedures[\"WOSL Function %s ( %s ) ( %s )\"](\"\",params ?? \"\",val).next().value }");
+  mistsutils.patchcommand(A: "target.osl_func = f");
   @Renderer_Call_ReRender();
-  mistsutils_patchcommand(A: "const calcRedraw = thread.procedures[\"ZWindow // Calculate Redraw Box\"]");
-  mistsutils_patchcommand(A: "const redraw = thread.procedures[\"ZRenderer // Call ReRender\"]");
+  mistsutils.patchcommand(A: "const calcRedraw = thread.procedures[\"ZWindow // Calculate Redraw Box\"]");
+  mistsutils.patchcommand(A: "const redraw = thread.procedures[\"ZRenderer // Call ReRender\"]");
   @Window_Focus();
   @set_stretch_to_x_y(x: "100", y: "100");
-  mistsutils_patchcommand(A: "target.mainThread = thread");
-  mistsutils_patchcommand(A: "target.runMain = () => vm.runtime.sequencer.stepThread(thread)");
-  mistsutils_patchcommand(A: "origin.targets[win_id] = target");
-  mistsutils_patchcommand(A: "target.osl_vars = window.osl_clone[win_id]");
-  mistsutils_patchcommand(A: "target.window.callRender = f(() => { calcRedraw(); redraw() })");
-  mistsutils_patchcommand(A: "target.render_start = performance.now()");
-  mistsutils_patchcommand(A: "target.icn = \"\"");
+  mistsutils.patchcommand(A: "target.mainThread = thread");
+  mistsutils.patchcommand(A: "target.runMain = () => vm.runtime.sequencer.stepThread(thread)");
+  mistsutils.patchcommand(A: "origin.targets[win_id] = target");
+  mistsutils.patchcommand(A: "target.osl_vars = window.osl_clone[win_id]");
+  mistsutils.patchcommand(A: "target.window.callRender = f(() => { calcRedraw(); redraw() })");
+  mistsutils.patchcommand(A: "target.render_start = performance.now()");
+  mistsutils.patchcommand(A: "target.icn = \"\"");
   @OSL_Load_Permissions();
-  mistsutils_patchcommand(A: "const start_time = performance.now()");
+  mistsutils.patchcommand(A: "const start_time = performance.now()");
   @Window_Update_My_Global_Data();
-  mistsutils_patchcommand(A: "try {");
+  mistsutils.patchcommand(A: "try {");
   @OSL_Thread_Open(Name: "Setup");
-  mistsutils_patchcommand2(A: "const setup = ", B: @OSL_Function(name: "setup", parameters: "", code: mistsutils_patchreporter(A: "{ type: \"blk\", data: target.window.ast.setup }")));
-  mistsutils_patchcommand(A: "setup.inherit_scope = true");
-  @Run_Command_Object_W_O_Refresh(obj: mistsutils_patchreporter(A: "setup"));
+  mistsutils.patchcommand2(A: "const setup = ", B: @OSL_Function(name: "setup", parameters: "", code: mistsutils.patchreporter(A: "{ type: \"blk\", data: target.window.ast.setup }")));
+  mistsutils.patchcommand(A: "setup.inherit_scope = true");
+  @Run_Command_Object_W_O_Refresh(obj: mistsutils.patchreporter(A: "setup"));
   @OSL_Thread_Close();
-  mistsutils_patchcommand(A: "} catch(e) { if (e !== \"exit\") { const cur = window?.osl_current_command; console.error(`Line ${cur?.line}: ${`${window?.osl_current_command?.[0]?.source ?? cur?.source}`.split(\"\\n\", 1)[0]}`); console.error(e?.full ?? e?.stack); console.log(target.window);");
-  @Window_create(name: "popup", window_data: mistsutils_patchreporter(A: "String(e.full ?? e.stack)"));
-  data_addtolist(ITEM: skyhigh173JSON_json_set(item: "command", json: skyhigh173JSON_json_set(item: "payload", json: skyhigh173JSON_json_set(item: "source", json: vars["Server// Base Payload"], value: mistsutils_patchreporter(A: "String(target.window?.my_path ?? \"\")")), value: mistsutils_patchreporter(A: "e.full ?? e.stack")), value: "report"), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
-  if mistsutils_patchboolean(A: "test_mode") {
-    mistsutils_patchcommand(A: "origin.roturLink.ws.send(JSON.stringify({id: target.passed_data, done: true }))");
+  mistsutils.patchcommand(A: "} catch(e) { if (e !== \"exit\") { const cur = window?.osl_current_command; console.error(`Line ${cur?.line}: ${`${window?.osl_current_command?.[0]?.source ?? cur?.source}`.split(\"\\n\", 1)[0]}`); console.error(e?.full ?? e?.stack); console.log(target.window);");
+  @Window_create(name: "popup", window_data: mistsutils.patchreporter(A: "String(e.full ?? e.stack)"));
+  data.addtolist(ITEM: skyhigh173JSON.json_set(item: "command", json: skyhigh173JSON.json_set(item: "payload", json: skyhigh173JSON.json_set(item: "source", json: vars["Server// Base Payload"], value: mistsutils.patchreporter(A: "String(target.window?.my_path ?? \"\")")), value: mistsutils.patchreporter(A: "e.full ?? e.stack")), value: "report"), field LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+  if mistsutils.patchboolean(A: "test_mode") {
+    mistsutils.patchcommand(A: "origin.roturLink.ws.send(JSON.stringify({id: target.passed_data, done: true }))");
   }
   @Window_Close(message: "Errored, check browser console");
-  mistsutils_patchcommand(A: "}}");
-  @Kernel_Log(Thing: "originWM", Value: mistsutils_patchreporter(A: "`Ran window setup in ${performance.now() - start_time}ms`"));
-  if mistsutils_patchreporter(A: "target.window.ast.main") {
-    mistsutils_patchcommand(A: "const getToken = () => \"\"");
+  mistsutils.patchcommand(A: "}}");
+  @Kernel_Log(Thing: "originWM", Value: mistsutils.patchreporter(A: "`Ran window setup in ${performance.now() - start_time}ms`"));
+  if mistsutils.patchreporter(A: "target.window.ast.main") {
+    mistsutils.patchcommand(A: "const getToken = () => \"\"");
     forever {
       @OSL_Thread_Open(Name: "Mainloop");
       @Window_Run_Main();
       if (vars["Window // ID_Index"] == "1") {
-        if (data_lengthoflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) > "0") {
-          mistsutils_patchcommand(A: "const menu = vm.runtime.getTargetForStage().variables[\"shgJ[!T-Mw;C6gtV1bEu\"].value.slice(4)");
-          xeltallivclipblend_clearClipbox();
-          @Top_Level_Right_Click(code: mistsutils_patchreporter(A: "menu"), depth: "1", x: data_itemoflist(INDEX: 1, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), y: data_itemoflist(INDEX: 2, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")));
+        if (data.lengthoflist(field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) > "0") {
+          mistsutils.patchcommand(A: "const menu = vm.runtime.getTargetForStage().variables[\"shgJ[!T-Mw;C6gtV1bEu\"].value.slice(4)");
+          xeltallivclipblend.clearClipbox();
+          @Top_Level_Right_Click(code: mistsutils.patchreporter(A: "menu"), depth: "1", x: data.itemoflist(INDEX: 1, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")), y: data.itemoflist(INDEX: 2, field LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")));
         }
-        mistsutils_patchcommand(A: "origin.permissions.getToken = getToken");
-        mistsutils_patchcommand(A: "vm.renderer.dirty = true; vm.renderer.draw()");
+        mistsutils.patchcommand(A: "origin.permissions.getToken = getToken");
+        mistsutils.patchcommand(A: "vm.renderer.dirty = true; vm.renderer.draw()");
       }
       @OSL_Thread_Close();
-      if mistsutils_patchboolean(A: "target.window._child === true && osl_clone[target.window.parent.id] === undefined") {
+      if mistsutils.patchboolean(A: "target.window._child === true && osl_clone[target.window.parent.id] === undefined") {
         @Window_Close(message: "Parent died");
       }
     }
   } else {
-    if mistsutils_patchboolean(A: "test_mode") {
-      mistsutils_patchcommand(A: "origin.roturLink.ws.send(JSON.stringify({id: target.passed_data, done: true }))");
+    if mistsutils.patchboolean(A: "test_mode") {
+      mistsutils.patchcommand(A: "origin.roturLink.ws.send(JSON.stringify({id: target.passed_data, done: true }))");
     }
     @Window_Close(message: "Script reached end");
   }
 } else {
   vars["Window // UUID"] = "";
-  mistsutils_patchcommand(A: "const startTime = performance.now()");
-  mistsutils_patchcommand(A: "let timeout;");
-  mistsutils_patchcommand2(A: "const windowId = ", B: vars["WIndow // ID"]);
-  mistsutils_patchcommand2(A: "const id = ", B: vars["Process // ID"]);
-  mistsutils_patchcommand3(A: "const workers = origin.workers[", B: "+windowId", C: "]");
-  mistsutils_patchcommand(A: "const worker = workers?.[id] ?? null");
-  mistsutils_patchcommand(A: "if (worker === null) { runtime.disposeTarget(target); return }");
-  mistsutils_patchcommand3(A: "target.osl_vars = window.osl_clone[", B: "windowId", C: "]");
-  mistsutils_patchcommand(A: "target.window = target.osl_vars.window");
-  mistsutils_patchcommand(A: "target.osl_globals = origin.targets[windowId].osl_globals");
+  mistsutils.patchcommand(A: "const startTime = performance.now()");
+  mistsutils.patchcommand(A: "let timeout;");
+  mistsutils.patchcommand2(A: "const windowId = ", B: vars["WIndow // ID"]);
+  mistsutils.patchcommand2(A: "const id = ", B: vars["Process // ID"]);
+  mistsutils.patchcommand3(A: "const workers = origin.workers[", B: "+windowId", C: "]");
+  mistsutils.patchcommand(A: "const worker = workers?.[id] ?? null");
+  mistsutils.patchcommand(A: "if (worker === null) { runtime.disposeTarget(target); return }");
+  mistsutils.patchcommand3(A: "target.osl_vars = window.osl_clone[", B: "windowId", C: "]");
+  mistsutils.patchcommand(A: "target.window = target.osl_vars.window");
+  mistsutils.patchcommand(A: "target.osl_globals = origin.targets[windowId].osl_globals");
   @OSL_Setup_Default_Functions();
-  mistsutils_patchcommand(A: "worker.alive = true;");
-  mistsutils_patchcommand(A: "const kill = (function() { clearTimeout(timeout); if (!worker.alive) return; worker.alive = false; if (worker.onkill) thread.procedures[\"WRun Command Object %s %s %s %s\"](\"\",\"\",worker.onkill, worker).next().value; delete workers[id]; runtime.disposeTarget(this); runtime.stopForTarget(this) }).bind(target)");
-  mistsutils_patchcommand(A: "if ((worker.maxLifetime ?? -1) >= 0) timeout = setTimeout(kill, +worker.maxLifetime)");
-  mistsutils_patchcommand(A: "worker.createdTime = Date.now()");
-  mistsutils_patchcommand2(A: "worker.kill = ", B: @OSL_Function(name: "kill", parameters: "", code: mistsutils_patchreporter(A: "kill")));
-  mistsutils_patchcommand(A: "try {");
-  mistsutils_patchcommand(A: "worker.processTime = 0");
-  if mistsutils_patchreporter(A: "worker.oncreate") {
-    @Run_Command_Object(params: "", command_object: mistsutils_patchreporter(A: "worker.oncreate"), value: mistsutils_patchreporter(A: "worker"));
+  mistsutils.patchcommand(A: "worker.alive = true;");
+  mistsutils.patchcommand(A: "const kill = (function() { clearTimeout(timeout); if (!worker.alive) return; worker.alive = false; if (worker.onkill) thread.procedures[\"WRun Command Object %s %s %s %s\"](\"\",\"\",worker.onkill, worker).next().value; delete workers[id]; runtime.disposeTarget(this); runtime.stopForTarget(this) }).bind(target)");
+  mistsutils.patchcommand(A: "if ((worker.maxLifetime ?? -1) >= 0) timeout = setTimeout(kill, +worker.maxLifetime)");
+  mistsutils.patchcommand(A: "worker.createdTime = Date.now()");
+  mistsutils.patchcommand2(A: "worker.kill = ", B: @OSL_Function(name: "kill", parameters: "", code: mistsutils.patchreporter(A: "kill")));
+  mistsutils.patchcommand(A: "try {");
+  mistsutils.patchcommand(A: "worker.processTime = 0");
+  if mistsutils.patchreporter(A: "worker.oncreate") {
+    @Run_Command_Object(params: "", command_object: mistsutils.patchreporter(A: "worker.oncreate"), value: mistsutils.patchreporter(A: "worker"));
   }
-  if mistsutils_patchreporter(A: "worker.onframe") {
+  if mistsutils.patchreporter(A: "worker.onframe") {
     forever {
-      mistsutils_patchcommand(A: "if (worker.alive) { const start = performance.now()");
-      @Run_Command_Object(params: "", command_object: mistsutils_patchreporter(A: "worker.onframe"), value: mistsutils_patchreporter(A: "worker"));
-      mistsutils_patchcommand(A: "worker.processTime += performance.now() - start }");
+      mistsutils.patchcommand(A: "if (worker.alive) { const start = performance.now()");
+      @Run_Command_Object(params: "", command_object: mistsutils.patchreporter(A: "worker.onframe"), value: mistsutils.patchreporter(A: "worker"));
+      mistsutils.patchcommand(A: "worker.processTime += performance.now() - start }");
     }
   }
-  mistsutils_patchcommand(A: "kill()");
-  mistsutils_patchcommand3(A: "} catch(e) { if (!Object.hasOwn(window.osl_clone, ", B: vars["WIndow // ID"], C: ")) { kill(); worker.alive = false; return } console.error(\"worker was killed because of error: \", e.full ?? e.stack, worker); kill(); worker.alive = false; }");
+  mistsutils.patchcommand(A: "kill()");
+  mistsutils.patchcommand3(A: "} catch(e) { if (!Object.hasOwn(window.osl_clone, ", B: vars["WIndow // ID"], C: ")) { kill(); worker.alive = false; return } console.error(\"worker was killed because of error: \", e.full ?? e.stack, worker); kill(); worker.alive = false; }");
 }

@@ -10,61 +10,61 @@ def @Studio_Render_Highlighted_OSL(OSL, Parsed, text_colour("text colour")) "Stu
   if (OSL == "") {
     stop "this script";
   }
-  vars["temp2"] = operator_length(STRING: OSL);
+  vars["temp2"] = operator.length(STRING: OSL);
   if (temp2 > "1000") {
-    @Draw_Text(Text: OSL, X: motion_xposition(), Y: motion_yposition(), Size: "10", Markdown_Enabled: "");
-    mistsutils_patchcommand(A: "return;");
+    @Draw_Text(Text: OSL, X: motion.xposition(), Y: motion.yposition(), Size: "10", Markdown_Enabled: "");
+    mistsutils.patchcommand(A: "return;");
   }
-  vars["temp"] = truefantomregexp_regexp_replace_block(A: OSL, B: "/^ */", C: "");
-  vars["temp2"] = (temp2 - operator_length(STRING: temp));
-  mistsutils_patchcommand2(A: "const ohf = ", B: vars["Studio // OHF"]);
-  mistsutils_patchcommand2(A: "let col = ", B: text_colour);
-  if (mistsutils_starts(A: temp, B: mistsutils_patchreporter(A: "ohf?.overrides?.[\"origin.comment_mark\"] ?? \"//\"")) && mistsutils_patchboolean(A: "ohf.overrides[\"origin.comments\"]")) {
-    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "ohf.overrides[\"origin.comments\"]"));
-    @Draw_Text(Text: OSL, X: motion_xposition(), Y: motion_yposition(), Size: "10", Markdown_Enabled: "");
+  vars["temp"] = truefantomregexp.regexp_replace_block(A: OSL, B: "/^ */", C: "");
+  vars["temp2"] = (temp2 - operator.length(STRING: temp));
+  mistsutils.patchcommand2(A: "const ohf = ", B: vars["Studio // OHF"]);
+  mistsutils.patchcommand2(A: "let col = ", B: text_colour);
+  if (mistsutils.starts(A: temp, B: mistsutils.patchreporter(A: "ohf?.overrides?.[\"origin.comment_mark\"] ?? \"//\"")) && mistsutils.patchboolean(A: "ohf.overrides[\"origin.comments\"]")) {
+    pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "ohf.overrides[\"origin.comments\"]"));
+    @Draw_Text(Text: OSL, X: motion.xposition(), Y: motion.yposition(), Size: "10", Markdown_Enabled: "");
   } else {
-    mistsutils_patchcommand(A: "const numbers_colour = ohf?.overrides?.[\"origin.numbers\"]");
-    mistsutils_patchcommand(A: "const strings_colour = ohf?.overrides?.[\"origin.strings\"]");
-    mistsutils_patchcommand(A: "const functions_colour = ohf?.overrides?.[\"origin.functions\"]");
-    mistsutils_patchcommand(A: "const objects_colour = ohf?.overrides?.[\"origin.objects\"]");
-    mistsutils_patchcommand(A: "let arr;");
-    if mistsutils_patchboolean(A: "ohf.parser?.type === \"regex\"") {
-      mistsutils_patchcommand2(A: "let temp = ", B: temp);
-      mistsutils_patchcommand(A: "try { arr = [...temp.matchAll(new RegExp(ohf.parser?.data ?? \"\",\"g\"))].map(x => x[0]) } catch(e) {};");
+    mistsutils.patchcommand(A: "const numbers_colour = ohf?.overrides?.[\"origin.numbers\"]");
+    mistsutils.patchcommand(A: "const strings_colour = ohf?.overrides?.[\"origin.strings\"]");
+    mistsutils.patchcommand(A: "const functions_colour = ohf?.overrides?.[\"origin.functions\"]");
+    mistsutils.patchcommand(A: "const objects_colour = ohf?.overrides?.[\"origin.objects\"]");
+    mistsutils.patchcommand(A: "let arr;");
+    if mistsutils.patchboolean(A: "ohf.parser?.type === \"regex\"") {
+      mistsutils.patchcommand2(A: "let temp = ", B: temp);
+      mistsutils.patchcommand(A: "try { arr = [...temp.matchAll(new RegExp(ohf.parser?.data ?? \"\",\"g\"))].map(x => x[0]) } catch(e) {};");
     } else {
-      if mistsutils_patchboolean(A: "ohf.parser?.type === \"function\"") {
-        mistsutils_patchcommand2(A: "let temp = ", B: temp);
-        mistsutils_patchcommand(A: "try { arr = ohf.parser.fn(temp) } catch(e) {};");
+      if mistsutils.patchboolean(A: "ohf.parser?.type === \"function\"") {
+        mistsutils.patchcommand2(A: "let temp = ", B: temp);
+        mistsutils.patchcommand(A: "try { arr = ohf.parser.fn(temp) } catch(e) {};");
       } else {
-        mistsutils_patchcommand2(A: "arr = ", B: OSLUtils_tokeniseraw(CODE: temp));
+        mistsutils.patchcommand2(A: "arr = ", B: OSLUtils.tokeniseraw(CODE: temp));
       }
     }
-    motion_changexby(DX: (temp2 * 10));
-    mistsutils_patchcommand(A: "for (let i = 0; i < arr.length; i ++) {");
-    mistsutils_patchcommand(A: "const token = \"\"+arr[i] || \"\"");
-    mistsutils_patchcommand(A: "let colour = null;");
-    mistsutils_patchcommand(A: "if (ohf.highlighter?.type === \"function\") { try { colour = ohf.highlighter.fn(token) } catch(e) { console.error(e) } }");
-    mistsutils_patchcommand(A: "colour ??= ohf?.tokens?.[\"tkn:\" + token]");
-    mistsutils_patchcommand(A: "if ((colour ?? \"\") === \"\") {");
-    mistsutils_patchcommand(A: "if (numbers_colour && !isNaN(token)) {");
-    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "numbers_colour"));
-    mistsutils_patchcommand(A: "} else if (strings_colour && ((token.startsWith('\"') && token.endsWith('\"')) || (token.startsWith(\"'\") || token.endsWith(\"'\")))) {");
-    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "strings_colour"));
-    mistsutils_patchcommand(A: "} else if (functions_colour && arr[i+1] === \"(\") {");
-    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "functions_colour"));
-    mistsutils_patchcommand(A: "} else if (objects_colour && arr[i+1] === \".\" || arr[i+1] === \"[\") {");
-    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "objects_colour"));
-    mistsutils_patchcommand(A: "} else {");
-    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "col"));
-    mistsutils_patchcommand(A: "}");
-    mistsutils_patchcommand(A: "} else {");
-    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "colour"));
-    mistsutils_patchcommand(A: "} if (token === \" \") {");
-    motion_changexby(DX: 10);
-    mistsutils_patchcommand(A: "} else {");
-    @Draw_Text(Text: mistsutils_patchreporter(A: "token"), X: motion_xposition(), Y: motion_yposition(), Size: "10", Markdown_Enabled: "1");
-    mistsutils_patchcommand(A: "}");
-    pen_setPenColorToColor(COLOR: mistsutils_patchreporter(A: "col"));
-    mistsutils_patchcommand(A: "}");
+    motion.changexby(DX: (temp2 * 10));
+    mistsutils.patchcommand(A: "for (let i = 0; i < arr.length; i ++) {");
+    mistsutils.patchcommand(A: "const token = \"\"+arr[i] || \"\"");
+    mistsutils.patchcommand(A: "let colour = null;");
+    mistsutils.patchcommand(A: "if (ohf.highlighter?.type === \"function\") { try { colour = ohf.highlighter.fn(token) } catch(e) { console.error(e) } }");
+    mistsutils.patchcommand(A: "colour ??= ohf?.tokens?.[\"tkn:\" + token]");
+    mistsutils.patchcommand(A: "if ((colour ?? \"\") === \"\") {");
+    mistsutils.patchcommand(A: "if (numbers_colour && !isNaN(token)) {");
+    pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "numbers_colour"));
+    mistsutils.patchcommand(A: "} else if (strings_colour && ((token.startsWith('\"') && token.endsWith('\"')) || (token.startsWith(\"'\") || token.endsWith(\"'\")))) {");
+    pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "strings_colour"));
+    mistsutils.patchcommand(A: "} else if (functions_colour && arr[i+1] === \"(\") {");
+    pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "functions_colour"));
+    mistsutils.patchcommand(A: "} else if (objects_colour && arr[i+1] === \".\" || arr[i+1] === \"[\") {");
+    pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "objects_colour"));
+    mistsutils.patchcommand(A: "} else {");
+    pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "col"));
+    mistsutils.patchcommand(A: "}");
+    mistsutils.patchcommand(A: "} else {");
+    pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "colour"));
+    mistsutils.patchcommand(A: "} if (token === \" \") {");
+    motion.changexby(DX: 10);
+    mistsutils.patchcommand(A: "} else {");
+    @Draw_Text(Text: mistsutils.patchreporter(A: "token"), X: motion.xposition(), Y: motion.yposition(), Size: "10", Markdown_Enabled: "1");
+    mistsutils.patchcommand(A: "}");
+    pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "col"));
+    mistsutils.patchcommand(A: "}");
   }
 }

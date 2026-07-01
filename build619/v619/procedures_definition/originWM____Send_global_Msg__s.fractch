@@ -7,9 +7,9 @@
  */
 
 def @originWM_Send_global_Msg(arr) "originWM // Send global Msg %s" warp=false {
-  mistsutils_patchcommand2(A: "p0 = typeof p0 === \"object\" ? p0 : ", B: OSLUtils_tokeniseValues(CODE: arr, DELIMITER: "/"));
-  mistsutils_patchcommand(A: "const id = parseInt(String(p0[1]))");
-  if mistsutils_patchboolean(A: "window.origin.windows.ids.filter(v => v >= 0).includes(id)") {
-    mistsutils_patchcommand(A: "window.origin.sudoTransmit.push({id, time: Date.now(), data: p0})");
+  mistsutils.patchcommand2(A: "p0 = typeof p0 === \"object\" ? p0 : ", B: OSLUtils.tokeniseValues(CODE: arr, DELIMITER: "/"));
+  mistsutils.patchcommand(A: "const id = parseInt(String(p0[1]))");
+  if mistsutils.patchboolean(A: "window.origin.windows.ids.filter(v => v >= 0).includes(id)") {
+    mistsutils.patchcommand(A: "window.origin.sudoTransmit.push({id, time: Date.now(), data: p0})");
   }
 }

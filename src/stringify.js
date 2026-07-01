@@ -148,7 +148,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   if (block.mutation) {
     argParts.push(`mutation: ${JSON.stringify(block.mutation)}`);
   }
-  const call = `${opcode}(${argParts.join(', ')})`;
+  const call = `${formatOpcodeName(opcode)}(${argParts.join(', ')})`;
 
   // Extension "C-block" opcodes (custom blocks with a body slot) that aren't
   // one of the hardcoded control-flow keywords above still need their
@@ -278,6 +278,15 @@ function formatArgKey(name) {
   } catch {
     return `[${JSON.stringify(String(name))}]`;
   }
+}
+
+function formatOpcodeName(opcode) {
+  const s = String(opcode || '');
+  const m = /^([A-Za-z][A-Za-z0-9]*)_(.+)$/.exec(s);
+  if (!m) return s;
+  const [, namespace, rest] = m;
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(rest)) return s;
+  return `${namespace}.${rest}`;
 }
 
 function formatLiteral(arr) {

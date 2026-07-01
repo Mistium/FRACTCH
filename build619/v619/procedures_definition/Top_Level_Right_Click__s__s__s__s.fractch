@@ -8,10 +8,10 @@
 
 import "../procedures_definition/Draw_Right-click_Menu__s__s__s__s.fractch";
 def @Top_Level_Right_Click(code, depth, x, y) "Top Level Right Click %s %s %s %s" warp=false {
-  mistsutils_patchcommand(A: "try {");
-  vars["RightClickCount"] = (mistsutils_patchreporter(A: "(p0.length || 0) * 30") - mistsutils_patchreporter(A: "(p0.filter(x => x == \"-\").length) * 20"));
-  mistsutils_patchcommand2(A: "const x = ", B: mistsutils_clamp(A: x, B: (vars["Screen Size X"] / -2), C: ((vars["Screen Size X"] / 2) - 280)));
-  mistsutils_patchcommand2(A: "const y = ", B: mistsutils_clamp(A: y, B: ((vars["Screen Size Y"] / -2) + (RightClickCount + 10)), C: (vars["Screen Size Y"] / 2)));
-  @Draw_Right_click_Menu(code: code, depth: depth, x: mistsutils_patchreporter(A: "x"), y: mistsutils_patchreporter(A: "y"));
-  mistsutils_patchcommand(A: "} catch(e) { console.error(e) }");
+  mistsutils.patchcommand(A: "try {");
+  vars["RightClickCount"] = (mistsutils.patchreporter(A: "(p0.length || 0) * 30") - mistsutils.patchreporter(A: "(p0.filter(x => x == \"-\").length) * 20"));
+  mistsutils.patchcommand2(A: "const x = ", B: mistsutils.clamp(A: x, B: (vars["Screen Size X"] / -2), C: ((vars["Screen Size X"] / 2) - 280)));
+  mistsutils.patchcommand2(A: "const y = ", B: mistsutils.clamp(A: y, B: ((vars["Screen Size Y"] / -2) + (RightClickCount + 10)), C: (vars["Screen Size Y"] / 2)));
+  @Draw_Right_click_Menu(code: code, depth: depth, x: mistsutils.patchreporter(A: "x"), y: mistsutils.patchreporter(A: "y"));
+  mistsutils.patchcommand(A: "} catch(e) { console.error(e) }");
 }

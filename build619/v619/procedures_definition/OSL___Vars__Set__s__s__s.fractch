@@ -8,13 +8,13 @@
 
 import "../procedures_definition/Log_Error__s__s.fractch";
 def @OSL_Vars_Set(name, data, current_command("current command")) "OSL// Vars: Set %s %s %s" warp=true {
-  mistsutils_patchcommand(A: "try {");
+  mistsutils.patchcommand(A: "try {");
   if (current_command == "") {
-    mistsutils_patchcommand3(A: "if (p0?.length === 0) return; window.osl_clone[", B: vars["WIndow // ID"], C: "][p0.toLowerCase()] = p1 ?? \"\"");
+    mistsutils.patchcommand3(A: "if (p0?.length === 0) return; window.osl_clone[", B: vars["WIndow // ID"], C: "][p0.toLowerCase()] = p1 ?? \"\"");
   } else {
-    mistsutils_patchcommand(A: "window.osl[p0.toLowerCase()] = p1 ?? \"\"");
+    mistsutils.patchcommand(A: "window.osl[p0.toLowerCase()] = p1 ?? \"\"");
   }
-  mistsutils_patchcommand(A: "} catch(e) {");
-  @Log_Error(Data: mistsutils_patchreporter(A: "`${e} (got ${JSON.smartStringify(p1)})`"), Type: "Assignment");
-  mistsutils_patchcommand(A: "}");
+  mistsutils.patchcommand(A: "} catch(e) {");
+  @Log_Error(Data: mistsutils.patchreporter(A: "`${e} (got ${JSON.smartStringify(p1)})`"), Type: "Assignment");
+  mistsutils.patchcommand(A: "}");
 }

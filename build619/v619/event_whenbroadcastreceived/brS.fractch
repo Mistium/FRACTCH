@@ -6,26 +6,26 @@
  * threadIndex: 154
  */
 
-event_whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Dropped", "u$"));
+event.whenbroadcastreceived(field BROADCAST_OPTION: broadcast("Dropped", "u$"));
 if (vars["Process // Type"] == "App") {
-  mistsutils_patchcommand(A: "try {");
-  if (mistsutils_patchreporter(A: "origin.windows.ids.indexOf(+target?.window?.id) + 1") == vars["Window // Top Index"]) {
-    mistsutils_patchcommand2(A: "let id = ", B: vars["Files // Current Dragging"]);
-    mistsutils_patchcommand3(A: "let drop_loc = String(", B: vars["Move// Drop Loc"], C: ").toLowerCase()");
+  mistsutils.patchcommand(A: "try {");
+  if (mistsutils.patchreporter(A: "origin.windows.ids.indexOf(+target?.window?.id) + 1") == vars["Window // Top Index"]) {
+    mistsutils.patchcommand2(A: "let id = ", B: vars["Files // Current Dragging"]);
+    mistsutils.patchcommand3(A: "let drop_loc = String(", B: vars["Move// Drop Loc"], C: ").toLowerCase()");
     vars["Files // Current Dragging"] = "0";
-    if mistsutils_patchboolean(A: "drop_loc === \"origin/(b) local\"") {
+    if mistsutils.patchboolean(A: "drop_loc === \"origin/(b) local\"") {
       @OSL_Parse_and_Run(Run: "say \"Local is currently blocked because it can corrupt your user files\"");
     } else {
-      if mistsutils_notequals(A: vars["Move// Drop Loc"], B: "") {
-        mistsutils_patchcommand2(A: "const folder_id = ", B: @originFS_Path_ID(Path: mistsutils_patchreporter(A: "`${drop_loc}.folder`")));
-        if mistsutils_patchboolean(A: "folder_id !== id") {
-          @originFS_Exec_file_file_data_id_input(command: "move", Id: mistsutils_patchreporter(A: "id"), data_id: "", input: vars["Move// Drop Loc"]);
+      if mistsutils.notequals(A: vars["Move// Drop Loc"], B: "") {
+        mistsutils.patchcommand2(A: "const folder_id = ", B: @originFS_Path_ID(Path: mistsutils.patchreporter(A: "`${drop_loc}.folder`")));
+        if mistsutils.patchboolean(A: "folder_id !== id") {
+          @originFS_Exec_file_file_data_id_input(command: "move", Id: mistsutils.patchreporter(A: "id"), data_id: "", input: vars["Move// Drop Loc"]);
         }
       }
-      @OSL_Vars_Set(name: "file_dropped", data: data_itemoflist(INDEX: mistsutils_patchreporter(A: "id"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), current_command: "");
+      @OSL_Vars_Set(name: "file_dropped", data: data.itemoflist(INDEX: mistsutils.patchreporter(A: "id"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), current_command: "");
       @Window_Reset_Redraw_Box();
       @Renderer_Call_ReRender();
     }
   }
-  mistsutils_patchcommand(A: "} catch(e) { console.error(e) }");
+  mistsutils.patchcommand(A: "} catch(e) { console.error(e) }");
 }

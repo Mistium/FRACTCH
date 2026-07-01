@@ -7,79 +7,79 @@
  */
 
 def @Window_Setup_OSL_compilables() "Window // Setup OSL compilables" warp=false {
-  mistsutils_patchcommand(A: "target.getOSLvar = (p0, t) => { const target = t; switch (p0) {");
-  mistsutils_patchcommand(A: "case \"timer\": return runtime.ioDevices.clock.projectTimer()");
-  mistsutils_patchcommand2(A: "case \"frame_width\": return ", B: vars["Frame // Width"]);
-  mistsutils_patchcommand2(A: "case \"frame_height\": return ", B: vars["Frame // Height"]);
-  mistsutils_patchcommand2(A: "case \"save_directory\": return ", B: vars["Window // Save Directory"]);
-  mistsutils_patchcommand(A: "case \"current_colour\": return t._customState[\"Scratch.pen\"].getColour()");
-  mistsutils_patchcommand(A: "case \"performance\": return performance.now()");
-  mistsutils_patchcommand(A: "case \"fps_limit\": return runtime.frameLoop.framerate");
-  mistsutils_patchcommand(A: "case \"infinity\": return Infinity;");
-  mistsutils_patchcommand2(A: "case \"timestamp\": return Date.now() + ", B: vars["SYSTEM // Timestamp Offset"]);
-  mistsutils_patchcommand(A: "case \"direction\": return t.direction");
-  mistsutils_patchcommand(A: "case \"this\": return t.osl_this");
-  mistsutils_patchcommand(A: "case \"self\": return t.osl_vars.__self__ ?? null");
-  mistsutils_patchcommand2(A: "case \"file_dragging\": return ", B: (vars["Files // Current Dragging"] > "0"));
-  mistsutils_patchcommand2(A: "case \"mouse_x\": return ", B: (sensing_mousex() - vars["Frame // X"]));
-  mistsutils_patchcommand2(A: "case \"mouse_y\": return ", B: (sensing_mousey() - vars["Frame // Y"]));
-  mistsutils_patchcommand2(A: "case \"x_position\": return ", B: (motion_xposition() - vars["Frame // X"]));
-  mistsutils_patchcommand2(A: "case \"y_position\": return ", B: (motion_yposition() - vars["Frame // Y"]));
-  mistsutils_patchcommand2(A: "case \"frame\": return ", B: data_itemoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
-  mistsutils_patchcommand2(A: "case \"window_width\": return ", B: "target.window.width");
-  mistsutils_patchcommand2(A: "case \"window_height\": return ", B: "target.window.height");
-  mistsutils_patchcommand2(A: "case \"stretch_x\": return ", B: vars["Renderer // Stretch X"]);
-  mistsutils_patchcommand2(A: "case \"stretch_y\": return ", B: vars["Renderer // Stretch Y"]);
-  mistsutils_patchcommand2(A: "case \"window_timer\": case \"local_timer\": return ", B: vars["Clone timer"]);
-  mistsutils_patchcommand2(A: "case \"bg_redrawn\": return ", B: (mistsutils_patchboolean(A: "window.origin.wallpaper.redrawn === true") && (mistsutils_equals(A: vars["Window // ID_Index"], B: "1") || mistsutils_equals(A: vars["Window // Overlapping Redraw"], B: "true"))));
-  mistsutils_patchcommand2(A: "case \"window_id_index\": return ", B: vars["Window // ID_Index"]);
-  mistsutils_patchcommand2(A: "case \"loaded_file\": return ", B: vars["OSL// Current Open File"]);
-  mistsutils_patchcommand3(A: "case \"scope\": return {\"depth\": t?.osl_local_vars?.length ?? null, \"this\": ", B: "t.osl_this", C: ", \"path\": t.osl_local_vars.map(v => v.name) }");
+  mistsutils.patchcommand(A: "target.getOSLvar = (p0, t) => { const target = t; switch (p0) {");
+  mistsutils.patchcommand(A: "case \"timer\": return runtime.ioDevices.clock.projectTimer()");
+  mistsutils.patchcommand2(A: "case \"frame_width\": return ", B: vars["Frame // Width"]);
+  mistsutils.patchcommand2(A: "case \"frame_height\": return ", B: vars["Frame // Height"]);
+  mistsutils.patchcommand2(A: "case \"save_directory\": return ", B: vars["Window // Save Directory"]);
+  mistsutils.patchcommand(A: "case \"current_colour\": return t._customState[\"Scratch.pen\"].getColour()");
+  mistsutils.patchcommand(A: "case \"performance\": return performance.now()");
+  mistsutils.patchcommand(A: "case \"fps_limit\": return runtime.frameLoop.framerate");
+  mistsutils.patchcommand(A: "case \"infinity\": return Infinity;");
+  mistsutils.patchcommand2(A: "case \"timestamp\": return Date.now() + ", B: vars["SYSTEM // Timestamp Offset"]);
+  mistsutils.patchcommand(A: "case \"direction\": return t.direction");
+  mistsutils.patchcommand(A: "case \"this\": return t.osl_this");
+  mistsutils.patchcommand(A: "case \"self\": return t.osl_vars.__self__ ?? null");
+  mistsutils.patchcommand2(A: "case \"file_dragging\": return ", B: (vars["Files // Current Dragging"] > "0"));
+  mistsutils.patchcommand2(A: "case \"mouse_x\": return ", B: (sensing.mousex() - vars["Frame // X"]));
+  mistsutils.patchcommand2(A: "case \"mouse_y\": return ", B: (sensing.mousey() - vars["Frame // Y"]));
+  mistsutils.patchcommand2(A: "case \"x_position\": return ", B: (motion.xposition() - vars["Frame // X"]));
+  mistsutils.patchcommand2(A: "case \"y_position\": return ", B: (motion.yposition() - vars["Frame // Y"]));
+  mistsutils.patchcommand2(A: "case \"frame\": return ", B: data.itemoflist(INDEX: 1, field LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")));
+  mistsutils.patchcommand2(A: "case \"window_width\": return ", B: "target.window.width");
+  mistsutils.patchcommand2(A: "case \"window_height\": return ", B: "target.window.height");
+  mistsutils.patchcommand2(A: "case \"stretch_x\": return ", B: vars["Renderer // Stretch X"]);
+  mistsutils.patchcommand2(A: "case \"stretch_y\": return ", B: vars["Renderer // Stretch Y"]);
+  mistsutils.patchcommand2(A: "case \"window_timer\": case \"local_timer\": return ", B: vars["Clone timer"]);
+  mistsutils.patchcommand2(A: "case \"bg_redrawn\": return ", B: (mistsutils.patchboolean(A: "window.origin.wallpaper.redrawn === true") && (mistsutils.equals(A: vars["Window // ID_Index"], B: "1") || mistsutils.equals(A: vars["Window // Overlapping Redraw"], B: "true"))));
+  mistsutils.patchcommand2(A: "case \"window_id_index\": return ", B: vars["Window // ID_Index"]);
+  mistsutils.patchcommand2(A: "case \"loaded_file\": return ", B: vars["OSL// Current Open File"]);
+  mistsutils.patchcommand3(A: "case \"scope\": return {\"depth\": t?.osl_local_vars?.length ?? null, \"this\": ", B: "t.osl_this", C: ", \"path\": t.osl_local_vars.map(v => v.name) }");
   default {
-    mistsutils_patchcommand(A: "const name = (\"\"+p0)");
-    mistsutils_patchcommand(A: "// local variables");
-    mistsutils_patchcommand(A: "if (name in t.osl_local_map) return t.osl_this[t.osl_local_map[name]];");
-    mistsutils_patchcommand(A: "const low_name = name.toLowerCase()");
-    mistsutils_patchcommand(A: "// self values");
-    mistsutils_patchcommand(A: "const con = t.osl_vars");
-    mistsutils_patchcommand(A: "let v = con?.__self__?.[name]; if (v !== undefined) return v");
-    mistsutils_patchcommand(A: "v = con?.[low_name]; if (v !== undefined) return v");
-    mistsutils_patchcommand(A: "v = window.osl[low_name]; if (v !== undefined) return v");
-    mistsutils_patchcommand(A: "return null");
-    @Log_Error(Data: mistsutils_patchreporter(A: "`Tried to access ${p0}, but no variable with that name was found`"), Type: "Undefined");
+    mistsutils.patchcommand(A: "const name = (\"\"+p0)");
+    mistsutils.patchcommand(A: "// local variables");
+    mistsutils.patchcommand(A: "if (name in t.osl_local_map) return t.osl_this[t.osl_local_map[name]];");
+    mistsutils.patchcommand(A: "const low_name = name.toLowerCase()");
+    mistsutils.patchcommand(A: "// self values");
+    mistsutils.patchcommand(A: "const con = t.osl_vars");
+    mistsutils.patchcommand(A: "let v = con?.__self__?.[name]; if (v !== undefined) return v");
+    mistsutils.patchcommand(A: "v = con?.[low_name]; if (v !== undefined) return v");
+    mistsutils.patchcommand(A: "v = window.osl[low_name]; if (v !== undefined) return v");
+    mistsutils.patchcommand(A: "return null");
+    @Log_Error(Data: mistsutils.patchreporter(A: "`Tried to access ${p0}, but no variable with that name was found`"), Type: "Undefined");
   }
-  mistsutils_patchcommand(A: "}}");
-  mistsutils_patchcommand(A: "target.runOSLCompMethod = (self, name, params, target) => {");
-  mistsutils_patchcommand(A: "const isArray = Array.isArray(self)");
-  mistsutils_patchcommand(A: "const isNull = self === null");
-  if mistsutils_patchboolean(A: "typeof self === \"object\" && !isNull && !isArray") {
-    mistsutils_patchcommand(A: "const prop = self[name] ?? target.osl_vars.object[name] ?? null");
-    if mistsutils_patchboolean(A: "prop !== null && typeof prop?.code === \"function\"") {
-      mistsutils_patchcommand(A: "const new_scope = p1.inherit_scope !== true");
-      mistsutils_patchcommand(A: "if (new_scope) target.openOSLThread(\".\" + name + \"()\", target)");
-      mistsutils_patchcommand(A: "const ret = prop.code(...params)");
-      mistsutils_patchcommand(A: "if (new_scope) target.closeOSLThread(target)");
-      mistsutils_patchcommand(A: "return ret");
+  mistsutils.patchcommand(A: "}}");
+  mistsutils.patchcommand(A: "target.runOSLCompMethod = (self, name, params, target) => {");
+  mistsutils.patchcommand(A: "const isArray = Array.isArray(self)");
+  mistsutils.patchcommand(A: "const isNull = self === null");
+  if mistsutils.patchboolean(A: "typeof self === \"object\" && !isNull && !isArray") {
+    mistsutils.patchcommand(A: "const prop = self[name] ?? target.osl_vars.object[name] ?? null");
+    if mistsutils.patchboolean(A: "prop !== null && typeof prop?.code === \"function\"") {
+      mistsutils.patchcommand(A: "const new_scope = p1.inherit_scope !== true");
+      mistsutils.patchcommand(A: "if (new_scope) target.openOSLThread(\".\" + name + \"()\", target)");
+      mistsutils.patchcommand(A: "const ret = prop.code(...params)");
+      mistsutils.patchcommand(A: "if (new_scope) target.closeOSLThread(target)");
+      mistsutils.patchcommand(A: "return ret");
     }
   }
-  mistsutils_patchcommand(A: "}");
-  mistsutils_patchcommand(A: "target.openOSLThread = (name, target) => {");
-  mistsutils_patchcommand(A: "target.osl_this = [];");
-  mistsutils_patchcommand(A: "target.osl_local_map = Object.create(null);");
-  mistsutils_patchcommand(A: "const scopes = target.osl_local_scopes;");
-  mistsutils_patchcommand(A: "if (scopes) scopes.push({name, vars: target.osl_this, map: target.osl_local_map})");
-  mistsutils_patchcommand(A: "}");
-  mistsutils_patchcommand(A: "target.closeOSLThread = (target) => {");
-  mistsutils_patchcommand(A: "const scopes = target.osl_local_scopes");
-  mistsutils_patchcommand(A: "if (scopes) {");
-  mistsutils_patchcommand(A: "scopes.pop() // remove the current scope");
-  mistsutils_patchcommand(A: "const scope = scopes[scopes.length - 1]");
-  if mistsutils_patchboolean(A: "scope") {
-    mistsutils_patchcommand(A: "target.osl_this = (scope && scope.vars) || []");
-    mistsutils_patchcommand(A: "target.osl_local_map = (scope && scope.map) || Object.create(null)");
+  mistsutils.patchcommand(A: "}");
+  mistsutils.patchcommand(A: "target.openOSLThread = (name, target) => {");
+  mistsutils.patchcommand(A: "target.osl_this = [];");
+  mistsutils.patchcommand(A: "target.osl_local_map = Object.create(null);");
+  mistsutils.patchcommand(A: "const scopes = target.osl_local_scopes;");
+  mistsutils.patchcommand(A: "if (scopes) scopes.push({name, vars: target.osl_this, map: target.osl_local_map})");
+  mistsutils.patchcommand(A: "}");
+  mistsutils.patchcommand(A: "target.closeOSLThread = (target) => {");
+  mistsutils.patchcommand(A: "const scopes = target.osl_local_scopes");
+  mistsutils.patchcommand(A: "if (scopes) {");
+  mistsutils.patchcommand(A: "scopes.pop() // remove the current scope");
+  mistsutils.patchcommand(A: "const scope = scopes[scopes.length - 1]");
+  if mistsutils.patchboolean(A: "scope") {
+    mistsutils.patchcommand(A: "target.osl_this = (scope && scope.vars) || []");
+    mistsutils.patchcommand(A: "target.osl_local_map = (scope && scope.map) || Object.create(null)");
   }
-  mistsutils_patchcommand(A: "} else {");
-  mistsutils_patchcommand(A: "target.osl_this = []");
-  mistsutils_patchcommand(A: "target.osl_local_map = Object.create(null)");
-  mistsutils_patchcommand(A: "}}");
+  mistsutils.patchcommand(A: "} else {");
+  mistsutils.patchcommand(A: "target.osl_this = []");
+  mistsutils.patchcommand(A: "target.osl_local_map = Object.create(null)");
+  mistsutils.patchcommand(A: "}}");
 }

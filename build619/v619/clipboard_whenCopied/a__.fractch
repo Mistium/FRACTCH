@@ -7,11 +7,11 @@
  */
 
 import "../procedures_definition/Kernel____Copy__s.fractch";
-clipboard_whenCopied();
-mistsutils_patchcommand(A: "if (target.isOriginal) {");
+clipboard.whenCopied();
+mistsutils.patchcommand(A: "if (target.isOriginal) {");
 @Kernel_Copy(value: vars["Inputs // Selected String"]);
-mistsutils_patchcommand(A: "} else {");
+mistsutils.patchcommand(A: "} else {");
 if (vars["Process // Type"] == "app") {
   @OSL_Run_W_O_Screen_Refresh(code: "window.emit(\"copy\")");
 }
-mistsutils_patchcommand(A: "}");
+mistsutils.patchcommand(A: "}");

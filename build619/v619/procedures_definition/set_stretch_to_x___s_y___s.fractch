@@ -7,7 +7,7 @@
  */
 
 def @set_stretch_to_x_y(x, y) "set stretch to x: %s y: %s" warp=false {
-  mistsutils_patchcommand(A: "vm.runtime._primitives.stretch_setStretch({\"X\": p0, \"Y\": p1}, thread)");
+  mistsutils.patchcommand(A: "vm.runtime._primitives.stretch_setStretch({\"X\": p0, \"Y\": p1}, thread)");
   vars["Renderer // Stretch X"] = x;
   vars["Renderer // Stretch Y"] = y;
 }

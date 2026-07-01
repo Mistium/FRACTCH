@@ -9,20 +9,20 @@
 import "../procedures_definition/OSL____Thread_Open__s.fractch";
 import "../procedures_definition/OSL____Thread_Close.fractch";
 def @OSL_Import(Code, Name, Import) "OSL // Import %s %s %s" warp=true {
-  mistsutils_patchcommand2(A: "let package_save = ", B: vars["Import // Current Package"]);
-  mistsutils_patchcommand(A: "let start_time = performance.now()");
+  mistsutils.patchcommand2(A: "let package_save = ", B: vars["Import // Current Package"]);
+  mistsutils.patchcommand(A: "let start_time = performance.now()");
   vars["Import // Current Package"] = Import;
-  mistsutils_patchcommand(A: "const con = target.osl_vars");
-  mistsutils_patchcommand(A: "const self = con.__self__");
-  mistsutils_patchcommand(A: "con[p2] ??= {}");
-  mistsutils_patchcommand(A: "con.__self__ = con[p2]");
+  mistsutils.patchcommand(A: "const con = target.osl_vars");
+  mistsutils.patchcommand(A: "const self = con.__self__");
+  mistsutils.patchcommand(A: "con[p2] ??= {}");
+  mistsutils.patchcommand(A: "con.__self__ = con[p2]");
   @OSL_Thread_Open(Name: ("import: " .. Name));
-  mistsutils_patchcommand(A: "let i = 0;");
-  repeat mistsutils_length(A: Code) {
-    @OSL_Parse_and_Run(Run: mistsutils_patchreporter2(A: Code, B: "[i ++]"));
+  mistsutils.patchcommand(A: "let i = 0;");
+  repeat mistsutils.length(A: Code) {
+    @OSL_Parse_and_Run(Run: mistsutils.patchreporter2(A: Code, B: "[i ++]"));
   }
   @OSL_Thread_Close();
-  vars["Import // Current Package"] = mistsutils_patchreporter(A: "package_save");
-  mistsutils_patchcommand(A: "con.__self__ = self");
-  data_addtolist(ITEM: ((Name .. ",") .. (round(((mistsutils_performancenow() - mistsutils_patchreporter(A: "start_time")) * 10)) / 10)), field LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny"));
+  vars["Import // Current Package"] = mistsutils.patchreporter(A: "package_save");
+  mistsutils.patchcommand(A: "con.__self__ = self");
+  data.addtolist(ITEM: ((Name .. ",") .. (round(((mistsutils.performancenow() - mistsutils.patchreporter(A: "start_time")) * 10)) / 10)), field LIST: list("OSL // Import Times", "_nDk?DcJ%M`dL*cXe-Ny"));
 }

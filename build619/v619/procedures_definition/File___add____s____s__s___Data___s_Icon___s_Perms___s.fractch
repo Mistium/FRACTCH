@@ -8,10 +8,10 @@
 
 def @File_add_Data_Icon_Perms(Location, Name, Type, Data, Icon, Perms) "File// add ( %s / %s %s ) Data: %s Icon: %s Perms: %s" warp=true {
   vars["AODP File"] = "14";
-  mistsutils_patchcommand3(A: "let file_loc = destr(", B: Location, C: ").toLowerCase()");
-  mistsutils_patchcommand(A: "let name = \"origin.folder\"");
-  mistsutils_patchcommand2(A: "let parent_id = file_loc === \"\" ? 0 : +", B: @originFS_Path_ID(Path: mistsutils_patchreporter(A: "`${file_loc}.folder`")));
-  data_deletealloflist(field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+  mistsutils.patchcommand3(A: "let file_loc = destr(", B: Location, C: ").toLowerCase()");
+  mistsutils.patchcommand(A: "let name = \"origin.folder\"");
+  mistsutils.patchcommand2(A: "let parent_id = file_loc === \"\" ? 0 : +", B: @originFS_Path_ID(Path: mistsutils.patchreporter(A: "`${file_loc}.folder`")));
+  data.deletealloflist(field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
   if (Name == "") {
     @Log_Error(Data: "[NFEN] Unable to create new file with empty name", Type: "File");
     stop "this script";
@@ -20,64 +20,64 @@ def @File_add_Data_Icon_Perms(Location, Name, Type, Data, Icon, Perms) "File// a
     @Log_Error(Data: "[NFEN] Unable to create new file with no type", Type: "File");
     stop "this script";
   }
-  if ((mistsutils_patchreporter(A: "parent_id") > "0") || (data_lengthoflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) == "0")) {
-    if (data_lengthoflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) == "0") {
-      data_addtolist(ITEM: "origin.folder", field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-      data_addtolist(ITEM: ".folder", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-      data_addtolist(ITEM: "origin", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+  if ((mistsutils.patchreporter(A: "parent_id") > "0") || (data.lengthoflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) == "0")) {
+    if (data.lengthoflist(field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) == "0") {
+      data.addtolist(ITEM: "origin.folder", field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+      data.addtolist(ITEM: ".folder", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+      data.addtolist(ITEM: "origin", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
     } else {
-      mistsutils_patchcommand2(A: "name = ", B: @Files_Name_And_Type_From(Data: @Find_Unique_Name_For(path: mistsutils_patchreporter(A: "file_loc"), name: Name, type: mistsutils_patchreporter2(A: Type, B: ".replaceAll(\".\", \"\")"))));
-      data_addtolist(ITEM: mistsutils_patchreporter(A: "`${file_loc}/${name.join(\".\")}`.toLowerCase()"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
-      data_addtolist(ITEM: mistsutils_patchreporter(A: "\".\"+name[1]"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-      data_addtolist(ITEM: mistsutils_patchreporter(A: "name[0]"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-      mistsutils_patchcommand(A: "name = name.join(\".\")");
+      mistsutils.patchcommand2(A: "name = ", B: @Files_Name_And_Type_From(Data: @Find_Unique_Name_For(path: mistsutils.patchreporter(A: "file_loc"), name: Name, type: mistsutils.patchreporter2(A: Type, B: ".replaceAll(\".\", \"\")"))));
+      data.addtolist(ITEM: mistsutils.patchreporter(A: "`${file_loc}/${name.join(\".\")}`.toLowerCase()"), field LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+      data.addtolist(ITEM: mistsutils.patchreporter(A: "\".\"+name[1]"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+      data.addtolist(ITEM: mistsutils.patchreporter(A: "name[0]"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+      mistsutils.patchcommand(A: "name = name.join(\".\")");
     }
-    data_addtolist(ITEM: mistsutils_patchreporter(A: "file_loc"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    if mistsutils_patchboolean(A: "name.endsWith(\".folder\")") {
-      data_addtolist(ITEM: mistsutils_patchreporter(A: "[]"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: mistsutils.patchreporter(A: "file_loc"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    if mistsutils.patchboolean(A: "name.endsWith(\".folder\")") {
+      data.addtolist(ITEM: mistsutils.patchreporter(A: "[]"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
     } else {
-      data_addtolist(ITEM: Data, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+      data.addtolist(ITEM: Data, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
     }
-    data_addtolist(ITEM: "0", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    data_addtolist(ITEM: (round((operator_random(FROM: 0, TO: (vars["Screen Size X"] / 1.5)) / 35)) * 35), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    data_addtolist(ITEM: (round((operator_random(FROM: 0, TO: (vars["Screen Size Y"] / 1.5)) / 35)) * -35), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    data_addtolist(ITEM: arg("Data2"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    data_addtolist(ITEM: mistsutils_patchreporter(A: "Date.now()"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    data_addtolist(ITEM: mistsutils_patchreporter(A: "Date.now()"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    data_addtolist(ITEM: Icon, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    data_addtolist(ITEM: "0", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: "0", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: (round((operator.random(FROM: 0, TO: (vars["Screen Size X"] / 1.5)) / 35)) * 35), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: (round((operator.random(FROM: 0, TO: (vars["Screen Size Y"] / 1.5)) / 35)) * -35), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: arg("Data2"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: mistsutils.patchreporter(A: "Date.now()"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: mistsutils.patchreporter(A: "Date.now()"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: Icon, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    data.addtolist(ITEM: "0", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
     if (Perms == "") {
-      data_addtolist(ITEM: "[\"File Viewer\",\"File Editor\"]", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+      data.addtolist(ITEM: "[\"File Viewer\",\"File Editor\"]", field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
     } else {
-      data_addtolist(ITEM: Perms, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+      data.addtolist(ITEM: Perms, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
     }
-    mistsutils_patchcommand2(A: "let uuid = ", B: @originFS_Generate_file_uuid());
-    data_addtolist(ITEM: mistsutils_patchreporter(A: "uuid"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
-    data_addtolist(ITEM: mistsutils_patchreporter(A: "uuid"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    mistsutils_patchcommand2(A: "window.files.uuids[uuid] = ", B: data_lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
-    data_replaceitemoflist(INDEX: 12, ITEM: operator_length(STRING: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z")), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
-    vars["SYSTEM // Total Disk Writes"] += data_itemoflist(INDEX: 12, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    mistsutils.patchcommand2(A: "let uuid = ", B: @originFS_Generate_file_uuid());
+    data.addtolist(ITEM: mistsutils.patchreporter(A: "uuid"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+    data.addtolist(ITEM: mistsutils.patchreporter(A: "uuid"), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    mistsutils.patchcommand2(A: "window.files.uuids[uuid] = ", B: data.lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+    data.replaceitemoflist(INDEX: 12, ITEM: operator.length(STRING: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z")), field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+    vars["SYSTEM // Total Disk Writes"] += data.itemoflist(INDEX: 12, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
     if not((vars["Account// Current"] == "")) {
-      @originFS_Exec_at_with_data_File_UUID(Command: "append", Index: "", Data: skyhigh173JSON_json_vm_getlist(list: skyhigh173JSON_menu_get_list(field get_list: list("G`Rh9Vu=%QfO#F!6x~}Z"))), Uuid: "");
+      @originFS_Exec_at_with_data_File_UUID(Command: "append", Index: "", Data: skyhigh173JSON.json_vm_getlist(list: skyhigh173JSON.menu_get_list(field get_list: list("G`Rh9Vu=%QfO#F!6x~}Z"))), Uuid: "");
     } else {
-      @Kernel_Log(Thing: "ofsfH", Value: mistsutils_patchreporter3(A: "`add ${name}: ${formatFileSize(", B: skyhigh173JSON_json_vm_getlist(list: skyhigh173JSON_menu_get_list(field get_list: list("G`Rh9Vu=%QfO#F!6x~}Z"))), C: ".length)}`"));
+      @Kernel_Log(Thing: "ofsfH", Value: mistsutils.patchreporter3(A: "`add ${name}: ${formatFileSize(", B: skyhigh173JSON.json_vm_getlist(list: skyhigh173JSON.menu_get_list(field get_list: list("G`Rh9Vu=%QfO#F!6x~}Z"))), C: ".length)}`"));
     }
     repeat 14 {
-      data_addtolist(ITEM: data_itemoflist(INDEX: 1, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z")), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
-      data_deleteoflist(INDEX: 1, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
+      data.addtolist(ITEM: data.itemoflist(INDEX: 1, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z")), field LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+      data.deleteoflist(INDEX: 1, field LIST: list("Files // Create New", "G`Rh9Vu=%QfO#F!6x~}Z"));
     }
-    mistsutils_patchcommand2(A: "let val = ", B: @File_get_item(id: mistsutils_patchreporter(A: "parent_id"), item: "4"));
-    if not(skyhigh173JSON_json_is(json: mistsutils_patchreporter(A: "val"), types: skyhigh173JSON_menu_types(field types: ["Array",null]))) {
-      mistsutils_patchcommand(A: "val = \"[]\"");
+    mistsutils.patchcommand2(A: "let val = ", B: @File_get_item(id: mistsutils.patchreporter(A: "parent_id"), item: "4"));
+    if not(skyhigh173JSON.json_is(json: mistsutils.patchreporter(A: "val"), types: skyhigh173JSON.menu_types(field types: ["Array",null]))) {
+      mistsutils.patchcommand(A: "val = \"[]\"");
     }
-    @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: "4", Data: skyhigh173JSON_json_array_push(item: mistsutils_patchreporter(A: "uuid"), json: mistsutils_patchreporter(A: "val")), Uuid: data_itemoflist(INDEX: mistsutils_patchreporter(A: "parent_id"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
-    if (data_lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")) == "1") {
-      vars["Window // UUID"] = mistsutils_patchreporter(A: "uuid");
+    @originFS_Exec_at_with_data_File_UUID(Command: "replace", Index: "4", Data: skyhigh173JSON.json_array_push(item: mistsutils.patchreporter(A: "uuid"), json: mistsutils.patchreporter(A: "val")), Uuid: data.itemoflist(INDEX: mistsutils.patchreporter(A: "parent_id"), field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+    if (data.lengthoflist(field LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")) == "1") {
+      vars["Window // UUID"] = mistsutils.patchreporter(A: "uuid");
     }
-    return mistsutils_patchreporter(A: "uuid");
+    return mistsutils.patchreporter(A: "uuid");
   } else {
-    mistsutils_patchcommand2(A: "name = ", B: @Files_Name_And_Type_From(Data: @Find_Unique_Name_For(path: mistsutils_patchreporter(A: "file_loc"), name: Name, type: mistsutils_patchreporter2(A: Type, B: ".replaceAll(\".\", \"\")"))));
-    @Log_Error(Data: mistsutils_patchreporter(A: "`Unable to create file (${name.join(\".\")}) in unknown directory: ${file_loc}`"), Type: "File");
+    mistsutils.patchcommand2(A: "name = ", B: @Files_Name_And_Type_From(Data: @Find_Unique_Name_For(path: mistsutils.patchreporter(A: "file_loc"), name: Name, type: mistsutils.patchreporter2(A: Type, B: ".replaceAll(\".\", \"\")"))));
+    @Log_Error(Data: mistsutils.patchreporter(A: "`Unable to create file (${name.join(\".\")}) in unknown directory: ${file_loc}`"), Type: "File");
     return "";
   }
 }

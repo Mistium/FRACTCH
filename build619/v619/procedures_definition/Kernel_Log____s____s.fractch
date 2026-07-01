@@ -7,6 +7,6 @@
  */
 
 def @Kernel_Log(Thing, Value) "Kernel Log [ %s ] %s" warp=false {
-  data_addtolist(ITEM: mistsutils_patchreporter(A: "`[${(new Date()).toISOString().replace('T', ' ').slice(0, 19)}] ${p0} (${target?.osl_vars?.window?.title ?? \"Kernel\"}): ${p1}`"), field LIST: list("Kernel // Log", "?[HcDcJb70Jr_)_.*)Kw"));
-  data_deleteoflist(INDEX: 1, field LIST: list("Kernel // Log", "?[HcDcJb70Jr_)_.*)Kw"));
+  data.addtolist(ITEM: mistsutils.patchreporter(A: "`[${(new Date()).toISOString().replace('T', ' ').slice(0, 19)}] ${p0} (${target?.osl_vars?.window?.title ?? \"Kernel\"}): ${p1}`"), field LIST: list("Kernel // Log", "?[HcDcJb70Jr_)_.*)Kw"));
+  data.deleteoflist(INDEX: 1, field LIST: list("Kernel // Log", "?[HcDcJb70Jr_)_.*)Kw"));
 }
