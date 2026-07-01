@@ -5,6 +5,7 @@ import AdmZip from 'adm-zip';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { writeExtensions } from '../src/extensions.js';
+import { writeAssets } from '../src/assets.js';
 import { convertProject } from '../src/convert.js';
 import { packFromBuildDir } from '../src/pack.js';
 
@@ -90,6 +91,7 @@ const argv = yargs(hideBin(process.argv))
   fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(result.manifest, null, 2));
   fs.writeFileSync(path.join(outDir, 'index.fractch'), result.indexContent);
 
+  writeAssets(zip, projectJson, outDir, { verbose });
   const ext = await writeExtensions(projectJson, outDir, { verbose });
   if (verbose && ext) console.log(`Extensions: ${ext.fetched||0}/${ext.count||0} sources fetched`);
 

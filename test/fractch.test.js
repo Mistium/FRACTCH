@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeExtensions } from '../src/extensions.js';
+import { checkFractch } from '../src/lint.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SB3 = 'originv6.0.0.sb3';
@@ -101,4 +102,26 @@ test('extensions: http url -> .url file, data url -> decoded source', () => {
 
 test('extensions folder is generated during build', () => {
   assert.ok(fs.existsSync(path.join(outDir, 'extensions', 'index.json')));
+});
+
+test('costumes/sounds are extracted to the build (assets + listings)', () => {
+  assert.ok(fs.existsSync(path.join(outDir, 'assets')));
+  assert.ok(fs.readdirSync(path.join(outDir, 'assets')).length > 0);
+  const listings = walk(outDir).filter((f) => path.basename(f) === 'costumes.json');
+  assert.ok(listings.length > 0, 'no costumes.json emitted');
+  const costumes = JSON.parse(fs.readFileSync(listings[0], 'utf8'));
+  assert.ok(Array.isArray(costumes) && costumes.length > 0);
+});
+
+test('lint accepts valid fractch and reports balanced-delimiter errors', () => {
+  assert.strictEqual(checkFractch('@Foo(a= 1)\nif x { }').length, 0);
+  const unbalanced = checkFractch('@Foo(a= 1');
+  assert.ok(unbalanced.some((e) => /unclosed/.test(e.message)));
+  const badStr = checkFractch('@Foo(a= "oops)');
+  assert.ok(badStr.some((e) => /unterminated string/.test(e.message)));
+});
+
+test('lint reports mismatched and unexpected delimiters', () => {
+  assert.ok(checkFractch('@Foo(a= [1)]').some((e) => /mismatched/.test(e.message)));
+  assert.ok(checkFractch('done)').some((e) => /unexpected/.test(e.message)));
 });

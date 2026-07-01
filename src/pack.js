@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import AdmZip from 'adm-zip';
 import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, mergeIntoManifest, IdGen } from './buildBlocks.js';
+import { assertValidFractch } from './lint.js';
 
 export async function packFromBuildDir({ buildDir, outSb3, verbose = false, preferDSL = true }) {
   const manifestPath = path.join(buildDir, 'manifest.json');
@@ -54,6 +55,7 @@ export async function packFromBuildDir({ buildDir, outSb3, verbose = false, pref
         }
 
         try {
+          assertValidFractch(content, fPath);
           const parsed = parseFractch(content);
           const calls = Array.isArray(parsed) ? parsed : parsed.calls;
           if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
