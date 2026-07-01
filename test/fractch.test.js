@@ -67,6 +67,15 @@ test('no trailing-comma noise in emitted calls', () => {
   }
 });
 
+test('switch/case blocks render as readable switch statements', () => {
+  const hit = walk(outDir).some((f) => {
+    if (!f.endsWith('.fractch')) return false;
+    const t = fs.readFileSync(f, 'utf8');
+    return /switch .+\{/.test(t) && /case .+\{/.test(t);
+  });
+  assert.ok(hit, 'no readable switch/case rendering found');
+});
+
 test('extension opcodes are preserved literally (not renamed)', () => {
   const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /mistsutils_patchcommand\(/.test(fs.readFileSync(f, 'utf8')));
   assert.ok(hit, 'extension opcode mistsutils_patchcommand not found');

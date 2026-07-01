@@ -61,6 +61,21 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   if (opcode === 'control_forever') {
     return `forever ${branch(block, 'SUBSTACK', subgraph)}`;
   }
+  if (opcode === 'control_switch') {
+    const v = Array.isArray(block.inputs?.VALUE) ? getInputExpr(block.inputs.VALUE, subgraph) : 'null';
+    return `switch ${v} ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
+  if (opcode === 'control_case') {
+    const v = Array.isArray(block.inputs?.VALUE) ? getInputExpr(block.inputs.VALUE, subgraph) : 'null';
+    return `case ${v} ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
+  if (opcode === 'control_case_fallthrough') {
+    const v = Array.isArray(block.inputs?.VALUE) ? getInputExpr(block.inputs.VALUE, subgraph) : 'null';
+    return `case ${v} fallthrough ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
+  if (opcode === 'control_default') {
+    return `default ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
   if (opcode === 'control_repeat') {
     const n = getInputExpr(block.inputs?.TIMES, subgraph);
     return `repeat ${n} ${branch(block, 'SUBSTACK', subgraph)}`;
