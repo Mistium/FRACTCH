@@ -1,0 +1,120 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: :.
+ * hatOpcode: procedures_definition
+ * threadIndex: 62
+ */
+
+import "../procedures_definition/Timed_Log__s.fractch";
+import "../procedures_definition/originFS____Handle_mounted_file_systems.fractch";
+import "../procedures_definition/OSL___Vars__Set__s__s__s.fractch";
+import "../procedures_definition/Generate_Theme_Colours_From_User.fractch";
+import "../procedures_definition/originNM____Send__s_to__s.fractch";
+import "../procedures_definition/originFS____Generate_Paths_And_Uuids.fractch";
+import "../procedures_definition/Window___create__s__s.fractch";
+def @Load_Account_Files_Account(Token, Files, Account) "Load Account %s Files %s Account %s" warp=true {
+  mistsutils_patchcommand3(A= "const acc = ", B= Account, C= ".payload");
+  @Timed_Log(Data= "Loading Files And Preparing Runtime");
+  mistsutils_patchcommand(A= "let parsed = \"\"");
+  mistsutils_patchcommand(A= "try {");
+  mistsutils_patchcommand2(A= "parsed = ", B= mistsutils_jsonparse(A= Files));
+  mistsutils_patchcommand(A= "} catch {}");
+  mistsutils_patchcommand(A= "if (!Array.isArray(parsed)) {");
+  mistiumindexeddb_writeToDatabase(KEY= "last_download", VALUE= "0");
+  mistsutils_patchcommand(A= "alert(\"Your files are likely corrupt, message @mistium on discord\")");
+  runtimeoptions_greenFlag();
+  mistsutils_patchcommand(A= "}");
+  if not(data_listcontainsitem(ITEM= ("Origin/(C) Users/" .. (mistsutils_patchreporter(A= "acc?.username") .. ".folder")), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"))) {
+    mistsutils_patchcommand(A= "let files = Object.values(vm.runtime.getTargetForStage().variables).filter(obj => obj.name === \"Files\")[0]");
+    vars["DeString // out"] = @file_item_of_num(index= data_itemnumoflist(ITEM= "origin/(C) Users.folder", LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), num= "4");
+    data_replaceitemoflist(INDEX= vars["DeString // out"], ITEM= skyhigh173JSON_json_array_push(item= mistsutils_patchreporter(A= "parsed[13]"), json= data_itemoflist(INDEX= vars["DeString // out"], LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"))), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"));
+    mistsutils_patchcommand(A= "files.value = files.value.concat(parsed)");
+  }
+  @originFS_Handle_mounted_file_systems();
+  @Timed_Log(Data= (("Loaded: " .. data_lengthoflist(LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"))) .. " Files"));
+  mistsutils_patchcommand2(A= "let pass = ", B= "acc.password");
+  mistsutils_patchcommand(A= "delete acc.key");
+  mistsutils_patchcommand(A= "delete acc.password");
+  vars["Account// Current"] = mistsutils_jsonstringify(A= mistsutils_patchreporter(A= "acc"));
+  mistsutils_patchcommand2(A= "const permissions = ", B= mistsutils_jsonparse(A= @BOOT_Setup_account_perms(username= mistsutils_patchreporter(A= "acc.username"))));
+  mistsutils_patchcommand(A= "window._oslPerms = permissions;");
+  @Timed_Log(Data= "Setting up global user variables");
+  @OSL_Vars_Set(name= "user", data= mistsutils_patchreporter(A= "acc"), current_command= "Global");
+  @OSL_Vars_Set(name= "username", data= mistsutils_patchreporter(A= "acc.username"), current_command= "Global");
+  @OSL_Vars_Set(name= "global_accent", data= mistsutils_patchreporter(A= "acc?.theme?.accent ?? \"#57cdac\""), current_command= "Global");
+  @OSL_Vars_Set(name= "user_icon", data= mistsutils_patchreporter(A= "acc.pfp"), current_command= "Global");
+  @OSL_Vars_Set(name= "user_folder", data= mistsutils_patchreporter(A= "`origin/(c) users/${acc.username}`.toLowerCase()"), current_command= "Global");
+  @Generate_Theme_Colours_From_User();
+  mistsutils_patchcommand(A= "localStorage.setItem(\"origin_login\", p0)");
+  @Timed_Log(Data= "Loading wallpaper data");
+  if mistsutils_patchboolean(A= "Object.hasOwn(acc, \"wallpaper\")") {
+    mistsutils_patchcommand(A= "const wallpaper = window.origin.wallpaper");
+    mistsutils_patchcommand(A= "wallpaper.current = acc.wallpaper");
+    mistsutils_patchcommand(A= "wallpaper.next = acc.wallpaper");
+    if (not((mistiumindexeddb_readFromDatabase(KEY= "user_wallpaper_url") == mistsutils_patchreporter(A= "wallpaper.current"))) || mistsutils_patchreporter(A= "(\"\"+acc.wallpaper).endsWith(\".mp4\")")) {
+      @Renderer_Load_Wallpaper(url= mistsutils_patchreporter(A= "acc.wallpaper"));
+    }
+  }
+  mistsutils_patchcommand2(A= "const token = ", B= Token);
+  mistsutils_patchcommand(A= "const cry_encrypt = CryptoJS.AES.encrypt.bind({})");
+  mistsutils_patchcommand(A= "const cry_decrypt = CryptoJS.AES.decrypt.bind({})");
+  mistsutils_patchcommand(A= "const encrypt = (txt, key) => cry_encrypt(txt, key, {iv: CryptoJS.enc.Utf8.parse(0)}).toString()");
+  mistsutils_patchcommand(A= "const decrypt = (txt, key) => cry_decrypt(txt, key, {iv: CryptoJS.enc.Utf8.parse(0)}).toString(CryptoJS.enc.Utf8)");
+  mistsutils_patchcommand(A= "origin.auth.encryptWithToken = (data) => encrypt(data, token)");
+  mistsutils_patchcommand(A= "origin.auth.decryptWithToken = (data) => decrypt(data, token)");
+  mistsutils_patchcommand(A= "origin.auth.getTokenValidator = () => encrypt(\"validator lmao\",\"validator\" + token)");
+  mistsutils_patchcommand3(A= "origin.auth.requestRoturValidator = function*(key) { return ", B= cloudlink_fetchURL(url= mistsutils_patchreporter(A= "`https://social.rotur.dev/generate_validator?key=${encodeURIComponent(key)}&auth=${token}`")), C= "}");
+  vars["Server// Base Payload"] = skyhigh173JSON_json_set(item= "id", json= vars["Server// Base Payload"], value= ":3");
+  if not(mistsutils_starts(A= skyhigh173JSON_json_get(item= "proxy", json= vars["Account// Current"]), B= "https://")) {
+    @Account_Request_using_and(mode= "", Key= "proxy", Value= "https://apps.mistium.com/cors?url=");
+  }
+  vars["OSL // Perms"] = mistsutils_patchreporter(A= "[\"account\"]");
+  if not(mistsutils_patchboolean(A= "Object.hasOwn(acc, \"theme\")")) {
+    @Draw_Text(Text= "Fixing Theme", X= vars["Frame // Min X"], Y= (motion_yposition() - 40), Size= "10", Markdown_Enabled= "");
+    @OSL_Parse_and_Run(Run= "network \"update\" \"theme\" {\"primary\":\"#222\",\"secondary\":\"#555\",\"tertiary\":\"#777\",\"text\":\"#fff\",\"background\":\"#050505\",\"accent\":\"#57cdac\"}");
+  }
+  if mistsutils_patchboolean(A= "Object.hasOwn(acc, \"scrollspeed\")") {
+    vars["SYSTEM // Scroll Multiplier"] = mistsutils_patchreporter(A= "+acc.scrollspeed");
+    @Draw_Text(Text= "Set scroll speed", X= vars["Frame // Min X"], Y= (motion_yposition() - 40), Size= "10", Markdown_Enabled= "");
+  }
+  mistsutils_patchcommand(A= "origin.wallpaper.mode = acc.wallpaper_mode ?? \"fill\"");
+  @originNM_Send_to(data= skyhigh173JSON_json_set(item= "payload", json= skyhigh173JSON_json_set(item= "command", json= skyhigh173JSON_json_set(item= "source", json= skyhigh173JSON_json_set(item= "id", json= vars["Server// Base Payload"], value= mistsutils_patchreporter(A= "token")), value= "0"), value= "item_public"), value= "1"), username= vars["Server // Name"]);
+  @Timed_Log(Data= "Generating file paths and uuid lookups");
+  @originFS_Generate_Paths_And_Uuids();
+  @Timed_Log(Data= "Opening onboot applications");
+  mistsutils_patchcommand(A= "let onboot = '[\"origin/(a) system/system apps/originWM.osl\",\"origin/(a) system/system apps/Desktop.osl\",\"origin/(a) system/docks/Dock.osl\",\"origin/(a) system/system apps/Quick_Settings.osl\"]'");
+  if mistsutils_patchboolean(A= "Object.hasOwn(acc, \"onboot\")") {
+    @Timed_Log(Data= "Found onboot data");
+    vars["App // Temp"] = mistsutils_patchreporter(A= "JSON.stringify(acc.onboot)");
+  } else {
+    @Timed_Log(Data= "Creating onboot key");
+    @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "'network \"update\" \"onboot\" ' + onboot"));
+    vars["App // Temp"] = mistsutils_patchreporter(A= "onboot");
+  }
+  mistsutils_patchcommand(A= "let timer_load = performance.now()");
+  @Timed_Log(Data= "Waiting for wallpaper");
+  until ((mistSkins_getSkinLoaded(NAME= "wallpaper") && mistSkins_getSkinLoaded(NAME= "wallpaper_blur")) || (mistsutils_patchboolean(A= "performance.now() - timer_load > 3000") || mistsutils_patchboolean(A= "(\"\"+acc.wallpaper).endsWith(\".mp4\")"))) {
+    wait "0";
+  }
+  @Timed_Log(Data= "Loaded wallpaper");
+  vars["WIndow // ID"] = "-1";
+  mistsutils_patchcommand2(A= "onboot = ", B= mistsutils_jsonparse(A= vars["App // Temp"]));
+  @Window_create(name= "Loader", window_data= "");
+  if (sensing_keypressed(KEY_OPTION= sensing_keyoptions(KEY_OPTION: ["t",null])) || mistsutils_patchboolean(A= "onboot.length === 0")) {
+    @Window_create(name= "Terminal", window_data= "");
+  } else {
+    repeat mistsutils_patchreporter(A= "onboot.length") {
+      @Window_create(name= mistsutils_patchreporter(A= "onboot.shift()"), window_data= "SYS.onboot");
+    }
+  }
+  mistsutils_patchcommand3(A= "console.log(\"Completed boot\", ", B= sensing_timer(), C= ")");
+  mistsutils_patchcommand(A= "function emojiToCodePoints(o){const n=[...o];return n.map((o=>o.codePointAt(0).toString(16).toLowerCase())).join(\"-\")}");
+  mistsutils_patchcommand2(A= "let emoji = ", B= mistsutils_jsonparse(A= cloudlink_fetchURL(url= "https://origin.mistium.com/Resources/emojis.json")));
+  mistsutils_patchcommand(A= "for (let i = 0, e = emoji.emojis; i < e.length; i ++) icn_cache.set(\"fontorigin-\" + e[i],  [icn_cmds.pimg[0],`https://raw.githubusercontent.com/Mistium/twemoji/refs/heads/master/assets/72x72/${emojiToCodePoints(e[i])}.png`, 19, 19, 17, 17])");
+  mistsutils_patchcommand(A= "const requests = acc?.[\"sys.requests\"]?.length ?? 0");
+  if mistsutils_patchboolean(A= "requests > 0") {
+    @Show_Notification(Icon= "rotur", Title= mistsutils_patchreporter(A= "`You have ${requests} pending friend requests`"), Text= "", Style= "puck", Action= "");
+  }
+  return Token;
+}

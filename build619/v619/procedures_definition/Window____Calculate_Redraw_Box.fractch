@@ -1,0 +1,18 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: ]{
+ * hatOpcode: procedures_definition
+ * threadIndex: 82
+ */
+
+def @Window_Calculate_Redraw_Box() "Window // Calculate Redraw Box" warp=false {
+  vars["//return"] = mistsutils_patchreporter(A= "Math.round(target.window.x)");
+  vars["temp"] = mistsutils_patchreporter(A= "Math.round((+target.window.width || 0) / 2)");
+  vars["Redraw // Window Left"] = (vars["//return"] - temp);
+  vars["Redraw // Window Right"] = (vars["//return"] + temp);
+  vars["//return"] = mistsutils_patchreporter(A= "Math.round(target.window.y)");
+  vars["temp"] = mistsutils_patchreporter(A= "Math.round((+target.window.height || 0) / 2)");
+  vars["Redraw // Window Bottom"] = (vars["//return"] - temp);
+  vars["Redraw // Window Top"] = (vars["//return"] + temp);
+}

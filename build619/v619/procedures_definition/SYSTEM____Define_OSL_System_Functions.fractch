@@ -1,0 +1,159 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aqN
+ * hatOpcode: procedures_definition
+ * threadIndex: 148
+ */
+
+def @SYSTEM_Define_OSL_System_Functions() "SYSTEM // Define OSL System Functions" warp=false {
+  mistsutils_patchcommand(A= "Object.isSame=function(e,t){if(e === null||t===null)return e===t;if(\"object\"==typeof e&&\"object\"==typeof t){if(e===t)return!0;let r=Object.keys(e),f=Object.keys(t);if(r.length!==f.length)return!1;for(let n of f){if(!r.includes(n))return!1;const f=typeof e[n],i=typeof t[n];if(f!==i)return!1;if(\"object\"===f&&\"object\"===i){if(!Object.isSame(e[n],t[n]))return!1}else if(e[n]!==t[n])return!1}return!0}return!1};");
+  mistsutils_patchcommand(A= "Object.clone=function(e){try{if(e===null)return null;if(typeof e==\"object\"){if(Array.isArray(e))return e.map(Object.clone);if(e instanceof RegExp)return new RegExp(e);if(e instanceof Map){let n=new Map;return e.forEach((r,t)=>n.set(Object.clone(t),Object.clone(r))),n}if(e instanceof Set){let n=new Set;return e.forEach(r=>n.add(Object.clone(r))),n}let n={};for(let r in e)Object.prototype.hasOwnProperty.call(e,r)&&(n[r]=Object.clone(e[r]));return n}if(typeof e==\"function\")return e;return e}catch{try{return structuredClone(e)}catch{return JSON.parse(JSON.stringify(e))}}};");
+  mistsutils_patchcommand(A= "Object.merge=function(t,r){if(o === null||r===null)return null;function o(t){return t&&\"object\"==typeof t&&!Array.isArray(t)}const e=Object.create(null);for(const r in t)Object.prototype.hasOwnProperty.call(t,r)&&(e[r]=t[r]);const c=[{target:e,source:r}];for(;c.length;){const{target:t,source:r}=c.pop();for(const e in r)if(Object.prototype.hasOwnProperty.call(r,e)){const n=r[e];o(n)?(o(t[e])||(t[e]={}),c.push({target:t[e],source:n})):t[e]=n}}return e};");
+  mistsutils_patchcommand(A= "Object.defineProperty(Array.prototype,\"swap\",{value:function(t,e){try{const r=Math.max(0,0|t),a=Math.max(0,0|e),i=this[r];return this[r]=this[a],this[a]=i,this}catch{return this}},enumerable:!1,writable:!0,configurable:!0});");
+  mistsutils_patchcommand(A= "Number.isPrime=function(r){if(r<=1)return!1;if(2==r||3==r)return!0;if(r%2==0||r%3==0)return!1;for(var t=5;t<=Math.sqrt(r);t+=6)if(r%t==0||r%(t+2)==0)return!1;return!0};");
+  mistsutils_patchcommand(A= "window.OSLisNumber = function (p0) { try { return typeof p0 === \"number\" || (typeof p0 === \"string\" && p0.trim() !== \"\" && !isNaN(p0)); } catch { return false } }");
+  mistsutils_patchcommand(A= "window.OSLgetType=function(r){return (r??null)===null?\"null\":r?._symbol===origin.symbols.function?\"function\":Array.isArray(r)?\"array\":typeof r};");
+  mistsutils_patchcommand(A= "window.cc=function(p0,p1){ return ((p0 === \"\" ? p1 : p0) ?? p1) ?? null }");
+  mistsutils_patchcommand(A= "window.setCookie=function(e,t,o){const i=new Date;i.setTime(i.getTime()+24*o*60*60*1e3);let n=\"expires=\"+i.toUTCString();document.cookie=e+\"=\"+t+\";\"+n+\";path=/\"};");
+  mistsutils_patchcommand(A= "window.getCookie=function(e){let t=e+\"=\",n=decodeURIComponent(document.cookie).split(\";\");for(let e=0;e<n.length;e++){let o=n[e];for(;\" \"==o.charAt(0);)o=o.substring(1);if(0==o.indexOf(t))return o.substring(t.length,o.length)}return\"\"};");
+  mistsutils_patchcommand(A= "window.destr=function(t,e='\"'){if(\"object\"==typeof t||\"symbol\"==typeof t)return t;const n=t+\"\",r=e+\"\";if(n.startsWith(r)&&n.endsWith(r)){let t=n.substring(1,n.length-1);return parseEscaped(t)} return t};");
+  mistsutils_patchcommand(A= "window.wordWrap = function(t, e) { if (!t || e < 1) return \"\"; if (e >= t.length) return t; const l = []; for (let line of t.split(\"\\n\")) { if (line.length <= e) { l.push(line); continue; } let r = \"\"; for (let w of line.split(\" \")) { while (w.length > e) { l.push(w.slice(0, e)); w = w.slice(e); } if (!w) continue; if (r && r.length + 1 + w.length > e) { l.push(r); r = w; } else r = r ? r + \" \" + w : w; } if (r) l.push(r); } return l.join(\"\\n\"); }");
+  mistsutils_patchcommand(A= "window.randomString=function(r){let t=\"\",n=\"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\";for(let o=0;o<r;o++)t+=n.charAt(Math.floor(52*Math.random()));return t};");
+  mistsutils_patchcommand(A= "window.formatFileSize=t=>{t=Number(window.destr(t));const e=[\"B\",\"KB\",\"MB\",\"GB\",\"TB\"];let o=0;for(;t>=1024&&o<e.length-1;)t/=1024,o++;return`${t.toFixed(2)} ${e[o]}`};");
+  mistsutils_patchcommand(A= "window.formatTimestamp = function(t){const e=new Date(t);return`${[\"Sun\",\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\",\"Sat\"][e.getUTCDay()]} ${String(e.getUTCDate()).padStart(2,\"0\")} ${[\"Jan\",\"Feb\",\"Mar\",\"Apr\",\"May\",\"Jun\",\"Jul\",\"Aug\",\"Sep\",\"Oct\",\"Nov\",\"Dec\"][e.getUTCMonth()]} ${e.getUTCFullYear()} ${String(e.getUTCHours()).padStart(2,\"0\")}:${String(e.getUTCMinutes()).padStart(2,\"0\")}:${String(e.getUTCSeconds()).padStart(2,\"0\")} GMT`}");
+  mistsutils_patchcommand(A= "window.fuzzySearch = function(e,t){if(!e||!t||!t.length)return[];const n=e.toLowerCase();return t.map((e=>({item:e,score:(e=>{const t=e.toLowerCase();return t===n?1:t.includes(n)?.8+n.length/t.length*.2:1-((e,t)=>{if(0===e.length)return t.length;if(0===t.length)return e.length;const n=Array(e.length+1).fill().map((()=>Array(t.length+1).fill(0)));for(let t=0;t<=e.length;t++)n[t][0]=t;for(let e=0;e<=t.length;e++)n[0][e]=e;for(let r=1;r<=e.length;r++)for(let l=1;l<=t.length;l++){const h=e[r-1]===t[l-1]?0:1;n[r][l]=Math.min(n[r-1][l]+1,n[r][l-1]+1,n[r-1][l-1]+h)}return n[e.length][t.length]})(n,t)/Math.max(n.length,t.length)})(e)}))).filter((e=>e.score>=.3)).sort(((e,t)=>t.score-e.score))}");
+  mistsutils_patchcommand(A= "window.applyTint=function(t,n){t=t.replace(\"#\",\"\"),n=n.replace(\"#\",\"\"),3===t.length&&(t=t[0]+t[0]+t[1]+t[1]+t[2]+t[2]),3===n.length&&(n=n[0]+n[0]+n[1]+n[1]+n[2]+n[2]);const r=parseInt(t.substring(0,2),16),s=parseInt(t.substring(2,4),16),a=parseInt(t.substring(4,6),16),e=parseInt(n.substring(0,2),16)/255,p=parseInt(n.substring(2,4),16)/255,g=parseInt(n.substring(4,6),16)/255,i=Math.round(r*e),u=Math.round(s*p),o=Math.round(a*g);return`#${i.toString(16).padStart(2,\"0\")}${u.toString(16).padStart(2,\"0\")}${o.toString(16).padStart(2,\"0\")}`}");
+  mistsutils_patchcommand(A= "window.length=function(p0){if (typeof p0 === \"object\") { return p0?.length ?? Object.keys(p0).length; } else { return destr(p0).length }}");
+  mistsutils_patchcommand(A= "window.osl_detostr = function(p0) { let destr = p0; if (typeof p0 === \"string\") { destr = \"\"+window.destr(p0) } else if (typeof p0 === \"object\") destr = \"[object Object]\"; else destr = p0+\"\"; return destr }");
+  mistsutils_patchcommand(A= "window.osl_str = function(p0) { return `\"${(\"\"+p0).replaceAll(\"\\\"\",\"\\\\\\\"\")}\"` }");
+  mistsutils_patchcommand(A= "window.osl_eq =  function(left, right) { if (left === right) return true; if (typeof left === \"object\" || typeof right === \"object\") return Object.isSame(left,right); else return String(left ?? \"\").toLowerCase() === String(right ?? \"\").toLowerCase() }");
+  mistsutils_patchcommand(A= "window.osl_neq =  function(left, right) { if (left === right) return false; if (typeof left === \"object\" || typeof right === \"object\") return !Object.isSame(left,right); else return String(left ?? \"\").toLowerCase() !== String(right ?? \"\").toLowerCase() }");
+  mistsutils_patchcommand(A= "window.osl_item = function(from, prop, target) { if ((typeof prop !== \"symbol\" &&`${prop}`[0] === \"_\") && from !== target.osl_vars.__self__) return null; const temp = window.osl_itemof(from, prop); if (typeof temp === \"function\") return null; else return temp }");
+  mistsutils_patchcommand(A= "window.osl_prop = function(obj, key) { if (typeof obj !== \"object\") throw new Error(`Cannot index '${typeof obj}' with key '${key}'`); const ori = key; if (Array.isArray(obj)) { if (typeof ori === \"string\") throw new Error(`Arrays can only use numeric keys, but got \"${ori}\" (a ${typeof ori})`); key |= 0; key --; if (key < 0) key = obj.length + key + 1; } return key }");
+  mistsutils_patchcommand(A= "window.osl_len = function(temp) { if (temp === null) return 0; else if (typeof temp === \"object\") return temp?.length ?? Object.keys(temp).length; else return String(temp).length; }");
+  mistsutils_patchcommand(A= "window.parseEscaped=function(e){let a=\"\";for(let r=0;r<e.length;r++)if(\"\\\\\"===e[r]){r++;const s=e[r];switch(s){case\"n\":a+=\"\\n\";break;case\"t\":a+=\"\\t\";break;case\"r\":a+=\"\\r\";break;case'\"':a+='\"';break;case\"'\":a+=\"'\";break;case\"\\\\\":a+=\"\\\\\";break;default:a+=s}}else a+=e[r];return a}");
+  mistsutils_patchcommand(A= "window.simple3d = vm.runtime.ext_xeltallivSimple3Dapi.i_will_not_ask_for_help_when_these_break()");
+  mistsutils_patchcommand(A= "const isNotActuallyZero = val => { if (typeof val !== 'string') return false; for (let i = 0; i < val.length; i++) { const code = val.charCodeAt(i); if (code === 48 || code === 9) { return false; } } return true; };");
+  mistsutils_patchcommand(A= "const compareGreaterThanSlow = (v1, v2) => { let n1 = +v1; let n2 = +v2; if (n1 === 0 && isNotActuallyZero(v1)) { n1 = NaN; } else if (n2 === 0 && isNotActuallyZero(v2)) { n2 = NaN; } if (Number.isNaN(n1) || Number.isNaN(n2)) { const s1 = ('' + v1).toLowerCase(); const s2 = ('' + v2).toLowerCase(); return s1 > s2; } return n1 > n2; };");
+  mistsutils_patchcommand(A= "window.compareGreaterThan = (v1, v2) => typeof v1 === 'number' && typeof v2 === 'number' && (v2 === v2) ? v1 > v2 : compareGreaterThanSlow(v1, v2);");
+  mistsutils_patchcommand(A= "const compareLessThanSlow = (v1, v2) => { let n1 = +v1; let n2 = +v2; if (n1 === 0 && isNotActuallyZero(v1)) { n1 = NaN; } else if (n2 === 0 && isNotActuallyZero(v2)) { n2 = NaN; } if (Number.isNaN(n1) || Number.isNaN(n2)) { const s1 = ('' + v1).toLowerCase(); const s2 = ('' + v2).toLowerCase(); return s1 < s2; } return n1 < n2; };");
+  mistsutils_patchcommand(A= "window.compareLessThan = (v1, v2) => typeof v1 === 'number' && typeof v2 === 'number' && (v2 === v2) ? v1 < v2 : compareLessThanSlow(v1, v2);");
+  mistsutils_patchcommand(A= "window.Generator = (function*(){}).constructor");
+  mistsutils_patchcommand(A= "window.scratchTan = (angle) => { const mod = angle % 360; if (mod === 90 || mod === -270) return Infinity; if (mod === -90 || mod === 270) return -Infinity; if (mod === 0 || mod === 180 || mod === -180) return 0; const radians = (Math.PI * angle) / 180; return Math.round(Math.tan(radians) * 1e10) / 1e10; }");
+  motion_setx(X= 0);
+  mistsutils_patchcommand(A= "window.osl_bitwise = function(p0,p1,p2) { if (typeof p0 === \"number\" && typeof p2 === \"number\") { switch(p1) { case \"&\": return p0 & p2; case \"|\": return p0 | p2; case \"<<\": return p0 << p2; case \">>\": return p0 >> p2; case \">>>\": return p0 >>> p2; case \"<<<\": return (p0 << p2) | (p0 >>> (32 - p2)); case \"^^\": return p0 ^ p2; }}; return null }");
+  motion_setx(X= 0);
+  mistsutils_patchcommand(A= "window.osl_to = (p0, p1) => Array.from({ length: Math.abs(p1 - p0) + 1 }, (_, i) => (p0 < p1 ? p0 + i : p0 - i));");
+  mistsutils_patchcommand(A= "window.osl_opr = {\"+\":0,\"-\":1,\"*\":2,\"/\":3,\"%\":4,\"^\":5,\"++\":6}");
+  mistsutils_patchcommand(A= "const arithmeticFuncs = { \"+\": (a, b) => a + b, \"-\": (a, b) => a - b, \"*\": (a, b) => a * b, \"/\": (a, b) => a / b, \"%\": (a , b) => a % b, \"^\": (a, b) => a ** b };");
+  mistsutils_patchcommand(A= "window.osl_maths = function(p0,p1,p2) {");
+  mistsutils_patchcommand(A= "const numbers = typeof p0 === \"number\" && typeof p2 === \"number\"");
+  switch mistsutils_patchreporter(A= "p1") {
+    case "+" {
+      mistsutils_patchcommand(A= "if (numbers) return p0 + p2");
+      if mistsutils_patchboolean(A= "Array.isArray(p0)") {
+        mistsutils_patchcommand(A= "let new_arr = p0.slice()");
+        mistsutils_patchcommand3(A= "new_arr.push(", B= "p2", C= ")");
+        mistsutils_patchcommand(A= "return new_arr");
+      } else {
+        if mistsutils_patchboolean(A= "Array.isArray(p2)") {
+          mistsutils_patchcommand(A= "let new_arr = p2.slice()");
+          mistsutils_patchcommand3(A= "new_arr.unshift(", B= "p0", C= ")");
+          mistsutils_patchcommand(A= "return new_arr");
+        }
+      }
+      mistsutils_patchcommand(A= "return `${p0} ${p2}`");
+    }
+    case "-" {
+      mistsutils_patchcommand(A= "if (numbers) return p0 - p2; if (typeof p0 === \"string\" && typeof p2 === \"string\") return p0.replaceAll(p2, \"\");");
+      mistsutils_patchcommand(A= "return null");
+      @Log_Error(Data= mistsutils_patchreporter(A= "`Minus operator given invalid values\\nExpected number & number, or string & string, got: ${osl.typeof.code(p0)} & ${osl.typeof.code(p2)}`"), Type= "Type Mismatch");
+    }
+    case "*" {
+      mistsutils_patchcommand(A= "if (numbers) return p0 * p2;");
+      if mistsutils_patchboolean(A= "typeof p0 === \"string\" && typeof p2 === \"number\"") {
+        mistsutils_patchcommand(A= "if (p2 > 0) return p0.repeat(p2)");
+        @Log_Error(Data= "Cannot repeat string by 0 or less", Type= "Value Error");
+      } else {
+        @Log_Error(Data= mistsutils_patchreporter(A= "`Multiply operator given invalid values\\nExpected number & number, or string & number, got: ${osl.typeof.code(p0)} & ${osl.typeof.code(p2)}`"), Type= "Type Mismatch");
+      }
+    }
+    case "/" {
+      mistsutils_patchcommand(A= "if (numbers) return p0 / p2; ");
+      @Log_Error(Data= mistsutils_patchreporter(A= "`Divide operator given invalid values\\nExpected number & number, got: ${osl.typeof.code(p0)} & ${osl.typeof.code(p2)}`"), Type= "Type Mismatch");
+    }
+    case "%" {
+      mistsutils_patchcommand(A= "if (numbers) return p0 % p2; ");
+      @Log_Error(Data= mistsutils_patchreporter(A= "`Modulo operator given invalid values\\nExpected number & number, got: ${osl.typeof.code(p0)} & ${osl.typeof.code(p2)}`"), Type= "Type Mismatch");
+    }
+    case "^" {
+      mistsutils_patchcommand(A= "if (numbers) return p0 ** p2; ");
+      @Log_Error(Data= mistsutils_patchreporter(A= "`Power operator given invalid values\\nExpected number & number, got: ${osl.typeof.code(p0)} & ${osl.typeof.code(p2)}`"), Type= "Type Mismatch");
+    }
+    case "++" fallthrough {
+
+    }
+    mistsutils_patchcommand(A= "if (p0 === null || p2 === null) return null");
+    mistsutils_patchcommand(A= "try { if (typeof p0 === \"object\" && typeof p2 === \"object\") {");
+    mistsutils_patchcommand(A= "if (Array.isArray(p0) && Array.isArray(p2)) {");
+    mistsutils_patchcommand(A= "return p0.concat(p2)");
+    mistsutils_patchcommand(A= "} else {");
+    mistsutils_patchcommand(A= "return Object.merge(p0,p2)");
+    mistsutils_patchcommand(A= "}}} catch(e) {");
+    @Log_Error(Data= mistsutils_patchreporter(A= "e"), Type= "Concat");
+    mistsutils_patchcommand(A= "}");
+    mistsutils_patchcommand(A= "return `${p0}${p2}`");
+    case "::" {
+      mistsutils_patchcommand(A= "if (osl.typeof.code(p2) !== \"function\")");
+      @Log_Error(Data= "Right hand operator must be a function", Type= "Bind");
+      mistsutils_patchcommand(A= "const val = Object.clone(p2);");
+      mistsutils_patchcommand(A= "val._self = p0");
+      mistsutils_patchcommand(A= "return val");
+    }
+    mistsutils_patchcommand(A= "case \"matches\": return `${p0}`.match(new RegExp(`${p2}`)) !== null");
+    mistsutils_patchcommand(A= "case \"is\": return Object.prototype.isPrototypeOf.call(p2, p0) || (osl.typeof.code(p0) === p2)");
+    mistsutils_patchcommand(A= "case \"to\": return osl_to(p0, p2)");
+    mistsutils_patchcommand(A= "case \"??\": return cc(p0, p2);");
+  }
+  mistsutils_patchcommand2(A= "// ", B= @Run_Command_Object(params= "", command_object= "", value= ""));
+  mistsutils_patchcommand(A= "return null");
+  mistsutils_patchcommand(A= "}");
+  motion_setx(X= 0);
+  mistsutils_patchcommand(A= "JSON.safeParse = function(t){if(null==t)return null;if(\"string\"!==typeof t)return t;t=t.trim();const r=t[0];if(\"{\"!==r&&\"[\"!==r)return t;const e=t[t.length-1];if(\"{\"===r&&\"}\"!==e||\"[\"===r&&\"]\"!==e)return t;try{const r=JSON.parse(t);return r&&!Array.isArray(r)&&\"object\"==typeof r&&Object.setPrototypeOf(r,null),r}catch{return t}}");
+  mistsutils_patchcommand(A= "JSON.smartStringify = function(...p0) { if (typeof p0[0] === \"object\") return JSON.stringify(...p0); else return p0[0] }");
+  motion_setx(X= 0);
+  mistsutils_patchcommand(A= "window.osl_get_windows = function() {");
+  mistsutils_patchcommand(A= "let windows = []");
+  mistsutils_patchcommand(A= "try {");
+  mistsutils_patchcommand(A= "const ids = stage.variables[\"570oYa]nLC-^Ys!KN+A~\"].value.slice()");
+  mistsutils_patchcommand(A= "const names = origin.windows.names.slice()");
+  mistsutils_patchcommand(A= "const hovered = origin.windows.hovered.slice()");
+  mistsutils_patchcommand(A= "const render = origin.windows.render.slice()");
+  mistsutils_patchcommand(A= "const snapping = origin.windows.snapping.slice()");
+  mistsutils_patchcommand(A= "const positions = origin.windows.positions.slice()");
+  mistsutils_patchcommand(A= "for (let i = 0; i < ids.length; i ++) {");
+  mistsutils_patchcommand(A= "const vars = window.osl_clone[ids[i]]");
+  mistsutils_patchcommand(A= "windows.push({ id:ids[i], name: names[i], hovered: hovered[i], render: render[i], snapping: snapping[i], position: positions[i], shown: vars.window_shown, uuid: vars.my_uuid, icn: origin.windows.icns[i], window: vars.window })");
+  mistsutils_patchcommand(A= "}} catch {}");
+  mistsutils_patchcommand(A= "return windows; }");
+  motion_setx(X= 0);
+  mistsutils_patchcommand(A= "window.osl_substring = function(p0, p1, p2) {");
+  mistsutils_patchcommand(A= "p0 = (Number(p0) || 0)");
+  mistsutils_patchcommand(A= "p1 = (Number(p1) || 0)");
+  mistsutils_patchcommand(A= "if (p1 < 0) {p1 = p2.length + p1 + 1}");
+  mistsutils_patchcommand(A= "return String(p2).substring(p0 - 1, p1)");
+  mistsutils_patchcommand(A= "}");
+  motion_setx(X= 0);
+  mistsutils_patchcommand(A= "window.osl_contains = function(p0, p1) {");
+  mistsutils_patchcommand(A= "if (p0 === null) return false;");
+  switch mistsutils_patchreporter(A= "osl.typeof.code(p0)") {
+    mistsutils_patchcommand(A= "case \"string\": return p0.toLowerCase().indexOf(`${p1}`.toLowerCase()) !== -1");
+    mistsutils_patchcommand(A= "case \"array\": return p0.indexOf(p1) !== -1");
+    mistsutils_patchcommand(A= "case \"object\": return Object.keys(p0).indexOf(`${p1}`) !== -1");
+    mistsutils_patchcommand2(A= "default: return ", B= "(\"\"+p0).includes(\"\"+p1)");
+  }
+  mistsutils_patchcommand(A= "}");
+  mistsutils_patchcommand(A= "window.osl_itemof=function(l,n){if(l==null)return null;if(typeof l===\"object\")return Array.isArray(l)?l[n<0?l.length+n:n-1]??null:((typeof n===\"symbol\"?Object.prototype.hasOwnProperty.call(l,n)?l[n]:null:l[n])??null);const t=String(l);return t[n<0?t.length+n:n-1]??null};");
+  mistsutils_patchcommand(A= "window.osl_append=function(p0, append_temp){if (typeof p0 === \"object\" && p0 !== null) { p0.push(append_temp); return p0 } return `${destr}${append_temp}`}");
+}

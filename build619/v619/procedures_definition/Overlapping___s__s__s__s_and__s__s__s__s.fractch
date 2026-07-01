@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: ]l
+ * hatOpcode: procedures_definition
+ * threadIndex: 72
+ */
+
+def @Overlapping_and(minAx, maxAx, minAy, maxAy, minBx, maxBx, minBy, maxBy) "Overlapping? %s %s %s %s and %s %s %s %s" warp=false {
+  return not((((minAx > maxBx) || (minAy > maxBy)) || ((maxAy < minBy) || (maxAx < minBx))));
+}

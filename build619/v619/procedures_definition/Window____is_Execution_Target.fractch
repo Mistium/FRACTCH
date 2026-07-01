@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aC-
+ * hatOpcode: procedures_definition
+ * threadIndex: 169
+ */
+
+def @Window_is_Execution_Target() "Window // is Execution Target" warp=false {
+  return ((vars["SYSTEM // Focused Application"] == vars["WIndow // ID"]) || (vars["Window // Top Index"] == vars["Window // ID_Index"]));
+}

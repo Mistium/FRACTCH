@@ -1,0 +1,17 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: a?@
+ * hatOpcode: event_whenbroadcastreceived
+ * threadIndex: 83
+ */
+
+event_whenbroadcastreceived(BROADCAST_OPTION: broadcast("Network // Start Connection", "up"));
+until (vars["Network // Files Update Offset"] > "0") {
+  pen_setPenColorToColor(COLOR= "#000000");
+  @Draw_Square(X= "0", Y= "-200", Width= mistsutils_patchreporter(A= "vm.runtime.stageWidth"), Height= "40", Line_Width= "10", Invisible= "");
+  pen_setPenColorToColor(COLOR= "#ffffff");
+  @Draw_Text(Text= mistsutils_patchreporter(A= "origin.utils.last_log"), X= mistsutils_patchreporter(A= "origin.utils.last_log.length * -5"), Y= "-200", Size= "10", Markdown_Enabled= "");
+  motion_gotoxy(X= 0, Y= -240);
+  @Draw_Icon_boldness(Code= "w 40 c #000 dot 0 0 w 3 c #fff cutcircle 0 0 10 0 90", Size= "1", setsize= "", x= "", y= "", direction= (sensing_timer() * 360), boldness= "");
+}

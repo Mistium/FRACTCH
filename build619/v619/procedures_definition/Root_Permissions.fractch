@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: ;;
+ * hatOpcode: procedures_definition
+ * threadIndex: 63
+ */
+
+def @Root_Permissions() "Root Permissions" warp=false {
+  return mistsutils_patchreporter3(A= "Object.keys(", B= vars["SYSTEM // Permission Info"], C= ")");
+}

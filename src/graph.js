@@ -5,7 +5,6 @@ export function groupTopLevelScripts(target) {
     if (!b) continue;
 
     if (!b.topLevel) continue;
-    if (b.shadow) continue; // ignore top-level shadow blocks
     const hatOpcode = b.opcode || null;
     scripts.push({ topBlockId: id, hatOpcode });
   }
@@ -26,10 +25,15 @@ export function collectBlocksSubgraph(blocks, topId) {
 
     if (node.inputs) {
       for (const [, val] of Object.entries(node.inputs)) {
-        if (Array.isArray(val) && val.length >= 2) {
-          const childId = val[1];
-          if (typeof childId === 'string' && blocks[childId]) {
-            stack.push(childId);
+        if (Array.isArray(val)) {
+          // Elements from index 1 onward may reference block ids: the primary
+          // value/block, and (for INPUT_DIFF_BLOCK_SHADOW tuples) an obscured
+          // shadow block hidden behind it. Both must be swept for losslessness.
+          for (let i = 1; i < val.length; i++) {
+            const childId = val[i];
+            if (typeof childId === 'string' && blocks[childId]) {
+              stack.push(childId);
+            }
           }
         }
       }

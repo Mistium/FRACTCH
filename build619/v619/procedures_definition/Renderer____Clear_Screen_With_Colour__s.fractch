@@ -1,0 +1,15 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aqz
+ * hatOpcode: procedures_definition
+ * threadIndex: 145
+ */
+
+def @Renderer_Clear_Screen_With_Colour(colour) "Renderer // Clear Screen With Colour %s" warp=false {
+  motion_gotoxy(X= 0, Y= 0);
+  pen_setPenSizeTo(SIZE= (mistsutils_stagewidth() + mistsutils_stageheight()));
+  pen_setPenColorToColor(COLOR= colour);
+  pen_penDown();
+  pen_penUp();
+}

@@ -1,0 +1,168 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: .U
+ * hatOpcode: procedures_definition
+ * threadIndex: 54
+ */
+
+def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" warp=false {
+  switch command {
+    case "x" {
+      mistsutils_patchcommand(A= "target.window.x = Math.round(+p1 || 0)");
+      mistsutils_patchcommand(A= "target.window.target_x = null");
+    }
+    case "y" {
+      mistsutils_patchcommand(A= "target.window.y = Math.round(+p1 || 0)");
+      mistsutils_patchcommand(A= "target.window.target_y = null");
+    }
+    case "width" {
+      mistsutils_patchcommand(A= "target.window.width = Math.round(+p1 || 0)");
+      mistsutils_patchcommand(A= "target.window.target_width = null");
+    }
+    case "height" {
+      mistsutils_patchcommand(A= "target.window.height = Math.round(+p1 || 0)");
+      mistsutils_patchcommand(A= "target.window.target_height = null");
+    }
+    case "to_position" {
+      mistsutils_patchcommand2(A= "target.window.target_x = ", B= input2);
+      mistsutils_patchcommand2(A= "target.window.target_y = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "to_dimensions" {
+      mistsutils_patchcommand2(A= "target.window.target_width = ", B= input2);
+      mistsutils_patchcommand2(A= "target.window.target_height = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "set_fps" {
+      runtimeoptions_setFramerate(fps= input2);
+      vars["Window // FPS"] = runtimeoptions_getFramerate();
+      mistsutils_patchcommand2(A= "target.window.framerate = ", B= runtimeoptions_getFramerate());
+    }
+    case "focus" {
+      if mistsutils_notequals(A= vars["Window // ID_Index"], B= "1") {
+        vars["Window // ID_Index"] = "1";
+        vars["Window // Interactable?"] = "true";
+      }
+    }
+    case "kill" {
+      mistsutils_patchcommand(A= "const self = target.window");
+      if mistsutils_patchboolean(A= "self.id === p1") {
+        if (vars["Process // Type"] == "worker") {
+          @originWM_Send_global_Msg(arr= mistsutils_patchreporter3(A= "[\"close\", ", B= input2, C= "]"));
+          control_break();
+        } else {
+          @Window_Close(message= "Window Stop");
+        }
+      }
+      if mistsutils_patchboolean(A= "self.permissions.includes(\"windows\") || self.children.includes(p1)") {
+        @originWM_Send_global_Msg(arr= mistsutils_patchreporter3(A= "[\"close\", ", B= input2, C= "]"));
+      } else {
+        @Log_Error(Data= "Unable to kill window due to insufficient permissions", Type= "Permissions");
+      }
+    }
+    case "no_desktop" {
+      mistsutils_patchcommand2(A= "target.window.no_desktop = ", B= input2);
+    }
+    case "hover_execution" {
+      vars["Window // HoverExecution"] = input2;
+      mistsutils_patchcommand2(A= "target.window.hoverexec = ", B= input2);
+    }
+    case "min_size" {
+      mistsutils_patchcommand2(A= "target.window.min_width = ", B= input2);
+      mistsutils_patchcommand2(A= "target.window.min_height = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "goto" {
+      mistsutils_patchcommand2(A= "target.window.x = ", B= round(data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      mistsutils_patchcommand2(A= "target.window.y = ", B= round(data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      mistsutils_patchcommand(A= "target.window.target_x = null");
+      mistsutils_patchcommand(A= "target.window.target_y = null");
+    }
+    case "dimensions" {
+      mistsutils_patchcommand2(A= "target.window.width = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "target.window.height = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand(A= "target.window.target_width = null");
+      mistsutils_patchcommand(A= "target.window.target_height = null");
+    }
+    case "set_dragbox" {
+      mistsutils_patchcommand2(A= "target.window.dragbox = ", B= input2);
+    }
+    case "refresh_bg" {
+      @Window_Calculate_Redraw_Box();
+      @Renderer_Call_ReRender();
+    }
+    case "minimise" {
+      if not(((mistsutils_patchreporter(A= "String(target.window._minimised)") == "true") || (vars["Embed Mode"] == "1"))) {
+        @Window_Calculate_Redraw_Box();
+        @Renderer_Call_ReRender();
+        mistsutils_patchcommand(A= "target.window._minimised = true");
+        vars["OSL // Temp"] = "false";
+        vars["Window // Unminimised X"] = mistsutils_patchreporter(A= "target.window.x");
+        vars["Window // Unminimised Y"] = mistsutils_patchreporter(A= "target.window.y");
+        vars["Window // Unminimised Width"] = mistsutils_patchreporter(A= "target.window.width");
+        vars["Window // Unminimised Height"] = mistsutils_patchreporter(A= "target.window.height");
+        mistsutils_patchcommand(A= "const mini = origin.windows.minimised");
+        mistsutils_patchcommand3(A= "mini.push(", B= vars["WIndow // ID"], C= ")");
+        mistsutils_patchcommand2(A= "target.window.target_x = ", B= (17 + round(((vars["Screen Size X"] / 2) - 48))));
+        mistsutils_patchcommand(A= "target.window.target_y = Math.round(mini.length * -24)");
+        mistsutils_patchcommand(A= "target.window.target_width = 30");
+        mistsutils_patchcommand(A= "target.window.target_height = 30");
+        mistsutils_patchcommand(A= "target.window.tile = null");
+        if sensing_mousedown() {
+          vars["Can Click?"] = "false";
+        }
+      }
+    }
+    case "maximise" {
+      mistsutils_patchcommand(A= "const mini = origin.windows.minimised");
+      mistsutils_patchcommand(A= "target.window.target_x = 0");
+      mistsutils_patchcommand(A= "target.window.target_y = 0");
+      if (mistsutils_patchreporter(A= "String(target.window._resizable)") == "true") {
+        if ((mistsutils_patchreporter(A= "target.window.width") == vars["Screen Size X"]) && (mistsutils_patchreporter(A= "target.window.height") == (vars["Screen Size Y"] - 80))) {
+          mistsutils_patchcommand(A= "target.window.target_width = 700");
+          mistsutils_patchcommand(A= "target.window.target_height = 450");
+          mistsutils_patchcommand(A= "target.window.tile = null");
+        } else {
+          mistsutils_patchcommand2(A= "target.window.target_width = ", B= vars["Screen Size X"]);
+          mistsutils_patchcommand2(A= "target.window.target_height = ", B= (vars["Screen Size Y"] - 80));
+          mistsutils_patchcommand(A= "target.window.target_y = 40");
+          mistsutils_patchcommand(A= "target.window.tile = \"0,0\"");
+        }
+        if sensing_mousedown() {
+          vars["Can Click?"] = "false";
+        }
+      }
+      mistsutils_patchcommand(A= "target.window._minimised = false");
+      mistsutils_patchcommand3(A= "mini.splice(mini.indexOf(", B= vars["WIndow // ID"], C= "), 1)");
+    }
+    case "show" {
+      mistsutils_patchcommand(A= "target.window.shown = true");
+    }
+    case "hide" {
+      mistsutils_patchcommand(A= "target.window.shown = false");
+    }
+    case "interactable" {
+      vars["Window // Allow Interaction?"] = (input2 == "true");
+    }
+    case "stop" {
+      @Window_Close(message= "Window Stop");
+    }
+    case "add" {
+      mistsutils_patchcommand2(A= "const id = ", B= @Window_create(name= input2, window_data= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      mistsutils_patchcommand3(A= "if (target?.window?.children) target.window.children.push(", B= "id", C= ")");
+    }
+    case "responsive" {
+      vars["Window // Responsive?"] = (input2 == "true");
+    }
+    case "resizable" {
+      mistsutils_patchcommand2(A= "target.window._resizable = ", B= (input2 == "true"));
+    }
+    case "register_ext" {
+      vars["//return"] = skyhigh173JSON_json_array_insert(item= (("> " .. vars["Window // UUID"]) .. (" " .. vars["WIndow // ID"])), pos= 1, json= "");
+      if skyhigh173JSON_json_is(json= vars["//return"], types= skyhigh173JSON_menu_types(types: ["Array",null])) {
+        mistsutils_patchcommand3(A= "window.osl_extensions[", B= vars["WIndow // ID"], C= mistsutils_patchreporter2(A= "] = ", B= @parse(json= vars["//return"])));
+      }
+    }
+    default {
+      @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown window command: ${p0}`"), Type= "Unknown Command");
+    }
+  }
+}

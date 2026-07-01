@@ -1,0 +1,28 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: bG!
+ * hatOpcode: control_start_as_clone
+ * threadIndex: 190
+ */
+
+control_start_as_clone();
+mistsutils_patchcommand(A= "target.window ??= {}");
+if (vars["Process // Type"] == "App") {
+  if (vars["Embed Mode"] == "1") {
+    forever {
+      mistsutils_patchcommand2(A= "target.window.width = ", B= vars["Screen Size X"]);
+      mistsutils_patchcommand2(A= "target.window.height = ", B= vars["Screen Size Y"]);
+      mistsutils_patchcommand2(A= "target.window.target_width = ", B= vars["Screen Size X"]);
+      mistsutils_patchcommand2(A= "target.window.target_height = ", B= vars["Screen Size Y"]);
+      mistsutils_patchcommand(A= "target.window.target_x = 0");
+      mistsutils_patchcommand(A= "target.window.target_y = 0");
+    }
+  }
+} else {
+  mistsutils_patchcommand2(A= "const id = ", B= vars["Process // ID"]);
+  mistsutils_patchcommand3(A= "const worker = origin.workers[", B= vars["WIndow // ID"], C= "][id]");
+  forever {
+    mistsutils_patchcommand3(A= "if (!Object.hasOwn(window.osl_clone, ", B= vars["WIndow // ID"], C= ")) { worker.kill.code(); return }");
+  }
+}

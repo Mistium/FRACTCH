@@ -1,0 +1,196 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: afW
+ * hatOpcode: procedures_definition
+ * threadIndex: 116
+ */
+
+import "../procedures_definition/___Draw_Square__s__s__s__s__s__s.fractch";
+def @Inputs_draw_Rounding_ID_text_size(data_value("data value"), width, height, default_text("default text"), selected("selected?"), Text_colour("Text colour"), Rounding, type, ID, draw_text("draw text"), txt_size, sel_colour) "Inputs // draw %s %s %s %s %s %s Rounding: %s %s ID %s %b text size %s %s" warp=true {
+  vars["temp"] = (height / 2);
+  @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= width, Height= temp, Line_Width= Rounding, Invisible= "");
+  motion_changexby(DX= (width / -2));
+  mistsutils_patchcommand(A= "try {");
+  mistsutils_patchcommand3(A= "p0 = [...", B= data_value, C= "]");
+  mistsutils_patchcommand(A= "} catch { p0 = [] }");
+  mistsutils_patchcommand(A= "data = p0");
+  mistsutils_patchcommand(A= "const length = data.length");
+  vars["Inputs // Text colour"] = mistsutils_ifthen(A= operator_contains(STRING1= Text_colour, STRING2= "#"), B= Text_colour, C= mistsutils_patchreporter(A= "osl.user?.theme?.text ?? \"#fff\""));
+  vars["Temp"] = motion_xposition();
+  vars["Text // Output Letter X"] = (Temp + width);
+  vars["Inputs // Save Y"] = motion_yposition();
+  vars["Inputs // Character PX Width"] = ((height / 3) * (txt_size + 1));
+  pen_setPenColorToColor(COLOR= vars["Inputs // Text colour"]);
+  if (type == "hidden") {
+    vars["Inputs // Text"] = mistsutils_patchreporter(A= "\"●\".repeat(length)");
+  } else {
+    vars["Inputs // Text"] = mistsutils_patchreporter(A= "data");
+  }
+  mistsutils_patchcommand3(A= "origin.keyboard.tabIndexes.push(", B= ((vars["WIndow // ID"] .. ",") .. ID), C= ")");
+  if ((selected == "true") && @Window_is_Execution_Target()) {
+    if HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) {
+      if not(@Check_Collision_in_square_at_of_dimensions(x= sensing_mousex(), y= sensing_mousey(), x2= (motion_xposition() + (width / 2)), y2= motion_yposition(), w= (width + (Rounding / 2)), h= ((height / 2) + (Rounding / 2)))) {
+        @Inputs_Unfocus();
+        mistsutils_patchcommand2(A= selected, B= " = false");
+      }
+      if (vars["Inputs // Selecting"] == "false") {
+        @Inputs_Move_Cursor_To(line= vars["Inputs // Current Line"], char= vars["Inputs // Cursor Position"]);
+      }
+    }
+  }
+  if (selected == "true") {
+    vars["Text // Clicked Letter ID"] = round(((sensing_mousex() - Temp) / vars["Inputs // Character PX Width"]));
+    if (((sensing_timer() % 2) < "1") || (HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) || mistsutils_patchboolean(A= "origin.keyboard.keysDown.length > 0"))) {
+      if HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) {
+        vars["Inputs // Cursor Position"] = mistsutils_clamp(A= vars["Text // Clicked Letter ID"], B= 0, C= mistsutils_patchreporter(A= "length"));
+      }
+      motion_setx(X= (Temp + (vars["Inputs // Character PX Width"] * (mistsutils_clamp(A= vars["Inputs // Cursor Position"], B= 0, C= mistsutils_patchreporter(A= "length")) - vars["Inputs // Start Text Position"]))));
+      if HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) {
+        if (mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true") && (vars["Inputs // Selecting"] == "false")) {
+          if (vars["Inputs // Selected String"] == "") {
+            vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
+            vars["Inputs // Selecting"] = "true";
+          } else {
+            if not((vars["Inputs // Start Letter Pos"] == vars["Inputs // Cursor Position"])) {
+              vars["Inputs // Selected String"] = "";
+              vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
+              vars["Can Click?"] = "false";
+            }
+          }
+        }
+      } else {
+        vars["Inputs // Selecting"] = "false";
+      }
+      if (vars["Inputs // Start Letter Pos"] == vars["Inputs // Cursor Position"]) {
+        if (motion_xposition() < vars["Text // Output Letter X"]) {
+          pen_setPenColorToColor(COLOR= vars["Inputs // Text colour"]);
+          motion_changeyby(DY= (vars["Inputs // Character PX Width"] / -2));
+          @Draw_Icon_boldness(Code= "w 5 line 0 -5 0 45", Size= (vars["Inputs // Character PX Width"] / 30), setsize= "", x= "", y= "", direction= "", boldness= "");
+        }
+      }
+    }
+    if mistsutils_patchreporter2(A= MistKeyHistoryExtension_recentKeysAsRawJs(), B= ".length > 0") {
+      vars["Input // Changed Info"] = "1";
+      vars["Key// Current Pressed"] = MistKeyHistoryExtension_getFirstKey();
+      MistKeyHistoryExtension_deleteFirstKey();
+      mistsutils_patchcommand2(A= "let lower = ", B= mistsutils_min(A= vars["Inputs // Start Letter Pos"], B= vars["Inputs // Cursor Position"]));
+      mistsutils_patchcommand2(A= "let upper = ", B= mistsutils_max(A= vars["Inputs // Start Letter Pos"], B= vars["Inputs // Cursor Position"]));
+      mistsutils_patchcommand2(A= "const key = ", B= skyhigh173JSON_json_get(item= "data", json= vars["Key// Current Pressed"]));
+      mistsutils_patchcommand2(A= "const notSelecting = ", B= ((vars["Inputs // Start Line"] == vars["Inputs // Current Line"]) || (vars["Inputs // Current Line"] == "0")));
+      switch skyhigh173JSON_json_get(item= "type", json= vars["Key// Current Pressed"]) {
+        case "paste" fallthrough {
+
+        }
+        case "key" {
+          vars["Key// Current Pressed"] = mistsutils_patchreporter(A= "key");
+          if (vars["Inputs // Start Letter Pos"] == vars["Inputs // Cursor Position"]) {
+            mistsutils_patchcommand3(A= "data.splice(", B= vars["Inputs // Cursor Position"], C= ", 0, key)");
+          } else {
+            mistsutils_patchcommand(A= "function deleteFromTo(t,e,n){const o=Math.min(e,n),a=Math.max(e,n);return t.splice(o,a-o+1),t}");
+            mistsutils_patchcommand3(A= "deleteFromTo(data, ", B= "lower, upper", C= "-1)");
+            mistsutils_patchcommand3(A= "data.splice(", B= "lower", C= ", 0, key)");
+            vars["Inputs // Cursor Position"] = mistsutils_patchreporter(A= "lower");
+            vars["Inputs // Selected String"] = "";
+            vars["Inputs // Start Letter Pos"] = "";
+          }
+          @Input(cursorchange= operator_length(STRING= vars["Key// Current Pressed"]), key= vars["Key// Current Pressed"]);
+          vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
+        }
+        case "special" {
+          vars["Key// Current Pressed"] = skyhigh173JSON_json_get(item= "data", json= vars["Key// Current Pressed"]);
+          switch vars["Key// Current Pressed"] {
+            case "Backspace" {
+              mistsutils_patchcommand(A= "if (notSelecting) {");
+              vars["Input // Changed Info"] = "1";
+              if (vars["Inputs // Start Letter Pos"] == vars["Inputs // Cursor Position"]) {
+                if (vars["Inputs // Cursor Position"] > operator_length(STRING= vars["Inputs // Output Data"])) {
+                  vars["Inputs // Cursor Position"] = operator_length(STRING= vars["Inputs // Output Data"]);
+                  vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
+                }
+                if (vars["Inputs // Cursor Position"] > "0") {
+                  mistsutils_patchcommand3(A= "data.splice(", B= vars["Inputs // Cursor Position"], C= "-1, 1)");
+                  @Input(cursorchange= "-1", key= "Backspace");
+                }
+              } else {
+                mistsutils_patchcommand(A= "function deleteFromTo(t,e,n){const o=Math.min(e,n),a=Math.max(e,n);return t.splice(o,a-o+1),t}");
+                mistsutils_patchcommand3(A= "deleteFromTo(data, ", B= "lower, upper", C= "-1)");
+                vars["Inputs // Cursor Position"] = mistsutils_patchreporter(A= "lower");
+                vars["Inputs // Selected String"] = "";
+              }
+              vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
+              mistsutils_patchcommand(A= "}");
+            }
+            case "Delete" {
+              vars["Input // Changed Info"] = "1";
+              mistsutils_patchcommand3(A= "data.splice(", B= vars["Inputs // Cursor Position"], C= ", 1)");
+              @Input(cursorchange= "0", key= "Delete");
+            }
+            case "ArrowRight" {
+              if (vars["Inputs // Cursor Position"] < operator_length(STRING= vars["Inputs // Output Data"])) {
+                @Input(cursorchange= "1", key= "ArrowRight");
+              }
+            }
+            case "ArrowLeft" {
+              if (vars["Inputs // Cursor Position"] > operator_length(STRING= vars["Inputs // Output Data"])) {
+                vars["Inputs // Cursor Position"] = operator_length(STRING= vars["Inputs // Output Data"]);
+                vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
+              }
+              @Input(cursorchange= "-1", key= "ArrowLeft");
+            }
+            case "Home" {
+              @Inputs_Move_Cursor_To(line= vars["Inputs // Current Line"], char= "0");
+            }
+            case "End" {
+              @Inputs_Move_Cursor_To(line= vars["Inputs // Current Line"], char= mistsutils_patchreporter(A= "length"));
+            }
+            case "Escape" {
+              @Inputs_Unfocus();
+            }
+          }
+        }
+      }
+    } else {
+      if not((vars["Key// Current Pressed"] == "")) {
+        if (mistsutils_patchreporter(A= "length") < vars["Inputs // Cursor Position"]) {
+          vars["Inputs // Cursor Position"] = mistsutils_patchreporter(A= "length");
+        }
+      }
+    }
+    vars["Inputs // Output Data"] = mistsutils_patchreporter(A= "data.join(\"\").replaceAll(\"\\r\", \"\")");
+    if ((vars["Inputs // Start Line"] == vars["Inputs // Current Line"]) && not((vars["Inputs // Cursor Position"] == vars["Inputs // Start Letter Pos"]))) {
+      pen_setPenColorToColor(COLOR= sel_colour);
+      @Draw_Square(X= (Temp + (vars["Inputs // Character PX Width"] * ((vars["Inputs // Cursor Position"] + vars["Inputs // Start Letter Pos"]) / 2))), Y= vars["Inputs // Save Y"], Width= (vars["Inputs // Character PX Width"] * abs((vars["Inputs // Start Letter Pos"] - vars["Inputs // Cursor Position"]))), Height= ((height / 1.5) * (txt_size + 1)), Line_Width= "", Invisible= "");
+      mistsutils_patchcommand2(A= "let start = +", B= vars["Inputs // Start Letter Pos"]);
+      mistsutils_patchcommand2(A= "let end = +", B= vars["Inputs // Cursor Position"]);
+      mistsutils_patchcommand(A= "if (start > end) { let temp = start; start = end; end = temp }");
+      vars["Inputs // Selected String"] = mistsutils_patchreporter2(A= @items_to_of(start= mistsutils_patchreporter(A= "start + 1"), end= mistsutils_patchreporter(A= "end"), array= mistsutils_patchreporter(A= "data")), B= ".join(\"\")");
+      mistsutils_patchcommand(A= "if (target.osl_vars.clicked !== true)");
+      @RightClick(Data_Rightclicked= mistsutils_patchreporter(A= "[\"Cut\",\"Copy\",\"Paste\"]"), X= sensing_mousex(), Y= sensing_mousey(), current_file= vars["Inputs // Selected String"]);
+    } else {
+      vars["Inputs // Selected String"] = "";
+    }
+    pen_setPenColorToColor(COLOR= vars["Inputs // Text colour"]);
+    if not(draw_text) {
+      @Draw_Text(Text= vars["Inputs // Text"], X= Temp, Y= vars["Inputs // Save Y"], Size= vars["Inputs // Character PX Width"], Markdown_Enabled= "false");
+    }
+  } else {
+    if (data_value == "") {
+      vars["Inputs // Text"] = default_text;
+      pen_setPenColorParamTo(COLOR_PARAM= pen_menu_colorParam(colorParam: ["brightness",null]), VALUE= 50);
+    }
+    if not(draw_text) {
+      @Draw_Text(Text= vars["Inputs // Text"], X= Temp, Y= vars["Inputs // Save Y"], Size= vars["Inputs // Character PX Width"], Markdown_Enabled= "false");
+    }
+  }
+  @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= width, Height= height, Line_Width= Rounding, Invisible= "1");
+  motion_gotoxy(X= (Temp + (width * 0.5)), Y= vars["Inputs // Save Y"]);
+  if @Window_is_Execution_Target() {
+    @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= width, Height= (height / 2), Line_Width= Rounding, Invisible= "1");
+    if (sensing_mousex() < vars["Frame // Max X"]) {
+      if mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true") {
+        vars["System // Cursor"] = "text";
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aM#
+ * hatOpcode: procedures_definition
+ * threadIndex: 198
+ */
+
+def @OSL_3dr_Draw_Scene() "OSL // 3dr Draw Scene" warp=false {
+  mistsutils_patchcommand(A= "const texture = `window_${target.window.id}`");
+  mistsutils_patchcommand(A= "const gl = simple3d.gl");
+  mistsutils_patchcommand(A= "const mesh = simple3d.meshes.get(texture).data.texture.main");
+  mistsutils_patchcommand(A= "let { x, y, w, h } = mesh.getReadarea()");
+  mistsutils_patchcommand(A= "gl.bindFramebuffer(gl.FRAMEBUFFER, mesh.getFramebuffer())");
+  mistsutils_patchcommand(A= "if (!window.pixelBuffer || window.pixelBuffer.length !== w * h * 4) window.pixelBuffer = new Uint8ClampedArray(w * h * 4);");
+  mistsutils_patchcommand(A= "let pixels = window.pixelBuffer;");
+  mistsutils_patchcommand(A= "if (w == 0 || h == 0) return;");
+  mistsutils_patchcommand(A= "gl.readPixels(x, y, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels)");
+  mistsutils_patchcommand(A= "const sgl = vm.renderer._gl");
+  mistsutils_patchcommand(A= "const penSkin = vm.renderer._allSkins[runtime.ext_pen._getPenLayerID()]");
+  mistsutils_patchcommand(A= "const texWidth = penSkin._texture.width; const texHeight = penSkin._texture.height;");
+  mistsutils_patchcommand(A= "sgl.bindTexture(sgl.TEXTURE_2D, penSkin._texture)");
+  mistsutils_patchcommand(A= "let wx = vm.runtime.stageWidth / 2 + target.window.x - (w / 2), wy = vm.runtime.stageHeight / 2 - target.window.y - (h / 2);");
+  mistsutils_patchcommand(A= "sgl.texSubImage2D(sgl.TEXTURE_2D, 0, wx, wy, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);");
+  mistsutils_patchcommand(A= "vm.renderer.dirty = true");
+}

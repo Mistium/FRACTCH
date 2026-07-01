@@ -1,0 +1,1621 @@
+{
+  "targets": [
+    {
+      "isStage": true,
+      "name": "Stage",
+      "variables": {
+        "Y%": [
+          "Find Number Of Files",
+          ""
+        ],
+        "ae": [
+          "Scroll// Dragging?",
+          ""
+        ],
+        "~": [
+          "Can Click?",
+          ""
+        ],
+        "{w": [
+          "SYSTEM // Global Message",
+          ""
+        ],
+        "qw": [
+          "OSL// Index 1",
+          ""
+        ],
+        "%w": [
+          "AODP File",
+          ""
+        ],
+        "#x": [
+          "SYSTEM // Total Disk Writes",
+          ""
+        ],
+        ".q": [
+          "Inputs // Selected String",
+          ""
+        ],
+        "se": [
+          "SYSTEM // Focused Application",
+          ""
+        ],
+        "U%": [
+          "SYSTEM // Call_Render_BG",
+          ""
+        ],
+        "|w": [
+          "Windows // Any Resizing",
+          ""
+        ],
+        "}e": [
+          "Move// Drop Loc",
+          ""
+        ],
+        "9e": [
+          "SYSTEM // Squares Clickable",
+          ""
+        ],
+        "I%": [
+          "Right Click Output",
+          ""
+        ],
+        ")q": [
+          "Kernel // Alert App",
+          ""
+        ],
+        "$x": [
+          "Key // Temp",
+          ""
+        ],
+        "Vq": [
+          "Key// Current Pressed",
+          ""
+        ],
+        "jq": [
+          "Screen Size X",
+          ""
+        ],
+        "uq": [
+          "Screen Size Y",
+          ""
+        ],
+        "(w": [
+          "NETWORK // Get Web Outputs",
+          ""
+        ],
+        "!e": [
+          "SYSTEM // Scroll Multiplier",
+          ""
+        ],
+        "?": [
+          "Server// Base Payload",
+          ""
+        ],
+        "#e": [
+          "SYSTEM // Info",
+          ""
+        ],
+        "/r": [
+          "Server // Current",
+          ""
+        ],
+        ";o": [
+          "Server // Rooms",
+          ""
+        ],
+        ":r": [
+          "SYSTEM // Performance",
+          ""
+        ],
+        "=Xw": [
+          "Network // Linked To Apps",
+          ""
+        ],
+        "?Xw": [
+          "File // Sync Collect Percent",
+          ""
+        ],
+        "%x": [
+          "UNICODE // return Char",
+          ""
+        ],
+        "pq": [
+          "newline",
+          ""
+        ],
+        "8q": [
+          "Files // Icons",
+          ""
+        ],
+        "$e": [
+          "SYSTEM // Background Mode",
+          ""
+        ],
+        "*q": [
+          "Windows // Any Moving",
+          ""
+        ],
+        "Mt": [
+          "Window ID Count",
+          ""
+        ],
+        "@Xw": [
+          "Now Playing // Current Media",
+          ""
+        ],
+        "[Xw": [
+          "Now Playing // Title",
+          ""
+        ],
+        "]Xw": [
+          "Now Playing // Icon",
+          ""
+        ],
+        "(x": [
+          "Network // Upload",
+          ""
+        ],
+        ":": [
+          "Account// Current",
+          ""
+        ],
+        "ow": [
+          "Files // Current Dragging",
+          ""
+        ],
+        "}w": [
+          "Kernel // Alert Close",
+          ""
+        ],
+        "0t": [
+          "SYSTEM // Volume",
+          ""
+        ],
+        "%e": [
+          "SYSTEM // BackGround",
+          ""
+        ],
+        ")w": [
+          "SYSTEM // GETBACKGROUND",
+          ""
+        ],
+        "=o": [
+          "Renderer // Background Redrawn",
+          ""
+        ],
+        ")x": [
+          "Window // Any Fullscreened?",
+          ""
+        ],
+        "(e": [
+          "Window // Top Index",
+          ""
+        ],
+        "^Xw": [
+          "SYSTEM // Background Last_Loaded",
+          ""
+        ],
+        "?o": [
+          "RightClick// Type",
+          ""
+        ],
+        "*w": [
+          "Kernel // Notification",
+          ""
+        ],
+        "1t": [
+          "Kernel // Notification Time",
+          ""
+        ],
+        ")e": [
+          "Kernel // Notification Y",
+          ""
+        ],
+        ";r": [
+          "Kernel // Notification Temp Y",
+          ""
+        ],
+        "de": [
+          "Embed Mode",
+          ""
+        ],
+        "+w": [
+          "SYSTEM // Max Y",
+          ""
+        ],
+        "qe": [
+          "SYSTEM // Min Y",
+          ""
+        ],
+        "~e": [
+          "SYSTEM // Tooltip",
+          ""
+        ],
+        "_Xw": [
+          "Instance ID",
+          ""
+        ],
+        "`Xw": [
+          "Instance // Secondary?",
+          ""
+        ],
+        "{Xw": [
+          "Instance // Update Files",
+          ""
+        ],
+        "|Xw": [
+          "Instance // Files Changed?",
+          ""
+        ],
+        "O%": [
+          "Terminal// Open File ID",
+          ""
+        ],
+        "oMq": [
+          "Network // File Sync Details",
+          ""
+        ],
+        "qr": [
+          "Network // Files Update Timeout",
+          ""
+        ],
+        ",w": [
+          "Network // Files Update Offset",
+          ""
+        ],
+        "2t": [
+          "SYSTEM // Permission Info",
+          ""
+        ],
+        "}Xw": [
+          "Flags // Do Not Disturb",
+          ""
+        ],
+        "@o": [
+          "Flags // Night Mode",
+          ""
+        ],
+        "~Xw": [
+          "Instances // All",
+          ""
+        ],
+        "[o": [
+          "SYSTEM // Onclick",
+          ""
+        ],
+        "*x": [
+          "SYSTEM // Onclick Can",
+          ""
+        ],
+        "qCw": [
+          "Files // Object",
+          ""
+        ],
+        "wr": [
+          "Boot // Connect Complete",
+          ""
+        ],
+        "+x": [
+          "Network // Been Online",
+          ""
+        ],
+        "wCw": [
+          "Files // Temp Offset",
+          ""
+        ],
+        "eCw": [
+          "SYSTEM // Call_Render_Moved",
+          ""
+        ],
+        ",x": [
+          "Icons // All System",
+          ""
+        ],
+        "Gw": [
+          "Redraw // Window Left",
+          ""
+        ],
+        "Hw": [
+          "Redraw // Window Right",
+          ""
+        ],
+        "Ew": [
+          "Redraw // Window Top",
+          ""
+        ],
+        "Jw": [
+          "Redraw // Window Bottom",
+          ""
+        ],
+        ".x": [
+          "Boot // Last",
+          ""
+        ],
+        "Bq": [
+          "Server // Name",
+          ""
+        ],
+        "pMq": [
+          "Icons // All System Temp",
+          ""
+        ],
+        "+e": [
+          "SYSTEM // CONFIG",
+          ""
+        ],
+        "rCw": [
+          "SYSTEM // Theme",
+          ""
+        ],
+        "we": [
+          "Server // User Info",
+          ""
+        ],
+        "]o": [
+          "Can Drag?",
+          ""
+        ],
+        "aMq": [
+          "WIndow // Currently Moving",
+          ""
+        ],
+        "P%": [
+          "Network // Download",
+          ""
+        ],
+        "uCw": [
+          "FILES // MAIN",
+          ""
+        ],
+        "=r": [
+          "Mouse // Moved",
+          false
+        ],
+        "/q": [
+          "Kernel // Queue Max",
+          ""
+        ],
+        "ee": [
+          "SYSTEM // Fps",
+          ""
+        ],
+        "A%": [
+          "BOOT // Load Files Size",
+          ""
+        ],
+        "?r": [
+          "Right Click Target Data",
+          ""
+        ],
+        "D%": [
+          "Network // Packets Down",
+          ""
+        ],
+        "Rw": [
+          "System // Cursor",
+          ""
+        ],
+        ",e": [
+          "SYSTEM // Time",
+          ""
+        ],
+        "er": [
+          "SYSTEM // Timestamp Offset",
+          ""
+        ],
+        "/x": [
+          "Items // Public",
+          ""
+        ],
+        "F%": [
+          "Renderer // Total Icons",
+          ""
+        ],
+        "G%": [
+          "Renderer // Total OSL",
+          ""
+        ],
+        ":x": [
+          "Wallpaper Blur",
+          ""
+        ],
+        "H%": [
+          "Renderer // Wallpaper Redraws",
+          ""
+        ],
+        "3t": [
+          "Inputs // Keys Down",
+          ""
+        ],
+        "9q": [
+          "Inputs // Current Selected",
+          ""
+        ],
+        "-e": [
+          "Inputs // Selecting",
+          ""
+        ],
+        "Aq": [
+          "Inputs // Start Letter Pos",
+          ""
+        ],
+        "qq": [
+          "Inputs // Cursor Position",
+          ""
+        ],
+        "_o": [
+          "Inputs // Last Keys Down",
+          ""
+        ],
+        "J%": [
+          "Camera // Last Accessed",
+          ""
+        ],
+        "K%": [
+          "Renderer // Queue Total Frame Call",
+          ""
+        ],
+        "=x": [
+          "SYSTEM // Weather",
+          ""
+        ],
+        "uFezuuy1}i5$FTMm^DyD": [
+          "SYSTEM // Total Disk Reads",
+          ""
+        ],
+        "cTksk@S|2C^{c*|}o:~v": [
+          "SYSTEM // Disk Reads Per Second",
+          ""
+        ],
+        "8)Fox;qVL8[`Rwt3q,~G": [
+          "SYSTEM // Total Disk Reads Last Frame",
+          ""
+        ],
+        "i;LXp{)YRo3.JyhE{EP,": [
+          "SYSTEM // Font",
+          ""
+        ],
+        "s+VitZDa[xsgJ~q7jv~o": [
+          "SYSTEM // Fps Damper",
+          ""
+        ],
+        "_-NOGa%]s[_nWYSQyC]H": [
+          "SYSTEM // Minimised Apps Scale",
+          ""
+        ],
+        "dn?{l(}G.hn(x~m.wpg@": [
+          "SYSTEM // Keybinds",
+          ""
+        ],
+        "u[392y{2Ny,$!N@RyQ:x": [
+          "Kernel // Frame Start",
+          ""
+        ],
+        "_US$9-T1`=J7=.Y+*|U-": [
+          "Kernel // Frame Time",
+          ""
+        ],
+        "cViQ8kF@2^e;u;PqqrP?": [
+          "SYSTEM // Right Click Data",
+          ""
+        ],
+        "aR*2!ECy!:_~Ai}=v`@B": [
+          "Frame // Current",
+          ""
+        ],
+        "{": [
+          "Inputs // Current Line",
+          ""
+        ],
+        "iw": [
+          "Inputs // Start Line",
+          ""
+        ],
+        ")en@$MHwbxM]$A(8U-{l": [
+          "Kernel // Notification Action (RUSH)",
+          ""
+        ],
+        ";x": [
+          "Inputs // Start Text Position",
+          ""
+        ],
+        "2i]swoy)LzV.0NTEh?%l": [
+          "Inputs // Next Selected",
+          ""
+        ],
+        "9-": [
+          "Kernel // Last Update",
+          ""
+        ],
+        "cy": [
+          "Files // Drag id",
+          ""
+        ],
+        "Mq": [
+          "UI // Hovering Sqr",
+          ""
+        ],
+        "lol": [
+          "anonymous",
+          ""
+        ],
+        "cRJjL?S;)vDH~ir:kr_i": [
+          "RightClickClosable",
+          ""
+        ],
+        "`f:Z~afsj3)4}0Ev~[P)": [
+          "i",
+          ""
+        ]
+      },
+      "lists": {
+        "shgJ[!T-Mw;C6gtV1bEu": [
+          "Rightclick Options",
+          []
+        ],
+        "CL33%0R^/cfdOsUUuN{9": [
+          "Files // Index Path",
+          []
+        ],
+        ")w9t`ioSi%,BhS3G$t0K": [
+          "Files // UUIDS",
+          []
+        ],
+        "m~?pufmd(#?1E)uvMQ*-": [
+          "Files",
+          []
+        ],
+        "CPOR$e*j3[;w6Fi6Ihes": [
+          "Windows // Create Names",
+          []
+        ],
+        "^Yp.PtD#1oxNqza?z{+A": [
+          "Windows // Create Data",
+          []
+        ],
+        "1C9e)ePY1onuWFVxH:@$": [
+          "Windows // Create Parent",
+          []
+        ],
+        "570oYa]nLC-^Ys!KN+A~": [
+          "Windows // ID",
+          []
+        ],
+        "k0o^-j|Z{h2m,2z9)3K]": [
+          "Transmit",
+          [
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]",
+            "[]"
+          ]
+        ],
+        "SF=codPC0bN[nV5#iX6K": [
+          "Network // Outgoing Packets",
+          []
+        ],
+        "AJBN.ZWMAPdkwk)Z(J~;": [
+          "Network // Send Queue",
+          []
+        ],
+        "DNmC|%GVPH^UT,?,0+}?": [
+          "Right Click Menu Depth",
+          []
+        ],
+        "dYgzGnijwRP~00pCI1uL": [
+          "Renderer // UI Changes",
+          []
+        ],
+        "?[HcDcJb70Jr_)_.*)Kw": [
+          "Kernel // Log",
+          []
+        ]
+      },
+      "broadcasts": {
+        "Ar": "Send Global Message",
+        "u$": "Dropped",
+        "i$": "// right click",
+        "up": "Network // Start Connection",
+        "o$": "Refresh GUI",
+        "p$": "Load Files",
+        "W#X|wS#@*(3?-mDc(P]1": "Load Wallpaper"
+      },
+      "comments": {
+        "n": {
+          "blockId": null,
+          "x": 50,
+          "y": 50,
+          "width": 350,
+          "height": 170,
+          "minimized": false,
+          "text": "Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, but don't edit it by hand. This comment can be deleted to remove the stored settings.\n{\"framerate\":60,\"runtimeOptions\":{\"maxClones\":Infinity,\"miscLimits\":false,\"fencing\":false},\"hq\":true,\"width\":1600,\"height\":1000} // _twconfig_"
+        }
+      },
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "name": "backdrop1",
+          "dataFormat": "svg",
+          "assetId": "cd21514d0531fdffb22204e0ec5ed84a",
+          "md5ext": "cd21514d0531fdffb22204e0ec5ed84a.svg",
+          "rotationCenterX": 240,
+          "rotationCenterY": 180
+        }
+      ],
+      "sounds": [],
+      "volume": 100,
+      "layerOrder": 0,
+      "tempo": 60,
+      "videoTransparency": 0,
+      "videoState": "off",
+      "textToSpeechLanguage": null
+    },
+    {
+      "isStage": false,
+      "name": "v619",
+      "variables": {
+        "ue": [
+          "RightClickCount",
+          ""
+        ],
+        "xy": [
+          "App // Count2",
+          ""
+        ],
+        "!q": [
+          "App // Count1",
+          ""
+        ],
+        "Jq": [
+          "Window // High X",
+          ""
+        ],
+        "%q": [
+          "Window // Low X",
+          ""
+        ],
+        "Cq": [
+          "Window // High Y",
+          ""
+        ],
+        "uw": [
+          "Window // Low Y",
+          ""
+        ],
+        "Ep": [
+          "Clone timer",
+          ""
+        ],
+        "j": [
+          "DeString // out",
+          ""
+        ],
+        "4e": [
+          "Files // Get Count",
+          ""
+        ],
+        "?q": [
+          "Scroll// Y",
+          ""
+        ],
+        ",c": [
+          "Window // Created Timestamp",
+          ""
+        ],
+        ";": [
+          "Inputs // Output Data",
+          ""
+        ],
+        "0l": [
+          "Inputs // Save Y",
+          ""
+        ],
+        "kg": [
+          "Text // Width",
+          ""
+        ],
+        "JAq": [
+          "Text // Output Letter X",
+          ""
+        ],
+        "y": [
+          "//return",
+          ""
+        ],
+        "$": [
+          "temp2",
+          ""
+        ],
+        "`": [
+          "OSL// Current Open File",
+          ""
+        ],
+        ",": [
+          "OSL// Temp2",
+          ""
+        ],
+        "zq": [
+          "temp3",
+          ""
+        ],
+        "xw": [
+          "Window // Name",
+          ""
+        ],
+        "Mw": [
+          "App // Temp",
+          ""
+        ],
+        "bw": [
+          "App // Temp2",
+          ""
+        ],
+        "k": [
+          "temp",
+          ""
+        ],
+        "lq": [
+          "Temp",
+          ""
+        ],
+        "zy": [
+          "OSL// Total Cycles",
+          ""
+        ],
+        "Dw": [
+          "Scroll // Y 0-1",
+          ""
+        ],
+        "X": [
+          "WIndow // ID",
+          ""
+        ],
+        ":q": [
+          "OSL // Perms",
+          ""
+        ],
+        "kr": [
+          "Files// Selected ID",
+          ""
+        ],
+        "ke": [
+          "Right Clicked?",
+          ""
+        ],
+        "+u": [
+          "Text // Clicked Letter ID",
+          ""
+        ],
+        "}Vw": [
+          "//return",
+          ""
+        ],
+        "~Vw": [
+          "temp",
+          ""
+        ],
+        "qBw": [
+          "temp2",
+          ""
+        ],
+        "?B": [
+          "OSL// Permission Check",
+          ""
+        ],
+        "Sw": [
+          "OSL// Permission Output",
+          ""
+        ],
+        "lt": [
+          "Text // Size Multiplier",
+          ""
+        ],
+        "=q": [
+          "Window // Interactable?",
+          ""
+        ],
+        "H": [
+          "Frame // Min X",
+          ""
+        ],
+        "Kq": [
+          "Frame // Min Y",
+          ""
+        ],
+        "Tw": [
+          "Frame // Max X",
+          ""
+        ],
+        "vq": [
+          "Frame // Max Y",
+          ""
+        ],
+        "Wt": [
+          "Rightclick// File Is System",
+          ""
+        ],
+        "Uq": [
+          "Frame // Width",
+          ""
+        ],
+        "iq": [
+          "Frame // Height",
+          ""
+        ],
+        "Gq": [
+          "Frame // X",
+          ""
+        ],
+        "Nq": [
+          "Frame // Y",
+          ""
+        ],
+        "+c": [
+          "New Window Created?",
+          ""
+        ],
+        "0w": [
+          "Frame // Interactable",
+          ""
+        ],
+        "Ml": [
+          "Inputs // Text colour",
+          ""
+        ],
+        "lr": [
+          "Window // Responsive?",
+          ""
+        ],
+        "oe": [
+          "Inputs // Character PX Width",
+          ""
+        ],
+        "!w": [
+          "OSL// Temp5",
+          ""
+        ],
+        "3X": [
+          "Window // Width Half",
+          ""
+        ],
+        "ni": [
+          "Window // Height Half",
+          ""
+        ],
+        "6p": [
+          "SYSTEM // Background Width",
+          ""
+        ],
+        "7p": [
+          "SYSTEM // Background Height",
+          ""
+        ],
+        "nq": [
+          "Window // Network ID",
+          ""
+        ],
+        "}": [
+          "Font// Temp",
+          ""
+        ],
+        "mw": [
+          "Font // Temp2",
+          ""
+        ],
+        "#w": [
+          "OSL// Temp4",
+          ""
+        ],
+        "Fw": [
+          "Inputs // Text",
+          ""
+        ],
+        "7w": [
+          "OSL // Set Val Of",
+          ""
+        ],
+        "Ow": [
+          "IMPORT // Name",
+          ""
+        ],
+        "Yq": [
+          "Window // ID_Index",
+          ""
+        ],
+        "Xq": [
+          "OSL // Temp",
+          ""
+        ],
+        "Mr": [
+          "OSL // Hover_Colour",
+          ""
+        ],
+        "Aw": [
+          "OSL // Hover_Size",
+          ""
+        ],
+        "Pq": [
+          "_tri0",
+          ""
+        ],
+        "Zq": [
+          "_tri1",
+          ""
+        ],
+        ";q": [
+          "_tri2",
+          ""
+        ],
+        "re": [
+          "_tri3",
+          ""
+        ],
+        "Te": [
+          "_tri4",
+          ""
+        ],
+        "L/": [
+          "_tri5",
+          ""
+        ],
+        "X/": [
+          "_tri6",
+          ""
+        ],
+        "V/": [
+          "_tri7",
+          ""
+        ],
+        "Rq": [
+          "OSL // Current Uri",
+          ""
+        ],
+        "Gy": [
+          "OSL // Uri Width",
+          ""
+        ],
+        "2R": [
+          "OSL // Uri Height",
+          ""
+        ],
+        "ie": [
+          "Kernel // Temp",
+          ""
+        ],
+        "Yw": [
+          "Window // File ID",
+          ""
+        ],
+        "Ey": [
+          "OSL // Tooltip",
+          ""
+        ],
+        "~r": [
+          "Window // Allow Interaction?",
+          ""
+        ],
+        "Lk": [
+          "Video // ID",
+          ""
+        ],
+        "Zw": [
+          "Window // Save Directory",
+          ""
+        ],
+        "yw": [
+          "Window // UUID",
+          ""
+        ],
+        "R?": [
+          "Window // Unminimised Width",
+          ""
+        ],
+        "Y?": [
+          "Window // Unminimised Height",
+          ""
+        ],
+        "jr": [
+          "Input // Changed Info",
+          ""
+        ],
+        "8r": [
+          "Boot // Out Cache",
+          ""
+        ],
+        "qt": [
+          "3dr // All Meshes",
+          ""
+        ],
+        "Ye": [
+          "Window // Overlapping Redraw",
+          ""
+        ],
+        "bq": [
+          "OSL // Window",
+          ""
+        ],
+        ".y": [
+          "Studio // OHF",
+          ""
+        ],
+        ":e": [
+          "OSL // Zip Archives",
+          ""
+        ],
+        "Iw": [
+          "OSL // Current Zip Archive",
+          ""
+        ],
+        "7t": [
+          "Text // Line Spacing",
+          ""
+        ],
+        "6t": [
+          "Text // Char Spacing",
+          ""
+        ],
+        "@r": [
+          "Text // Font",
+          ""
+        ],
+        "!t": [
+          "Window // FPS",
+          ""
+        ],
+        "eQ": [
+          "Window // HoverExecution",
+          ""
+        ],
+        "ur": [
+          "Renderer // Frame Min Y",
+          ""
+        ],
+        "yr": [
+          "Renderer // Frame Max Y",
+          ""
+        ],
+        "Ta": [
+          "OSL // Effects",
+          ""
+        ],
+        "Uw": [
+          "Import // Current Package",
+          ""
+        ],
+        "Km": [
+          "Renderer // Stretch X",
+          ""
+        ],
+        "Zm": [
+          "Renderer // Stretch Y",
+          ""
+        ],
+        "mr": [
+          "Scroll // X",
+          ""
+        ],
+        "?e": [
+          "Studio // Content Width",
+          ""
+        ],
+        ".xJx:3,zkqEx_RiC#np|": [
+          "OSL // Import Cache",
+          ""
+        ],
+        "Y(#hIV6D[Oe{R(kZs:MP": [
+          "Window // Unminimised Y",
+          ""
+        ],
+        "d!iYas*d|qXZb(:%?L?(": [
+          "Window // Unminimised X",
+          ""
+        ],
+        "55CiRGHDNV{aZNUdnJ))": [
+          "Window // Resizing",
+          ""
+        ],
+        "#v!+1glh*wzH~r/KScXr": [
+          "OSL // Frame",
+          ""
+        ],
+        "M3e^nvR);l8l9SUQgA7S": [
+          "Text // Char Tilt",
+          ""
+        ],
+        "B+PNc`}D0.F!E{f7jDqt": [
+          "Text // Boldness",
+          ""
+        ],
+        "o[v6}J%2GM0h]c*},-)`": [
+          "Process // Type",
+          ""
+        ],
+        "-U8:{U4#`s.jLZB4Fi0R": [
+          "Process // ID",
+          ""
+        ],
+        "7)X))Id;:S)FW8`AcmMY": [
+          "OSL // Web Cache",
+          ""
+        ],
+        "|J}d:t!BAa3Sc3YDxCG`": [
+          "Inputs // Undo History",
+          ""
+        ],
+        "@_v|w^w?pC=c;bjKDwWQ": [
+          "Frame // Next Current",
+          ""
+        ],
+        "@KL(M[*wVuf+w10|@;}Y": [
+          "Scroll // MaxY",
+          ""
+        ],
+        "rp[KBrxf8/a+KspM}0e1": [
+          "Scroll // MaxX",
+          ""
+        ],
+        "hmX,e!{N+=NFzaox9PM+": [
+          "OSL // Images",
+          ""
+        ],
+        "SzXCW?sC(p$aLS@xDSrB": [
+          "Renderer // Scale",
+          ""
+        ]
+      },
+      "lists": {
+        ")./tR8V[bp)bg1K2.|v(": [
+          "Split Text",
+          []
+        ],
+        "IM@5kK4sMM=*Wu!`#VFF": [
+          "App // Data",
+          []
+        ],
+        "Qd.Vu?,F0Q(kv+9;7VIX": [
+          "Split Text",
+          [
+            "3 > 10(",
+            "print(\"gay\")\nprint(\"yes\")\n"
+          ]
+        ],
+        "sZuM+zCt8vo`B5=)O+p.": [
+          "Files // Current",
+          []
+        ],
+        "L4/m,MFx/1Xn#g5:|?`W": [
+          "Split Text 2",
+          []
+        ],
+        "lM4p/B_UF)y!m(Y:!M;f": [
+          "Split Text",
+          []
+        ],
+        "AHdjh_Hr?J|!Twtuz/=U": [
+          "Split Text",
+          []
+        ],
+        "*]Mn/33!d},~KykjJQ|Y": [
+          "Terminal",
+          [
+            "Loaded Font Successfully",
+            ""
+          ]
+        ],
+        "_nDk?DcJ%M`dL*cXe-Ny": [
+          "OSL // Import Times",
+          []
+        ],
+        "G`Rh9Vu=%QfO#F!6x~}Z": [
+          "Files // Create New",
+          []
+        ],
+        "+J~ujd(BELC!-J,:O%-l": [
+          "OSL // Sounds Loaded",
+          []
+        ],
+        "AL,K:Y%_deV0ZVD.rgw6": [
+          "OSL // Frames",
+          [
+            "[object Object]"
+          ]
+        ],
+        "wjQi2_1%$?9TwXyT83(R": [
+          "OSL // Classes Self Cache",
+          []
+        ],
+        "D%nB/}bRhJuMKg/j8^V[": [
+          "OSL // Classes Name Cache",
+          []
+        ],
+        "Zi~czhtteJ6hR7:$hW|h": [
+          "3dr // Temp1",
+          [
+            1,
+            2,
+            3
+          ]
+        ],
+        "a]Z/U14`;am|lUR2~m~+": [
+          "3dr // Temp2",
+          []
+        ],
+        "(6NYIRNI@$HIl1Zn{RDD": [
+          "3dr // Temp3",
+          []
+        ]
+      },
+      "broadcasts": {},
+      "comments": {
+        "bUx": {
+          "blockId": "bUy",
+          "x": 3640.962963104248,
+          "y": 273156,
+          "width": 200,
+          "height": 200,
+          "minimized": false,
+          "text": ""
+        }
+      },
+      "currentCostume": 1,
+      "costumes": [
+        {
+          "name": "wallpaper",
+          "bitmapResolution": 2,
+          "dataFormat": "png",
+          "assetId": "d89746888da2d9510b64a9f031eaecd5",
+          "md5ext": "d89746888da2d9510b64a9f031eaecd5.png",
+          "rotationCenterX": 0.5,
+          "rotationCenterY": 0.5
+        },
+        {
+          "name": "wallpaper2",
+          "bitmapResolution": 2,
+          "dataFormat": "png",
+          "assetId": "d89746888da2d9510b64a9f031eaecd5",
+          "md5ext": "d89746888da2d9510b64a9f031eaecd5.png",
+          "rotationCenterX": 0.5,
+          "rotationCenterY": 0.5
+        }
+      ],
+      "sounds": [],
+      "volume": 100,
+      "layerOrder": 1,
+      "visible": false,
+      "x": 0,
+      "y": 0,
+      "size": 111.23470522803115,
+      "direction": 90,
+      "draggable": false,
+      "rotationStyle": "all around"
+    }
+  ],
+  "monitors": [
+    {
+      "id": "m~?pufmd(#?1E)uvMQ*-",
+      "mode": "list",
+      "opcode": "data_listcontents",
+      "params": {
+        "LIST": "Files"
+      },
+      "spriteName": null,
+      "value": [],
+      "width": 542,
+      "height": 625,
+      "x": 0,
+      "y": 0,
+      "visible": false
+    },
+    {
+      "id": "k0o^-j|Z{h2m,2z9)3K]",
+      "mode": "list",
+      "opcode": "data_listcontents",
+      "params": {
+        "LIST": "Transmit"
+      },
+      "spriteName": null,
+      "value": [],
+      "width": 265,
+      "height": 257,
+      "x": 0,
+      "y": 0,
+      "visible": false
+    },
+    {
+      "id": "Zi~czhtteJ6hR7:$hW|h",
+      "mode": "list",
+      "opcode": "data_listcontents",
+      "params": {
+        "LIST": "3dr // Temp1"
+      },
+      "spriteName": "v6.0.9",
+      "value": [],
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false
+    },
+    {
+      "id": "0w",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Frame // Interactable"
+      },
+      "spriteName": "v6.1.0",
+      "value": 0,
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "9q",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Inputs // Current Selected"
+      },
+      "spriteName": null,
+      "value": 0,
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "{",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Inputs // Current Line"
+      },
+      "spriteName": null,
+      "value": 0,
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "~",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Can Click?"
+      },
+      "spriteName": null,
+      "value": 0,
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "cRJjL?S;)vDH~ir:kr_i",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "RightClickClosable"
+      },
+      "spriteName": null,
+      "value": 0,
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "_nDk?DcJ%M`dL*cXe-Ny",
+      "mode": "list",
+      "opcode": "data_listcontents",
+      "params": {
+        "LIST": "OSL // Import Times"
+      },
+      "spriteName": "v612",
+      "value": [],
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false
+    },
+    {
+      "id": "H%",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Renderer // Wallpaper Redraws"
+      },
+      "spriteName": null,
+      "value": 0,
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "3t",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Inputs // Keys Down"
+      },
+      "spriteName": null,
+      "value": [],
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    },
+    {
+      "id": "CL33%0R^/cfdOsUUuN{9",
+      "mode": "list",
+      "opcode": "data_listcontents",
+      "params": {
+        "LIST": "Files // Index Path"
+      },
+      "spriteName": null,
+      "value": [],
+      "width": 794,
+      "height": 648,
+      "x": 0,
+      "y": 0,
+      "visible": false
+    },
+    {
+      "id": "_o",
+      "mode": "default",
+      "opcode": "data_variable",
+      "params": {
+        "VARIABLE": "Inputs // Last Keys Down"
+      },
+      "spriteName": null,
+      "value": [],
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0,
+      "visible": false,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
+    }
+  ],
+  "extensions": [
+    "mistsutils",
+    "pen",
+    "MistiumEval",
+    "cloudlink",
+    "videoSensing",
+    "zxmushroom63searchparams",
+    "xeltallivSimple3D",
+    "mistfetch",
+    "webSocketPlus",
+    "xeltallivclipblend",
+    "skyhigh173JSON",
+    "theshovelcanvaseffects",
+    "vfs",
+    "pointerlock",
+    "mistiumindexeddb",
+    "mistSkins",
+    "lmsVideo",
+    "runtimeoptions",
+    "HyperSenseSP",
+    "SPtuneShark",
+    "CameraSensingPlusSP",
+    "MistKeyHistoryExtension",
+    "OSLUtils",
+    "rdf",
+    "MouseCursor",
+    "battery",
+    "shovelColorPicker",
+    "sipctime",
+    "imgEffectsSP",
+    "lmsLooksPlus",
+    "truefantomregexp",
+    "URIUtilities",
+    "dtbyxeroname",
+    "clipboard",
+    "noise",
+    "filesExpanded",
+    "MistiumCanvas",
+    "mistiumshaders",
+    "roturCall",
+    "shovellzcompress",
+    "qxsckvarandlist",
+    "stretch",
+    "blurImage"
+  ],
+  "extensionURLs": {
+    "mistsutils": "https://extensions.mistium.com/featured/Mist's Utils.js",
+    "MistiumEval": "https://extensions.mistium.com/featured/EvalPlus.js",
+    "cloudlink": "https://extensions.mistium.com/cache/Cloudlink-min.js",
+    "zxmushroom63searchparams": "https://extensions.turbowarp.org/ZXMushroom63/searchApi.js",
+    "xeltallivSimple3D": "https://extensions.turbowarp.org/Xeltalliv/simple3D.js",
+    "mistfetch": "https://extensions.mistium.com/featured/MistFetch.js",
+    "webSocketPlus": "https://extensions.mistium.com/cache/origin-websocketPlus.js",
+    "xeltallivclipblend": "https://extensions.turbowarp.org/Xeltalliv/clippingblending.js",
+    "skyhigh173JSON": "https://extensions.turbowarp.org/Skyhigh173/json.js",
+    "theshovelcanvaseffects": "https://extensions.turbowarp.org/TheShovel/CanvasEffects.js",
+    "vfs": "https://extensions.mistium.com/featured/Virtual%20File%20System.js",
+    "pointerlock": "https://extensions.turbowarp.org/pointerlock.js",
+    "mistiumindexeddb": "https://extensions.mistium.com/featured/IndexedDB.js",
+    "mistSkins": "https://extensions.mistium.com/featured/Async%20Skins.js",
+    "lmsVideo": "https://extensions.turbowarp.org/Lily/Video.js",
+    "runtimeoptions": "https://extensions.turbowarp.org/runtime-options.js",
+    "HyperSenseSP": "https://extensions.mistium.com/cache/hyperSense.js",
+    "SPtuneShark": "https://extensions.mistium.com/cache/TuneShark-min.js",
+    "CameraSensingPlusSP": "https://extensions.mistium.com/cache/CameraSensingPlus-min.js",
+    "MistKeyHistoryExtension": "https://extensions.mistium.com/cache/origin-keyHistory.js",
+    "OSLUtils": "https://origin.mistium.com/Resources/OSL%20Utils.js",
+    "rdf": "https://extensions.mistium.com/featured/RDF.js",
+    "MouseCursor": "https://extensions.turbowarp.org/cursor.js",
+    "battery": "https://extensions.turbowarp.org/battery.js",
+    "shovelColorPicker": "https://extensions.turbowarp.org/TheShovel/ColorPicker.js",
+    "sipctime": "https://extensions.mistium.com/cache/time-min.js",
+    "imgEffectsSP": "https://extensions.mistium.com/cache/ImageEffects-min.js",
+    "lmsLooksPlus": "https://extensions.turbowarp.org/Lily/LooksPlus.js",
+    "truefantomregexp": "https://extensions.mistium.com/cache/regex-min.js",
+    "URIUtilities": "https://extensions.mistium.com/files/URI%20Utilities.js",
+    "dtbyxeroname": "https://extensions.mistium.com/cache/Deltatime.js",
+    "clipboard": "https://extensions.turbowarp.org/clipboard.js",
+    "noise": "https://extensions.mistium.com/cache/noise.js",
+    "filesExpanded": "https://extensions.mistium.com/cache/FilesExpanded-min.js",
+    "MistiumCanvas": "https://extensions.mistium.com/featured/Canvas.js",
+    "mistiumshaders": "https://extensions.mistium.com/featured/Shaders.js",
+    "roturCall": "https://extensions.mistium.com/featured/roturVoice.js",
+    "shovellzcompress": "https://extensions.turbowarp.org/TheShovel/LZ-String.js",
+    "qxsckvarandlist": "https://extensions.turbowarp.org/qxsck/var-and-list.js",
+    "stretch": "https://extensions.turbowarp.org/stretch.js",
+    "blurImage": "https://extensions.mistium.com/files/Faster%20Blur%20Uri.js"
+  },
+  "meta": {
+    "semver": "3.0.0",
+    "vm": "0.2.0",
+    "agent": "",
+    "platform": {
+      "name": "Mistwarp",
+      "url": "https://warp.mistium.com/"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: afO
+ * hatOpcode: procedures_definition
+ * threadIndex: 115
+ */
+
+def @originFS_UUID_ID(UUID) "originFS // UUID %s -> ID" warp=false {
+  mistsutils_patchcommand(A= "const uuids = window.files.uuids");
+  mistsutils_patchcommand(A= "let id = uuids?.[\"\"+p0] ?? 0");
+  if (mistsutils_patchreporter(A= "id") == "0") {
+    mistsutils_patchcommand2(A= "id = +", B= data_itemnumoflist(ITEM= UUID, LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")));
+    return mistsutils_patchreporter(A= "id === 0 ? 0 : uuids[\"\"+p0] = id");
+  } else {
+    return mistsutils_patchreporter(A= "id");
+  }
+}

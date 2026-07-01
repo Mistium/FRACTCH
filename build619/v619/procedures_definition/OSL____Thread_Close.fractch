@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aN{
+ * hatOpcode: procedures_definition
+ * threadIndex: 204
+ */
+
+def @OSL_Thread_Close() "OSL // Thread Close" warp=false {
+  mistsutils_patchcommand(A= "target.closeOSLThread(target)");
+}

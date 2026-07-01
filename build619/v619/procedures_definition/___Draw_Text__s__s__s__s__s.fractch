@@ -1,0 +1,83 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aKL
+ * hatOpcode: procedures_definition
+ * threadIndex: 188
+ */
+
+def @Draw_Text(Text, X, Y, Size, Markdown_Enabled("Markdown Enabled?")) "// Draw Text %s %s %s %s %s" warp=true {
+  mistsutils_patchcommand(A= "let text_current;");
+  mistsutils_patchcommand(A= "if (p0 === null) return");
+  mistsutils_patchcommand(A= "switch (typeof p0) {");
+  case "string" {
+    mistsutils_patchcommand(A= "let onlyAscii = true; for (let i = 0; i < p0.length; i ++) { if (p0.charCodeAt(i) > 127) { text_current = [...p0]; onlyAscii = false; break } }");
+    mistsutils_patchcommand(A= "if (onlyAscii) text_current = p0;");
+  }
+  mistsutils_patchcommand(A= "case \"object\": text_current = p0; break");
+  mistsutils_patchcommand(A= "case \"number\": text_current = \"\"+p0; break");
+  mistsutils_patchcommand(A= "default: text_current = \"\"; break");
+  mistsutils_patchcommand(A= "}");
+  vars["Text // Size Multiplier"] = (Size / 30);
+  mistsutils_patchcommand(A= "p1 = +p1 || 0");
+  mistsutils_patchcommand(A= "p2 = +p2 || 0");
+  mistsutils_patchcommand2(A= "const char_spacing = ", B= ((vars["Text // Char Spacing"] / 30) * vars["Renderer // Scale"]));
+  vars["Text // Width"] = ((mistsutils_patchreporter(A= "text_current.length") * mistsutils_patchreporter(A= "char_spacing")) * Size);
+  if (vars["Window // Interactable?"] == "true") {
+    @Draw_Square(X= mistsutils_patchreporter2(A= "p1 + ", B= (vars["Text // Width"] / 2)), Y= mistsutils_patchreporter(A= "p2"), Width= vars["Text // Width"], Height= (Size * vars["Text // Line Spacing"]), Line_Width= "", Invisible= "1");
+    if mistsutils_patchboolean(A= "target.osl_vars.mouse_touching === true") {
+      if not((vars["OSL // Hover_Colour"] == "")) {
+        pen_setPenColorToColor(COLOR= vars["OSL // Hover_Colour"]);
+      }
+      if not((vars["OSL // Hover_Size"] == "")) {
+        vars["Text // Size Multiplier"] = (vars["Text // Size Multiplier"] * vars["OSL // Hover_Size"]);
+      }
+    }
+  }
+  mistsutils_patchcommand(A= "target.setXY(p1, (p2 - Number(p3) * 0.6) || 0);");
+  vars["Text // Clicked Letter ID"] = "-1";
+  mistsutils_patchcommand3(A= "const font = `font${", B= vars["Text // Font"], C= "}-`");
+  mistsutils_patchcommand2(A= "const text_direction = ", B= motion_direction());
+  mistsutils_patchcommand(A= "const rad_direction = (90 - text_direction) * Math.PI / 180");
+  mistsutils_patchcommand(A= "let compound = font");
+  mistsutils_patchcommand2(A= "const char_spacing_scaled = ", B= (Size * mistsutils_patchreporter(A= "char_spacing")));
+  mistsutils_patchcommand2(A= "let can_render = ", B= (motion_yposition() < vars["Frame // Max Y"]));
+  mistsutils_patchcommand(A= "const cha_x = char_spacing_scaled * Math.cos(rad_direction)");
+  mistsutils_patchcommand(A= "const cha_y = char_spacing_scaled * Math.sin(rad_direction)");
+  mistsutils_patchcommand2(A= "const min_x = ", B= (vars["Frame // Min X"] - Size));
+  mistsutils_patchcommand2(A= "const max_x = ", B= (vars["Frame // Max X"] + Size));
+  mistsutils_patchcommand2(A= "const min_y = ", B= (vars["Frame // Min Y"] - Size));
+  mistsutils_patchcommand2(A= "const max_y = ", B= (vars["Frame // Max Y"] + Size));
+  mistsutils_patchcommand(A= "let text_length = text_current.length");
+  mistsutils_patchcommand(A= "for (let i = 0; i < text_length; i++) {");
+  mistsutils_patchcommand(A= "let text_letter = text_current[i]");
+  if mistsutils_patchboolean(A= "text_letter === \"\\n\"") {
+    motion_gotoxy(X= X, Y= (motion_yposition() - (Size * vars["Text // Line Spacing"])));
+    mistsutils_patchcommand(A= "if (!can_render) {");
+    if (motion_yposition() < vars["Frame // Max Y"]) {
+      mistsutils_patchcommand(A= "can_render = true");
+    }
+    mistsutils_patchcommand(A= "}");
+    if (motion_yposition() < mistsutils_patchreporter(A= "min_y")) {
+      mistsutils_patchcommand(A= "can_render = false");
+    }
+  } else {
+    mistsutils_patchcommand2(A= "const x = ", B= motion_xposition());
+    mistsutils_patchcommand2(A= "const y = ", B= motion_yposition());
+    mistsutils_patchcommand(A= "if (can_render) {");
+    if mistsutils_patchboolean(A= "x < min_x && x > max_x && y < max_y && y > min_y") {
+      mistsutils_patchcommand(A= "can_render = false");
+    }
+    if mistsutils_patchboolean(A= "text_letter !== \"\\r\"") {
+      @Draw_Icon_boldness(Code= mistsutils_patchreporter(A= "text_letter === \" \" ? \"\" : font + text_letter"), Size= vars["Text // Size Multiplier"], setsize= "1", x= "", y= "", direction= mistsutils_patchreporter(A= "text_direction"), boldness= vars["Text // Boldness"]);
+    }
+    mistsutils_patchcommand(A= "} else {");
+    if mistsutils_patchboolean(A= "x < min_x && x > max_x && y < max_y && y > min_y") {
+      mistsutils_patchcommand(A= "can_render = true");
+    }
+    mistsutils_patchcommand(A= "}");
+    mistsutils_patchcommand(A= "target.setXY(x + cha_x, y + cha_y)");
+  }
+  mistsutils_patchcommand(A= "}");
+  motion_changeyby(DY= (Size * 0.6));
+}

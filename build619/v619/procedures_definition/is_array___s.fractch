@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aP[
+ * hatOpcode: procedures_definition
+ * threadIndex: 221
+ */
+
+def @is_array(input) "is array? %s" warp=false {
+  return mistsutils_patchboolean(A= "Array.isArray(p0)");
+}

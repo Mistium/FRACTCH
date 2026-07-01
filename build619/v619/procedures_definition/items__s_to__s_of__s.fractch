@@ -1,0 +1,14 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aPc
+ * hatOpcode: procedures_definition
+ * threadIndex: 212
+ */
+
+def @items_to_of(start, end, array) "items %s to %s of %s" warp=false {
+  mistsutils_patchcommand(A= "p0 = (Number(p0) || 0)");
+  mistsutils_patchcommand(A= "p1 = (Number(p1) || 0)");
+  mistsutils_patchcommand(A= "if (p1 < 0) {p1 = p2.length + p1 + 1}; try { if (typeof p2 !== \"object\") { p2 = JSON.parse(p2); if (!Array.isArray(p2)) { return \"\"; }}; return p2.slice(p0 - 1, p1) } catch { return [] }");
+  return "";
+}

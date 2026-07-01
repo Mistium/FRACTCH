@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: +N
+ * hatOpcode: procedures_definition
+ * threadIndex: 50
+ */
+
+def @OSL_Vars_Get(Varname) "OSL// Vars: Get %s" warp=true {
+  return mistsutils_patchreporter(A= "target.getOSLvar(p0, target)");
+}

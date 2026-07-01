@@ -46,13 +46,42 @@ export function convertProject(projectJson, { outDir }) {
     fs.mkdirSync(tDir, { recursive: true });
 
     const scripts = groupTopLevelScripts(target);
+    const subgraphs = new Map(); // topBlockId -> subgraph
+    const coveredIds = new Set();
+    for (const script of scripts) {
+      const subgraph = collectBlocksSubgraph(target.blocks, script.topBlockId);
+      subgraphs.set(script.topBlockId, subgraph);
+      for (const id of Object.keys(subgraph)) coveredIds.add(id);
+    }
+
+    // Some sb3 projects contain block chains detached from any reachable
+    // script (e.g. left over from editor operations, with a parent id that
+    // no longer exists). They aren't executable, but they're still present
+    // in project.json, so sweep them into their own script files too -
+    // otherwise they'd have nowhere to live once manifest.json drops blocks.
+    const allBlocks = target.blocks || {};
+    for (const id of Object.keys(allBlocks)) {
+      if (coveredIds.has(id)) continue;
+      // Some corrupted/edited project.json files carry stray dict entries
+      // under `blocks` that are actually raw compact-literal tuples (e.g.
+      // `[12, "name", "id"]`, the same shape used for inline variable
+      // reads) rather than real block objects - skip those, they aren't
+      // executable content and have no `opcode` to sweep.
+      const entry = allBlocks[id];
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.opcode !== 'string') continue;
+      const subgraph = collectBlocksSubgraph(allBlocks, id);
+      const subIds = Object.keys(subgraph);
+      if (!subIds.length) continue;
+      for (const sid of subIds) coveredIds.add(sid);
+      scripts.push({ topBlockId: id, hatOpcode: allBlocks[id]?.opcode || null });
+      subgraphs.set(id, subgraph);
+    }
+
     let idx = 0;
     const usedNames = new Set();
     for (const script of scripts) {
       const { topBlockId, hatOpcode } = script;
-      const top = target.blocks?.[topBlockId];
-      if (top?.shadow) continue; // safety: skip any top-level shadow
-      const subgraph = collectBlocksSubgraph(target.blocks, topBlockId);
+      const subgraph = subgraphs.get(topBlockId);
       const hatDir = path.join(tDir, sanitize(hatOpcode || 'nohat'));
       fs.mkdirSync(hatDir, { recursive: true });
 
@@ -95,8 +124,18 @@ export function convertProject(projectJson, { outDir }) {
 
   return {
     filesWritten: files.length + (targets.length || 0) + 1,
-    manifest: projectJson,
+    manifest: manifestWithoutBlocks(projectJson),
     indexContent,
+  };
+}
+
+function manifestWithoutBlocks(projectJson) {
+  return {
+    ...projectJson,
+    targets: (projectJson.targets || []).map((t) => {
+      const { blocks, ...rest } = t;
+      return rest;
+    }),
   };
 }
 
@@ -104,14 +143,22 @@ function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
 }
 
-function cleanIdent(label) {
+export function cleanIdent(label) {
   const stripped = String(label).replace(/%[snb]/g, ' ').replace(/\s+/g, ' ').trim();
-  const id = stripped.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  let id = stripped.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  if (/^[0-9]/.test(id)) id = `_${id}`; // must be a valid bare identifier (e.g. `def @Ident(...)`)
   return id || 'proc';
 }
 
 export function buildProcByCode(targets) {
   const map = new Map();
+  // Two unrelated custom blocks can have proccodes that clean to the same
+  // identifier (e.g. "OSL // %s .( %s ) %s = %s" and "OSL //  %s . %s  =  %s"
+  // both -> "OSL"). Call sites are written as `@ident(...)` and resolved
+  // back to a proccode purely by that identifier, so collisions must be
+  // disambiguated here or the second proc's calls silently resolve to the
+  // first proc's argument shape.
+  const usedProcIdents = new Set();
   for (const target of targets) {
     const blocks = target.blocks || {};
     for (const b of Object.values(blocks)) {
@@ -122,8 +169,27 @@ export function buildProcByCode(targets) {
       let names = [];
       try { ids = JSON.parse(b.mutation?.argumentids || '[]'); } catch {}
       try { names = JSON.parse(b.mutation?.argumentnames || '[]'); } catch {}
-      const params = ids.map((id, i) => ({ id, ident: cleanIdent(names[i] ?? `arg${i}`) }));
-      map.set(proccode, { ident: cleanIdent(proccode), params, label: proccode });
+      // Two params can have different display names that clean to the same
+      // identifier (e.g. "X" and "+X" both -> "X") - body references are
+      // resolved by bare identifier, so collisions must be disambiguated
+      // here or the second param becomes unreachable/misresolved in the DSL.
+      const seenIdents = new Map();
+      const params = ids.map((id, i) => {
+        const name = names[i] ?? `arg${i}`;
+        const base = cleanIdent(name);
+        const count = seenIdents.get(base) || 0;
+        seenIdents.set(base, count + 1);
+        const ident = count === 0 ? base : `${base}_${count + 1}`;
+        return { id, ident, name };
+      });
+
+      let base = cleanIdent(proccode);
+      let ident = base;
+      let n = 1;
+      while (usedProcIdents.has(ident)) ident = `${base}_${++n}`;
+      usedProcIdents.add(ident);
+
+      map.set(proccode, { ident, params, label: proccode });
     }
   }
   return map;

@@ -10,8 +10,7 @@
     "build": "npm run clean && node ./bin/cli.js --input ./originv6.0.0.sb3 --out ./build",
     "clean": "rm -rf build && mkdir -p build",
     "dev": "node ./bin/cli.js --input ./originv6.0.0.sb3 --out ./build --verbose",
-    "pack": "node ./bin/cli.js --pack --out ./build --outSb3 ./repacked.sb3 --verbose --preferDSL",
-    "pack:lossless": "node ./bin/cli.js --pack --out ./build --outSb3 ./repacked.sb3 --verbose --no-preferDSL",
+    "pack": "node ./bin/cli.js --pack --out ./build --outSb3 ./repacked.sb3 --verbose",
     "lint": "echo 'No linter configured'",
     "test": "node --test test/*.test.js",
     "selftest": "node ./src/selftest.js"

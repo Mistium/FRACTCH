@@ -1,0 +1,96 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: -]
+ * hatOpcode: procedures_definition
+ * threadIndex: 53
+ */
+
+def @OSL_Commands_Network(input2) "OSL // Commands - Network %s" warp=true {
+  switch input2 {
+    case "getcache" {
+      @OSL_Set_Data_Var_To(data= mistsutils_patchreporter3(A= "Object.keys(", B= vars["NETWORK // Get Web Outputs"], C= ")"));
+    }
+    case "get_online" {
+      @OSL_Vars_Set(name= "network_data", data= @parse(json= truefantomregexp_regexp_replace_block(A= skyhigh173JSON_json_array_filter(key= "username", json= cloudlink_returnUserListData()), B= "/§\\S{10}\"/gi", C= "\"")), current_command= "");
+    }
+    case "get_onlineraw" {
+      @OSL_Vars_Set(name= "network_data", data= @parse(json= skyhigh173JSON_json_array_filter(key= "username", json= cloudlink_returnUserListData())), current_command= "");
+    }
+    case "set_app_id" {
+      vars["Window // Network ID"] = data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+    }
+    case "clear" {
+      mistsutils_patchcommand3(A= "delete ", B= vars["NETWORK // Get Web Outputs"], C= mistsutils_patchreporter3(A= "[", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= "]"));
+    }
+    case "getsync_asurl" {
+      @OSL_Set_Data_Var_To(data= URIUtilities_downloadAndConvert(URL= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+    }
+    case "getsync" {
+      @OSL_Set_Data_Var_To(data= @parse(json= cloudlink_fetchURL(url= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))));
+    }
+    case "get" {
+      mistsutils_patchcommand3(A= "let net_data = ", B= vars["NETWORK // Get Web Outputs"], C= mistsutils_patchreporter3(A= "[", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= "]"));
+      if mistsutils_patchboolean(A= "typeof net_data !== \"undefined\"") {
+        @OSL_Set_Data_Var_To(data= mistsutils_patchreporter(A= "net_data"));
+      } else {
+        mistsutils_patchcommand(A= "const fetches = origin.fetches.web");
+        mistsutils_patchcommand2(A= "const val = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        if not((mistsutils_patchboolean(A= "fetches.includes(val)") || mistsutils_patchboolean(A= "origin.fetches.downloads.slice().map(obj => obj.url).includes(val)"))) {
+          mistsutils_patchcommand(A= "fetches.push(val)");
+          mistsutils_patchcommand2(A= vars["OSL // Web Cache"], B= ".push(val)");
+        }
+        @OSL_Set_Data_Var_To(data= "\"Loading\"");
+      }
+    }
+    case "raw" {
+      if not((data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == vars["Server // Name"])) {
+        data_changevariableby(VALUE= operator_length(STRING= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), VARIABLE: var("Network // Upload", "(x"));
+        cloudlink_sendPData(DATA= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), ID= @Find_User(Name= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), all= null));
+        @originNM_Log_Request_Payload_Recipient_Received(Payload= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Recipient= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), received= null);
+      }
+    }
+    case "send" {
+      if not((data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == vars["Server // Name"])) {
+        if (data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "") {
+          data_replaceitemoflist(INDEX= 5, ITEM= vars["Window // Network ID"], LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+        }
+        mistsutils_patchcommand2(A= "const packet = ", B= skyhigh173JSON_json_set(item= "payload", json= skyhigh173JSON_json_set(item= "target", json= skyhigh173JSON_json_set(item= "source", json= skyhigh173JSON_json_delete(item= "id", json= vars["Server// Base Payload"]), value= vars["Window // Network ID"]), value= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), value= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+        data_changevariableby(VALUE= mistsutils_patchreporter(A= "packet.length"), VARIABLE: var("Network // Upload", "(x"));
+        cloudlink_sendPData(DATA= mistsutils_patchreporter(A= "packet"), ID= @Find_User(Name= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), all= null));
+        @originNM_Log_Request_Payload_Recipient_Received(Payload= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Recipient= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), received= null);
+      }
+    }
+    default {
+      if mistsutils_patchboolean(A= "[\"delete_account\", \"update\", \"delete\", \"logout\", \"my_files_usage\", \"server\"].includes(p0)") {
+        if not(@Permissions_Has(perm= "account")) {
+          @Log_Error(Data= mistsutils_patchreporter(A= "`The network command: ${p0}, requires the account permission`"), Type= "Permission");
+        }
+        if not((vars["Account// Current"] == "")) {
+          if (input2 == "delete_account") {
+            data_addtolist(ITEM= skyhigh173JSON_json_set(item= "command", json= skyhigh173JSON_json_set(item= "source", json= vars["Server// Base Payload"], value= vars["Window // Network ID"]), value= "delete_account"), LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+          }
+          if (input2 == "update") {
+            @Account_Request_using_and(mode= "update", Key= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Value= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+          if (input2 == "delete") {
+            @Account_Request_using_and(mode= "delete", Key= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Value= "");
+          }
+          if (input2 == "logout") {
+            data_addtolist(ITEM= skyhigh173JSON_json_set(item= "command", json= skyhigh173JSON_json_set(item= "source", json= vars["Server// Base Payload"], value= vars["Window // Network ID"]), value= "logout"), LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+            mistsutils_patchcommand(A= "setCookie(\"origin_login\",\"\",-1)");
+          }
+          if (input2 == "my_files_usage") {
+            data_addtolist(ITEM= skyhigh173JSON_json_set(item= "command", json= skyhigh173JSON_json_set(item= "source", json= vars["Server// Base Payload"], value= vars["Window // Network ID"]), value= "My_Files_Usage"), LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+          }
+          if (input2 == "server") {
+            data_addtolist(ITEM= skyhigh173JSON_json_set(item= "payload", json= skyhigh173JSON_json_set(item= "target", json= skyhigh173JSON_json_set(item= "command", json= skyhigh173JSON_json_set(item= "source", json= vars["Server// Base Payload"], value= vars["Window // Network ID"]), value= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), value= vars["Window // Network ID"]), value= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), LIST: list("Network // Outgoing Packets", "SF=codPC0bN[nV5#iX6K"));
+          }
+          @originNM_Log_Request_Payload_Recipient_Received(Payload= input2, Recipient= vars["Server // Name"], received= null);
+          stop "this script";
+        }
+      }
+      @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown network command: ${p0}`"), Type= "Unknown Command");
+    }
+  }
+}

@@ -1,0 +1,19 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: ]%
+ * hatOpcode: procedures_definition
+ * threadIndex: 80
+ */
+
+def @Show_Notification(Icon, Title, Text, Style, Action) "Show Notification %s %s %s %s %s" warp=true {
+  mistsutils_patchcommand2(A= "const wrapped = ", B= "window.wordWrap(p2,43)");
+  mistsutils_patchcommand(A= "let temp = JSON.stringify({text: wrapped, title: p1, icon: p0, style: p3})");
+  if not((vars["Kernel // Notification"] == mistsutils_patchreporter(A= "temp"))) {
+    vars["Kernel // Notification"] = mistsutils_patchreporter(A= "temp");
+    vars["Kernel // Notification Y"] = "60";
+    vars["Kernel // Notification Temp Y"] = "-40";
+    vars["Kernel // Notification Time"] = (mistsutils_patchreporter(A= "Date.now()") + vars["SYSTEM // Timestamp Offset"]);
+    vars["Kernel // Notification Action (RUSH)"] = Action;
+  }
+}

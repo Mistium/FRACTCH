@@ -1,0 +1,18 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aO~
+ * hatOpcode: procedures_definition
+ * threadIndex: 211
+ */
+
+def @originNM_Handle_Packet_Systems() "originNM // Handle Packet Systems" warp=true {
+  mistsutils_patchcommand2(A= "let packets = ", B= cloudlink_getAndClearPacketQueue(TYPE: ["Private data",null]));
+  data_changevariableby(VALUE= mistsutils_patchreporter(A= "packets.length"), VARIABLE: var("Network // Download", "P%"));
+  mistsutils_patchcommand(A= "packets = JSON.parse(packets)");
+  repeat mistsutils_patchreporter(A= "packets.length") {
+    mistsutils_patchcommand(A= "try { let packet = packets.pop()");
+    @originNM_Handle_Packet(Value= mistsutils_patchreporter(A= "JSON.stringify(packet.val)"), Raw_Value= mistsutils_patchreporter(A= "packet.val"), From= mistsutils_patchreporter(A= "packet.origin.username"));
+    mistsutils_patchcommand(A= "} catch(e) {console.error(e)}");
+  }
+}

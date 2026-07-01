@@ -1,0 +1,72 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: :D
+ * hatOpcode: procedures_definition
+ * threadIndex: 61
+ */
+
+def @OSL_Commands_Sound(input2) "OSL // Commands - Sound %s" warp=false {
+  data_replaceitemoflist(INDEX= 2, ITEM= input2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+  if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "clear") {
+    vars["DeString // out"] = (vars["WIndow // ID"] .. ("-" .. vars["DeString // out"]));
+    SPtuneShark_stopSound(NAME= vars["DeString // out"]);
+    SPtuneShark_deleteSound(NAME= vars["DeString // out"]);
+    data_deleteoflist(INDEX= data_itemnumoflist(ITEM= vars["DeString // out"], LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l")), LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
+    stop "this script";
+  }
+  if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "load") {
+    if (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "") {
+      @destring(Text= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"");
+      vars["DeString // out"] = (vars["WIndow // ID"] .. ("-" .. vars["DeString // out"]));
+      if not(SPtuneShark_soundCheck(NAME= vars["DeString // out"], CONTROL: ["exists?",null])) {
+        if (mistsutils_starts(A= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B= "http") || mistsutils_starts(A= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B= "data:")) {
+          SPtuneShark_importSound(URL= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), NAME= vars["DeString // out"]);
+        } else {
+          SPtuneShark_importSound(URL= URIUtilities_stringToDataURI(STRING= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), TYPE= "audio/mpeg"), NAME= vars["DeString // out"]);
+        }
+        if SPtuneShark_soundCheck(NAME= vars["DeString // out"], CONTROL: ["exists?",null]) {
+          data_addtolist(ITEM= vars["DeString // out"], LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
+        }
+      }
+    } else {
+      data_replaceitemoflist(INDEX= 4, ITEM= (vars["WIndow // ID"] .. ("-" .. data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+      if not(SPtuneShark_soundCheck(NAME= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), CONTROL: ["exists?",null])) {
+        SPtuneShark_importSound(URL= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), NAME= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        if SPtuneShark_soundCheck(NAME= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), CONTROL: ["exists?",null]) {
+          data_addtolist(ITEM= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), LIST: list("OSL // Sounds Loaded", "+J~ujd(BELC!-J,:O%-l"));
+        }
+      }
+    }
+    stop "this script";
+  }
+  if not(@is_array(input= input2)) {
+    data_replaceitemoflist(INDEX= 2, ITEM= skyhigh173JSON_json_array_push(item= (vars["WIndow // ID"] .. ("-" .. input2)), json= "[]"), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+  }
+  switch data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+    case "unpause" {
+      SPtuneShark_pauseUnpauseSounds(NAMES= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), PAUSE_UNPAUSE: ["unpause",null]);
+    }
+    case "pause" {
+      SPtuneShark_pauseUnpauseSounds(NAMES= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), PAUSE_UNPAUSE: ["pause",null]);
+    }
+    case "play" {
+      SPtuneShark_playSounds(NAMES= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "start" {
+      SPtuneShark_playSoundsAt(NAMES= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), START_TIME= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "volume" {
+      SPtuneShark_setSoundsVolume(NAMES= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), VOLUME= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "speed" {
+      SPtuneShark_setSoundSpeeds(NAMES= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), SPEED= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "pitch" {
+      SPtuneShark_setSoundsPitch(NAMES= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), PITCH= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    default {
+      @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown sound command: ${p0}`"), Type= "Unknown Command");
+    }
+  }
+}

@@ -1,0 +1,12 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: abs
+ * hatOpcode: procedures_definition
+ * threadIndex: 100
+ */
+
+def @destring(Text, remove) "destring %s %s" warp=true {
+  mistsutils_patchcommand(A= "b0.value = destr(p0,p1)");
+  return vars["DeString // out"];
+}

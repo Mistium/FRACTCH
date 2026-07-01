@@ -1,0 +1,74 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aNG
+ * hatOpcode: procedures_definition
+ * threadIndex: 202
+ */
+
+def @OSL_Commands_Uri(command) "OSL // Commands - Uri %s" warp=true {
+  switch command {
+    case "start_editing" {
+      vars["OSL // Current Uri"] = data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+      vars["OSL // Uri Width"] = imgEffectsSP_numPixels(URI= vars["OSL // Current Uri"], TYPE: ["per line",null]);
+      vars["OSL // Uri Height"] = imgEffectsSP_numPixels(URI= vars["OSL // Current Uri"], TYPE: ["per row",null]);
+      @OSL_Vars_Set(name= "uri_width", data= vars["OSL // Uri Width"], current_command= "");
+      @OSL_Vars_Set(name= "uri_height", data= vars["OSL // Uri Height"], current_command= "");
+    }
+    case "get_total_pixels" {
+      @OSL_Set_Data_Var_To(data= imgEffectsSP_numPixels(URI= vars["OSL // Current Uri"], TYPE: ["total",null]));
+    }
+    case "get_width_height" {
+      @OSL_Set_Data_Var_To(data= mistsutils_patchreporter3(A= "[", B= vars["OSL // Uri Width"], C= mistsutils_patchreporter3(A= ",", B= vars["OSL // Uri Height"], C= "]")));
+    }
+    case "remove_colour" {
+      imgEffectsSP_setSoftness(AMT= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      vars["OSL // Current Uri"] = imgEffectsSP_deleteColor(COLOR= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), DATA_URI= vars["OSL // Current Uri"]);
+    }
+    case "replace_colour" {
+      imgEffectsSP_setSoftness(AMT= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      vars["OSL // Current Uri"] = imgEffectsSP_replaceColor(COLOR= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), REPLACE= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), DATA_URI= vars["OSL // Current Uri"]);
+    }
+    case "add_hue" {
+      vars["OSL // Current Uri"] = imgEffectsSP_applyHueEffect(COLOR= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), SVG= vars["OSL // Current Uri"]);
+    }
+    case "get_pixel" {
+      @OSL_Set_Data_Var_To(data= imgEffectsSP_getPixel(NUM= (((data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 1) * vars["OSL // Uri Width"]) + data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), URI= vars["OSL // Current Uri"]));
+    }
+    case "set_pixel" {
+      vars["OSL // Current Uri"] = imgEffectsSP_setPixel(NUM= (((data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 1) * vars["OSL // Uri Width"]) + data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), COLOR= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), URI= vars["OSL // Current Uri"]);
+    }
+    case "blur" {
+      vars["OSL // Current Uri"] = blurImage_blurImage(URL= vars["OSL // Current Uri"], BLUR= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "effect" {
+      vars["OSL // Current Uri"] = imgEffectsSP_applyEffect(EFFECT= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), SVG= vars["OSL // Current Uri"], PERCENTAGE= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "remove_transparent" {
+      if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "under") {
+        vars["OSL // Current Uri"] = imgEffectsSP_removeTransparencyEffect(SVG= vars["OSL // Current Uri"], THRESHOLD= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), REMOVE: ["under",null]);
+      }
+      if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "over") {
+        vars["OSL // Current Uri"] = imgEffectsSP_removeTransparencyEffect(SVG= vars["OSL // Current Uri"], THRESHOLD= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), REMOVE: ["over",null]);
+      }
+      if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "equal_to") {
+        vars["OSL // Current Uri"] = imgEffectsSP_removeTransparencyEffect(SVG= vars["OSL // Current Uri"], THRESHOLD= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), REMOVE: ["equal to",null]);
+      }
+    }
+    case "stretch" {
+      vars["OSL // Current Uri"] = imgEffectsSP_stretchImg(URI= vars["OSL // Current Uri"], W= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), H= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "upscale" {
+      vars["OSL // Current Uri"] = imgEffectsSP_upscaleImage(URI= vars["OSL // Current Uri"], NUM= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "get_output" {
+      @OSL_Set_Data_Var_To(data= vars["OSL // Current Uri"]);
+    }
+    case "stop_editing" {
+      vars["OSL // Current Uri"] = "";
+    }
+    default {
+      @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown URI command: ${p0}`"), Type= "Unknown Command");
+    }
+  }
+}

@@ -1,0 +1,12 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: ar|
+ * hatOpcode: procedures_definition
+ * threadIndex: 149
+ */
+
+def @OSL(object, type, name, value) "OSL // %s .( %s ) %s = %s" warp=false {
+  mistsutils_patchcommand(A= "if (!p1 || p1 === \"\") { p0[\"\"+p2] = p3 ?? null; return; }");
+  mistsutils_patchcommand(A= "defineTypedProperty(p0, \"\"+p2, p3 ?? null, (\"\"+p1).toLowerCase(), target)");
+}

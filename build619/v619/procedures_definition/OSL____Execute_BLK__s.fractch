@@ -1,0 +1,20 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aI_
+ * hatOpcode: procedures_definition
+ * threadIndex: 181
+ */
+
+import "../procedures_definition/OSL____Parse_and_Run__s.fractch";
+def @OSL_Execute_BLK(BLK) "OSL // Execute BLK %s" warp=false {
+  mistsutils_patchcommand(A= "if (typeof p0 === \"string\")");
+  @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "p0"));
+  mistsutils_patchcommand(A= "if (p0.type !== \"blk\") return;");
+  mistsutils_patchcommand(A= "const lines = p0.data");
+  mistsutils_patchcommand(A= "let ret;");
+  mistsutils_patchcommand(A= "for (let i = 0; i < lines.length && !ret; i ++) ");
+  mistsutils_patchcommand2(A= "ret = ", B= @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "lines[i]")));
+  mistsutils_patchcommand(A= "if (ret) return ret;");
+  mistsutils_patchcommand(A= "return;");
+}

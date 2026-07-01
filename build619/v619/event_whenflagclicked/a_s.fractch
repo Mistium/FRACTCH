@@ -1,0 +1,16 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: a+s
+ * hatOpcode: event_whenflagclicked
+ * threadIndex: 56
+ */
+
+event_whenflagclicked();
+vars["SYSTEM // Scroll Multiplier"] = "none";
+forever {
+  if (((mistsutils_patchreporter(A= "Date.now()") - vars["Camera // Last Accessed"]) > "1000") && CameraSensingPlusSP_vidStatus()) {
+    CameraSensingPlusSP_turnOnCamera(ON_OFF: ["off",null]);
+    videoSensing_videoToggle(VIDEO_STATE= videoSensing_menu_VIDEO_STATE(VIDEO_STATE: ["off",null]));
+  }
+}

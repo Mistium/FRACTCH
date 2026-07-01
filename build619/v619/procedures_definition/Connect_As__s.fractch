@@ -1,0 +1,17 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aqo
+ * hatOpcode: procedures_definition
+ * threadIndex: 144
+ */
+
+def @Connect_As(user) "Connect As %s" warp=false {
+  pen_setPenColorToColor(COLOR= "#ffffff");
+  mistsutils_patchcommand(A= "origin.desktop.split = [0.5,0.5,0.5,0.5,0.5]");
+  vars["Account// Current"] = "";
+  vars["Kernel // Notification"] = "";
+  mistsutils_patchcommand2(A= "let username = ", B= ("ori-" .. (mistsutils_patchreporter(A= "p0.username") .. ("§" .. mistsutils_letters(A= 1, B= 10, C= mistsutils_patchreporter(A= "CryptoJS.SHA512(\"\"+performance.now()).toString()"))))));
+  vars["Server// Base Payload"] = skyhigh173JSON_json_set(item= "username", json= vars["Server// Base Payload"], value= mistsutils_patchreporter(A= "username"));
+  cloudlink_runCMDnoID(CMD= "setid", DATA= mistsutils_patchreporter(A= "username"));
+}

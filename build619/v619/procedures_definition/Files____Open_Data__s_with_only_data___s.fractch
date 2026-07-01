@@ -1,0 +1,64 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: am@
+ * hatOpcode: procedures_definition
+ * threadIndex: 139
+ */
+
+def @Files_Open_Data_with_only_data(id, mode) "Files // Open Data %s with only data? %s" warp=false {
+  vars["OSL// Current Open File"] = "0";
+  mistsutils_patchcommand(A= "let path = \"\"");
+  if mistsutils_patchboolean(A= "window.OSLisNumber(p0)") {
+    vars["OSL// Current Open File"] = id;
+    mistsutils_patchcommand2(A= "path = ", B= @originFS_ID_Path(id= id));
+    vars["//return"] = "ID";
+  } else {
+    if (id == "/") {
+      mistsutils_patchcommand(A= "path = \"origin/\"");
+      vars["OSL// Current Open File"] = "1";
+      vars["//return"] = "Path";
+    } else {
+      if (operator_contains(STRING1= id, STRING2= ".") || (operator_contains(STRING1= id, STRING2= "/") || operator_contains(STRING1= id, STRING2= "~"))) {
+        mistsutils_patchcommand2(A= "path = ", B= @Find_Directory(Directory= id));
+        vars["OSL// Current Open File"] = @originFS_Path_ID(Path= mistsutils_patchreporter(A= "path + (path.split(\"/\").pop().includes(\".\") ? \"\" : \".folder\")"));
+        vars["//return"] = "Path";
+      } else {
+        vars["OSL// Current Open File"] = @originFS_UUID_ID(UUID= id);
+        mistsutils_patchcommand2(A= "path = ", B= @File_get_item(id= vars["OSL// Current Open File"], item= "3"));
+        vars["//return"] = "UUID";
+      }
+    }
+  }
+  if (vars["OSL// Current Open File"] > "0") {
+    @Permissions_Can_i_view_file(File_To_Get= vars["OSL// Current Open File"]);
+    if (not(@Permissions_Has(perm= "file admin")) && operator_contains(STRING1= mistsutils_patchreporter(A= "path"), STRING2= "/Application Data/")) {
+      @OSL_Vars_Set(name= "file", data= "", current_command= "");
+      @Log_Error(Data= "Access Denied", Type= "Permissions");
+      return mistsutils_patchreporter(A= "null");
+    } else {
+      if (vars["OSL// Permission Output"] == "0") {
+        vars["OSL// Current Open File"] = "0";
+        @OSL_Vars_Set(name= "file", data= "", current_command= "");
+        @Log_Error(Data= "Access Denied", Type= "Permission");
+        return mistsutils_patchreporter(A= "null");
+      } else {
+        switch mode {
+          mistsutils_patchcommand(A= "case \"none\": return null;");
+          mistsutils_patchcommand2(A= "case \"data\": return ", B= @File_get_item(id= vars["OSL// Current Open File"], item= "4"));
+          default {
+            @File_get_item(id= vars["OSL// Current Open File"], item= "");
+            mistsutils_patchcommand2(A= "let file = ", B= "target.variables[\"sZuM+zCt8vo`B5=)O+p.\"].value");
+            mistsutils_patchcommand2(A= "if (file[0] === \".folder\") file[3] = ", B= @parse(json= mistsutils_patchreporter(A= "file[3]")));
+            @OSL_Vars_Set(name= "file", data= mistsutils_patchreporter(A= "file"), current_command= "");
+            @originFS_Exec_file_file_data_id_input(command= "replace", Id= vars["OSL// Current Open File"], data_id= "12", input= operator_length(STRING= data_itemoflist(INDEX= 4, LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p."))));
+            return mistsutils_patchreporter(A= "file[3]");
+          }
+        }
+      }
+    }
+  } else {
+    @OSL_Vars_Set(name= "file", data= mistsutils_patchreporter(A= "[]"), current_command= "");
+  }
+  return mistsutils_patchreporter(A= "null");
+}

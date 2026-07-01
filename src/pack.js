@@ -1,136 +1,89 @@
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import AdmZip from 'adm-zip';
+import crypto from 'crypto';
 import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, mergeIntoManifest, IdGen } from './buildBlocks.js';
 import { assertValidFractch } from './lint.js';
 
-export async function packFromBuildDir({ buildDir, outSb3, verbose = false, preferDSL = true }) {
+// Packing reconstructs every block purely by parsing the DSL text - there is
+// no raw JSON snapshot anywhere to fall back on, so the .fractch files
+// themselves are the single source of truth for the round trip.
+export async function packFromBuildDir({ buildDir, outSb3, verbose = false }) {
   const manifestPath = path.join(buildDir, 'manifest.json');
-  if (!fs.existsSync(manifestPath)) throw new Error('manifest.json not found in build directory');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const hasManifest = fs.existsSync(manifestPath);
+  let manifest = hasManifest ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')) : null;
 
-  const targets = new Map(); // manifestTargetName -> { name, stacks: Array<{hatOpcode, calls?, preblocks?, topBlockId?: string}> }
+  const scriptFiles = collectScriptFiles(buildDir, manifest, verbose);
+  if (!manifest) manifest = synthesizeManifest(scriptFiles);
+  ensureTargetsForScripts(manifest, scriptFiles);
+
+  const targets = new Map(); // manifestTargetName -> { name, stacks: Array<{hatOpcode, calls, topBlockId}> }
+  const procArgMaps = new Map(); // targetName -> Map(proccode -> argumentids[])
+  const identToProccode = new Map(); // targetName -> Map(ident -> proccode)
   let totalScripts = 0;
-  let headerScripts = 0;
-  for (const dirName of fs.readdirSync(buildDir)) {
-    const tPath = path.join(buildDir, dirName);
-    if (!fs.statSync(tPath).isDirectory()) continue;
-    const manifestTarget = findManifestTargetForDir(manifest, dirName);
+  let parsedScripts = 0;
+
+  for (const scriptFile of scriptFiles) {
+    const { fPath, targetDir, hatDir } = scriptFile;
+    const manifestTarget = findManifestTargetForDir(manifest, targetDir);
     if (!manifestTarget) continue;
     const manifestName = manifestTarget.name;
-    for (const hatDir of safeListDir(tPath)) {
-      const hPath = path.join(tPath, hatDir);
-      if (!fs.statSync(hPath).isDirectory()) continue;
-      for (const file of safeListDir(hPath)) {
-        if (!file.endsWith('.fractch')) continue;
-        const fPath = path.join(hPath, file);
-        const content = fs.readFileSync(fPath, 'utf8');
-        totalScripts++;
+    const content = fs.readFileSync(fPath, 'utf8');
+    totalScripts++;
 
-        const headerInfo = parseHeaderInfo(content);
+    const headerInfo = parseHeaderInfo(content);
 
-        const currentHash = computeBodyHash(content);
-        const headerHash = headerInfo?.dslBodyHash || null;
-        const bodyUnchanged = currentHash && headerHash && currentHash === headerHash;
-
-        let fb =
-          headerInfo && headerInfo.subgraph && bodyUnchanged
-            ? headerInfo
-            : !preferDSL
-              ? headerInfo && headerInfo.subgraph
-                ? headerInfo
-                : null
-              : null;
-        if (fb && fb.subgraph && Object.keys(fb.subgraph).length) {
-          headerScripts++;
-          if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
-          targets.get(manifestName).stacks.push({
-            hatOpcode: fb.hatOpcode || hatDir,
-            preblocks: fb.subgraph,
-            topBlockId: fb.topBlockId,
-          });
-          continue;
-        }
-
-        try {
-          assertValidFractch(content, fPath);
-          const parsed = parseFractch(content);
-          const calls = Array.isArray(parsed) ? parsed : parsed.calls;
-          if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
-          const losslessBlocks = parsed && parsed.losslessBlocks ? parsed.losslessBlocks : undefined;
-
-          if (losslessBlocks && Object.keys(losslessBlocks).length) {
-            fb = null; // ensure DSL path is taken with exact blocks
-          }
-          targets.get(manifestName).stacks.push({
-            hatOpcode: headerInfo?.hatOpcode || hatDir,
-            calls,
-            topBlockId: headerInfo?.topBlockId,
-            losslessBlocks,
-          });
-        } catch (e) {
-          if (verbose)
-            console.warn(`Skip unparsable file (no header snapshot and DSL parse failed): ${fPath}: ${e.message}`);
-          continue;
-        }
-      }
+    try {
+      assertValidFractch(content, fPath);
+      const calls = parseFractch(content).calls;
+      if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
+      const inferredHat = hatDir === 'nohat' ? null : hatDir;
+      targets.get(manifestName).stacks.push({
+        hatOpcode: headerInfo?.hatOpcode || inferredHat,
+        calls,
+        topBlockId: headerInfo?.topBlockId,
+      });
+      registerProcDefs(procArgMaps, identToProccode, manifestName, calls);
+      if (!hasManifest) collectNamesIntoManifest(manifestTarget, calls);
+      parsedScripts++;
+    } catch (e) {
+      if (verbose) console.warn(`Skip unparsable file: ${fPath}: ${e.message}`);
+      continue;
     }
   }
 
-  const procArgMaps = new Map(); // targetName -> Map(proccode -> argumentids[])
+  // Variable/list names resolve against the target's own dict plus the
+  // Stage's globals (Scratch scoping: sprite-local shadows global). Broadcasts
+  // are project-wide regardless of which target defines them.
+  const stageTarget = (manifest.targets || []).find((t) => t.isStage);
+  const stageVarMap = buildNameIdMap(stageTarget?.variables);
+  const stageListMap = buildNameIdMap(stageTarget?.lists);
+  const broadcastNameToId = new Map();
   for (const t of manifest.targets || []) {
-    const map = new Map();
-    const blocks = t.blocks || {};
-    for (const [, b] of Object.entries(blocks)) {
-      if (!b || b.opcode !== 'procedures_definition' || b.parent) continue;
-      const protoId = b.inputs?.custom_block?.[1];
-      const proto = protoId ? blocks[protoId] : undefined;
-      const proccode = proto?.mutation?.proccode || proto?.fields?.PROCCODE?.[0] || null;
-      const idsRaw = proto?.mutation?.argumentids;
-      let ids = [];
-      try {
-        ids = Array.isArray(idsRaw) ? idsRaw : idsRaw ? JSON.parse(idsRaw) : [];
-      } catch {
-        // Handle error
-      }
-      if (proccode) map.set(proccode, ids);
+    for (const [name2, id2] of buildNameIdMap(t.broadcasts)) {
+      if (!broadcastNameToId.has(name2)) broadcastNameToId.set(name2, id2);
     }
-    procArgMaps.set(t.name, map);
   }
 
   const builtTargets = [];
   for (const [name, data] of targets) {
     const scripts = [];
     const sharedIdGen = new IdGen(); // Shared ID generator across all scripts in this target
+    const manifestTarget = (manifest.targets || []).find((t) => t.name === name);
+    const varMap = new Map([...stageVarMap, ...buildNameIdMap(manifestTarget?.variables)]);
+    const listMap = new Map([...stageListMap, ...buildNameIdMap(manifestTarget?.lists)]);
     for (const s of data.stacks) {
-      if (s.preblocks) {
-        scripts.push({ oldTopId: s.topBlockId || null, blocks: s.preblocks });
-      } else {
-        const { blocks, topId } = buildBlocksFromCalls(s.calls, {
-          hatOpcode: s.hatOpcode,
-          proceduresMapForTarget: procArgMaps.get(name),
-          idGen: sharedIdGen,
-        });
-
-        const exact = s.losslessBlocks && Object.keys(s.losslessBlocks).length ? s.losslessBlocks : null;
-        const chosenBlocks = exact || blocks;
-        let newTopId = topId;
-        if (exact) {
-          if (s.topBlockId && exact[s.topBlockId]) {
-            newTopId = s.topBlockId;
-          } else {
-            const derived = deriveTopId(exact);
-            if (derived) newTopId = derived;
-          }
-        }
-        scripts.push({
-          oldTopId: s.topBlockId || null,
-          blocks: chosenBlocks,
-          newTopId,
-        });
-      }
+      const { blocks, topId } = buildBlocksFromCalls(s.calls, {
+        hatOpcode: s.hatOpcode,
+        proceduresMapForTarget: procArgMaps.get(name),
+        identToProccode: identToProccode.get(name),
+        varMap,
+        listMap,
+        broadcastNameToId,
+        idGen: sharedIdGen,
+      });
+      scripts.push({ oldTopId: s.topBlockId || null, blocks, newTopId: topId });
     }
     builtTargets.push({ name, scripts });
   }
@@ -138,30 +91,14 @@ export async function packFromBuildDir({ buildDir, outSb3, verbose = false, pref
   const newManifest = mergeIntoManifest(manifest, builtTargets);
 
   const zip = new AdmZip();
+  const origin = hasManifest ? findOriginSb3() : null;
 
   let wroteProject = false;
   try {
-    if (headerScripts > 0 && headerScripts === totalScripts && deepEqual(manifest, newManifest)) {
-      if (verbose)
-        console.log(
-          `[pack] All ${headerScripts}/${totalScripts} scripts used header snapshots; manifests equal -> writing original bytes`
-        );
-      const origin = findOriginSb3();
-      if (origin) {
-        const srcZip = new AdmZip(origin);
-        const entry = srcZip.getEntry('project.json');
-        if (entry) {
-          const buf = srcZip.readFile(entry);
-          if (buf) {
-            zip.addFile('project.json', buf);
-            wroteProject = true;
-          }
-        }
-      }
-    } else if (deepEqual(manifest, newManifest)) {
-      if (verbose) console.log('[pack] Manifests structurally equal; writing original bytes');
-      const origin = findOriginSb3();
-      if (origin) {
+    if (origin) {
+      const originProject = JSON.parse(new AdmZip(origin).readAsText('project.json'));
+      if (deepEqual(originProject, newManifest)) {
+        if (verbose) console.log(`[pack] Reconstructed project.json matches origin exactly -> writing original bytes`);
         const srcZip = new AdmZip(origin);
         const entry = srcZip.getEntry('project.json');
         if (entry) {
@@ -179,14 +116,11 @@ export async function packFromBuildDir({ buildDir, outSb3, verbose = false, pref
   if (!wroteProject) {
     const text = JSON.stringify(newManifest);
     if (verbose)
-      console.log(
-        `[pack] Writing rebuilt project.json (${text.length} bytes); headerScripts=${headerScripts}, totalScripts=${totalScripts}`
-      );
+      console.log(`[pack] Writing rebuilt project.json (${text.length} bytes); ${parsedScripts}/${totalScripts} scripts parsed`);
     zip.addFile('project.json', Buffer.from(text));
   }
 
   try {
-    const origin = findOriginSb3();
     if (origin) {
       const srcZip = new AdmZip(origin);
       for (const entry of srcZip.getEntries()) {
@@ -198,8 +132,342 @@ export async function packFromBuildDir({ buildDir, outSb3, verbose = false, pref
   } catch {
     // Handle error
   }
+  addMissingAssetFiles(zip, newManifest);
   zip.writeZip(outSb3);
   if (verbose) console.log(`Wrote ${outSb3}`);
+}
+
+function collectScriptFiles(buildDir, manifest, verbose) {
+  const fromIndex = collectScriptFilesFromIndexes(buildDir);
+  const files = fromIndex.length ? fromIndex : scanScriptFiles(buildDir, manifest);
+  const unique = [];
+  const seen = new Set();
+  for (const file of files) {
+    const key = path.resolve(file.fPath);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (isIgnoredScript(buildDir, file.fPath)) {
+      if (verbose) console.log(`[pack] Ignoring ${path.relative(buildDir, file.fPath)}`);
+      continue;
+    }
+    unique.push(file);
+  }
+  return unique;
+}
+
+function collectScriptFilesFromIndexes(buildDir) {
+  const rootIndex = path.join(buildDir, 'index.fractch');
+  if (fs.existsSync(rootIndex)) {
+    const files = collectImportsFromIndex(rootIndex, buildDir);
+    if (files.length) return files;
+  }
+
+  const files = [];
+  for (const dirName of safeListDir(buildDir)) {
+    const tPath = path.join(buildDir, dirName);
+    if (!isDirectory(tPath) || isReservedBuildDir(dirName)) continue;
+    const targetIndex = path.join(tPath, 'index.fractch');
+    if (fs.existsSync(targetIndex)) files.push(...collectImportsFromIndex(targetIndex, buildDir));
+  }
+  return files;
+}
+
+function collectImportsFromIndex(indexPath, buildDir, seenIndexes = new Set()) {
+  const resolvedIndex = path.resolve(indexPath);
+  if (seenIndexes.has(resolvedIndex)) return [];
+  seenIndexes.add(resolvedIndex);
+
+  const files = [];
+  const text = fs.readFileSync(indexPath, 'utf8');
+  for (const imported of extractImports(text)) {
+    const abs = path.resolve(path.dirname(indexPath), imported);
+    if (!isInside(abs, buildDir) || !fs.existsSync(abs) || !abs.endsWith('.fractch')) continue;
+    if (path.basename(abs) === 'index.fractch') {
+      files.push(...collectImportsFromIndex(abs, buildDir, seenIndexes));
+      continue;
+    }
+    const info = scriptPathInfo(buildDir, abs);
+    if (info) files.push(info);
+  }
+  return files;
+}
+
+function extractImports(text) {
+  const imports = [];
+  for (const rawLine of String(text || '').split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line.startsWith('import ')) continue;
+    const m = /^import\s+["']([^"']+)["']\s*;?/.exec(line);
+    if (m) imports.push(m[1]);
+  }
+  return imports;
+}
+
+function scanScriptFiles(buildDir, manifest) {
+  const files = [];
+  for (const dirName of safeListDir(buildDir)) {
+    const tPath = path.join(buildDir, dirName);
+    if (!isDirectory(tPath) || isReservedBuildDir(dirName)) continue;
+    if (manifest && !findManifestTargetForDir(manifest, dirName)) continue;
+    for (const hatDir of safeListDir(tPath)) {
+      const hPath = path.join(tPath, hatDir);
+      if (!isDirectory(hPath)) continue;
+      for (const file of safeListDir(hPath)) {
+        if (!file.endsWith('.fractch') || file === 'index.fractch') continue;
+        const info = scriptPathInfo(buildDir, path.join(hPath, file));
+        if (info) files.push(info);
+      }
+    }
+  }
+  return files;
+}
+
+function scriptPathInfo(buildDir, fPath) {
+  const rel = path.relative(buildDir, fPath);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
+  const parts = rel.split(path.sep);
+  if (parts.length < 3) return null;
+  const [targetDir, hatDir] = parts;
+  if (!targetDir || !hatDir || isReservedBuildDir(targetDir)) return null;
+  return { fPath, targetDir, hatDir };
+}
+
+function isIgnoredScript(buildDir, fPath) {
+  const base = path.basename(fPath);
+  if (base.endsWith('.ignore.fractch')) return true;
+  const parts = path.relative(buildDir, fPath).split(path.sep);
+  if (parts.some((p) => p.startsWith('.'))) return true;
+  try {
+    const head = fs.readFileSync(fPath, 'utf8').slice(0, 512);
+    return /\bfractch:ignore\b/.test(head);
+  } catch {
+    return false;
+  }
+}
+
+function isReservedBuildDir(dirName) {
+  return dirName === 'assets' || dirName === 'extensions' || dirName.startsWith('.');
+}
+
+function isDirectory(p) {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function isInside(absPath, dir) {
+  const rel = path.relative(path.resolve(dir), path.resolve(absPath));
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+function synthesizeManifest(scriptFiles) {
+  const targetNames = [];
+  const seen = new Set();
+  for (const f of scriptFiles) {
+    if (seen.has(f.targetDir)) continue;
+    seen.add(f.targetDir);
+    targetNames.push(f.targetDir);
+  }
+  if (seen.has('Stage')) {
+    targetNames.sort((a, b) => (a === 'Stage' ? -1 : b === 'Stage' ? 1 : 0));
+  } else {
+    targetNames.unshift('Stage');
+  }
+
+  return {
+    targets: targetNames.map((name, index) => makeTarget(name, index)),
+    monitors: [],
+    extensions: [],
+    meta: {
+      semver: '3.0.0',
+      vm: '0.2.0',
+      agent: 'FRACTCH',
+    },
+  };
+}
+
+function ensureTargetsForScripts(manifest, scriptFiles) {
+  if (!Array.isArray(manifest.targets)) manifest.targets = [];
+  const existing = new Set();
+  for (const t of manifest.targets) {
+    existing.add(t.name);
+    existing.add(sanitize(t.name));
+  }
+  for (const f of scriptFiles) {
+    if (existing.has(f.targetDir)) continue;
+    manifest.targets.push(makeTarget(f.targetDir, manifest.targets.length));
+    existing.add(f.targetDir);
+  }
+  if (!manifest.targets.some((t) => t.isStage)) {
+    const stage = manifest.targets.find((t) => t.name === 'Stage') || manifest.targets[0];
+    if (stage) stage.isStage = true;
+  }
+}
+
+function makeTarget(name, index) {
+  const isStage = name === 'Stage' || index === 0;
+  const target = {
+    isStage,
+    name,
+    variables: {},
+    lists: {},
+    broadcasts: {},
+    blocks: {},
+    comments: {},
+    currentCostume: 0,
+    costumes: [defaultCostume(isStage)],
+    sounds: [],
+    volume: 100,
+    layerOrder: index,
+  };
+  if (isStage) {
+    target.tempo = 60;
+    target.videoTransparency = 50;
+    target.videoState = 'on';
+    target.textToSpeechLanguage = null;
+  } else {
+    Object.assign(target, {
+      visible: true,
+      x: 0,
+      y: 0,
+      size: 100,
+      direction: 90,
+      draggable: false,
+      rotationStyle: 'all around',
+    });
+  }
+  return target;
+}
+
+const BLANK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><rect width="100%" height="100%" fill="white"/></svg>';
+const BLANK_SVG_ID = crypto.createHash('md5').update(BLANK_SVG).digest('hex');
+
+function defaultCostume(isStage) {
+  return {
+    name: isStage ? 'backdrop1' : 'costume1',
+    bitmapResolution: 1,
+    dataFormat: 'svg',
+    assetId: BLANK_SVG_ID,
+    md5ext: `${BLANK_SVG_ID}.svg`,
+    rotationCenterX: isStage ? 240 : 0,
+    rotationCenterY: isStage ? 180 : 0,
+  };
+}
+
+function addMissingAssetFiles(zip, manifest) {
+  const present = new Set(zip.getEntries().map((e) => e.entryName));
+  for (const t of manifest.targets || []) {
+    for (const costume of t.costumes || []) {
+      const name = costume.md5ext || (costume.assetId && `${costume.assetId}.${costume.dataFormat || 'svg'}`);
+      if (!name || present.has(name)) continue;
+      if (name === `${BLANK_SVG_ID}.svg`) {
+        zip.addFile(name, Buffer.from(BLANK_SVG));
+        present.add(name);
+      }
+    }
+  }
+}
+
+function collectNamesIntoManifest(target, calls) {
+  const vars = new Set();
+  const lists = new Set();
+  const broadcasts = new Set();
+  collectNames(calls, { vars, lists, broadcasts });
+  for (const name of vars) ensureDictEntry(target.variables, name, [name, 0]);
+  for (const name of lists) ensureDictEntry(target.lists, name, [name, []]);
+  for (const name of broadcasts) ensureDictEntry(target.broadcasts, name, name);
+}
+
+function collectNames(nodes, out) {
+  for (const node of nodes || []) collectNamesFromNode(node, out);
+}
+
+function collectNamesFromNode(node, out) {
+  if (!node) return;
+  if (node.type === 'procDef') {
+    collectNames(node.body, out);
+    return;
+  }
+  if (node.type === 'danglingNext') return;
+  if (node.type !== 'call') return;
+
+  for (const arg of node.args || []) {
+    if (arg.kind === 'branch') {
+      collectNames(arg.body, out);
+      continue;
+    }
+    if (arg.kind !== 'keyed') continue;
+    if (arg.sep === 'field') {
+      if (arg.key === 'VARIABLE') collectFieldName(arg.value, out.vars);
+      if (arg.key === 'LIST') collectFieldName(arg.value, out.lists);
+      if (arg.key === 'BROADCAST_OPTION') collectFieldName(arg.value, out.broadcasts);
+    }
+    if (arg.sep === 'input' && arg.key === 'BROADCAST_INPUT') collectBroadcastInputName(arg.value, out.broadcasts);
+    collectNamesFromValue(arg.value, out);
+  }
+}
+
+function collectNamesFromValue(value, out) {
+  if (!value) return;
+  if (value.type === 'var') out.vars.add(value.name);
+  else if (value.type === 'list') out.lists.add(value.name);
+  else if (value.type === 'broadcast') out.broadcasts.add(value.name);
+  else if (value.type === 'ident') out.vars.add(value.name);
+  else if (value.type === 'call') collectNamesFromNode(value.value, out);
+}
+
+function collectFieldName(value, set) {
+  if (!value) return;
+  if (value.type === 'array' && typeof value.value?.[0] === 'string') set.add(value.value[0]);
+  else if (value.type === 'string') set.add(value.value);
+  else if (value.type === 'ident') set.add(value.name);
+}
+
+function collectBroadcastInputName(value, set) {
+  if (!value) return;
+  if (value.type === 'string') set.add(value.value);
+  else if (value.type === 'broadcast') set.add(value.name);
+}
+
+function ensureDictEntry(dict, name, value) {
+  if (!dict || !name) return;
+  for (const entry of Object.values(dict)) {
+    const existing = Array.isArray(entry) ? entry[0] : entry;
+    if (existing === name) return;
+  }
+  let id = sanitize(name) || 'item';
+  if (!/^[A-Za-z_]/.test(id)) id = `_${id}`;
+  let n = 1;
+  let finalId = id;
+  while (Object.prototype.hasOwnProperty.call(dict, finalId)) finalId = `${id}_${++n}`;
+  dict[finalId] = value;
+}
+
+// Custom-block definitions carry their own argument ids implicitly (the
+// param idents, or the original ids if a call site elsewhere in the same
+// build supplied them) - scan every parsed procDef up front so calls to it
+// (which may live in an entirely different file) get consistent argument ids.
+function registerProcDefs(procArgMaps, identToProccode, targetName, calls) {
+  if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
+  const procDef = calls[0];
+  const proccode = procDef.proccode || `${procDef.ident} ${procDef.params.map(() => '%s').join(' ')}`.trim();
+  if (!procArgMaps.has(targetName)) procArgMaps.set(targetName, new Map());
+  if (!identToProccode.has(targetName)) identToProccode.set(targetName, new Map());
+  const map = procArgMaps.get(targetName);
+  const identMap = identToProccode.get(targetName);
+  if (!identMap.has(procDef.ident)) identMap.set(procDef.ident, proccode);
+  if (!map.has(proccode)) map.set(proccode, procDef.params.map((p) => p.ident));
+}
+
+function buildNameIdMap(dict) {
+  const map = new Map();
+  for (const [id, entry] of Object.entries(dict || {})) {
+    const name = Array.isArray(entry) ? entry[0] : entry;
+    if (typeof name === 'string' && !map.has(name)) map.set(name, id);
+  }
+  return map;
 }
 
 function safeListDir(dir) {
@@ -234,6 +502,7 @@ function sanitize(name) {
 
 function parseHeaderInfo(text) {
   try {
+    if (!String(text || '').startsWith('/**')) return null;
     const headStart = text.indexOf('/**');
     const headEnd = text.indexOf('*/', headStart + 3);
     const head = headStart >= 0 && headEnd > headStart ? text.slice(headStart, headEnd) : text;
@@ -243,59 +512,10 @@ function parseHeaderInfo(text) {
       const m = /\*\s*([^:]+):\s*(.*)$/.exec(line.trim());
       if (m) map.set(m[1].trim(), m[2].trim());
     }
-    const hatOpcode = map.get('hatOpcode');
-    const topBlockId = map.get('topBlockId');
-    const dslBodyHash = map.get('dslBodyHash');
-    const subB64 = map.get('rawSubgraph_b64');
-    const subRaw = map.get('rawSubgraph');
-    let jsonText = '';
-    if (subB64) {
-      try {
-        jsonText = Buffer.from(subB64, 'base64').toString('utf8');
-      } catch {
-        // Handle error
-      }
-    }
-    if (!jsonText && subRaw) jsonText = subRaw.replace(/\s*\*\/\s*$/, '');
-    const subgraph = jsonText ? JSON.parse(jsonText) : undefined;
-    return { hatOpcode, topBlockId, dslBodyHash, subgraph };
+    return { hatOpcode: map.get('hatOpcode'), topBlockId: map.get('topBlockId') };
   } catch {
     return null;
   }
-}
-
-function computeBodyHash(text) {
-  try {
-    const body = extractBodyText(text);
-    return crypto.createHash('sha256').update(body, 'utf8').digest('hex');
-  } catch {
-    return null;
-  }
-}
-
-function extractBodyText(text) {
-  const s = String(text || '');
-  let body = s;
-  if (s.startsWith('/**')) {
-    const end = s.indexOf('*/');
-    if (end >= 0) body = s.slice(end + 2);
-  }
-
-  const lines = body.split(/\r?\n/);
-  const kept = [];
-  for (const line of lines) {
-    const trimmed = line.replace(/^\s+/, '');
-    if (trimmed.startsWith('import ')) continue;
-    kept.push(line);
-  }
-
-  let start = 0;
-  while (start < kept.length && kept[start].trim() === '') start++;
-  let end = kept.length - 1;
-  while (end >= start && kept[end].trim() === '') end--;
-  const slice = kept.slice(start, end + 1);
-
-  return slice.join('\n');
 }
 
 function deepEqual(a, b) {
@@ -317,24 +537,4 @@ function deepEqual(a, b) {
     if (!deepEqual(a[k], b[k])) return false;
   }
   return true;
-}
-
-function deriveTopId(blocks) {
-  if (!blocks) return null;
-
-  for (const [id, b] of Object.entries(blocks)) {
-    if (b && b.topLevel && b.parent == null) return id;
-  }
-
-  const hatPrefix = /^event_|^procedures_definition|^documentevents/i;
-  for (const [id, b] of Object.entries(blocks)) {
-    if (b && b.parent == null && typeof b.opcode === 'string' && hatPrefix.test(b.opcode)) return id;
-  }
-
-  for (const [id, b] of Object.entries(blocks)) {
-    if (b && b.parent == null) return id;
-  }
-
-  const keys = Object.keys(blocks);
-  return keys.length ? keys[0] : null;
 }

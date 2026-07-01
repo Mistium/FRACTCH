@@ -1,0 +1,42 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aci
+ * hatOpcode: procedures_definition
+ * threadIndex: 102
+ */
+
+import "../procedures_definition/OSL____Draw_Icon__s_size___s.fractch";
+def @Render_File(Id, Size) "Render File %s %s" warp=false {
+  mistsutils_patchcommand2(A= "try { let type = ", B= @File_get_item(id= Id, item= "1"));
+  mistsutils_patchcommand(A= "let icon = \"\";");
+  switch mistsutils_patchreporter(A= "type") {
+    case ".shortcut" {
+      @File_get_item(id= Id, item= "11");
+      if (vars["//return"] == "") {
+        mistsutils_patchcommand2(A= "const id = ", B= @originFS_Path_ID(Path= @File_get_item(id= Id, item= "4")));
+        mistsutils_patchcommand2(A= "icon = ", B= @File_get_item(id= mistsutils_patchreporter(A= "id"), item= "11"));
+        if (mistsutils_patchreporter(A= "icon") == "") {
+          mistsutils_patchcommand2(A= "type = ", B= @File_get_item(id= mistsutils_patchreporter(A= "id"), item= "1"));
+          @Draw_Icon_boldness(Code= mistsutils_patchreporter(A= "osl_filetypes?.[type]?.[0]"), Size= Size, setsize= "", x= "", y= "", direction= "", boldness= "");
+          mistsutils_patchcommand(A= "if (type === \".folder\")");
+          @Draw_Icon_boldness(Code= "c #111 w 7 square -6 -6 3 3 c #eee icn open 0.4 -6 -6", Size= Size, setsize= "", x= "", y= "", direction= "", boldness= "");
+        }
+      } else {
+        mistsutils_patchcommand2(A= "icon = \"\"+", B= vars["//return"]);
+      }
+    }
+    case ".icn" {
+      mistsutils_patchcommand3(A= "icon = (\"\"+", B= @File_get_item(id= Id, item= "4"), C= ")");
+    }
+    default {
+      mistsutils_patchcommand2(A= "icon = \"\"+", B= @File_get_item(id= Id, item= "11"));
+      if mistsutils_patchboolean(A= "icon.trim() == \"\"") {
+        mistsutils_patchcommand(A= "icon = osl_filetypes?.[type]?.[0] ?? \"c #588fbf w 6 square 0 -2 5 6 square -2 2.9 3 5 line -3 -4 3 -4 w 3 c #335776 line 2 9.5 6.5 5 cont 2 5 cont 2 9.5\"");
+      }
+    }
+  }
+  @OSL_Draw_Icon_size(data= mistsutils_patchreporter(A= "destr(icon).replaceAll(\"\\n\",\" \").replaceAll('\"',\"\")"), size= Size);
+  vars["//return"] = "";
+  mistsutils_patchcommand(A= "} catch {}");
+}

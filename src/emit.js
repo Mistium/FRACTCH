@@ -1,7 +1,6 @@
-import { stringifyBlockCall, setContext } from './stringify.js';
+import { stringifyBlockCall, setContext, renderBody } from './stringify.js';
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 
 export function emitScriptFile({ target, script, subgraph, index, context }) {
   const { topBlockId, hatOpcode } = script;
@@ -10,28 +9,33 @@ export function emitScriptFile({ target, script, subgraph, index, context }) {
   const cfg = readConfig();
   setContext(context);
 
-  const ids = idsFromLinear(subgraph, topBlockId);
   let body;
   if (hatOpcode === 'procedures_definition' && context?.procByCode) {
     const sig = defSignature(subgraph[topBlockId], subgraph, context);
-    const innerIds = ids.slice(1);
-    const inner = innerIds.map((id) => stringifyBlockCall(subgraph[id], subgraph, id, false, cfg)).join('\n');
+    // Two params can share a display name that only collides after
+    // cleanIdent strips punctuation (e.g. "X" and "+X" both -> "X") -
+    // buildProcByCode already disambiguates them for the signature
+    // (X, X_2); body references must resolve to the SAME per-param ident
+    // (matched by exact original display name), or the second param's
+    // reporter blocks render as the first param's identifier instead.
+    const info = procInfoFor(subgraph[topBlockId], subgraph, context);
+    if (info) {
+      const scopeParamNames = new Map(info.params.map((p) => [p.name, p.ident]));
+      setContext({ ...context, scopeParamNames });
+    }
+    const inner = subgraph[topBlockId]?.next ? renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
     body = inner ? `${sig} {\n${indentBlock(inner)}\n}` : `${sig} {}`;
   } else {
-    body = ids.map((id) => stringifyBlockCall(subgraph[id], subgraph, id, false, cfg)).join('\n');
+    body = renderBody(subgraph, topBlockId, cfg);
   }
 
-  const dslBodyHash = sha256(body);
-  const rawSubgraphB64 = Buffer.from(JSON.stringify(subgraph), 'utf8').toString('base64');
   const header =
     `/**\n` +
     ` * target: ${escapeHeader(target.name)}\n` +
     ` * targetId: ${escapeHeader(target.id ?? '')}\n` +
     ` * topBlockId: ${escapeHeader(topBlockId)}\n` +
     ` * hatOpcode: ${escapeHeader(hatOpcode || '')}\n` +
-    ` * dslBodyHash: ${dslBodyHash}\n` +
     ` * threadIndex: ${index}\n` +
-    ` * rawSubgraph_b64: ${rawSubgraphB64}\n` +
     ` */\n`;
 
   const imports = deriveImports(blocksArr, context);
@@ -84,18 +88,6 @@ function linearize(subgraph, topId) {
   return arr;
 }
 
-function idsFromLinear(subgraph, topId) {
-  const arr = [];
-  let cursor = topId;
-  while (cursor) {
-    const node = subgraph[cursor];
-    if (!node) break;
-    arr.push(cursor);
-    cursor = node.next;
-  }
-  return arr;
-}
-
 function escapeHeader(s) {
   return String(s).replace(/\*/g, '\\*');
 }
@@ -129,14 +121,25 @@ function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
 }
 
+function procInfoFor(defBlock, subgraph, context) {
+  const protoId = defBlock?.inputs?.custom_block?.[1];
+  const proto = protoId ? subgraph[protoId] : undefined;
+  const code = proto?.mutation?.proccode;
+  return code && context.procByCode?.get(code);
+}
+
 function defSignature(defBlock, subgraph, context) {
   const protoId = defBlock?.inputs?.custom_block?.[1];
   const proto = protoId ? subgraph[protoId] : undefined;
   const code = proto?.mutation?.proccode;
-  const info = code && context.procByCode?.get(code);
-  if (!info) return `def @proc()`;
-  const params = info.params.map((p) => p.ident).join(', ');
-  return `def @${info.ident}(${params})`;
+  const info = procInfoFor(defBlock, subgraph, context);
+  const warp = proto?.mutation?.warp === true || proto?.mutation?.warp === 'true';
+  if (!info) return `def @proc() warp=${warp}`;
+  const params = info.params
+    .map((p) => (p.name != null && p.name !== p.ident ? `${p.ident}(${JSON.stringify(p.name)})` : p.ident))
+    .join(', ');
+  const codeLit = code != null ? ` ${JSON.stringify(code)}` : '';
+  return `def @${info.ident}(${params})${codeLit} warp=${warp}`;
 }
 
 function indentBlock(str, spaces = 2) {
@@ -146,17 +149,6 @@ function indentBlock(str, spaces = 2) {
 
 function escapeLabel(s) {
   return String(s).replace(/[\r\n]+/g, ' ');
-}
-
-function sha256(text) {
-  try {
-    return crypto
-      .createHash('sha256')
-      .update(text || '', 'utf8')
-      .digest('hex');
-  } catch {
-    return '';
-  }
 }
 
 function readConfig() {

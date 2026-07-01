@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: amL
+ * hatOpcode: procedures_definition
+ * threadIndex: 134
+ */
+
+def @parse(json) "parse %s" warp=false {
+  return mistsutils_patchreporter(A= "JSON.safeParse(p0)");
+}

@@ -1,81 +1,79 @@
+// Statement keywords that introduce a control construct instead of a plain
+// expression-statement.
+const STATEMENT_KEYWORDS = new Set([
+  'def', 'if', 'forever', 'switch', 'case', 'default', 'repeat', 'until',
+  'while', 'wait', 'wait_until', 'stop', 'return', 'broadcast', 'broadcast_wait', 'vars',
+  'dangling_next',
+]);
+
+// Unary math/logic sugar: `name(x)` desugars to a single-arg operator block.
+const UNARY_SUGAR = new Set([
+  'round', 'not', 'abs', 'floor', 'ceiling', 'sqrt', 'sin', 'cos', 'tan',
+  'asin', 'acos', 'atan', 'ln', 'log', 'exp', 'exp10',
+]);
+const MATHOP_NAME = { exp: 'e ^', exp10: '10 ^' };
+
+const BRANCH_SUBSTACK_OPCODES = new Set([
+  'control_forever', 'control_switch', 'control_case', 'control_case_fallthrough',
+  'control_default', 'control_repeat', 'control_repeat_until', 'control_while',
+]);
+
 export function parseFractch(content) {
-  const preprocessed = preprocess(content);
-  const { text, lossless } = extractLossless(preprocessed);
+  const text = stripHeader(content);
   const parser = new Parser(text);
-  const calls = [];
-  const losslessBlocks = {};
-
-  parser.skipWS();
-  while (!parser.eof()) {
-    const word = parser.peekWord();
-    if (word === 'import' || word === '') {
-      parser.skipToEOL();
-      parser.skipWS();
-      continue;
-    }
-
-    const snap = parser.snapshot();
-    const embedded = parser.parseEmbeddedLossless();
-    if (embedded) {
-      losslessBlocks[embedded.id] = embedded.json;
-
-      continue;
-    }
-    parser.restore(snap);
-
-    try {
-      const call = parser.parseCall();
-      if (call) calls.push(call);
-    } catch {
-      parser.skipToEOL();
-    }
-    parser.skipWS();
-  }
-
-  try {
-    const collector = new Parser(text);
-    const found = collector.collectAllEmbeddedLossless();
-    for (const e of found) {
-      if (e && e.id && e.json) losslessBlocks[e.id] = e.json;
-    }
-  } catch {
-    // Handle error
-  }
-
-  const finalLossless = Object.keys(losslessBlocks).length ? losslessBlocks : lossless;
-  return { calls, losslessBlocks: finalLossless };
+  const calls = parser.parseStatementList(/* stopAtBrace */ false);
+  return { calls };
 }
+
+export function preprocess(text) {
+  return stripHeader(text);
+}
+
+function stripHeader(text) {
+  const s = String(text || '');
+  if (s.startsWith('/**')) {
+    const end = s.indexOf('*/');
+    if (end >= 0) return s.slice(end + 2);
+  }
+  return s;
+}
+
+class ParseError extends Error {}
 
 class Parser {
   constructor(text) {
     this.s = text;
     this.i = 0;
-    this.len = this.s.length;
+    this.len = text.length;
   }
 
   eof() {
     return this.i >= this.len;
   }
-  peek() {
-    return this.s[this.i];
+  peek(o = 0) {
+    return this.s[this.i + o];
   }
   next() {
     return this.s[this.i++];
   }
   snapshot() {
-    return { i: this.i };
+    return this.i;
   }
-  restore(st) {
-    if (st && typeof st.i === 'number') this.i = st.i;
+  restore(pos) {
+    this.i = pos;
   }
 
   skipWS() {
-    while (!this.eof()) {
+    for (;;) {
       const ch = this.peek();
       if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
         this.i++;
-      } else if (ch === '/' && this.s[this.i + 1] === '/') {
+      } else if (ch === '/' && this.peek(1) === '/') {
         while (!this.eof() && this.peek() !== '\n') this.i++;
+      } else if (ch === '/' && this.peek(1) === '*') {
+        this.i += 2;
+        while (!this.eof() && !(this.peek() === '*' && this.peek(1) === '/')) this.i++;
+        if (!this.eof()) this.i += 2;
       } else {
         break;
       }
@@ -88,266 +86,584 @@ class Parser {
   }
 
   peekWord() {
+    const save = this.i;
     this.skipWS();
-    let j = this.i;
-    let word = '';
-    while (j < this.len && /[A-Za-z_]/.test(this.s[j])) {
-      word += this.s[j];
-      j++;
-    }
-    return word;
+    const w = this.tryIdentifier();
+    this.i = save;
+    return w || '';
   }
 
-  parseCall() {
+  tryIdentifier() {
+    this.skipWS();
+    const start = this.i;
+    if (this.eof() || !/[A-Za-z_]/.test(this.peek())) return null;
+    while (!this.eof() && /[A-Za-z0-9_]/.test(this.peek())) this.i++;
+    return this.s.slice(start, this.i);
+  }
+
+  expectIdentifier() {
+    const id = this.tryIdentifier();
+    if (id == null) throw new ParseError('expected identifier');
+    return id;
+  }
+
+  expectChar(ch) {
+    this.skipWS();
+    if (this.peek() !== ch) throw new ParseError(`expected '${ch}' got '${this.peek()}'`);
+    this.i++;
+  }
+
+  tryChar(ch) {
+    this.skipWS();
+    if (this.peek() === ch) {
+      this.i++;
+      return true;
+    }
+    return false;
+  }
+
+  // ---- statements ----
+
+  parseStatementList(stopAtBrace) {
+    const stmts = [];
+    for (;;) {
+      this.skipWS();
+      if (this.eof()) break;
+      if (stopAtBrace && this.peek() === '}') break;
+      const word = this.peekWord();
+      if (word === 'import') {
+        this.skipToEOL();
+        continue;
+      }
+      const save = this.snapshot();
+      try {
+        const stmt = this.parseStatement();
+        if (stmt) {
+          stmts.push(stmt);
+          continue;
+        }
+      } catch {
+        // Malformed statement: skip the offending line and keep going so one
+        // bad line doesn't take down the whole file.
+      }
+      this.restore(save);
+      this.skipToEOL();
+    }
+    return stmts;
+  }
+
+  parseStatement() {
     this.skipWS();
     if (this.eof()) return null;
 
-    const name = this.parseIdentifier();
-    if (!name) return null;
-
-    let callee;
-    if (name === 'procedures') {
-      this.skipWS();
-      if (this.peek() !== '[') return null;
-      this.i++; // skip '['
-      const procName = this.parseStringLiteral();
-      this.skipWS();
-      if (this.peek() !== ']') return null;
-      this.i++; // skip ']'
-      callee = { type: 'procedureCall', name: procName };
-    } else {
-      callee = { type: 'opcode', name };
+    const word = this.peekWord();
+    if (STATEMENT_KEYWORDS.has(word)) {
+      this.tryIdentifier(); // consume keyword
+      return this.parseKeywordStatement(word);
     }
 
-    this.skipWS();
-    if (this.peek() !== '(') return null;
-    this.i++; // skip '('
-
-    const args = this.parseSimpleArgs();
-
-    this.skipWS();
-    if (this.peek() === ')') this.i++;
-
-    return { type: 'call', callee, args };
+    const expr = this.parseExprStatementHead();
+    this.tryChar(';');
+    return expr;
   }
 
-  parseEmbeddedLossless() {
-    this.skipWS();
-    const start = this.i;
+  parseKeywordStatement(word) {
+    switch (word) {
+      case 'def':
+        return this.parseDef();
+      case 'if':
+        return this.parseIf();
+      case 'forever':
+        return this.parseSingleBranch('control_forever');
+      case 'switch': {
+        const value = this.parseExpr();
+        const body = this.parseBraceBody();
+        return makeCall('control_switch', [keyedInput('VALUE', value), branchArg('substack', body)]);
+      }
+      case 'case': {
+        const value = this.parseExpr();
+        let fallthrough = false;
+        this.skipWS();
+        if (this.peekWord() === 'fallthrough') {
+          this.tryIdentifier();
+          fallthrough = true;
+        }
+        const body = this.parseBraceBody();
+        return makeCall(fallthrough ? 'control_case_fallthrough' : 'control_case', [
+          keyedInput('VALUE', value),
+          branchArg('substack', body),
+        ]);
+      }
+      case 'default': {
+        const body = this.parseBraceBody();
+        return makeCall('control_default', [branchArg('substack', body)]);
+      }
+      case 'repeat': {
+        const times = this.parseExpr();
+        const body = this.parseBraceBody();
+        return makeCall('control_repeat', [keyedInput('TIMES', times), branchArg('substack', body)]);
+      }
+      case 'until': {
+        const cond = this.parseExpr();
+        const body = this.parseBraceBody();
+        return makeCall('control_repeat_until', [keyedInput('CONDITION', cond), branchArg('substack', body)]);
+      }
+      case 'while': {
+        const cond = this.parseExpr();
+        const body = this.parseBraceBody();
+        return makeCall('control_while', [keyedInput('CONDITION', cond), branchArg('substack', body)]);
+      }
+      case 'wait': {
+        const v = this.parseExpr();
+        this.tryChar(';');
+        return makeCall('control_wait', [keyedInput('DURATION', v)]);
+      }
+      case 'wait_until': {
+        const v = this.parseExpr();
+        this.tryChar(';');
+        return makeCall('control_wait_until', [keyedInput('CONDITION', v)]);
+      }
+      case 'stop': {
+        const v = this.parseExpr();
+        this.tryChar(';');
+        const opt = v.type === 'string' ? v.value : String(v.value ?? 'all');
+        return makeCall('control_stop', [keyedField('STOP_OPTION', { type: 'array', value: [opt] })]);
+      }
+      case 'return': {
+        this.skipWS();
+        let v = null;
+        if (this.peek() !== ';' && this.peek() !== '\n' && !this.eof()) {
+          v = this.parseExpr();
+        }
+        this.tryChar(';');
+        return makeCall('procedures_return', v ? [keyedInput('VALUE', v)] : []);
+      }
+      case 'broadcast': {
+        const v = this.parseExpr();
+        this.tryChar(';');
+        return makeCall('event_broadcast', [keyedInput('BROADCAST_INPUT', v)]);
+      }
+      case 'broadcast_wait': {
+        const v = this.parseExpr();
+        this.tryChar(';');
+        return makeCall('event_broadcastandwait', [keyedInput('BROADCAST_INPUT', v)]);
+      }
+      case 'vars': {
+        this.expectChar('[');
+        const name = this.parseStringLiteral();
+        this.expectChar(']');
+        this.skipWS();
+        this.expectChar('=');
+        const v = this.parseExpr();
+        this.tryChar(';');
+        return makeCall('data_setvariableto', [
+          keyedField('VARIABLE', { type: 'array', value: [name] }),
+          keyedInput('VALUE', v),
+        ]);
+      }
+      case 'dangling_next': {
+        // Preserves a forward reference to a block id that doesn't actually
+        // exist in the source project.json (a corrupted/hand-edited sb3 -
+        // see graph.js/buildBlocks.js). Not a real block; a sentinel that
+        // reproduces the exact same broken reference on pack.
+        this.expectChar('(');
+        this.skipWS();
+        const id = this.parseStringLiteral();
+        this.skipWS();
+        this.expectChar(')');
+        this.tryChar(';');
+        return { type: 'danglingNext', id };
+      }
+      default:
+        throw new ParseError(`unhandled keyword ${word}`);
+    }
+  }
 
-    if (this.s.slice(this.i, this.i + 6) === 'block.') {
-      this.i += 6;
-    }
-    const opcode = this.parseIdentifier();
-    if (!opcode) {
-      this.i = start;
-      return null;
-    }
+  parseDef() {
     this.skipWS();
-    if (this.peek() !== '<') {
-      this.i = start;
-      return null;
+    this.expectChar('@');
+    const ident = this.expectIdentifier();
+    this.expectChar('(');
+    const params = [];
+    this.skipWS();
+    if (this.peek() !== ')') {
+      for (;;) {
+        this.skipWS();
+        const paramIdent = this.expectIdentifier();
+        this.skipWS();
+        // `ident("Original Name")` when the display name isn't itself a
+        // clean identifier (spaces, punctuation) - otherwise ident IS the name.
+        let name = paramIdent;
+        if (this.peek() === '(') {
+          this.i++;
+          this.skipWS();
+          name = this.parseStringLiteral();
+          this.skipWS();
+          this.expectChar(')');
+        }
+        params.push({ ident: paramIdent, name });
+        this.skipWS();
+        if (this.tryChar(',')) continue;
+        break;
+      }
     }
-    this.i++;
+    this.expectChar(')');
 
-    let id = '';
+    let proccode = null;
+    this.skipWS();
     if (this.peek() === '"') {
-      id = this.parseStringLiteral();
-    } else {
-      while (!this.eof() && this.peek() !== '>') {
-        id += this.next();
-      }
+      proccode = this.parseStringLiteral();
     }
-    if (this.peek() !== '>') {
-      this.i = start;
-      return null;
-    }
-    this.i++;
+
+    let warp = false;
     this.skipWS();
-    if (this.peek() !== '(') {
-      this.i = start;
-      return null;
-    }
-    this.i++;
-    let depth = 1;
-    let found = false;
-    let jsonObj = undefined;
-    while (!this.eof() && depth > 0) {
+    if (this.peekWord() === 'warp') {
+      this.tryIdentifier();
       this.skipWS();
-
-      if (this.s.slice(this.i, this.i + 6) === '$json:') {
-        this.i += 6;
-        this.skipWS();
-
-        if (this.peek() !== '{') {
-          this.i = start;
-          return null;
-        }
-        const obj = this.readJSONObject();
-        jsonObj = obj;
-        found = true;
-
-        this.skipWS();
-      } else {
-        const ch = this.next();
-        if (ch === '(') depth++;
-        else if (ch === ')') depth--;
-        else if (ch === '"') {
-          while (!this.eof() && this.peek() !== '"') {
-            if (this.next() === '\\') this.next();
-          }
-          if (!this.eof()) this.next();
-        } else if (ch === '{') {
-          let bd = 1;
-          while (!this.eof() && bd > 0) {
-            const c2 = this.next();
-            if (c2 === '{') bd++;
-            else if (c2 === '}') bd--;
-            else if (c2 === '"') {
-              while (!this.eof() && this.peek() !== '"') {
-                if (this.next() === '\\') this.next();
-              }
-              if (!this.eof()) this.next();
-            }
-          }
-        }
-      }
+      this.expectChar('=');
+      const w = this.tryIdentifier();
+      warp = w === 'true';
     }
-    if (!found) {
-      this.i = start;
-      return null;
-    }
-    return { id, opcode, json: jsonObj };
+
+    const body = this.parseBraceBody();
+    return { type: 'procDef', ident, proccode, warp, params, body };
   }
 
-  collectAllEmbeddedLossless() {
-    const results = [];
-    while (!this.eof()) {
-      const snap = this.snapshot();
-      const e = this.parseEmbeddedLossless();
-      if (e) {
-        results.push(e);
-
-        continue;
-      }
-      this.restore(snap);
-      this.i += 1; // advance one char and retry
-    }
-    return results;
-  }
-
-  parseIdentifier() {
+  parseIf() {
+    const cond = this.parseExpr();
+    const thenBody = this.parseBraceBody();
     this.skipWS();
-    const start = this.i;
+    const save = this.snapshot();
+    if (this.peekWord() === 'else') {
+      this.tryIdentifier();
+      const elseBody = this.parseBraceBody();
+      return makeCall('control_if_else', [
+        keyedInput('CONDITION', cond),
+        branchArg('then', thenBody, 'SUBSTACK'),
+        branchArg('else', elseBody, 'SUBSTACK2'),
+      ]);
+    }
+    this.restore(save);
+    return makeCall('control_if', [keyedInput('CONDITION', cond), branchArg('then', thenBody, 'SUBSTACK')]);
+  }
 
-    if (this.eof() || !/[A-Za-z_]/.test(this.peek())) return null;
+  parseSingleBranch(opcode) {
+    const body = this.parseBraceBody();
+    return makeCall(opcode, [branchArg('substack', body)]);
+  }
 
-    while (!this.eof() && /[A-Za-z0-9_]/.test(this.peek())) {
+  parseBraceBody() {
+    this.expectChar('{');
+    const stmts = this.parseStatementList(true);
+    this.expectChar('}');
+    return stmts;
+  }
+
+  // Expression appearing at statement position: procedure calls and generic
+  // opcode calls parse as nested-call value nodes (for reuse inside
+  // expressions) so unwrap them back to bare call statements here. A bare
+  // identifier/string/etc at statement position only happens for orphan
+  // single-block "shadow" scripts (e.g. `Colour;`) - synthesize a marker
+  // call carrying the value so the caller's hatOpcode override still lands
+  // it on the right opcode.
+  parseExprStatementHead() {
+    const e = this.parseExpr();
+    if (e.type === 'call') {
+      const call = e.value;
+      // Extension "C-block" opcodes carry a body slot even though they
+      // aren't one of the hardcoded control-flow keywords. Only meaningful
+      // for a true statement (not a nested reporter value used as a
+      // condition/argument elsewhere), so this only fires here, not in the
+      // general parseExpr() value grammar - otherwise it'd eat the body of
+      // an enclosing `if genericCall(...) { ... }`.
+      if (call.callee.type === 'opcode') {
+        const substackKeys = ['SUBSTACK', 'SUBSTACK2'];
+        let si = 0;
+        while (si < substackKeys.length) {
+          this.skipWS();
+          if (this.peek() !== '{') break;
+          const body = this.parseBraceBody();
+          call.args.push(branchArg('substack', body, substackKeys[si]));
+          si++;
+        }
+      }
+      return call;
+    }
+    return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(e))]);
+  }
+
+  // ---- expressions ----
+
+  parseExpr() {
+    this.skipWS();
+    if (this.eof()) throw new ParseError('unexpected end of input');
+    const ch = this.peek();
+
+    if (ch === '(') return this.parseParenExpr();
+    if (ch === '"') return { type: 'string', value: this.parseStringLiteral() };
+    if (ch === '@') return this.parseProcCallExpr();
+    if (ch === '[' || ch === '{') return { type: 'json', value: this.readJSONValue() };
+    if (ch === '-' || /[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(this.peek(1)))) return this.parseNumberLiteral();
+
+    const word = this.tryIdentifier();
+    if (word == null) throw new ParseError(`unexpected character '${ch}'`);
+
+    if (word === 'true') return { type: 'boolean', value: true };
+    if (word === 'false') return { type: 'boolean', value: false };
+    if (word === 'null') return { type: 'null' };
+
+    if (word === 'var' || word === 'list' || word === 'broadcast' || word === 'arg') {
+      return this.parseNamedRefCall(word);
+    }
+    if (word === 'vars' && this.peek() === '[') {
+      // `vars["name"]` as an expression is a bare variable-name literal
+      // (Scratch's type-12 dropdown default) - same shape as var("name").
       this.i++;
+      const name = this.parseStringLiteral();
+      this.skipWS();
+      this.expectChar(']');
+      return { type: 'var', name, id: null };
     }
 
-    return this.s.slice(start, this.i);
+    this.skipWS();
+    if (UNARY_SUGAR.has(word) && this.peek() === '(') {
+      this.i++;
+      const arg = this.parseExpr();
+      this.skipWS();
+      this.tryChar(',');
+      this.skipWS();
+      this.expectChar(')');
+      if (word === 'round') return { type: 'call', value: makeCall('operator_round', [keyedInput('NUM', arg)]) };
+      if (word === 'not') return { type: 'call', value: makeCall('operator_not', [keyedInput('OPERAND', arg)]) };
+      const opName = MATHOP_NAME[word] || word;
+      return {
+        type: 'call',
+        value: makeCall('operator_mathop', [keyedField('OPERATOR', { type: 'array', value: [opName] }), keyedInput('NUM', arg)]),
+      };
+    }
+
+    if (this.peek() === '(') {
+      this.i++;
+      const args = this.parseKeyedArgs();
+      this.expectChar(')');
+      return { type: 'call', value: makeCall(word, args) };
+    }
+
+    return { type: 'ident', name: word };
+  }
+
+  parseNamedRefCall(kind) {
+    this.expectChar('(');
+    this.skipWS();
+    const name = this.parseStringLiteral();
+    this.skipWS();
+    let id = null;
+    if (this.tryChar(',')) {
+      this.skipWS();
+      id = this.parseStringLiteral();
+    }
+    this.skipWS();
+    this.expectChar(')');
+    return { type: kind, name, id };
+  }
+
+  parseProcCallExpr() {
+    this.expectChar('@');
+    const ident = this.expectIdentifier();
+    this.expectChar('(');
+    const args = this.parseKeyedArgs();
+    this.expectChar(')');
+    return { type: 'call', value: { type: 'call', callee: { type: 'procedureCall', name: ident }, args } };
+  }
+
+  parseParenExpr() {
+    this.expectChar('(');
+    const left = this.parseExpr();
+    this.skipWS();
+    const op = this.parseOperatorToken();
+    const right = this.parseExpr();
+    this.skipWS();
+    this.expectChar(')');
+
+    const OP_MAP = {
+      '+': ['operator_add', 'NUM1', 'NUM2'],
+      '-': ['operator_subtract', 'NUM1', 'NUM2'],
+      '*': ['operator_multiply', 'NUM1', 'NUM2'],
+      '/': ['operator_divide', 'NUM1', 'NUM2'],
+      '%': ['operator_mod', 'NUM1', 'NUM2'],
+      '..': ['operator_join', 'STRING1', 'STRING2'],
+      '==': ['operator_equals', 'OPERAND1', 'OPERAND2'],
+      '<': ['operator_lt', 'OPERAND1', 'OPERAND2'],
+      '>': ['operator_gt', 'OPERAND1', 'OPERAND2'],
+      '&&': ['operator_and', 'OPERAND1', 'OPERAND2'],
+      '||': ['operator_or', 'OPERAND1', 'OPERAND2'],
+    };
+    const mapping = OP_MAP[op];
+    if (!mapping) throw new ParseError(`unknown operator '${op}'`);
+    const [opcode, k1, k2] = mapping;
+    return { type: 'call', value: makeCall(opcode, [keyedInput(k1, left), keyedInput(k2, right)]) };
+  }
+
+  parseOperatorToken() {
+    this.skipWS();
+    const two = this.s.slice(this.i, this.i + 2);
+    if (two === '==' || two === '&&' || two === '||' || two === '..') {
+      this.i += 2;
+      return two;
+    }
+    const one = this.peek();
+    if ('+-*/%<>'.includes(one)) {
+      this.i++;
+      return one;
+    }
+    throw new ParseError(`expected operator, got '${one}'`);
+  }
+
+  parseNumberLiteral() {
+    const start = this.i;
+    if (this.peek() === '-') this.i++;
+    while (!this.eof() && /[0-9]/.test(this.peek())) this.i++;
+    if (this.peek() === '.' && /[0-9]/.test(this.peek(1))) {
+      this.i++;
+      while (!this.eof() && /[0-9]/.test(this.peek())) this.i++;
+    }
+    if ((this.peek() === 'e' || this.peek() === 'E') && /[0-9+-]/.test(this.peek(1) || '')) {
+      this.i++;
+      if (this.peek() === '+' || this.peek() === '-') this.i++;
+      while (!this.eof() && /[0-9]/.test(this.peek())) this.i++;
+    }
+    const text = this.s.slice(start, this.i);
+    if (!text || text === '-') throw new ParseError('invalid number literal');
+    return { type: 'number', value: Number(text), raw: text };
   }
 
   parseStringLiteral() {
     this.skipWS();
-    if (this.peek() !== '"') return '';
-
-    this.i++; // skip opening quote
+    if (this.peek() !== '"') throw new ParseError('expected string literal');
+    this.i++;
     let result = '';
-
     while (!this.eof() && this.peek() !== '"') {
       const ch = this.next();
       if (ch === '\\') {
-        const next = this.next();
-        if (next === '"') result += '"';
-        else if (next === '\\') result += '\\';
-        else if (next === 'n') result += '\n';
-        else if (next === 't') result += '\t';
-        else if (next === 'r') result += '\r';
-        else result += next;
+        const nx = this.next();
+        if (nx === '"') result += '"';
+        else if (nx === '\\') result += '\\';
+        else if (nx === 'n') result += '\n';
+        else if (nx === 't') result += '\t';
+        else if (nx === 'r') result += '\r';
+        else result += nx;
       } else {
         result += ch;
       }
     }
-
-    if (this.peek() === '"') this.i++; // skip closing quote
+    if (this.peek() !== '"') throw new ParseError('unterminated string literal');
+    this.i++;
     return result;
   }
 
-  parseSimpleArgs() {
-    let depth = 1;
-
-    while (!this.eof() && depth > 0) {
-      const ch = this.next();
-      if (ch === '(') depth++;
-      else if (ch === ')') depth--;
-      else if (ch === '"') {
-        while (!this.eof() && this.peek() !== '"') {
-          if (this.next() === '\\') this.next(); // skip escaped char
-        }
-        if (!this.eof()) this.next(); // skip closing quote
-      }
+  // key (`=` value | `:` value)
+  parseKeyedArgs() {
+    const args = [];
+    this.skipWS();
+    if (this.peek() === ')') return args;
+    for (;;) {
+      this.skipWS();
+      const key = this.parseArgKey();
+      this.skipWS();
+      let sep;
+      if (this.tryChar('=')) sep = 'input';
+      else if (this.tryChar(':')) sep = 'field';
+      else throw new ParseError(`expected '=' or ':' after key '${key}'`);
+      const value = this.parseExpr();
+      args.push({ kind: 'keyed', sep, key, value });
+      this.skipWS();
+      if (this.tryChar(',')) continue;
+      break;
     }
-
-    return []; // Return empty args for now
+    return args;
   }
 
-  readJSONObject() {
+  parseArgKey() {
+    this.skipWS();
+    if (this.peek() === '[') {
+      this.i++;
+      const s = this.parseStringLiteral();
+      this.skipWS();
+      this.expectChar(']');
+      return s;
+    }
+    // Unlike opcode/identifier names, argument keys may legitimately be
+    // digit-led (custom-block argument idents derived from purely numeric
+    // original names, e.g. cleanIdent("1") === "1"). Keys are unambiguous
+    // here (always followed by '=' or ':'), so accept a wider token.
     const start = this.i;
+    while (!this.eof() && /[A-Za-z0-9_]/.test(this.peek())) this.i++;
+    if (this.i === start) throw new ParseError('expected argument key');
+    return this.s.slice(start, this.i);
+  }
+
+  readJSONValue() {
+    const start = this.i;
+    this.skipBalancedJSON();
+    const text = this.s.slice(start, this.i);
+    return JSON.parse(text);
+  }
+
+  skipBalancedJSON() {
+    const open = this.peek();
+    const close = open === '[' ? ']' : '}';
     let depth = 0;
-    let i = this.i;
-    while (i < this.len) {
-      const ch = this.s[i++];
+    while (!this.eof()) {
+      const ch = this.next();
       if (ch === '"') {
-        while (i < this.len) {
-          const c = this.s[i++];
-          if (c === '"') break;
-          if (c === '\\') i++; // skip escaped char
+        while (!this.eof() && this.peek() !== '"') {
+          if (this.next() === '\\') this.next();
         }
-      } else if (ch === '{') {
-        depth++;
-      } else if (ch === '}') {
+        if (!this.eof()) this.next();
+        continue;
+      }
+      if (ch === open) depth++;
+      else if (ch === close) {
         depth--;
-        if (depth === 0) break;
+        if (depth === 0) return;
       }
     }
-    const json = this.s.slice(start, i);
-    this.i = i;
-    return JSON.parse(json);
+    throw new ParseError(`unterminated ${open}...${close}`);
   }
 }
 
-export function preprocess(text) {
-  const s = String(text || '');
-  if (s.startsWith('/**')) {
-    const end = s.indexOf('*/');
-    if (end >= 0) return s.slice(end + 2);
-  }
-  return s;
+function makeCall(opcode, args) {
+  return { type: 'call', callee: { type: 'opcode', name: opcode }, args };
+}
+function keyedInput(key, value) {
+  return { kind: 'keyed', sep: 'input', key, value };
+}
+function keyedField(key, value) {
+  return { kind: 'keyed', sep: 'field', key, value };
+}
+function branchArg(key, body, wireKey) {
+  return { kind: 'branch', key, body, wireKey: wireKey || null };
 }
 
-function extractLossless(text) {
-  const s = String(text || '');
-  const begin = s.indexOf('// LOSSLESS-BLOCKS BEGIN');
-  const end = s.indexOf('// LOSSLESS-BLOCKS END');
-  if (begin === -1 || end === -1 || end < begin) {
-    return { text: s, lossless: undefined };
+function toFieldValueNode(e) {
+  switch (e.type) {
+    case 'string':
+      return { type: 'array', value: [e.value] };
+    case 'ident':
+      return { type: 'array', value: [e.name] };
+    case 'number':
+      return { type: 'array', value: [String(e.value)] };
+    case 'boolean':
+      return { type: 'array', value: [String(e.value)] };
+    case 'var':
+    case 'list':
+    case 'broadcast':
+      return { type: 'array', value: [e.name, e.id] };
+    case 'json':
+      return { type: 'array', value: Array.isArray(e.value) ? e.value : [e.value] };
+    default:
+      return { type: 'array', value: [''] };
   }
-  const body = s.slice(0, begin);
-  const section = s.slice(begin, end);
-  const lines = section.split(/\r?\n/);
-  const map = {};
-  for (const line of lines) {
-    const m = /^\s*block\s+("[^"]*"|[^\s=]+)\s*=\s*(\{.*\})\s*$/.exec(line.trim());
-    if (!m) continue;
-    try {
-      const id = JSON.parse(m[1]);
-      const obj = JSON.parse(m[2]);
-      map[id] = obj;
-    } catch {
-      // Handle error
-    }
-  }
-  return { text: body, lossless: Object.keys(map).length ? map : undefined };
 }
+
+export { BRANCH_SUBSTACK_OPCODES };

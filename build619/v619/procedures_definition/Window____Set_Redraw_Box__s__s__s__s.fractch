@@ -1,0 +1,14 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: akx
+ * hatOpcode: procedures_definition
+ * threadIndex: 129
+ */
+
+def @Window_Set_Redraw_Box(left, top, right, bottom) "Window // Set Redraw Box %s %s %s %s" warp=false {
+  vars["Redraw // Window Left"] = left;
+  vars["Redraw // Window Top"] = top;
+  vars["Redraw // Window Right"] = right;
+  vars["Redraw // Window Bottom"] = bottom;
+}

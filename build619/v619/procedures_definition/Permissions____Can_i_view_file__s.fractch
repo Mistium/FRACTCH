@@ -1,0 +1,44 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: adl
+ * hatOpcode: procedures_definition
+ * threadIndex: 107
+ */
+
+def @Permissions_Can_i_view_file(File_To_Get("File To Get")) "Permissions // Can i view file %s" warp=true {
+  vars["OSL// Permission Output"] = "0";
+  mistsutils_patchcommand(A= "try {");
+  vars["temp"] = "";
+  if @Permissions_Has(perm= ".sandbox") {
+    vars["OSL// Permission Output"] = "0";
+  } else {
+    if @Permissions_Has(perm= "file admin") {
+      vars["OSL// Permission Output"] = "1";
+    } else {
+      mistsutils_patchcommand2(A= "let access_perms = ", B= @parse(json= @File_get_item(id= File_To_Get, item= "13")));
+      mistsutils_patchcommand(A= "access_perms = access_perms.map((v) => v.toLowerCase())");
+      if mistsutils_starts(A= @File_get_item(id= File_To_Get, item= "3"), B= @File_get_item(id= vars["Window // File ID"], item= "3")) {
+        vars["OSL// Permission Output"] = "1";
+        stop "this script";
+      }
+      mistsutils_patchcommand2(A= "const path = ", B= @originFS_ID_Path(id= File_To_Get));
+      vars["OSL// Permission Check"] = "0";
+      mistsutils_patchcommand2(A= "const perms = ", B= vars["OSL // Perms"]);
+      mistsutils_patchcommand(A= "perms.unshift(\"file viewer\")");
+      repeat mistsutils_patchreporter(A= "perms.length") {
+        vars["App // Temp2"] = mistsutils_patchreporter3(A= "(\"\"+perms[", B= vars["OSL// Permission Check"], C= "++]).toLowerCase()");
+        if mistsutils_patchreporter3(A= "access_perms.includes(", B= vars["App // Temp2"], C= ")") {
+          vars["OSL// Permission Output"] = "1";
+          stop "this script";
+        } else {
+          if (mistsutils_patchreporter(A= "path") == vars["App // Temp2"]) {
+            vars["OSL// Permission Output"] = "1";
+            stop "this script";
+          }
+        }
+      }
+    }
+  }
+  mistsutils_patchcommand(A= "} catch {}");
+}

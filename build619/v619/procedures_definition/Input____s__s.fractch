@@ -1,0 +1,15 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: acB
+ * hatOpcode: procedures_definition
+ * threadIndex: 104
+ */
+
+def @Input(cursorchange, key) "Input// %s %s" warp=true {
+  if (vars["Key// Current Pressed"] == key) {
+    if ((vars["Inputs // Cursor Position"] + cursorchange) > "-1") {
+      data_changevariableby(VALUE= cursorchange, VARIABLE: var("Inputs // Cursor Position", "qq"));
+    }
+  }
+}

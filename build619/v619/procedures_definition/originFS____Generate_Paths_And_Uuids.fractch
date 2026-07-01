@@ -1,0 +1,23 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: ^T
+ * hatOpcode: procedures_definition
+ * threadIndex: 87
+ */
+
+import "../procedures_definition/originFS____Generate_window_origin_index.fractch";
+def @originFS_Generate_Paths_And_Uuids() "originFS // Generate Paths And Uuids" warp=true {
+  data_deletealloflist(LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+  data_deletealloflist(LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+  vars["//return"] = ((vars["AODP File"] * -1) + 3);
+  data_addtolist(ITEM= "origin.folder", LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+  data_addtolist(ITEM= data_itemoflist(INDEX= 14, LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+  data_changevariableby(VALUE= vars["AODP File"], VARIABLE: var("//return", "y"));
+  repeat ((data_lengthoflist(LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")) / vars["AODP File"]) - 1) {
+    data_changevariableby(VALUE= vars["AODP File"], VARIABLE: var("//return", "y"));
+    data_addtolist(ITEM= @originFS_ID_Path(id= (data_lengthoflist(LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")) + 1)), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+    data_addtolist(ITEM= data_itemoflist(INDEX= (vars["//return"] + 11), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-")), LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K"));
+  }
+  @originFS_Generate_window_origin_index();
+}

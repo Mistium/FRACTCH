@@ -21,13 +21,31 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 
   if (opcode === 'data_variable') {
     const name = block.fields?.VARIABLE?.[0] ?? '';
+    // A standalone top-level statement is a dangling orphan reporter with no
+    // enclosing script to resolve an identifier against - print the exact
+    // original name as a string literal so it round-trips byte-for-byte
+    // instead of going through the (lossy, space-stripping) identifier form.
+    if (!inline) return `${JSON.stringify(String(name))};`;
     const out = /^[A-Za-z_][A-Za-z0-9_]*$/.test(String(name)) ? String(name) : JSON.stringify(String(name));
-    return inline ? out : out + ';';
+    return out;
   }
   if (opcode === 'argument_reporter_string_number' || opcode === 'argument_reporter_boolean') {
-    const name = block.fields?.VALUE?.[0] ?? '';
-    const out = /^[A-Za-z_][A-Za-z0-9_]*$/.test(String(name)) ? String(name) : JSON.stringify(String(name));
-    return inline ? out : out + ';';
+    const name = String(block.fields?.VALUE?.[0] ?? '');
+    if (!inline) return `${JSON.stringify(name)};`;
+    // Inline (referenced from inside a procedure body): must match the
+    // identifier the enclosing def signature declared for this param (see
+    // emit.js defSignature/procInfoFor and convert.js's dedup in
+    // buildProcByCode) so the parser resolves it back to the same scope
+    // param instead of a literal, or - when two params' names collide only
+    // after cleanIdent (e.g. "X" and "+X") - the wrong param entirely.
+    const mapped = CTX.scopeParamNames?.get(name);
+    if (mapped) return mapped;
+    // No declared param has this exact display name - Scratch allows a
+    // custom block's body to keep referencing a param after it's been
+    // removed from the definition (an orphaned/unbound reporter). Bare
+    // identifier sugar can't distinguish that from a plain variable read,
+    // so spell it out explicitly instead of guessing.
+    return `arg(${JSON.stringify(name)})`;
   }
 
   if (opcode === 'control_if' || opcode === 'control_if_else') {
@@ -36,17 +54,9 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const thenId = block.inputs?.SUBSTACK && Array.isArray(block.inputs.SUBSTACK) ? block.inputs.SUBSTACK[1] : null;
     const elseId = block.inputs?.SUBSTACK2 && Array.isArray(block.inputs.SUBSTACK2) ? block.inputs.SUBSTACK2[1] : null;
     const header = `if ${condStr}`;
-    const thenBody = thenId
-      ? linearizeWithIds(subgraph, thenId)
-          .map((cid) => stringifyBlockCall(subgraph[cid], subgraph, cid))
-          .join('\n')
-      : '';
+    const thenBody = thenId ? renderBody(subgraph, thenId) : '';
     if (opcode === 'control_if_else') {
-      const elseBody = elseId
-        ? linearizeWithIds(subgraph, elseId)
-            .map((cid) => stringifyBlockCall(subgraph[cid], subgraph, cid))
-            .join('\n')
-        : '';
+      const elseBody = elseId ? renderBody(subgraph, elseId) : '';
       return `${header} {\n${indent(thenBody)}\n} else {\n${indent(elseBody)}\n}`;
     }
     return `${header} {\n${indent(thenBody)}\n}`;
@@ -104,7 +114,14 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     return `return${v ? ' ' + v : ''};`;
   }
   if (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') {
-    const name = getInputExpr(block.inputs?.BROADCAST_INPUT, subgraph);
+    const tuple = block.inputs?.BROADCAST_INPUT;
+    const childId = Array.isArray(tuple) ? tuple[1] : null;
+    // A literal broadcast name reference doesn't need the broadcast() wrapper
+    // here - the statement keyword already says "this is a broadcast".
+    const name =
+      typeof childId === 'string' && subgraph[childId]
+        ? getInputExpr(tuple, subgraph)
+        : JSON.stringify(Array.isArray(childId) ? String(childId[1] ?? '') : '');
     const w = opcode === 'event_broadcastandwait' ? 'broadcast_wait' : 'broadcast';
     return `${w} ${name};`;
   }
@@ -119,7 +136,25 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   const argParts = [];
   if (inputsStr) argParts.push(inputsStr);
   if (fieldsStr) argParts.push(fieldsStr);
+  // Any block reaching this generic fallback that carries a mutation (custom
+  // extension quirks, or a procedures_call whose prototype couldn't be
+  // resolved to a friendly @name) needs it captured or the mutation is lost
+  // outright - dump it as a JSON field, decoded back in buildNode.
+  if (block.mutation) {
+    argParts.push(`mutation: ${JSON.stringify(block.mutation)}`);
+  }
   const call = `${opcode}(${argParts.join(', ')})`;
+
+  // Extension "C-block" opcodes (custom blocks with a body slot) that aren't
+  // one of the hardcoded control-flow keywords above still need their
+  // SUBSTACK/SUBSTACK2 bodies represented, or the branch is silently lost.
+  const substackKeys = Object.keys(block.inputs || {})
+    .filter((k) => k.startsWith('SUBSTACK'))
+    .sort();
+  if (substackKeys.length) {
+    const branches = substackKeys.map((k) => `${branch(block, k, subgraph)}`).join(' ');
+    return `${call} ${branches}`;
+  }
   return inline ? call : call + ';';
 }
 
@@ -170,6 +205,9 @@ export function stringifyFields(block) {
         if (keyLc.includes('list') || keyLc === 'list') {
           return `${formatArgKey(k)}: ${id ? `list(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `list(${JSON.stringify(name)})`}`;
         }
+        if (keyLc.includes('broadcast')) {
+          return `${formatArgKey(k)}: ${id ? `broadcast(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `broadcast(${JSON.stringify(name)})`}`;
+        }
       }
       return `${formatArgKey(k)}: ${JSON.stringify(v)}`;
     } catch {
@@ -179,16 +217,32 @@ export function stringifyFields(block) {
   return kv.join(', ');
 }
 
+// Walks a `.next` chain, stopping either at a clean end (cursor falsy) or at
+// a *dangling* reference: a non-null id that isn't a real node anywhere in
+// the subgraph. The latter happens with corrupted/hand-edited project.json
+// files that leave forward references to blocks that were never (or no
+// longer) actually serialized - rare, but real ones exist in the wild, and
+// silently truncating the chain there would lose that reference for good.
 function linearizeWithIds(subgraph, topId) {
   const arr = [];
   let cursor = topId;
   while (cursor) {
     const node = subgraph[cursor];
-    if (!node) break;
+    if (!node) return { ids: arr, danglingId: cursor };
     arr.push(cursor);
     cursor = node.next;
   }
-  return arr;
+  return { ids: arr, danglingId: null };
+}
+
+// Renders a full `.next` chain as DSL statement text, appending a
+// `dangling_next("id")` sentinel when the chain ends in an unresolvable
+// forward reference instead of silently dropping it (see linearizeWithIds).
+export function renderBody(subgraph, topId, cfg) {
+  const { ids, danglingId } = linearizeWithIds(subgraph, topId);
+  const lines = ids.map((cid) => stringifyBlockCall(subgraph[cid], subgraph, cid, false, cfg));
+  if (danglingId) lines.push(`dangling_next(${JSON.stringify(danglingId)});`);
+  return lines.join('\n');
 }
 
 function indent(str, spaces = 2) {
@@ -202,21 +256,19 @@ function indent(str, spaces = 2) {
 function branch(block, key, subgraph) {
   const arr = block.inputs?.[key];
   const bid = Array.isArray(arr) ? arr[1] : null;
-  const body = bid
-    ? linearizeWithIds(subgraph, bid)
-        .map((cid) => stringifyBlockCall(subgraph[cid], subgraph, cid))
-        .join('\n')
-    : '';
+  const body = bid ? renderBody(subgraph, bid) : '';
   return `{\n${indent(body)}\n}`;
 }
 
+// Preserve key case exactly: Scratch's own built-in keys are ALL_CAPS (fine
+// either way), but custom-block/extension argument ids are often
+// lowercase/mixed-case random strings where case is semantically load-bearing
+// (must match verbatim between a block's inputs and its own mutation). Only
+// bracket+JSON-quote keys that aren't valid bare identifiers at all.
 function formatArgKey(name) {
   try {
     const s = String(name);
-
-    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(s)) {
-      return s.toLowerCase();
-    }
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(s)) return s;
     return `[${JSON.stringify(s)}]`;
   } catch {
     return `[${JSON.stringify(String(name))}]`;
@@ -239,15 +291,23 @@ function formatLiteral(arr) {
         case 4: // number (as string)
         case 6: // angle/number
         case 7: {
-          // list index / numeric
-          const n = Number(value);
-          if (Number.isFinite(n)) return `${String(n)}`;
+          // list index / numeric - Scratch stores these as free-form text
+          // (".25", "007", "", ...), so print the original text verbatim
+          // whenever our number grammar can re-parse it exactly, rather
+          // than normalizing through Number->String and rewriting it.
+          const raw = value == null ? '' : String(value);
+          if (raw === '') return '""'; // unfilled default; not "0"
+          if (/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(raw)) return raw;
 
-          return `${JSON.stringify(String(value ?? ''))}`;
+          const n = Number(raw);
+          if (Number.isFinite(n)) return `${String(n)}`;
+          return `${JSON.stringify(raw)}`;
         }
         case 11: {
-          // broadcast name
-          return `${JSON.stringify(String(value ?? ''))}`;
+          // broadcast name reference
+          const name = String(value ?? '');
+          const id = payload.length > 2 ? String(payload[2]) : undefined;
+          return id ? `broadcast(${JSON.stringify(name)}, ${JSON.stringify(id)})` : `broadcast(${JSON.stringify(name)})`;
         }
         case 12: {
           // variable/parameter reference label -> print as bare identifier when safe
@@ -301,11 +361,12 @@ function tryOperatorExpression(block, subgraph) {
     case 'operator_round':
       return `round(${read('NUM')})`;
     case 'operator_mathop': {
-      const fn = (block.fields?.OPERATOR?.[0] || 'abs').toLowerCase();
+      const raw = (block.fields?.OPERATOR?.[0] || 'abs').toLowerCase();
+      const fn = raw === 'e ^' ? 'exp' : raw === '10 ^' ? 'exp10' : raw;
       return `${fn}(${read('NUM')})`;
     }
     case 'operator_join':
-      return `(${read('STRING1')} + ${read('STRING2')})`;
+      return `(${read('STRING1')} .. ${read('STRING2')})`;
 
     case 'operator_equals':
       return `(${read('OPERAND1', 'NUM1')} == ${read('OPERAND2', 'NUM2')})`;

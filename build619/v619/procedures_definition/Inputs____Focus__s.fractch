@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: au{
+ * hatOpcode: procedures_definition
+ * threadIndex: 163
+ */
+
+def @Inputs_Focus(id) "Inputs // Focus %s" warp=false {
+  vars["Inputs // Next Selected"] = id;
+}

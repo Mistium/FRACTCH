@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aeE
+ * hatOpcode: procedures_definition
+ * threadIndex: 111
+ */
+
+def @file_item_of_num(index, num) "file: %s item of num %s" warp=true {
+  return ((index * vars["AODP File"]) - (vars["AODP File"] - num));
+}

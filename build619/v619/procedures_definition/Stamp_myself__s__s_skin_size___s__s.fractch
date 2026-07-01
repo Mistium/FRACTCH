@@ -1,0 +1,62 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aNh
+ * hatOpcode: procedures_definition
+ * threadIndex: 201
+ */
+
+import "../procedures_definition/set_stretch_to_x___s_y___s.fractch";
+def @Stamp_myself_skin_size(width, height, skin_w("skin w"), skin_h("skin h")) "Stamp myself %s %s skin size: %s %s" warp=false {
+  mistsutils_patchcommand(A= "const w = +p0, h = +p1");
+  mistsutils_patchcommand2(A= "let size_x = ", B= skin_w);
+  mistsutils_patchcommand2(A= "let size_y = ", B= skin_h);
+  mistsutils_patchcommand2(A= "const stretch_x = ", B= vars["Renderer // Stretch X"]);
+  mistsutils_patchcommand2(A= "const stretch_y = ", B= vars["Renderer // Stretch Y"]);
+  mistsutils_patchcommand(A= "if (size_x <= 0 || size_y <= 0) return");
+  vars["//return"] = (mistsutils_patchreporter(A= "w * 100") / mistsutils_patchreporter(A= "size_x"));
+  vars["DeString // out"] = ((mistsutils_patchreporter(A= "h") / mistsutils_patchreporter(A= "size_y")) * 100);
+  mistsutils_patchcommand2(A= "let cur_stretch_x = ", B= "w");
+  mistsutils_patchcommand2(A= "let cur_stretch_y = ", B= "h");
+  mistsutils_patchcommand(A= "let ratio = cur_stretch_x / cur_stretch_y");
+  mistsutils_patchcommand2(A= "const has_width = !", B= (width == ""));
+  mistsutils_patchcommand2(A= "const has_height = !", B= (height == ""));
+  if mistsutils_patchboolean(A= "has_width && has_height") {
+    looks_setsizeto(SIZE= 100);
+    @set_stretch_to_x_y(x= vars["//return"], y= vars["DeString // out"]);
+    mistsutils_patchcommand2(A= "size_x = ", B= vars["//return"]);
+    mistsutils_patchcommand2(A= "size_y = ", B= vars["DeString // out"]);
+  } else {
+    if mistsutils_patchboolean(A= "!has_width && has_height") {
+      looks_setsizeto(SIZE= vars["DeString // out"]);
+    } else {
+      if mistsutils_patchboolean(A= "has_width && !has_height") {
+        looks_setsizeto(SIZE= vars["//return"]);
+      } else {
+        looks_setsizeto(SIZE= 100);
+      }
+    }
+  }
+  mistsutils_patchcommand(A= "target.osl_vars.clicked = false");
+  mistsutils_patchcommand(A= "target.osl_vars.onclick = false");
+  mistsutils_patchcommand(A= "target.osl_vars.mouse_touching = false");
+  vars["Right Clicked?"] = mistsutils_false();
+  if (vars["Frame // Interactable"] == "true") {
+    mistsutils_patchcommand(A= "const s = target.size / 100");
+    if @Check_Collision_in_square_at_of_dimensions(x= sensing_mousex(), y= sensing_mousey(), x2= motion_xposition(), y2= motion_yposition(), w= mistsutils_patchreporter(A= "s * size_x"), h= mistsutils_patchreporter(A= "s * size_y")) {
+      mistsutils_patchcommand(A= "target.osl_vars.mouse_touching = true");
+      if not((vars["OSL // Hover_Size"] == "")) {
+        looks_setsizeto(SIZE= (looks_size() * vars["OSL // Hover_Size"]));
+      }
+      if mistsutils_patchboolean(A= "window.osl.mouse_left") {
+        mistsutils_patchcommand(A= "target.osl_vars.clicked = true");
+        mistsutils_patchcommand2(A= "target.osl_vars.onclick = ", B= vars["SYSTEM // Onclick"]);
+      }
+      if mistsutils_patchboolean(A= "window.osl.mouse_right") {
+        vars["Right Clicked?"] = mistsutils_true();
+      }
+    }
+  }
+  pen_stamp();
+  @set_stretch_to_x_y(x= mistsutils_patchreporter(A= "stretch_x"), y= mistsutils_patchreporter(A= "stretch_y"));
+}

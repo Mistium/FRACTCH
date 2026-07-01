@@ -1,0 +1,23 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: abm
+ * hatOpcode: procedures_definition
+ * threadIndex: 99
+ */
+
+import "../procedures_definition/File___get__s_item__s.fractch";
+import "../procedures_definition/Window___create__s__s.fractch";
+def @File_open(Id) "File// open %s" warp=true {
+  @File_get_item(id= Id, item= "");
+  if (data_itemoflist(INDEX= 1, LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) == ".folder") {
+    @Window_create(name= "@File Explorer", window_data= data_itemoflist(INDEX= 14, LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")));
+    stop "this script";
+  }
+  if (data_itemoflist(INDEX= 1, LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")) == ".osl") {
+    @Window_create(name= data_itemoflist(INDEX= 14, LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), window_data= "");
+    mistsutils_patchcommand3(A= vars["OSL // Window"], B= ".children.push(", C= mistsutils_patchreporter2(A= @OSL_Vars_Get(Varname= "data"), B= ")"));
+    stop "this script";
+  }
+  @Window_create(name= mistsutils_patchreporter3(A= "window.osl_filetypes[", B= data_itemoflist(INDEX= 1, LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")), C= "]?.[2]?.[0] ?? \"\""), window_data= data_itemoflist(INDEX= 14, LIST: list("Files // Current", "sZuM+zCt8vo`B5=)O+p.")));
+}

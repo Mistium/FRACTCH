@@ -1,0 +1,37 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: atQ
+ * hatOpcode: procedures_definition
+ * threadIndex: 157
+ */
+
+def @Permissions_Can_i_edit_file(File_To_Get("File To Get")) "Permissions // Can i edit file %s" warp=false {
+  if @Permissions_Has(perm= ".sandbox") {
+    return mistsutils_false();
+  }
+  if @Permissions_Has(perm= "file admin") {
+    return mistsutils_true();
+  }
+  if (@File_get_item(id= File_To_Get, item= "14") == @File_get_item(id= vars["Window // File ID"], item= "14")) {
+    return mistsutils_true();
+  }
+  mistsutils_patchcommand(A= "try {");
+  if mistsutils_starts(A= mistsutils_patchreporter2(A= @File_get_item(id= File_To_Get, item= "3"), B= ".toLowerCase()"), B= @Parse_Directory(directory= "~/Application Data")) {
+    return mistsutils_starts(A= mistsutils_patchreporter2(A= @File_get_item(id= File_To_Get, item= "3"), B= ".toLowerCase()"), B= mistsutils_patchreporter2(A= @Parse_Directory(directory= ("~/Application Data/" .. vars["Window // Save Directory"])), B= ".toLowerCase()"));
+  }
+  mistsutils_patchcommand2(A= "let access_perms = ", B= @parse(json= @File_get_item(id= File_To_Get, item= "13")));
+  mistsutils_patchcommand(A= "access_perms = access_perms.map((v) => v.toLowerCase())");
+  if mistsutils_starts(A= mistsutils_patchreporter2(A= @File_get_item(id= File_To_Get, item= "3"), B= ".toLowerCase()"), B= @Parse_Directory(directory= "~/Applications")) {
+    return mistsutils_false();
+  }
+  mistsutils_patchcommand(A= "if (access_perms.includes(\"system\")) return false");
+  if @Permissions_Has(perm= "file editor") {
+    return mistsutils_true();
+  }
+  if mistsutils_starts(A= @File_get_item(id= File_To_Get, item= "3"), B= @File_get_item(id= vars["Window // File ID"], item= "3")) {
+    return mistsutils_true();
+  }
+  mistsutils_patchcommand(A= "} catch (e) { return false }");
+  return "";
+}

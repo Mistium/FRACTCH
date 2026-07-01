@@ -1,0 +1,14 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aqJ
+ * hatOpcode: procedures_definition
+ * threadIndex: 147
+ */
+
+def @Add_Global_Command(name, parameters, code) "Add Global Command %s %s %s" warp=false {
+  mistsutils_patchcommand(A= "let func = {\"parent\":\"\",\"type\":\"command\",\"name\":p0,\"parameters\": p1.length === 0 ? [] : p1.replaceAll(\" \",\"\").split(\",\")}");
+  mistsutils_patchcommand(A= "if (typeof p2 === \"function\") func.code = p2;");
+  mistsutils_patchcommand2(A= "else func.code = ", B= OSLUtils_generateFullAST(CODE= code));
+  mistsutils_patchcommand2(A= "target.osl_globals", B= ".commands[p0] = func");
+}

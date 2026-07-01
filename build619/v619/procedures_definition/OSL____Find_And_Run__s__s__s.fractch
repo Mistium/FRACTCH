@@ -1,0 +1,1279 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: avl
+ * hatOpcode: procedures_definition
+ * threadIndex: 166
+ */
+
+def @OSL_Find_And_Run(command, input2, tokens) "OSL // Find And Run %s %s %s" warp=false {
+  mistsutils_patchcommand(A= "const current_tokens = window.osl_current_command");
+  mistsutils_patchcommand(A= "const split_text = target.variables[\")./tR8V[bp)bg1K2.|v(\"].value");
+  mistsutils_patchcommand(A= "const spl = split_text");
+  switch command {
+    mistsutils_patchcommand(A= "case \"case\": case \"void\": return;");
+    mistsutils_patchcommand(A= "case \"exit\": return {type: \"exit\"}");
+    mistsutils_patchcommand(A= "case \"break\": return {type: \"break\"}");
+    mistsutils_patchcommand(A= "case \"Continue\": case \"continue\": return {type: \"continue\"}");
+    mistsutils_patchcommand(A= "case \"defer\": yield;");
+    case "color" fallthrough {
+
+    }
+    case "colour" fallthrough {
+
+    }
+    case "c" {
+      mistsutils_patchcommand(A= "p1 = String(p1).toLowerCase()");
+      mistsutils_patchcommand(A= "if (origin.renderer.icn_mode) target.icn += `c ${p1} `");
+      pen_setPenColorToColor(COLOR= mistsutils_patchreporter(A= "isNaN(+p1) ? (p1[0] === \"#\" ? p1 : \"#\" + p1) : p1"));
+    }
+    case "scale" {
+      vars["Renderer // Scale"] = input2;
+      stop "this script";
+    }
+    case "hc" {
+      vars["OSL // Hover_Colour"] = mistsutils_patchreporter(A= "p1[0] === \"#\" ? p1 : \"#\" + p1");
+      stop "this script";
+    }
+    case "tooltip" {
+      vars["OSL // Tooltip"] = input2;
+      stop "this script";
+    }
+    case "hs" {
+      vars["OSL // Hover_Size"] = input2;
+      stop "this script";
+    }
+    case "text" {
+      @Draw_Text(Text= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), X= motion_xposition(), Y= motion_yposition(), Size= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Markdown_Enabled= "");
+    }
+    case "configtext" {
+      switch input2 {
+        case "lineheight" {
+          vars["Text // Line Spacing"] = (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) * 2.3);
+        }
+        case "spacing" {
+          vars["Text // Char Spacing"] = (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) * 30);
+        }
+        case "usefont" {
+          vars["Text // Font"] = data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+        }
+        case "tilt" {
+          vars["Text // Char Tilt"] = data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+        }
+        case "importfont" {
+          mistsutils_patchcommand2(A= "let folder = ", B= mistsutils_jsonparse(A= @Get_Contents_Of_Folder_Path(Path= mistsutils_patchreporter(A= "`${osl.user_folder}/fonts`"), Show_UUIDS= null, data_included= null, Only_UUIDS= null)));
+          mistsutils_patchcommand2(A= "let name = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          if mistsutils_patchboolean(A= "folder.indexOf(name) === -1") {
+            @RUSH_execute(Command= mistsutils_patchreporter(A= "\"font install \" + name"));
+          }
+          @RUSH_execute(Command= mistsutils_patchreporter(A= "\"font use \" + name"));
+        }
+        default {
+          @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown configfont command: ${p1}`"), Type= "Unknown Command");
+        }
+      }
+    }
+    case "icon" {
+      @OSL_Draw_Icon_size(data= input2, size= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "square" {
+      mistsutils_patchcommand2(A= "const invis = ", B= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand(A= "const x = target.x, y = target.y");
+      mistsutils_patchcommand2(A= "const h = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const l = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      @Draw_Square(X= mistsutils_patchreporter(A= "x"), Y= mistsutils_patchreporter(A= "y"), Width= input2, Height= mistsutils_patchreporter(A= "h"), Line_Width= mistsutils_patchreporter(A= "l"), Invisible= mistsutils_patchreporter(A= "invis"));
+      mistsutils_patchcommand(A= "if (invis !== \"\") return");
+    }
+    case "triangle" {
+      mistsutils_patchcommand2(A= "const tri_original_x = ", B= motion_xposition());
+      mistsutils_patchcommand2(A= "const tri_original_y = ", B= motion_yposition());
+      @fillTri(a= (motion_xposition() + input2), b= (motion_yposition() + data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), c= (motion_xposition() + data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), d= (motion_yposition() + data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), e= (motion_xposition() + data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), f= (motion_yposition() + data_itemoflist(INDEX= 7, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), r= data_itemoflist(INDEX= 8, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      motion_gotoxy(X= mistsutils_patchreporter(A= "tri_original_x"), Y= mistsutils_patchreporter(A= "tri_original_y"));
+    }
+    case "pen" {
+      switch input2 {
+        case "opacity" {
+          pen_setPenColorParamTo(COLOR_PARAM= pen_menu_colorParam(colorParam: ["transparency",null]), VALUE= (100 - data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+        }
+        case "tint" {
+          pen_setPenColorToColor(COLOR= mistsutils_patchreporter3(A= "window.applyTint(target._customState[\"Scratch.pen\"].getColour(), ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ")"));
+        }
+        case "brightness" {
+          pen_setPenColorParamTo(COLOR_PARAM= pen_menu_colorParam(colorParam: ["brightness",null]), VALUE= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        case "down" {
+          pen_penDown();
+        }
+        case "up" {
+          pen_penUp();
+        }
+        case "size" {
+          pen_setPenSizeTo(SIZE= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        default {
+          @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown pen command: ${p1}`"), Type= "Unknown Command");
+        }
+      }
+    }
+    case "line" {
+      mistsutils_patchcommand2(A= "let line_x = ", B= motion_xposition());
+      mistsutils_patchcommand2(A= "let line_y = ", B= motion_yposition());
+      motion_gotoxy(X= (mistsutils_patchreporter(A= "line_x") + input2), Y= (mistsutils_patchreporter(A= "line_y") + data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      pen_penDown();
+      motion_gotoxy(X= (mistsutils_patchreporter(A= "line_x") + data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), Y= (mistsutils_patchreporter(A= "line_y") + data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      pen_penUp();
+      motion_gotoxy(X= mistsutils_patchreporter(A= "line_x"), Y= mistsutils_patchreporter(A= "line_y"));
+    }
+    case "graph" {
+      mistsutils_patchcommand2(A= "let height = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "let graph = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand(A= "if (typeof graph !== \"object\") { try { graph = JSON.parse(graph) } catch { return null; } }");
+      mistsutils_patchcommand(A= "let len = graph.length - 1");
+      mistsutils_patchcommand(A= "let steps = 1");
+      mistsutils_patchcommand2(A= "let step_size = ", B= (input2 / mistsutils_patchreporter(A= "len")));
+      mistsutils_patchcommand2(A= "let x = ", B= motion_xposition());
+      mistsutils_patchcommand2(A= "let left = ", B= (mistsutils_patchreporter(A= "x") - (input2 / 2)));
+      mistsutils_patchcommand2(A= "let y = ", B= (motion_yposition() - (mistsutils_patchreporter(A= "height") / 2)));
+      mistsutils_patchcommand(A= "let last_x = left;");
+      mistsutils_patchcommand(A= "let last_y = y + graph[0] * height;");
+      mistsutils_patchcommand(A= "const penState = vm.runtime.ext_pen._getPenState(target).penAttributes;");
+      mistsutils_patchcommand(A= "const penSkinId = vm.runtime.ext_pen._penSkinId;");
+      mistsutils_patchcommand(A= "for (let i = 0; i < len; i += steps) {");
+      mistsutils_patchcommand2(A= "const new_x = ", B= (mistsutils_patchreporter(A= "left") + mistsutils_patchreporter(A= "step_size * i")));
+      mistsutils_patchcommand2(A= "const new_y = ", B= (mistsutils_patchreporter(A= "y") + mistsutils_patchreporter(A= "graph[i] * height")));
+      mistsutils_patchcommand(A= "vm.runtime.renderer.penLine(penSkinId, penState, last_x, last_y, new_x, new_y)");
+      mistsutils_patchcommand(A= "last_x = new_x");
+      mistsutils_patchcommand(A= "if (last_y !== new_y) last_y = new_y");
+      mistsutils_patchcommand(A= "}");
+      mistsutils_patchcommand2(A= "const new_x = ", B= (mistsutils_patchreporter(A= "x") + (input2 / 2)));
+      mistsutils_patchcommand2(A= "const new_y = ", B= (mistsutils_patchreporter(A= "y") + mistsutils_patchreporter(A= "graph[len] * height")));
+      mistsutils_patchcommand(A= "vm.runtime.renderer.penLine(penSkinId, penState, last_x, last_y, new_x, new_y)");
+    }
+    case "icongrid" {
+      mistsutils_patchcommand(A= "let grid;");
+      mistsutils_patchcommand2(A= "grid = ", B= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand(A= "if (typeof grid !== \"object\") { try { grid = JSON.parse(grid) } catch { return null } }");
+      mistsutils_patchcommand3(A= "let grid_w = +", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= " || 0");
+      mistsutils_patchcommand3(A= "let grid_h = +", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= " || 0");
+      motion_changexby(DX= (((data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 1) * (0 - data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))) / 2));
+      mistsutils_patchcommand2(A= "let grid_start_x = ", B= motion_xposition());
+      motion_changeyby(DY= (((data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 1) * data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))) / 2));
+      mistsutils_patchcommand2(A= "let grid_start_y = ", B= motion_yposition());
+      mistsutils_patchcommand2(A= "let grid_dir = ", B= motion_direction());
+      mistsutils_patchcommand(A= "let grid_i1 = 0, grid_i2 = 0");
+      mistsutils_patchcommand(A= "let cur_grid = grid?.[0] ?? []");
+      repeat data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        repeat mistsutils_patchreporter(A= "cur_grid.length") {
+          mistsutils_patchcommand(A= "let grid_item = cur_grid?.[grid_i2] ?? \"\"; if (grid_item !== \"\") {");
+          motion_gotoxy(X= mistsutils_patchreporter(A= "grid_start_x + (grid_w * grid_i2)"), Y= mistsutils_patchreporter(A= "grid_start_y - (grid_h * grid_i1)"));
+          @Draw_Icon_boldness(Code= mistsutils_patchreporter(A= "grid_item"), Size= mistsutils_patchreporter(A= "grid_w / 20"), setsize= "", x= "", y= "", direction= mistsutils_patchreporter(A= "grid_dir"), boldness= "");
+          mistsutils_patchcommand(A= "} grid_i2 ++");
+        }
+        mistsutils_patchcommand(A= "grid_i2 = 0; grid_i1 ++; cur_grid = grid?.[grid_i1] ?? []");
+      }
+    }
+    case "stretch" {
+      if (input2 == "x") {
+        @set_stretch_to_x_y(x= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), y= vars["Renderer // Stretch Y"]);
+      } else {
+        if (input2 == "y") {
+          @set_stretch_to_x_y(x= vars["Renderer // Stretch X"], y= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        } else {
+          if @is_array(input= input2) {
+            mistsutils_patchcommand(A= "if (typeof p1 !== \"object\") { try { p1 = JSON.parse(p1) } catch {} }");
+            @set_stretch_to_x_y(x= mistsutils_patchreporter(A= "p1[0]"), y= mistsutils_patchreporter(A= "p1[1]"));
+          } else {
+            @set_stretch_to_x_y(x= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), y= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+        }
+      }
+    }
+    case "image" {
+      if mistsutils_equals(A= input2, B= "clear") {
+        mistSkins_deleteSkin(NAME= @destring(Text= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\""));
+      } else {
+        if mistsutils_equals(A= input2, B= "load") {
+          mistSkins_registerURLSkin(URL= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), NAME= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          wait_until mistSkins_getSkinLoaded(NAME= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        } else {
+          mistsutils_patchcommand2(A= "const w = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand2(A= "const h = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          @Draw_Image(url= input2, width= mistsutils_patchreporter(A= "w"), height= mistsutils_patchreporter(A= "h"));
+        }
+      }
+    }
+    case "effect" {
+      mistsutils_patchcommand(A= "if (p1 === 'clear') {");
+      mistsutils_patchcommand2(A= vars["OSL // Effects"], B= " = {}");
+      looks_cleargraphiceffects();
+      mistsutils_patchcommand(A= "break;}");
+      data_replaceitemoflist(INDEX= 3, ITEM= (round((data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) * 10)) / 10), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+      mistsutils_patchcommand3(A= "if (+(", B= vars["OSL // Effects"], C= mistsutils_patchreporter3(A= "?.[p1]) !== +", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ") {"));
+      mistsutils_patchcommand3(A= vars["OSL // Effects"], B= "[p1] = +", C= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand(A= "}");
+      switch input2 {
+        case "colour" {
+          looks_seteffectto(VALUE= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), EFFECT: ["COLOR",null]);
+        }
+        case "transparency" {
+          looks_seteffectto(VALUE= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), EFFECT: ["GHOST",null]);
+        }
+        case "brightness" {
+          looks_seteffectto(VALUE= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), EFFECT: ["BRIGHTNESS",null]);
+        }
+        case "fisheye" {
+          looks_seteffectto(VALUE= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), EFFECT: ["FISHEYE",null]);
+        }
+        case "pixelate" {
+          looks_seteffectto(VALUE= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), EFFECT: ["PIXELATE",null]);
+        }
+        default {
+          @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown effect command: ${p1}`"), Type= "Unknown Command");
+        }
+      }
+    }
+    case "input" {
+      switch data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        case "focus" {
+          @Inputs_Focus(id= (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ("," .. vars["WIndow // ID"])));
+        }
+        case "unfocus" {
+          @Inputs_Unfocus();
+        }
+        case "move_cursor" {
+          @Inputs_Move_Cursor_To(line= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), char= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        case "select" {
+          @Inputs_Select_From_to(line= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), char= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), line2= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), char2= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        default {
+          if (data_lengthoflist(LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) < "5") {
+            data_addtolist(ITEM= "Type Here", LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          }
+          data_addtolist(ITEM= "10", LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          @destring(Text= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"");
+          mistsutils_patchcommand(A= "let input_type = \"\"");
+          if operator_contains(STRING1= vars["DeString // out"], STRING2= ".") {
+            mistsutils_patchcommand3(A= "const parts = ", B= vars["DeString // out"], C= ".split(\".\", 2)");
+            mistsutils_patchcommand(A= "input_type = parts[0]");
+            data_replaceitemoflist(INDEX= 4, ITEM= mistsutils_patchreporter(A= "parts[1]"), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          } else {
+            data_replaceitemoflist(INDEX= 4, ITEM= vars["DeString // out"], LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          }
+          mistsutils_patchcommand2(A= "const input_height = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand2(A= "const input_id = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand2(A= "const input_default = ", B= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand2(A= "const input_rounding = ", B= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand2(A= "const input_text_colour = ", B= data_itemoflist(INDEX= 7, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand2(A= "const input_var = ", B= ("input_" .. mistsutils_patchreporter(A= "input_id")));
+          mistsutils_patchcommand3(A= "let input_ref = osl_clone[", B= vars["WIndow // ID"], C= "]");
+          mistsutils_patchcommand(A= "input_ref.inputs[input_id] ??= \"\"");
+          mistsutils_patchcommand(A= "input_ref[input_var] = input_ref.inputs[input_id]");
+          mistsutils_patchcommand2(A= "const focused = ", B= (vars["Inputs // Current Selected"] == (mistsutils_patchreporter(A= "input_id + \",\"") .. vars["WIndow // ID"])));
+          if mistsutils_patchboolean(A= "focused") {
+            vars["Inputs // Current Line"] = "0";
+            vars["Inputs // Start Line"] = "0";
+          }
+          vars["Inputs // Output Data"] = mistsutils_patchreporter(A= "input_ref[input_var]");
+          @Inputs_draw_Rounding_ID_text_size(data_value= vars["Inputs // Output Data"], width= input2, height= mistsutils_patchreporter(A= "input_height"), default_text= mistsutils_patchreporter(A= "input_default"), selected= mistsutils_patchboolean(A= "focused"), Text_colour= mistsutils_patchreporter(A= "input_text_colour"), Rounding= mistsutils_patchreporter(A= "input_rounding"), type= mistsutils_patchreporter(A= "input_type"), ID= mistsutils_patchreporter(A= "input_id"), draw_text= null, txt_size= "", sel_colour= @OSL_Vars_Get(Varname= "global_accent"));
+          if mistsutils_patchboolean(A= "focused") {
+            @OSL_Vars_Set(name= "selected_input", data= mistsutils_patchreporter(A= "input_id"), current_command= "");
+            mistsutils_patchcommand3(A= "input_ref.output = `${", B= vars["Inputs // Output Data"], C= "}`");
+            mistsutils_patchcommand(A= "input_ref[input_var] = input_ref.output");
+            mistsutils_patchcommand(A= "input_ref.inputs[input_id] = input_ref.output");
+            mistsutils_patchcommand(A= "const obj = {id: input_id, element: \"input\", lines: 1, cursor:{line: 1, char: 0}, scroll:{x:0, y:0}}");
+            mistsutils_patchcommand2(A= "obj.highlighted = ", B= vars["Inputs // Selected String"]);
+            mistsutils_patchcommand2(A= "obj.cursor.char = ", B= vars["Inputs // Cursor Position"]);
+            mistsutils_patchcommand(A= "input_ref.inputs.selected = obj");
+          } else {
+            if mistsutils_patchboolean(A= "target.osl_vars.clicked === true") {
+              MistKeyHistoryExtension_deleteAllKeys();
+              vars["Inputs // Current Selected"] = (mistsutils_patchreporter(A= "input_id + \",\"") .. vars["WIndow // ID"]);
+              vars["Inputs // Start Text Position"] = "0";
+              vars["Inputs // Output Data"] = @OSL_Vars_Get(Varname= mistsutils_patchreporter(A= "input_var"));
+              vars["Inputs // Start Letter Pos"] = "0";
+              vars["Inputs // Selected String"] = "";
+            }
+          }
+        }
+      }
+    }
+    case "textbox" {
+      @OSL_Thread_Open(Name= "sys.Textbox");
+      mistsutils_patchcommand2(A= "const x_pos = ", B= motion_xposition());
+      mistsutils_patchcommand2(A= "const y_pos = ", B= motion_yposition());
+      mistsutils_patchcommand2(A= "const textbox_width = ", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const textbox_height = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const textbox_id = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const textbox_rounding = +", B= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const textbox_params = ", B= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand(A= "const textbox_ref = target.osl_vars.inputs");
+      mistsutils_patchcommand(A= "textbox_ref[textbox_id] ??= [\"\"]");
+      mistsutils_patchcommand(A= "if (!Array.isArray(textbox_ref[textbox_id]))");
+      @Log_Error(Data= "Textbox data must be an array", Type= "Type");
+      mistsutils_patchcommand2(A= "const textbox_data = ", B= "textbox_ref[textbox_id]");
+      mistsutils_patchcommand(A= "target.variables[\"IM@5kK4sMM=*Wu!`#VFF\"].value = textbox_data");
+      mistsutils_patchcommand(A= "const arr = textbox_ref[textbox_id] ?? []; let maxLen = 0; for (let i = 0, n = arr.length; i < n; i++) { const len = arr[i]?.length; if (len > maxLen) maxLen = len; } const result = maxLen * 10 + 200;");
+      @OSL_Parse_and_Run(Run= "this.pos = [x_position,y_position]");
+      vars["Studio // Content Width"] = mistsutils_patchreporter(A= "result");
+      mistsutils_patchcommand(A= "if (textbox_params.bg_colour) {");
+      @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "`c ${textbox_params.bg_colour}`"));
+      @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "`square ${textbox_width} ${textbox_height} ${textbox_rounding}`"));
+      mistsutils_patchcommand(A= "}");
+      mistsutils_patchcommand2(A= "const textbox_v_scroll = ", B= (mistsutils_patchreporter(A= "textbox_data.length") * mistsutils_patchreporter(A= "(textbox_params?.line_height ?? 23)")));
+      @OSL_Parse_and_Run(Run= (mistsutils_patchreporter(A= "`frame x_position - ${textbox_width / 2} y_position + ${textbox_height / 2} x_position + ${textbox_width / 2} y_position - ${textbox_height / 2} [`") .. (vars["Studio // Content Width"] .. ("," .. (mistsutils_patchreporter(A= "textbox_v_scroll") .. mistsutils_patchreporter(A= "`] ${textbox_id}`"))))));
+      mistsutils_patchcommand(A= "if (\"\"+textbox_params.readonly != \"true\") {");
+      if (vars["Inputs // Current Selected"] == (mistsutils_patchreporter(A= "textbox_id + \",\"") .. vars["WIndow // ID"])) {
+        @OSL_Vars_Set(name= "selected_input", data= mistsutils_patchreporter(A= "textbox_id"), current_command= "");
+      } else {
+        if ((vars["Frame // Interactable"] == "true") && ((mistsutils_patchboolean(A= "osl.mouse_left") && (data_lengthoflist(LIST: list("Rightclick Options", "shgJ[!T-Mw;C6gtV1bEu")) == "0")) && (vars["Window // ID_Index"] == "1"))) {
+          MistKeyHistoryExtension_deleteAllKeys();
+          vars["Inputs // Current Selected"] = (mistsutils_patchreporter(A= "textbox_id + \",\"") .. vars["WIndow // ID"]);
+        }
+      }
+      mistsutils_patchcommand(A= "} else {");
+      if (vars["Inputs // Current Selected"] == (mistsutils_patchreporter(A= "textbox_id + \",\"") .. vars["WIndow // ID"])) {
+        vars["Inputs // Current Selected"] = "0";
+      }
+      mistsutils_patchcommand(A= "}");
+      mistsutils_patchcommand2(A= "const changed = ", B= @Text_Box(id= mistsutils_patchreporter(A= "textbox_id"), content= mistsutils_patchreporter(A= "textbox_data"), text_colour= mistsutils_patchreporter(A= "osl.user.theme.text"), focused= (vars["Inputs // Current Selected"] == (mistsutils_patchreporter(A= "textbox_id + \",\"") .. vars["WIndow // ID"])), parameters= mistsutils_patchreporter(A= "textbox_params")));
+      mistsutils_patchcommand2(A= "textbox_ref[textbox_id] = ", B= "textbox_data");
+      if (vars["Inputs // Current Selected"] == (mistsutils_patchreporter(A= "textbox_id + \",\"") .. vars["WIndow // ID"])) {
+        mistsutils_patchcommand(A= "const obj = {id: textbox_id, element: \"textbox\", lines: textbox_ref[textbox_id]?.length ?? 1, cursor:{line: 1, char: 0}, scroll:{x:0, y:0}, changed}");
+        mistsutils_patchcommand2(A= "obj.highlighted = ", B= vars["Inputs // Selected String"]);
+        mistsutils_patchcommand2(A= "obj.cursor.char = ", B= vars["Inputs // Cursor Position"]);
+        mistsutils_patchcommand2(A= "obj.cursor.line = ", B= vars["Inputs // Current Line"]);
+        mistsutils_patchcommand2(A= "obj.scroll.x = ", B= mistsutils_squarebrackets(A= data_itemoflist(INDEX= 1, LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")), B= "scroll_h"));
+        mistsutils_patchcommand2(A= "obj.scroll.y = ", B= mistsutils_squarebrackets(A= data_itemoflist(INDEX= 1, LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6")), B= "scroll"));
+        mistsutils_patchcommand(A= "textbox_ref.selected = obj");
+      }
+      @OSL_Parse_and_Run(Run= "frame \"clear\"");
+      @OSL_Parse_and_Run(Run= "goto pos");
+      @OSL_Thread_Close();
+      stop "this script";
+    }
+    case "switch" {
+      mistsutils_patchcommand2(A= "const tokens = ", B= tokens);
+      mistsutils_patchcommand(A= "const cases = tokens[0]?.cases;");
+      mistsutils_patchcommand(A= "let startidx = -1;");
+      mistsutils_patchcommand(A= "if (cases.type === \"object\") startidx = cases.all[p1] ?? cases.default ?? -1;");
+      mistsutils_patchcommand(A= "else if (cases.type === \"array\") {");
+      mistsutils_patchcommand(A= "const all = cases.all");
+      mistsutils_patchcommand(A= "let i = 0");
+      until (mistsutils_patchboolean(A= "(i + 1) >= all.length") || mistsutils_patchboolean(A= "startidx > -1")) {
+        mistsutils_patchcommand(A= "i ++");
+        mistsutils_patchcommand3(A= "if (", B= @Evaluate_OSL_Token(Token_Obj= mistsutils_patchreporter(A= "all[i][0]")), C= " === p1) startidx = all[i][1]");
+      }
+      mistsutils_patchcommand(A= "if (startidx < 0) startidx = cases.default ?? -1");
+      mistsutils_patchcommand(A= "}");
+      mistsutils_patchcommand(A= "if (startidx < 0) return;");
+      mistsutils_patchcommand(A= "const code = tokens[2].data");
+      mistsutils_patchcommand(A= "for (let i = startidx + 1; i < code.length; i ++) {");
+      mistsutils_patchcommand2(A= "const dat = ", B= @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "code[i]")));
+      mistsutils_patchcommand(A= "if (dat) { if (dat.type === \"break\") break; return dat }");
+      mistsutils_patchcommand(A= "}");
+      stop "this script";
+    }
+    case "video" {
+      if (input2 == "load") {
+        mistsutils_patchcommand2(A= "const url = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        mistsutils_patchcommand2(A= "const name = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        lmsVideo_loadVideoURL(URL= mistsutils_patchreporter(A= "url"), NAME= (vars["WIndow // ID"] .. mistsutils_patchreporter(A= "\"_\" + name")));
+      } else {
+        vars["DeString // out"] = (vars["WIndow // ID"] .. ("_" .. input2));
+        switch data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+          case "clear" {
+            lmsVideo_deleteVideoURL(NAME= vars["DeString // out"]);
+          }
+          case "play" {
+            lmsVideo_resume(NAME= vars["DeString // out"]);
+          }
+          case "pause" {
+            lmsVideo_pause(NAME= vars["DeString // out"]);
+          }
+          case "speed" {
+            lmsVideo_setPlaybackRate(NAME= vars["DeString // out"], RATE= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+          case "volume" {
+            lmsVideo_setVolume(NAME= vars["DeString // out"], VALUE= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+          case "seek" {
+            lmsVideo_startVideo(NAME= vars["DeString // out"], DURATION= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+          default {
+            if skyhigh173JSON_json_has_value(json= lmsVideo_getLoadedVideos(), value= vars["DeString // out"]) {
+              vars["Video // ID"] = vars["DeString // out"];
+              vars["//return"] = ((data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) / lmsVideo_getAttribute(NAME= vars["Video // ID"], ATTRIBUTE: ["width",null])) * 100);
+              if (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "") {
+                looks_setsizeto(SIZE= mistsutils_ifthen(A= (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == ""), B= "100", C= vars["//return"]));
+              } else {
+                vars["DeString // out"] = ((data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) / lmsVideo_getAttribute(NAME= vars["Video // ID"], ATTRIBUTE: ["height",null])) * 100);
+                if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "") {
+                  looks_setsizeto(SIZE= vars["DeString // out"]);
+                } else {
+                  looks_setsizeto(SIZE= 100);
+                  @set_stretch_to_x_y(x= vars["//return"], y= vars["DeString // out"]);
+                }
+              }
+              lmsVideo_showVideo(NAME= vars["Video // ID"], TARGET= lmsVideo_menu_targets(targets: ["_myself_",null]));
+              pen_stamp();
+              lmsVideo_stopShowingVideo(TARGET= lmsVideo_menu_targets(targets: ["_myself_",null]));
+            } else {
+              mistsutils_patchcommand2(A= "let val = ", B= vars["DeString // out"]);
+              mistsutils_patchcommand(A= "const videos = origin.fetches.video");
+              mistsutils_patchcommand(A= "if (videos.indexOf(val) === -1) videos.push(val)");
+            }
+          }
+        }
+      }
+    }
+    case "if" {
+      if mistsutils_patchboolean(A= "p1 === true || (String(p1 ?? \"\").toLowerCase() === \"true\")") {
+        mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "spl[2]")));
+        mistsutils_patchcommand(A= "if (ret) return ret;");
+      } else {
+        mistsutils_patchcommand(A= "if (spl?.length === 3) return; spl.splice(0, 3)");
+        until mistsutils_patchboolean(A= "(spl?.length === 0)") {
+          if mistsutils_patchboolean(A= "spl[0] === \"else\"") {
+            if mistsutils_patchboolean(A= "spl[1] === \"if\"") {
+              if mistsutils_patchboolean(A= "spl[2] === true || (String(spl[2] ?? \"\").toLowerCase() === \"true\")") {
+                mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "spl[3]")));
+                mistsutils_patchcommand(A= "return ret;");
+              }
+              mistsutils_patchcommand(A= "spl.splice(0, 4)");
+            } else {
+              mistsutils_patchcommand2(A= "return ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "spl[1]")));
+            }
+          } else {
+            @Log_Error(Data= mistsutils_patchreporter(A= "`Invalid token in if else chain: ${spl[0]}`"), Type= "if else");
+          }
+        }
+      }
+      stop "this script";
+    }
+    case "while" {
+      mistsutils_patchcommand2(A= "const fst = ", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const blk = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      until mistsutils_false() {
+        mistsutils_patchcommand3(A= "if (String(", B= @Evaluate_OSL_Token(Token_Obj= mistsutils_patchreporter(A= "fst")), C= ") !== \"true\") break;");
+        mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "blk")));
+        mistsutils_patchcommand(A= "if (ret) { const t = ret.type; if(t === \"break\") break; else if (t === \"continue\") continue; else return ret; }");
+      }
+      stop "this script";
+    }
+    case "until" {
+      mistsutils_patchcommand2(A= "const fst = ", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const blk = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      until mistsutils_false() {
+        mistsutils_patchcommand3(A= "if (String(", B= @Evaluate_OSL_Token(Token_Obj= mistsutils_patchreporter(A= "fst")), C= ") === \"true\") break;");
+        mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "blk")));
+        mistsutils_patchcommand(A= "if (ret) { const t = ret.type; if(t === \"break\") break; else if (t === \"continue\") continue; else return ret; }");
+      }
+      stop "this script";
+    }
+    case "loop" {
+      mistsutils_patchcommand2(A= "const num = +", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const blk = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      repeat mistsutils_patchreporter(A= "num") {
+        mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "blk")));
+        mistsutils_patchcommand(A= "if (ret) { const t = ret.type; if(t === \"break\") break; else if (t === \"continue\") continue; else return ret; }");
+      }
+      stop "this script";
+    }
+    case "for" {
+      mistsutils_patchcommand3(A= "const osl_var = target.getThisIdx(target, ", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ")");
+      mistsutils_patchcommand2(A= "const blk = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "target.osl_this", B= "[osl_var] = 0");
+      repeat data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+        mistsutils_patchcommand2(A= "target.osl_this", B= "[osl_var] ++");
+        mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "blk")));
+        mistsutils_patchcommand(A= "if (ret) { const t = ret.type; if(t === \"break\") break; else if (t === \"continue\") continue; else return ret; }");
+      }
+      stop "this script";
+    }
+    case "try" {
+      mistsutils_patchcommand(A= "try {");
+      mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      mistsutils_patchcommand(A= "if (ret) return ret;");
+      mistsutils_patchcommand(A= "} catch(e) { if (e?._m === \"OSL ERROR\") { if (spl.length < 4) return;");
+      mistsutils_patchcommand3(A= "if (spl[3]?.type !== \"blk\") { ", B= "target.osl_this", C= "[spl[3]] = e; spl.shift() }");
+      mistsutils_patchcommand(A= "if (spl[3]?.type !== \"blk\") return");
+      mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "spl[3]")));
+      mistsutils_patchcommand(A= "if (ret) return ret;");
+      mistsutils_patchcommand(A= "}}");
+      stop "this script";
+    }
+    case "run" {
+      mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "{type: \"blk\", data: p1 }")));
+      mistsutils_patchcommand(A= "if (ret) return ret");
+      stop "this script";
+    }
+    case "interface" {
+      mistsutils_patchcommand(A= "const tokens = p2");
+      mistsutils_patchcommand(A= "const varTkn = tokens[1]");
+      mistsutils_patchcommand(A= "if (varTkn?.num !== osl_tkn.var)");
+      @Log_Error(Data= "Invalid name, should be a variable", Type= "Interface");
+      mistsutils_patchcommand(A= "const blk = tokens[2]");
+      mistsutils_patchcommand(A= "if (blk?.num !== osl_tkn.blk)");
+      @Log_Error(Data= "Should have a block", Type= "Interface");
+      mistsutils_patchcommand(A= "const lines = blk.data");
+      mistsutils_patchcommand(A= "const obj = Object.create(null)");
+      mistsutils_patchcommand(A= "for (let i = 0; i < lines.length; i ++) {");
+      mistsutils_patchcommand(A= "const cur = lines[i]");
+      mistsutils_patchcommand(A= "window.osl_current_command = cur");
+      mistsutils_patchcommand(A= "if (cur.length !== 2)");
+      @Log_Error(Data= mistsutils_patchreporter(A= "`line should have 2 parts, got: ${cur.length}`"), Type= "Interface");
+      mistsutils_patchcommand(A= "let optional = cur[0].data.endsWith(\"?\")");
+      mistsutils_patchcommand(A= "if (optional) cur[0].data = cur[0].data.slice(0, -1)");
+      mistsutils_patchcommand(A= "obj[cur[1].data] = {type: cur[0].data, optional}");
+      mistsutils_patchcommand(A= "}");
+      mistsutils_patchcommand(A= "window.osl_current_command = p2");
+      mistsutils_patchcommand(A= "const out = Object.create(null)");
+      mistsutils_patchcommand(A= "out.data = obj");
+      mistsutils_patchcommand(A= "let self = target.osl_vars.__self__ ?? target.osl_vars");
+      mistsutils_patchcommand2(A= "self[varTkn.data] = ", B= @OSL_Function(name= mistsutils_patchreporter(A= "varTkn.data"), parameters= "inp", code= mistsutils_patchreporter(A= "(inp) => window.createTypedObject(out.data, inp, target)")));
+      stop "this script";
+    }
+    case "type" fallthrough {
+
+    }
+    case "class" {
+      mistsutils_patchcommand2(A= "let id = ", B= vars["WIndow // ID"]);
+      mistsutils_patchcommand2(A= "let self = ", B= "target.osl_vars.__self__ ?? null");
+      data_addtolist(ITEM= mistsutils_patchreporter(A= "self"), LIST: list("OSL // Classes Self Cache", "wjQi2_1%$?9TwXyT83(R"));
+      data_addtolist(ITEM= vars["Import // Current Package"], LIST: list("OSL // Classes Name Cache", "D%nB/}bRhJuMKg/j8^V["));
+      mistsutils_patchcommand3(A= "let varname = String(", B= "p2[1].data", C= ")");
+      mistsutils_patchcommand(A= "let extend_dat = Object.create(null)");
+      if (mistsutils_patchreporter(A= "p2[2].data") == "extends") {
+        mistsutils_patchcommand3(A= "extend_dat = Object.create(", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ")");
+        mistsutils_patchcommand3(A= "extend_dat.super = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ";");
+      }
+      mistsutils_patchcommand(A= "extend_dat.getProto = () => extend_dat.super");
+      mistsutils_patchcommand(A= "if (p0 === \"type\") {");
+      mistsutils_patchcommand(A= "extend_dat._symbol = origin.symbols.type");
+      mistsutils_patchcommand(A= "extend_dat._type = varname");
+      mistsutils_patchcommand(A= "} else extend_dat._symbol = origin.symbols.class");
+      if ((data_lengthoflist(LIST: list("OSL // Classes Name Cache", "D%nB/}bRhJuMKg/j8^V[")) == "1") || mistsutils_patchboolean(A= "self === null")) {
+        mistsutils_patchcommand(A= "const local = target.osl_local_scopes?.length > 1");
+        mistsutils_patchcommand(A= "const con = local ? target.osl_this : osl_clone[id]");
+        mistsutils_patchcommand(A= "if (!local) varname = varname.toLowerCase()");
+        mistsutils_patchcommand(A= "else varname = target.getThisIdx(target, varname)");
+        mistsutils_patchcommand(A= "con[varname] ??= extend_dat");
+        mistsutils_patchcommand(A= "osl_clone[id].__self__ =  con[varname]");
+      } else {
+        mistsutils_patchcommand(A= "self[varname] ??= extend_dat");
+        mistsutils_patchcommand(A= "osl_clone[id].__self__ =  self[varname]");
+      }
+      vars["Import // Current Package"] = mistsutils_patchreporter(A= "varname");
+      mistsutils_patchcommand2(A= "void ", B= @OSL_Execute_BLK(BLK= data_itemoflist(INDEX= data_lengthoflist(LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      mistsutils_patchcommand2(A= "const len = ", B= data_lengthoflist(LIST: list("OSL // Classes Name Cache", "D%nB/}bRhJuMKg/j8^V[")));
+      mistsutils_patchcommand2(A= "target.osl_vars.__self__ = ", B= data_itemoflist(INDEX= mistsutils_patchreporter(A= "len"), LIST: list("OSL // Classes Self Cache", "wjQi2_1%$?9TwXyT83(R")));
+      vars["Import // Current Package"] = data_itemoflist(INDEX= mistsutils_patchreporter(A= "len"), LIST: list("OSL // Classes Name Cache", "D%nB/}bRhJuMKg/j8^V["));
+      data_deleteoflist(INDEX= mistsutils_patchreporter(A= "len"), LIST: list("OSL // Classes Name Cache", "D%nB/}bRhJuMKg/j8^V["));
+      data_deleteoflist(INDEX= mistsutils_patchreporter(A= "len"), LIST: list("OSL // Classes Self Cache", "wjQi2_1%$?9TwXyT83(R"));
+      stop "this script";
+    }
+    case "wait" {
+      mistsutils_patchcommand(A= "thread.timer=timer();var a0=Math.max(0,1e3*p1);for(runtime.requestRedraw(),yield;thread.timer.timeElapsed()<a0;)yield;thread.timer=null;");
+      stop "this script";
+    }
+    case "def" {
+      mistsutils_patchcommand(A= "let obj = {type: \"command\", parameters: []}");
+      mistsutils_patchcommand(A= "let name;");
+      if truefantomregexp_regexp_test_block(A= input2, B= "/^[a-zA-Z\\d_@]+$/") {
+        mistsutils_patchcommand2(A= "name = ", B= input2);
+        if mistsutils_patchreporter3(A= "typeof ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= "  === \"object\"") {
+          mistsutils_patchcommand2(A= "obj.code = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        } else {
+          mistsutils_patchcommand2(A= "obj.parameters = ", B= mistsutils_splitarray(A= mistsutils_replaceall(C= " ", A= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B= ""), B= ","));
+          mistsutils_patchcommand2(A= "obj.code = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        mistsutils_patchcommand(A= "if (obj?.code?.type !== \"blk\")");
+        @Log_Error(Data= "The def command needs to be passed a block", Type= "Define");
+        mistsutils_patchcommand(A= "obj.code = obj.code.data");
+        mistsutils_patchcommand(A= "const context = name.split(\":\")");
+        mistsutils_patchcommand2(A= "obj.parent = ", B= mistsutils_ifthen(A= (vars["Import // Current Package"] == ""), B= mistsutils_patchreporter(A= "context.length < 2 ? \"\" : context[0]"), C= vars["Import // Current Package"]));
+        mistsutils_patchcommand(A= "obj.name = name");
+        if not((vars["Import // Current Package"] == "")) {
+          mistsutils_patchcommand2(A= "name = ", B= ((vars["Import // Current Package"] .. ":") .. mistsutils_patchreporter(A= "name")));
+        }
+        mistsutils_patchcommand2(A= "target.osl_globals", B= ".commands[name] = obj");
+      } else {
+        @Log_Error(Data= "Invalid Name For def, must match the regex /^[a-zA-Z\\d_@]+$/", Type= "Define");
+      }
+      stop "this script";
+    }
+    case "permission" {
+      if (input2 == "request") {
+        vars["OSL// Permission Output"] = "";
+        if mistsutils_patchreporter3(A= @Root_Permissions(), B= ".includes(String(", C= mistsutils_patchreporter2(A= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), B= ").toLowerCase())")) {
+          if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "Start Run") {
+            if not(operator_contains(STRING1= skyhigh173JSON_json_get(item= "onboot", json= vars["Account// Current"]), STRING2= @OSL_Vars_Get(Varname= "my_path"))) {
+              @Add_Popup_with_type_ontop_of(Title= "start run", Subtext= mistsutils_patchreporter2(A= vars["SYSTEM // Permission Info"], B= "[\"start run\"]"), type= "permission", object= "{}");
+            }
+          } else {
+            if not(@Permissions_Has(perm= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))) {
+              @Add_Popup_with_type_ontop_of(Title= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Subtext= mistsutils_patchreporter2(A= vars["SYSTEM // Permission Info"], B= mistsutils_patchreporter3(A= "[String(", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ").toLowerCase()]")), type= "permission", object= "{}");
+            }
+          }
+        }
+      } else {
+        if (input2 == "give") {
+          if @Permissions_Has(perm= "permission editor") {
+            mistsutils_patchcommand3(A= "origin.permissions.writes.push(", B= skyhigh173JSON_json_set(item= "app", json= skyhigh173JSON_json_set(item= "title", json= "{}", value= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), value= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), C= ")");
+          } else {
+            @Log_Error(Data= "[FCGP] Tried To Give A Permission Without The Correct Permissions", Type= "Permission");
+          }
+        }
+      }
+      stop "this script";
+    }
+    case "include" {
+      vars["DeString // out"] = (data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ".folder");
+      mistsutils_patchcommand2(A= "let id = ", B= @originFS_Path_ID(Path= vars["DeString // out"]));
+      @Permissions_Can_i_view_file(File_To_Get= mistsutils_patchreporter(A= "id"));
+      @OSL_Set_Data_Var_To(data= mistsutils_patchreporter(A= "[]"));
+      if (vars["OSL// Permission Output"] == "1") {
+        mistsutils_patchcommand(A= "try {");
+        @OSL_Set_Data_Var_To(data= mistsutils_jsonparse(A= data_itemoflist(INDEX= @file_item_of_num(index= mistsutils_patchreporter(A= "id"), num= "4"), LIST: list("Files", "m~?pufmd(#?1E)uvMQ*-"))));
+        mistsutils_patchcommand(A= "} catch {}");
+      } else {
+        @Log_Error(Data= ("Include Denied To " .. vars["DeString // out"]), Type= "Permission");
+      }
+      stop "this script";
+    }
+    case "notify" {
+      if @Permissions_Has(perm= "notifications") {
+        vars["DeString // out"] = @originFS_UUID_ID(UUID= vars["Window // UUID"]);
+        @File_get_item(id= vars["DeString // out"], item= "11");
+        if (vars["//return"] == "") {
+          vars["//return"] = mistsutils_patchreporter3(A= "osl_filetypes[", B= @File_get_item(id= vars["DeString // out"], item= "1"), C= "]?.[0] ?? \"\"");
+          if (vars["//return"] == "") {
+            vars["//return"] = "c #588fbf w 6 square 0 -2 5 6 square -2 2.9 3 5 line -3 -4 3 -4 w 3 c #335776 line 2 9.5 6.5 5 cont 2 5 cont 2 9.5";
+          }
+        }
+        @Show_Notification(Icon= vars["//return"], Title= @File_get_item(id= vars["DeString // out"], item= "2"), Text= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Style= "", Action= "");
+        mistsutils_patchcommand3(A= "origin.notifications.push(", B= vars["Kernel // Notification"], C= ")");
+      } else {
+        @Log_Error(Data= "Cannot run \"notify\" because \"notifications\" Permissions Missing", Type= "Permissions");
+      }
+      stop "this script";
+    }
+    case "import" {
+      if @Permissions_Has(perm= ".sandbox") {
+        stop "this script";
+      }
+      vars["//return"] = input2;
+      mistsutils_patchcommand(A= "let import_as = \"\"");
+      if mistsutils_patchreporter(A= "split_text.length > 2") {
+        mistsutils_patchcommand2(A= "let as = ", B= "split_text.indexOf(\"as\") + 1");
+        if (mistsutils_patchreporter(A= "as") > "0") {
+          data_deleteoflist(INDEX= mistsutils_patchreporter(A= "as"), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          mistsutils_patchcommand2(A= "import_as = ", B= data_itemoflist(INDEX= mistsutils_patchreporter(A= "as"), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          vars["//return"] = data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+        }
+      }
+      mistsutils_patchcommand2(A= "let import_name = ", B= vars["//return"]);
+      if mistsutils_patchreporter2(A= vars["OSL // Import Cache"], B= ".has(import_name)") {
+        vars["//return"] = mistsutils_patchreporter2(A= vars["OSL // Import Cache"], B= ".get(import_name)");
+      } else {
+        mistsutils_patchcommand2(A= "let from = ", B= "split_text.indexOf(\"from\") + 1");
+        mistsutils_patchcommand(A= "let from_dat = \"\";");
+        mistsutils_patchcommand(A= "let import_filetype = \"osl\";");
+        if (mistsutils_patchreporter(A= "from") > "0") {
+          mistsutils_patchcommand2(A= "from_dat = ", B= data_itemoflist(INDEX= mistsutils_patchreporter(A= "from + 1"), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        } else {
+          mistsutils_patchcommand2(A= "from_dat = ", B= "import_name.includes(\"/\") ? import_name : \"origin/(a) system/modules\"");
+        }
+        if (mistsutils_starts(A= mistsutils_patchreporter(A= "from_dat"), B= "https://") || mistsutils_starts(A= mistsutils_patchreporter(A= "from_dat"), B= "data:")) {
+          vars["//return"] = mistsutils_ifthen(A= mistsutils_patchboolean(A= "navigator.onLine"), B= cloudlink_fetchURL(url= mistsutils_patchreporter(A= "from_dat")), C= "");
+        } else {
+          if operator_contains(STRING1= mistsutils_patchreporter(A= "from_dat"), STRING2= ".") {
+            if mistsutils_starts(A= mistsutils_patchreporter(A= "from_dat.toLowerCase()"), B= "origin/(") {
+              @File_get_item(id= mistsutils_patchreporter(A= "from_dat"), item= "4");
+            } else {
+              @File_get_item(id= mistsutils_patchreporter(A= "`${osl.user_folder}/${from_dat}`"), item= "4");
+            }
+          } else {
+            if mistsutils_starts(A= mistsutils_patchreporter(A= "from_dat.toLowerCase()"), B= "origin/(a) system/modules") {
+              @File_get_item(id= mistsutils_patchreporter(A= "`${from_dat}/${import_name}.osl`"), item= "4");
+            } else {
+              vars["//return"] = cloudlink_fetchURL(url= mistsutils_patchreporter3(A= "`https://origin.mistium.com/Modules/${", B= "import_name", C= ".toLowerCase()}.osl`"));
+              if (vars["//return"] == "") {
+                @Log_Error(Data= mistsutils_patchreporter(A= "`OSL Package: \"${import_name}\" failed to load, check you are online`"), Type= "Package");
+                mistsutils_patchcommand(A= "throw new Error(\"OSL Package failed to load, check you are online\")");
+              }
+            }
+          }
+        }
+        mistsutils_patchcommand2(A= "let import_code = ", B= OSLUtils_generateFullAST(CODE= vars["//return"]));
+        mistsutils_patchcommand2(A= vars["OSL // Import Cache"], B= ".set(import_name, import_code)");
+        vars["//return"] = mistsutils_patchreporter(A= "import_code");
+      }
+      @OSL_Import(Code= vars["//return"], Name= mistsutils_patchreporter(A= "import_name"), Import= mistsutils_patchreporter(A= "import_as"));
+      stop "this script";
+    }
+    case "open_rightclick" {
+      mistsutils_patchcommand2(A= "const original = ", B= vars["Right Clicked?"]);
+      vars["Right Clicked?"] = "true";
+      @RightClick(Data_Rightclicked= input2, X= motion_xposition(), Y= motion_yposition(), current_file= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      vars["Right Clicked?"] = mistsutils_patchreporter(A= "original");
+      stop "this script";
+    }
+    case "rightclick" {
+      mistsutils_patchcommand(A= "if (target.osl_vars.clicked !== true)");
+      @RightClick(Data_Rightclicked= input2, X= sensing_mousex(), Y= sensing_mousey(), current_file= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      stop "this script";
+    }
+    case "movefileloc" {
+      mistsutils_patchcommand(A= "target.window.drop_location = p1");
+      stop "this script";
+    }
+    case "clipboard" {
+      if (input2 == "set") {
+        clipboard_setClipboard(TEXT= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      }
+      if (input2 == "clear") {
+        clipboard_resetClipboard();
+      }
+      stop "this script";
+    }
+    case "frame" {
+      if (input2 == "clear") {
+        @OSL_Frame_Clear();
+      } else {
+        if (input2 == "scroll") {
+          vars["Scroll// Y"] = data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          HyperSenseSP_setScrollDistance(DISTANCE= vars["Scroll// Y"]);
+          @OSL_Vars_Set(name= ("scroll_y" .. data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), data= vars["Scroll// Y"], current_command= "");
+        } else {
+          mistsutils_patchcommand(A= "const x = target.x, y = target.y;");
+          vars["Frame // Min X"] = (vars["Frame // X"] + input2);
+          vars["Frame // Max Y"] = (vars["Frame // Y"] + data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          vars["Frame // Max X"] = (vars["Frame // X"] + data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          vars["Frame // Min Y"] = (vars["Frame // Y"] + data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          vars["Frame // Width"] = abs((vars["Frame // Min X"] - vars["Frame // Max X"]));
+          vars["Frame // Height"] = abs((vars["Frame // Max Y"] - vars["Frame // Min Y"]));
+          vars["Frame // X"] = (vars["Frame // Min X"] + (vars["Frame // Width"] / 2));
+          vars["Frame // Y"] = (vars["Frame // Min Y"] + (vars["Frame // Height"] / 2));
+          vars["Frame // Interactable"] = (((sensing_mousey() > vars["Frame // Min Y"]) && (sensing_mousey() < vars["Frame // Max Y"])) && ((sensing_mousex() > vars["Frame // Min X"]) && (sensing_mousex() < vars["Frame // Max X"])));
+          @OSL_Vars_Set(name= "frame_focused", data= vars["Frame // Interactable"], current_command= "");
+          mistsutils_patchcommand2(A= "const intractable = ", B= (vars["Frame // Interactable"] == "true"));
+          mistsutils_patchcommand2(A= "const last = ", B= data_itemoflist(INDEX= data_lengthoflist(LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand2(A= "let id = ", B= data_itemoflist(INDEX= 7, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand(A= "if (typeof id !== \"string\") id = \"\"");
+          mistsutils_patchcommand(A= "const parts = id.split(\"@\", 2)");
+          mistsutils_patchcommand(A= "let mode = \"norm\"");
+          mistsutils_patchcommand(A= "if (parts.length > 1) { id = parts[1]; mode = parts[0] }");
+          mistsutils_patchcommand2(A= "let left = ", B= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand(A= "let right = -20;");
+          mistsutils_patchcommand(A= "if (Array.isArray(left)) { right = left[0]; left = left[1] }");
+          mistsutils_patchcommand(A= "if (typeof left === \"object\") left = 0");
+          mistsutils_patchcommand(A= "if (typeof right === \"object\") right = 0");
+          mistsutils_patchcommand(A= "target.scroll[`framex_${id}`] ??= 0");
+          mistsutils_patchcommand(A= "target.scroll[`framey_${id}`] ??= 0");
+          if (mistsutils_patchreporter(A= "right") > vars["Frame // Width"]) {
+            if (mistsutils_patchreporter(A= "left") > vars["Frame // Height"]) {
+              @Window_ScrollBar_X_Y_W_H_ID(Max_W_Scroll= mistsutils_patchreporter(A= "right"), Max_H_Scroll= mistsutils_patchreporter(A= "left"), X= (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 20), Y= (data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) + 20), W= (vars["Frame // Width"] - 10), H= (vars["Frame // Height"] - 10), Id= mistsutils_patchreporter(A= "id"));
+              data_changevariableby(VALUE= 10, VARIABLE: var("Frame // Min Y", "Kq"));
+              data_changevariableby(VALUE= -10, VARIABLE: var("Frame // Max X", "Tw"));
+            } else {
+              @Window_ScrollBar_X_Y_W_H_ID(Max_W_Scroll= mistsutils_patchreporter(A= "right"), Max_H_Scroll= "0", X= (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 20), Y= (data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) + 5), W= (vars["Frame // Width"] - 10), H= vars["Frame // Height"], Id= mistsutils_patchreporter(A= "id"));
+              data_changevariableby(VALUE= -20, VARIABLE: var("Frame // Height", "iq"));
+              data_changevariableby(VALUE= 10, VARIABLE: var("Frame // Min Y", "Kq"));
+            }
+          } else {
+            if (mistsutils_patchreporter(A= "left") > vars["Frame // Height"]) {
+              @Window_ScrollBar_X_Y_W_H_ID(Max_W_Scroll= "0", Max_H_Scroll= mistsutils_patchreporter(A= "left"), X= (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) - 5), Y= (data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) + 5), W= vars["Frame // Width"], H= (vars["Frame // Height"] - 10), Id= mistsutils_patchreporter(A= "id"));
+              data_changevariableby(VALUE= -10, VARIABLE: var("Frame // Max X", "Tw"));
+            } else {
+              vars["Scroll // X"] = "-1";
+              vars["Scroll// Y"] = "-1";
+            }
+          }
+          @Window_Set_Frame(min_x= vars["Frame // Min X"], max_y= vars["Frame // Min Y"], max_x= vars["Frame // Max X"], min_y= vars["Frame // Max Y"], id= mistsutils_patchreporter(A= "id"), focusable= not((data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "")));
+          mistsutils_patchcommand2(A= "const frame = ", B= vars["OSL // Frame"]);
+          data_insertatlist(ITEM= mistsutils_patchreporter(A= "frame"), INDEX= 1, LIST: list("OSL // Frames", "AL,K:Y%_deV0ZVD.rgw6"));
+          @OSL_Vars_Set(name= ("scroll_x" .. mistsutils_patchreporter(A= "id")), data= vars["Scroll // X"], current_command= "");
+          @OSL_Vars_Set(name= ("scroll_y" .. mistsutils_patchreporter(A= "id")), data= vars["Scroll// Y"], current_command= "");
+          if mistsutils_patchboolean(A= "last?.type === \"blk\"") {
+            mistsutils_patchcommand(A= "const last_frame = target.frames[id]");
+            mistsutils_patchcommand(A= "const last_intractable = last_frame && last_frame.intractable === false");
+            mistsutils_patchcommand2(A= "const resizing = ", B= vars["Window // Resizing"]);
+            mistsutils_patchcommand(A= "const changed_size = last_frame && (resizing || last_frame.width !== frame.width || last_frame.height !== frame.height || last_frame.x !== frame.x || last_frame.y !== frame.y)");
+            mistsutils_patchcommand(A= "let runMain = mode !== \"cache\" || intractable === true || changed_size || typeof last_frame === \"undefined\"");
+            mistsutils_patchcommand(A= "let ret;");
+            if mistsutils_patchboolean(A= "mode === \"cache\" && (!last_frame || changed_size || target.currentFrame % 10 === 0 || (last_frame.intractable === true && intractable === false))") {
+              mistsutils_patchcommand(A= "target.cacheSkinDirty = true");
+              mistsutils_patchcommand(A= "runMain = true");
+            }
+            if mistsutils_patchboolean(A= "runMain") {
+              mistsutils_patchcommand2(A= "ret = ", B= @OSL_Execute_BLK(BLK= mistsutils_patchreporter(A= "last")));
+            } else {
+              @Renderer_Draw_skin_over_window(skinId= mistsutils_patchreporter(A= "target.drawCacheSkin"));
+            }
+            @OSL_Frame_Clear();
+            mistsutils_patchcommand(A= "frame.intractable = intractable");
+            mistsutils_patchcommand(A= "target.frames[id] = frame");
+            mistsutils_patchcommand(A= "target.setXY(x, y)");
+            mistsutils_patchcommand(A= "if (ret) return ret");
+            stop "this script";
+          }
+        }
+      }
+    }
+    case "scissor" {
+      mistsutils_patchcommand2(A= "const x = ", B= (motion_xposition() + input2));
+      mistsutils_patchcommand2(A= "const y = ", B= (motion_yposition() + data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      mistsutils_patchcommand2(A= "const w = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const h = ", B= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      xeltallivclipblend_setClipbox(X1= mistsutils_max(A= vars["Frame // Min X"], B= mistsutils_patchreporter(A= "x - w/2")), Y1= mistsutils_min(A= vars["Frame // Max Y"], B= mistsutils_patchreporter(A= "y + h/2")), X2= mistsutils_min(A= vars["Frame // Max X"], B= mistsutils_patchreporter(A= "x + w/2")), Y2= mistsutils_max(A= vars["Frame // Min Y"], B= mistsutils_patchreporter(A= "y - h/2")));
+      mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Execute_BLK(BLK= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+      xeltallivclipblend_clearClipbox();
+      mistsutils_patchcommand(A= "if (ret) return ret");
+      stop "this script";
+    }
+    case "camera" {
+      if (input2 == "screenshot") {
+        if @Permissions_Has(perm= "screen record") {
+          mistsutils_patchcommand(A= "vm.renderer.dirty = true;");
+          mistsutils_patchcommand(A= "vm.renderer.draw()");
+          @OSL_Set_Data_Var_To(data= mistsutils_patchreporter(A= "vm.renderer.gl.canvas.toDataURL()"));
+          mistsutils_patchcommand(A= "vm.renderer.dirty = true;");
+        } else {
+          @Log_Error(Data= "\"Screen Record\" Permissions Missing", Type= "Permissions");
+        }
+        stop "this script";
+      }
+      if not(@Permissions_Has(perm= "camera")) {
+        @Log_Error(Data= "\"Camera\" Permissions Missing", Type= "Permissions");
+        stop "this script";
+      }
+      if (input2 == "draw") {
+        mistsutils_patchcommand2(A= "const stretch_x = ", B= vars["Renderer // Stretch X"]);
+        mistsutils_patchcommand2(A= "const stretch_y = ", B= vars["Renderer // Stretch Y"]);
+        videoSensing_setVideoTransparency(TRANSPARENCY= 0);
+        if not(CameraSensingPlusSP_vidStatus()) {
+          videoSensing_videoToggle(VIDEO_STATE= videoSensing_menu_VIDEO_STATE(VIDEO_STATE: ["on",null]));
+        }
+        if not(CameraSensingPlusSP_camStatus()) {
+          CameraSensingPlusSP_turnOnCamera(ON_OFF: ["on",null]);
+        }
+        CameraSensingPlusSP_videoTarget(TARGET= CameraSensingPlusSP_menu_targets(targets: ["_myself_",null]), ON_OFF: ["on",null]);
+        vars["Camera // Last Accessed"] = mistsutils_patchreporter(A= "Date.now()");
+        mistsutils_patchcommand2(A= "let size_x = ", B= CameraSensingPlusSP_currentRes(W_H: ["width",null]));
+        mistsutils_patchcommand2(A= "let size_y = ", B= CameraSensingPlusSP_currentRes(W_H: ["height",null]));
+        mistsutils_patchcommand2(A= "let cur_stretch_x = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        mistsutils_patchcommand2(A= "let cur_stretch_y = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        vars["//return"] = ((mistsutils_patchreporter(A= "cur_stretch_x") / mistsutils_patchreporter(A= "size_x")) * 1000);
+        vars["DeString // out"] = ((mistsutils_patchreporter(A= "cur_stretch_y") / mistsutils_patchreporter(A= "size_y")) * 1000);
+        mistsutils_patchcommand(A= "let ratio = cur_stretch_x / cur_stretch_y");
+        if (mistsutils_patchreporter(A= "cur_stretch_y") == "") {
+          mistsutils_patchcommand2(A= "let size = ", B= mistsutils_ifthen(A= (mistsutils_patchreporter(A= "cur_stretch_x") == ""), B= "100", C= vars["//return"]));
+          looks_setsizeto(SIZE= mistsutils_patchreporter(A= "size"));
+        } else {
+          if (mistsutils_patchreporter(A= "cur_stretch_x") == "") {
+            looks_setsizeto(SIZE= vars["DeString // out"]);
+          } else {
+            looks_setsizeto(SIZE= 100);
+            @set_stretch_to_x_y(x= vars["//return"], y= vars["DeString // out"]);
+            mistsutils_patchcommand2(A= "size_x = ", B= vars["//return"]);
+            mistsutils_patchcommand2(A= "size_y = ", B= vars["DeString // out"]);
+          }
+        }
+        pen_stamp();
+        CameraSensingPlusSP_videoTarget(TARGET= CameraSensingPlusSP_menu_targets(targets: ["_myself_",null]), ON_OFF: ["off",null]);
+        @set_stretch_to_x_y(x= mistsutils_patchreporter(A= "stretch_x"), y= mistsutils_patchreporter(A= "stretch_y"));
+      }
+      if (input2 == "use_front") {
+        CameraSensingPlusSP_useCam(TYPE: ["user",null]);
+      }
+      if (input2 == "use_back") {
+        CameraSensingPlusSP_useCam(TYPE: ["environment",null]);
+      }
+      if (input2 == "get") {
+        switch data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+          case "on" {
+            @OSL_Set_Data_Var_To(data= CameraSensingPlusSP_camStatus());
+          }
+          case "hasbackcam" {
+            @OSL_Set_Data_Var_To(data= CameraSensingPlusSP_hasBack());
+          }
+          case "image" {
+            @OSL_Set_Data_Var_To(data= CameraSensingPlusSP_captureWebcamFootage());
+          }
+          case "width" {
+            @OSL_Set_Data_Var_To(data= CameraSensingPlusSP_currentRes(W_H: ["width",null]));
+          }
+          case "height" {
+            @OSL_Set_Data_Var_To(data= CameraSensingPlusSP_currentRes(W_H: ["height",null]));
+          }
+          default {
+            @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown camera property: ${p1}`"), Type= "Unknown Command");
+          }
+        }
+      }
+      stop "this script";
+    }
+    case "display" {
+      if not(@Permissions_Has(perm= "display")) {
+        @Log_Error(Data= " [DCPM] \"Display\" Permissions Missing", Type= "Permissions");
+        stop "this script";
+      }
+      switch input2 {
+        case "reset" {
+          theshovelcanvaseffects_cleareffects();
+          theshovelcanvaseffects_renderscale(X= vars["Screen Size X"], Y= vars["Screen Size Y"]);
+        }
+        case "size" {
+          theshovelcanvaseffects_setrendermode(EFFECT= theshovelcanvaseffects_menu_RENDERMODE(RENDERMODE: ["pixelated",null]));
+          @Renderer_Call_ReRender();
+          theshovelcanvaseffects_renderscale(X= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Y= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        default {
+          mistsutils_patchcommand2(A= "let temp = ", B= input2);
+          mistsutils_patchcommand(A= "if ([\"blur\",\"contrast\",\"saturation\",\"color shift\",\"brightness\",\"invert\",\"sepia\",\"transparency\",\"scale x\",\"scale y\",\"skew x\",\"skew y\",\"offset x\",\"offset y\",\"rotation\"].indexOf(temp.toLowerCase()) !== -1) {");
+          if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "get") {
+            @OSL_Set_Data_Var_To(data= theshovelcanvaseffects_geteffect(EFFECT= mistsutils_patchreporter(A= "temp")));
+          }
+          if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "set") {
+            theshovelcanvaseffects_seteffect(EFFECT= mistsutils_patchreporter(A= "temp"), NUMBER= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+          mistsutils_patchcommand(A= "} else {");
+          @Log_Error(Data= "[DCUI] Unknown Display Command Input", Type= "Unknown");
+          mistsutils_patchcommand(A= "}");
+        }
+      }
+      stop "this script";
+    }
+    case "systemvars" {
+      if @Permissions_Has(perm= "kernel") {
+        switch input2 {
+          case "setvar" {
+            qxsckvarandlist_setVar(VAR= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), VALUE= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+          case "getvar" {
+            @OSL_Set_Data_Var_To(data= qxsckvarandlist_getVar(VAR= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+          }
+          case "allvars" {
+            @OSL_Set_Data_Var_To(data= mistsutils_patchreporter(A= "Object.values(vm.runtime.getTargetForStage().variables).concat(Object.values(vm.editingTarget.variables)).filter(v => v.type === \"\").map(v => v.name)"));
+          }
+          case "setlist" {
+            skyhigh173JSON_json_vm_setlist(list= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), json= mistsutils_jsonstringify(A= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+            @OSL_Set_Data_Var_To(data= mistsutils_patchreporter(A= "Object.values(vm.runtime.getTargetForStage().variables).concat(Object.values(vm.editingTarget.variables)).filter(v => v.type === \"\").map(v => v.name)"));
+          }
+          case "getlist" {
+            @OSL_Set_Data_Var_To(data= mistsutils_jsonparse(A= skyhigh173JSON_json_vm_getlist(list= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))));
+          }
+          case "alllists" {
+            @OSL_Set_Data_Var_To(data= mistsutils_patchreporter(A= "Object.values(vm.runtime.getTargetForStage().variables).concat(Object.values(vm.editingTarget.variables)).filter(v => v.type === \"list\").map(v => v.name)"));
+          }
+          default {
+            @Log_Error(Data= mistsutils_patchreporter(A= "`Unknown systemvars command: ${p1}`"), Type= "Unknown Command");
+          }
+        }
+      }
+      stop "this script";
+    }
+    case "transmit" {
+      if @Permissions_Has(perm= ".sandbox") {
+        stop "this script";
+      }
+      mistsutils_patchcommand2(A= "const id = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      if mistsutils_patchboolean(A= "id in origin.targets") {
+        mistsutils_patchcommand2(A= "const data = ", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        mistsutils_patchcommand(A= "origin.targets[id].transmit.push({data, type: \"application\", source: target.window.id})");
+      }
+      stop "this script";
+    }
+    case "zip" {
+      @OSL_Commands_ZIP();
+      stop "this script";
+    }
+    case "rotur" {
+      @OSL_Commands_Rotur();
+      stop "this script";
+    }
+    case "cursor" {
+      if (input2 == "lock") {
+        vars["System // Cursor"] = "none";
+        pointerlock_setLocked(enabled= pointerlock_menu_enabled(enabled: ["true",null]));
+      } else {
+        if (input2 == "unlock") {
+          pointerlock_setLocked(enabled= pointerlock_menu_enabled(enabled: ["false",null]));
+        } else {
+          if (vars["Frame // Interactable"] == "true") {
+            if (input2 == "hide") {
+              vars["System // Cursor"] = "none";
+            } else {
+              vars["System // Cursor"] = mistsutils_patchreporter3(A= "String(", B= input2, C= ").toLowerCase()");
+            }
+          }
+        }
+      }
+      stop "this script";
+    }
+    case "colourpicker" {
+      switch input2 {
+        case "show" {
+          shovelColorPicker_showPicker();
+          shovelColorPicker_setPos(X= sensing_mousex(), Y= sensing_mousey());
+        }
+        case "setpos" {
+          shovelColorPicker_setPos(X= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Y= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        case "setcol" {
+          shovelColorPicker_setColor(COLOR= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+      }
+      stop "this script";
+    }
+    case "global" {
+      if @Permissions_Has(perm= "global variables") {
+        if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "") {
+          @OSL_Vars_Set(name= input2, data= @OSL_Vars_Get(Varname= input2), current_command= "Global");
+        } else {
+          @OSL_Vars_Set(name= input2, data= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), current_command= "Global");
+        }
+      } else {
+        @Log_Error(Data= "[GVPM] \"global variables\" Permissions Missing", Type= "Permissions");
+      }
+      stop "this script";
+    }
+    case "eval" {
+      if @Permissions_Has(perm= "javascript") {
+        MistiumEval_cmdBlock(CODE= input2);
+      } else {
+        if (input2 == "restrict") {
+          MistiumEval_restrictedCmdBlock(CODE= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        } else {
+          @Log_Error(Data= "eval command missing 'javascript' Permission", Type= "Permission");
+        }
+      }
+      stop "this script";
+    }
+    case "log" {
+      mistsutils_patchcommand(A= "const logs = target.variables[\")./tR8V[bp)bg1K2.|v(\"].value.slice(1)");
+      mistsutils_patchcommand(A= "target.log(\"log\", ...logs)");
+      mistsutils_patchcommand(A= "for (let i = 0; i < logs.length; i ++) { try { logs[i] = JSON.smartStringify(logs[i]) } catch { logs[i] = \"Unable to display this value\" }; logs[i] = \"Log: \" + logs[i] }");
+      mistsutils_patchcommand2(A= vars["OSL // Window"], B= ".logs.push(...logs)");
+      stop "this script";
+    }
+    case "warn" {
+      mistsutils_patchcommand(A= "const logs = target.variables[\")./tR8V[bp)bg1K2.|v(\"].value.slice(1)");
+      mistsutils_patchcommand(A= "target.log(\"warn\", ...logs)");
+      mistsutils_patchcommand(A= "for (let i = 0; i < logs.length; i ++) { try { logs[i] = JSON.smartStringify(logs[i]) } catch { logs[i] = \"Unable to display this value\" }; logs[i] = \"Warn: \" + logs[i] }");
+      mistsutils_patchcommand2(A= vars["OSL // Window"], B= ".logs.push(...logs)");
+      stop "this script";
+    }
+    case "error" {
+      mistsutils_patchcommand(A= "const logs = target.variables[\")./tR8V[bp)bg1K2.|v(\"].value.slice(1)");
+      mistsutils_patchcommand(A= "target.log(\"error\", ...logs)");
+      mistsutils_patchcommand(A= "for (let i = 0; i < logs.length; i ++) { try { logs[i] = JSON.smartStringify(logs[i]) } catch { logs[i] = \"Unable to display this value\" }; logs[i] = \"Error: \" + logs[i] }");
+      mistsutils_patchcommand2(A= vars["OSL // Window"], B= ".logs.push(...logs)");
+      stop "this script";
+    }
+    case "throw" {
+      if (input2 == "error") {
+        @Log_Error(Data= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Type= "Throw");
+      } else {
+        @Log_Error(Data= input2, Type= "Throw");
+      }
+      stop "this script";
+    }
+    case "network" {
+      @OSL_Commands_Network(input2= input2);
+      stop "this script";
+    }
+    case "sound" {
+      @OSL_Commands_Sound(input2= input2);
+      stop "this script";
+    }
+    case "http" {
+      if (data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "newtab") {
+        mistsutils_patchcommand3(A= "window.open(", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ")");
+      }
+      stop "this script";
+    }
+    case "3dr" {
+      @OSL_Commands_3dr(input2= input2);
+      stop "this script";
+    }
+    case "uri" {
+      @OSL_Commands_Uri(command= input2);
+      stop "this script";
+    }
+    case "shader" {
+      mistsutils_patchcommand2(A= "const id = ", B= (vars["WIndow // ID"] .. ("-" .. data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))));
+      switch input2 {
+        case "create" {
+          mistiumshaders_newShader(ID= mistsutils_patchreporter(A= "id"), VERT= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), FRAG= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), W= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), H= data_itemoflist(INDEX= 7, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        case "uniform" {
+          mistiumshaders_setUniform(NAME= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), ID= mistsutils_patchreporter(A= "id"), TYPE= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), VAL= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        case "resize" {
+          mistiumshaders_resizeShader(ID= mistsutils_patchreporter(A= "id"), W= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), H= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        }
+        case "remove" {
+          mistiumshaders_deleteShader(ID= mistsutils_patchreporter(A= "id"));
+        }
+        case "stamp" {
+          mistiumshaders_renderShader(ID= mistsutils_patchreporter(A= "id"));
+          @Stamp_myself_skin_size(width= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), height= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), skin_w= "256", skin_h= "256");
+        }
+      }
+    }
+    case "save" {
+      if @Permissions_Has(perm= ".sandbox") {
+        stop "this script";
+      }
+      if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "set_directory") {
+        if not(operator_contains(STRING1= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), STRING2= "/")) {
+          vars["OSL// Temp4"] = (mistsutils_patchreporter(A= "`${osl.user_folder}/application data/`") .. data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          mistsutils_patchcommand2(A= "const val = ", B= @File_get_item(id= (vars["OSL// Temp4"] .. ".folder"), item= "13"));
+          if (@Permissions_Has(perm= "save admin") || ((mistsutils_patchreporter(A= "val") == "") || skyhigh173JSON_json_has_value(json= mistsutils_patchreporter(A= "val"), value= vars["Window // UUID"]))) {
+            vars["Window // Save Directory"] = data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+            @OSL_Vars_Set(name= "save_data", data= "Success", current_command= "");
+          } else {
+            @Add_Popup_with_type_ontop_of(Title= ("Access /" .. data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), Subtext= "The app will gain access to files in this save", type= "save_directory", object= skyhigh173JSON_json_set(item= "directory", json= skyhigh173JSON_json_set(item= "uuid", json= skyhigh173JSON_json_set(item= "window_id", json= "{}", value= vars["WIndow // ID"]), value= vars["Window // UUID"]), value= vars["OSL// Temp4"]));
+            @OSL_Vars_Set(name= "save_data", data= "Failed (Permissions)", current_command= "");
+            @Window_Close(message= "No Perms");
+          }
+        } else {
+          @Log_Error(Data= "[SDID] Invalid characters in directory name, cannot have \"/\"", Type= "Unknown");
+          @OSL_Vars_Set(name= "save_data", data= "Failed (Invalid Character)", current_command= "");
+        }
+      } else {
+        if (vars["Window // Save Directory"] == "") {
+          @Log_Error(Data= "[SDDU] No save directory set yet, use `save \"directory name that you want to use\" \"set_directory\"`", Type= "Unknown");
+        } else {
+          vars["OSL// Temp4"] = (mistsutils_patchreporter(A= "`${osl.user_folder}/application data/`") .. vars["Window // Save Directory"]);
+          if (data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "contents") {
+            @OSL_Vars_Set(name= "save_data", data= @parse(json= @Get_Contents_Of_Folder_Path(Path= vars["OSL// Temp4"], Show_UUIDS= null, data_included= null, Only_UUIDS= null)), current_command= "");
+          } else {
+            if operator_contains(STRING1= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), STRING2= ".") {
+              vars["OSL// Temp5"] = data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+            } else {
+              vars["OSL// Temp5"] = (data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) .. ".txt");
+            }
+            if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "exists") {
+              @OSL_Vars_Set(name= "save_data", data= data_listcontainsitem(ITEM= ((vars["OSL// Temp4"] .. "/") .. vars["OSL// Temp5"]), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")), current_command= "");
+            } else {
+              if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "set") {
+                @Setup_App_Data();
+                mistsutils_patchcommand2(A= "let cur = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+                @Install_System_Utility(Location= vars["OSL// Temp4"], Name_And_Type= vars["OSL// Temp5"], Data= mistsutils_patchreporter(A= "typeof cur === \"object\" ? JSON.stringify(cur) : cur"), Icon= "", not_system= mistsutils_true());
+              } else {
+                @OSL_Vars_Set(name= "save_data", data= "", current_command= "");
+                vars["Temp"] = @originFS_Path_ID(Path= ((vars["OSL// Temp4"] .. "/") .. vars["OSL// Temp5"]));
+                if (Temp > "0") {
+                  if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "delete") {
+                    @originFS_Exec_file_file_data_id_input(command= "immediately delete", Id= Temp, data_id= "", input= "");
+                    @OSL_Vars_Set(name= "save_data", data= "Deleted", current_command= "");
+                  } else {
+                    mistsutils_patchcommand2(A= "const val = ", B= @File_get_item(id= Temp, item= "4"));
+                    if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "get") {
+                      @OSL_Vars_Set(name= "save_data", data= mistsutils_patchreporter(A= "val"), current_command= "");
+                    } else {
+                      if (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "append") {
+                        @Setup_App_Data();
+                        @Install_System_Utility(Location= vars["OSL// Temp4"], Name_And_Type= vars["OSL// Temp5"], Data= (mistsutils_patchreporter(A= "val") .. data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), Icon= "", not_system= mistsutils_true());
+                      }
+                    }
+                  }
+                } else {
+                  @Log_Error(Data= "[SDUF] Unknown file designated in osl save command", Type= "Unknown");
+                }
+              }
+            }
+          }
+        }
+      }
+      stop "this script";
+    }
+    case "loc" {
+      @Go_To_Location_Of_Window(X= input2, Y= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), X_2= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Y_2= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "goto" {
+      if @is_array(input= input2) {
+        mistsutils_patchcommand(A= "spl[2] = p1[1]; p1 = p1[0]");
+      }
+      motion_gotoxy(X= (vars["Frame // X"] + (input2 * vars["Renderer // Scale"])), Y= (vars["Frame // Y"] + (mistsutils_patchreporter(A= "spl[2]") * vars["Renderer // Scale"])));
+    }
+    case "change" {
+      motion_gotoxy(X= (motion_xposition() + (input2 * vars["Renderer // Scale"])), Y= (motion_yposition() + (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) * vars["Renderer // Scale"])));
+    }
+    case "change_x" {
+      motion_changexby(DX= (input2 * vars["Renderer // Scale"]));
+    }
+    case "change_y" {
+      motion_changeyby(DY= (input2 * vars["Renderer // Scale"]));
+    }
+    case "set_x" {
+      motion_setx(X= (vars["Frame // X"] + (input2 * vars["Renderer // Scale"])));
+    }
+    case "set_y" {
+      motion_sety(Y= (vars["Frame // Y"] + (input2 * vars["Renderer // Scale"])));
+    }
+    case "direction" {
+      motion_pointindirection(DIRECTION= input2);
+    }
+    case "pointat" {
+      motion_pointtowards_xyfrom(X= input2, Y= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), FROMX= (motion_xposition() - vars["Frame // X"]), FROMY= (motion_yposition() - vars["Frame // Y"]));
+    }
+    case "turnleft" {
+      motion_turnleft(DEGREES= input2);
+    }
+    case "turnright" {
+      motion_turnright(DEGREES= input2);
+    }
+    case "file" {
+      @OSL_Commands_Files();
+      stop "this script";
+    }
+    case "indexedDB" {
+      if @Permissions_Has(perm= "kernel") {
+        switch data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+          case "get" {
+            @OSL_Set_Data_Var_To(data= mistiumindexeddb_readFromDatabase(KEY= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+          }
+          case "set" {
+            mistiumindexeddb_writeToDatabase(KEY= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), VALUE= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+          case "delete" {
+            mistiumindexeddb_deleteFromDatabase(KEY= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+          }
+        }
+        stop "this script";
+      }
+    }
+    case "window" {
+      @OSL_Commands_Window(command= input2, input2= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      stop "this script";
+    }
+    case "terminal" {
+      if @Permissions_Has(perm= "terminal") {
+        @RUSH_execute(Command= input2);
+        @OSL_Vars_Set(name= "terminal_output", data= @parse(json= skyhigh173JSON_json_vm_getlist(list= skyhigh173JSON_menu_get_list(get_list: list("*]Mn/33!d},~KykjJQ|Y")))), current_command= "");
+      } else {
+        @Log_Error(Data= "[TCPM] Terminal Permissions Missing", Type= "Permissions");
+      }
+      stop "this script";
+    }
+    mistsutils_patchcommand(A= "case \"return\": return {type: \"return\", value: p1 ?? null}");
+    mistsutils_patchcommand(A= "case \"/@line\": return;");
+    default {
+      mistsutils_patchcommand3(A= "let command_obj = ", B= "target.osl_globals", C= "?.commands?.[p0]");
+      if mistsutils_patchboolean(A= "typeof command_obj === \"object\"") {
+        @Run_Definition(command_obj= mistsutils_patchreporter(A= "command_obj"));
+      } else {
+        @Log_Error(Data= mistsutils_patchreporter(A= "`Unrecognised osl token: \"${p0}\", was unable to resolve into a command or function`"), Type= "Unknown");
+      }
+      mistsutils_patchcommand(A= "return;");
+    }
+  }
+  vars["OSL // Hover_Colour"] = "";
+  vars["OSL // Hover_Size"] = "";
+  vars["OSL // Tooltip"] = "";
+}

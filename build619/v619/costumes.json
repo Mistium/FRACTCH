@@ -1,0 +1,20 @@
+[
+  {
+    "name": "wallpaper",
+    "bitmapResolution": 2,
+    "dataFormat": "png",
+    "assetId": "d89746888da2d9510b64a9f031eaecd5",
+    "md5ext": "d89746888da2d9510b64a9f031eaecd5.png",
+    "rotationCenterX": 0.5,
+    "rotationCenterY": 0.5
+  },
+  {
+    "name": "wallpaper2",
+    "bitmapResolution": 2,
+    "dataFormat": "png",
+    "assetId": "d89746888da2d9510b64a9f031eaecd5",
+    "md5ext": "d89746888da2d9510b64a9f031eaecd5.png",
+    "rotationCenterX": 0.5,
+    "rotationCenterY": 0.5
+  }
+]

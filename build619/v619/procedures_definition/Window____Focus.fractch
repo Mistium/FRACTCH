@@ -1,0 +1,30 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: asi
+ * hatOpcode: procedures_definition
+ * threadIndex: 151
+ */
+
+import "../procedures_definition/Window____Reset_Redraw_Box.fractch";
+import "../procedures_definition/Renderer____Call_ReRender.fractch";
+def @Window_Focus() "Window // Focus" warp=false {
+  mistsutils_patchcommand(A= "origin.windows.hovered = origin.windows.hovered.map(v => false)");
+  mistsutils_patchcommand(A= "origin.windows.hovered[0] = true");
+  mistsutils_patchcommand(A= "const threads = vm.runtime.threads");
+  mistsutils_patchcommand(A= "let end = threads.length");
+  mistsutils_patchcommand(A= "const mainIdx = threads.indexOf(target.mainThread)");
+  mistsutils_patchcommand(A= "if (mainIdx > 0) { threads.splice(mainIdx, 1)");
+  mistsutils_patchcommand(A= "threads.splice(end, 0, target.mainThread) }");
+  mistsutils_patchcommand(A= "const curIdx = threads.indexOf(thread)");
+  mistsutils_patchcommand(A= "if (curIdx > 0) { threads.splice(curIdx, 1)");
+  mistsutils_patchcommand(A= "threads.splice(end, 0, thread) }");
+  data_deleteoflist(INDEX= data_itemnumoflist(ITEM= vars["WIndow // ID"], LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~")), LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
+  data_insertatlist(ITEM= vars["WIndow // ID"], INDEX= 1, LIST: list("Windows // ID", "570oYa]nLC-^Ys!KN+A~"));
+  vars["SYSTEM // Focused Application"] = vars["WIndow // ID"];
+  vars["Window // ID_Index"] = "1";
+  vars["Window // Top Index"] = "1";
+  MistKeyHistoryExtension_deleteAllKeys();
+  @Window_Reset_Redraw_Box();
+  @Renderer_Call_ReRender();
+}

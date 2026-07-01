@@ -1,0 +1,19 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aC_
+ * hatOpcode: procedures_definition
+ * threadIndex: 172
+ */
+
+def @Files_List_all_uuids_recursively_in(path) "Files // List all uuids recursively in %s" warp=false {
+  mistsutils_patchcommand2(A= "const index = ", B= @originFS_UUID_ID(UUID= path));
+  mistsutils_patchcommand3(A= "let out = [", B= @File_get_item(id= mistsutils_patchreporter(A= "index"), item= "14"), C= "]");
+  mistsutils_patchcommand(A= "if (index === 0) return out");
+  mistsutils_patchcommand2(A= "const folder = \".folder\" === ", B= @File_get_item(id= mistsutils_patchreporter(A= "index"), item= "1"));
+  if mistsutils_patchboolean(A= "folder") {
+    mistsutils_patchcommand2(A= "let my_data = ", B= @parse(json= @File_get_item(id= mistsutils_patchreporter(A= "index"), item= "4")));
+    mistsutils_patchcommand3(A= "for (let i = 0; i < my_data.length; i ++) out = out.concat(", B= @Files_List_all_uuids_recursively_in(path= mistsutils_patchreporter(A= "my_data[i]")), C= ")");
+  }
+  return mistsutils_patchreporter(A= "out");
+}

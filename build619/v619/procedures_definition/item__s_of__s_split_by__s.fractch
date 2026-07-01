@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: ag=
+ * hatOpcode: procedures_definition
+ * threadIndex: 117
+ */
+
+def @item_of_split_by(int, string, delimiter) "item %s of %s split by %s" warp=false {
+  return mistsutils_patchreporter(A= "String(p1).split(p2,p0)[p0-1] || \"\"");
+}

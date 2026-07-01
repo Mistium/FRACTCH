@@ -37,11 +37,6 @@ const argv = yargs(hideBin(process.argv))
     type: 'string',
     describe: 'Output .sb3 path when using --pack',
   })
-  .option('preferDSL', {
-    type: 'boolean',
-    default: true,
-    describe: 'When packing, prefer parsing DSL body over header snapshot (so edits change output)',
-  })
   .check((argv) => {
     if (argv.pack) {
       if (!argv.out) throw new Error('--out (build directory) is required when using --pack');
@@ -62,7 +57,6 @@ const argv = yargs(hideBin(process.argv))
       buildDir: outDir,
       outSb3,
       verbose,
-      preferDSL: argv.preferDSL,
     });
     process.exit(0);
   }

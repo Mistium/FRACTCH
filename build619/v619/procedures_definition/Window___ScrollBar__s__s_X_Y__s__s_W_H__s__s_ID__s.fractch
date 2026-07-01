@@ -1,0 +1,104 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: {j
+ * hatOpcode: procedures_definition
+ * threadIndex: 92
+ */
+
+def @Window_ScrollBar_X_Y_W_H_ID(Max_W_Scroll("Max W Scroll"), Max_H_Scroll("Max H Scroll"), X, Y, W, H, Id) "Window// ScrollBar %s %s X,Y %s %s W,H %s %s ID %s" warp=true {
+  mistsutils_patchcommand2(A= "const id = ", B= Id);
+  vars["Scroll // MaxX"] = "0";
+  vars["Scroll // MaxY"] = "0";
+  vars["Scroll // X"] = "0";
+  vars["Scroll// Y"] = "0";
+  if (Max_H_Scroll > H) {
+    @Go_To_Location_Of_Window(X= "9999", Y= "9999", X_2= (vars["Frame // Width"] / 2), Y_2= "");
+    @Draw_Square(X= (motion_xposition() - 5), Y= motion_yposition(), Width= "0", Height= H, Line_Width= "10", Invisible= "1");
+    mistsutils_patchcommand2(A= "let max = +", B= Max_H_Scroll);
+    mistsutils_patchcommand2(A= "let focused = ", B= (vars["Window // ID_Index"] == vars["Window // Top Index"]));
+    mistsutils_patchcommand(A= "let scroll_val = target.scroll[`framey_${id}`]");
+    if (mistsutils_patchboolean(A= "target.osl_vars.onclick === true") || (HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) && (vars["Scroll// Dragging?"] == ("v_" .. Id)))) {
+      if mistsutils_patchboolean(A= "focused") {
+        mistsutils_patchcommand2(A= "let scroll_temp = ", B= (H - ((H / Max_H_Scroll) * H)));
+        mistsutils_patchcommand2(A= "scroll_val = ", B= (mistsutils_patchreporter(A= "scroll_val") + ((((mistsutils_patchreporter(A= "scroll_temp / 2") - (sensing_mousey() - motion_yposition())) * ((Max_H_Scroll - H) / mistsutils_patchreporter(A= "scroll_temp"))) - mistsutils_patchreporter(A= "scroll_val")) / 6)));
+        mistsutils_patchcommand(A= "target.scroll[`framey_${id}`] = scroll_val");
+      }
+      vars["Can Click?"] = "false";
+      vars["Scroll// Dragging?"] = ("v_" .. Id);
+    } else {
+      if not(sensing_mousedown()) {
+        vars["Scroll// Dragging?"] = "false";
+      }
+    }
+    if mistsutils_patchboolean(A= "scroll_val < 0") {
+      mistsutils_patchcommand(A= "scroll_val = 0");
+      vars["Scroll // Y 0-1"] = "0";
+    } else {
+      if mistsutils_patchboolean(A= "scroll_val > max - p5") {
+        mistsutils_patchcommand(A= "scroll_val = max - p5");
+        vars["Scroll // Y 0-1"] = "1";
+      } else {
+        vars["Scroll // Y 0-1"] = mistsutils_patchreporter(A= "scroll_val / (max - p5)");
+      }
+    }
+    vars["Scroll // MaxY"] = mistsutils_patchreporter(A= "max - p5");
+    vars["Scroll// Y"] = mistsutils_patchreporter(A= "scroll_val");
+    if mistsutils_patchboolean(A= "focused") {
+      mistsutils_patchcommand(A= "target.scroll[`framey_${id}`] = scroll_val");
+    }
+    mistsutils_patchcommand2(A= "scroll_val = ", B= ((H / Max_H_Scroll) * H));
+    @Go_To_Location_Of_Window(X= "9999", Y= "9999", X_2= ((vars["Frame // Width"] / 2) - 5), Y_2= (("" + ((H - mistsutils_patchreporter(A= "scroll_val")) / 2)) - (vars["Scroll // Y 0-1"] * (H - mistsutils_patchreporter(A= "scroll_val")))));
+    pen_setPenSizeTo(SIZE= 6);
+    motion_changeyby(DY= mistsutils_patchreporter(A= "scroll_val / -2"));
+    pen_penDown();
+    motion_changeyby(DY= mistsutils_patchreporter(A= "scroll_val"));
+    pen_penUp();
+  }
+  if (Max_W_Scroll > W) {
+    @Go_To_Location_Of_Window(X= "9999", Y= "9999", X_2= "", Y_2= (vars["Frame // Height"] / -2));
+    @Draw_Square(X= motion_xposition(), Y= (motion_yposition() + 5), Width= W, Height= "0", Line_Width= "10", Invisible= "1");
+    mistsutils_patchcommand2(A= "let max = +", B= Max_W_Scroll);
+    mistsutils_patchcommand2(A= "let focused = ", B= (vars["Window // ID_Index"] == vars["Window // Top Index"]));
+    mistsutils_patchcommand(A= "let scroll_val = target.scroll[`framex_${id}`]");
+    if (mistsutils_patchboolean(A= "target.osl_vars.onclick === true") || (HyperSenseSP_mouseClick(BUTTON= HyperSenseSP_menu_mouseButtons(mouseButtons: ["0",null])) && (vars["Scroll// Dragging?"] == ("h_" .. Id)))) {
+      if mistsutils_patchboolean(A= "focused") {
+        mistsutils_patchcommand2(A= "let scroll_temp = ", B= (W - ((W / Max_W_Scroll) * W)));
+        mistsutils_patchcommand2(A= "scroll_val = ", B= (mistsutils_patchreporter(A= "scroll_val") + ((((mistsutils_patchreporter(A= "scroll_temp / 2") + (sensing_mousex() - motion_xposition())) * ((Max_W_Scroll - W) / mistsutils_patchreporter(A= "scroll_temp"))) - mistsutils_patchreporter(A= "scroll_val")) / 6)));
+        mistsutils_patchcommand(A= "target.scroll[`framex_${id}`] = scroll_val");
+      }
+      vars["Can Click?"] = "false";
+      vars["Scroll// Dragging?"] = ("h_" .. Id);
+    } else {
+      if not(sensing_mousedown()) {
+        vars["Scroll// Dragging?"] = "false";
+      }
+    }
+    if (mistsutils_patchboolean(A= "focused") && (vars["Frame // Current"] == Id)) {
+      mistsutils_patchcommand2(A= "scroll_val += ", B= (mistsutils_ifthen(A= @Is_pressed(key= "shift"), B= HyperSenseSP_scrollVel(), C= HyperSenseSP_scrollVelX()) * (vars["SYSTEM // Scroll Multiplier"] / 4)));
+    }
+    if mistsutils_patchboolean(A= "scroll_val < 0") {
+      mistsutils_patchcommand(A= "scroll_val = 0");
+      vars["Scroll // Y 0-1"] = "0";
+    } else {
+      if mistsutils_patchboolean(A= "scroll_val > max - p4") {
+        mistsutils_patchcommand(A= "scroll_val = max - p4");
+        vars["Scroll // Y 0-1"] = "1";
+      } else {
+        vars["Scroll // Y 0-1"] = mistsutils_patchreporter(A= "scroll_val / (max - p4)");
+      }
+    }
+    vars["Scroll // MaxX"] = mistsutils_patchreporter(A= "max - p4");
+    vars["Scroll // X"] = mistsutils_patchreporter(A= "scroll_val");
+    if mistsutils_patchboolean(A= "focused") {
+      mistsutils_patchcommand(A= "target.scroll[`framex_${id}`] = scroll_val");
+    }
+    mistsutils_patchcommand2(A= "scroll_temp = ", B= ((W / Max_W_Scroll) * W));
+    @Go_To_Location_Of_Window(X= "999", Y= "999", X_2= ((0 + ((W - mistsutils_patchreporter(A= "scroll_val")) / -2)) + (vars["Scroll // Y 0-1"] * (W - mistsutils_patchreporter(A= "scroll_val")))), Y_2= ((vars["Frame // Height"] / -2) + 5));
+    pen_setPenSizeTo(SIZE= 6);
+    motion_changexby(DX= mistsutils_patchreporter(A= "scroll_val / -2"));
+    pen_penDown();
+    motion_changexby(DX= mistsutils_patchreporter(A= "scroll_val"));
+    pen_penUp();
+  }
+}

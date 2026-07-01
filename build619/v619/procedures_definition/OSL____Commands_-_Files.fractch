@@ -1,0 +1,210 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: `j
+ * hatOpcode: procedures_definition
+ * threadIndex: 91
+ */
+
+def @OSL_Commands_Files() "OSL // Commands - Files" warp=false {
+  switch data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) {
+    case "open" {
+      @OSL_Set_Data_Var_To(data= mistsutils_patchreporter3(A= "JSON.safeParse(", B= @Files_Open_Data_with_only_data(id= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), mode= mistsutils_ifthen(A= (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "onlyaccess"), B= "none", C= "all")), C= ")"));
+    }
+    case "goto_dir" {
+      mistsutils_patchcommand2(A= "target.window.wd = ", B= @Find_Directory(Directory= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+    }
+    case "set_file" {
+      vars["OSL // Temp"] = @Find_Directory(Directory= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      vars["//return"] = data_itemnumoflist(ITEM= vars["OSL // Temp"], LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9"));
+      mistsutils_patchcommand2(A= "let folder = ", B= "String(osl.user_folder).toLowerCase()");
+      mistsutils_patchcommand2(A= "const main = ", B= vars["OSL // Temp"]);
+      mistsutils_patchcommand(A= "const parts = main.split(\"/\")");
+      mistsutils_patchcommand(A= "const last = parts[parts.length - 1]");
+      mistsutils_patchcommand(A= "const first = main.slice(0, -last.length - 1)");
+      if mistsutils_starts(A= vars["OSL // Temp"], B= mistsutils_patchreporter(A= "folder")) {
+        if @Permissions_Can_i_edit_file(File_To_Get= vars["//return"]) {
+          @Make_Directory(Directory= mistsutils_patchreporter(A= "first"));
+          @OSL_Set_Data_Var_To(data= @Install_System_Utility(Location= mistsutils_patchreporter(A= "first"), Name_And_Type= mistsutils_patchreporter(A= "last"), Data= @Stringify(json= @destring(Text= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"")), Icon= "", not_system= mistsutils_true()));
+        } else {
+          @Log_Error(Data= "Unable to edit file, permissions are insufficient", Type= "File");
+        }
+      } else {
+        if mistsutils_starts(A= vars["OSL // Temp"], B= mistsutils_patchreporter(A= "\"origin/(d) temp\"")) {
+          @Make_Directory(Directory= mistsutils_patchreporter(A= "first"));
+          @OSL_Set_Data_Var_To(data= @Install_System_Utility(Location= mistsutils_patchreporter(A= "first"), Name_And_Type= mistsutils_patchreporter(A= "last"), Data= @Stringify(json= @destring(Text= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), remove= "\"")), Icon= "", not_system= mistsutils_true()));
+        } else {
+          @Log_Error(Data= "[FCUD] Unable to update or create files outside of the 'user' folder", Type= "Permissions");
+        }
+      }
+    }
+    case "get_file" {
+      mistsutils_patchcommand3(A= "const path = `${", B= @Find_Directory(Directory= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), C= "}`.toLowerCase()");
+      mistsutils_patchcommand2(A= "let get_file_index = ", B= data_itemnumoflist(ITEM= mistsutils_patchreporter(A= "path"), LIST: list("Files // Index Path", "CL33%0R^/cfdOsUUuN{9")));
+      if mistsutils_patchboolean(A= "path.startsWith(String(osl.user_folder).toLowerCase())") {
+        @Permissions_Can_i_view_file(File_To_Get= mistsutils_patchreporter(A= "get_file_index"));
+        if (vars["OSL// Permission Output"] == "0") {
+          vars["OSL// Current Open File"] = "0";
+          @Log_Error(Data= "[FCAD] Access denied to file", Type= "Permission");
+        } else {
+          @OSL_Set_Data_Var_To(data= @parse(json= @File_get_item(id= mistsutils_patchreporter(A= "get_file_index"), item= "4")));
+        }
+      } else {
+        @Log_Error(Data= "[FCUD] Unable to get files outside of the 'user' folder", Type= "Permissions");
+      }
+    }
+    case "close" {
+      vars["OSL// Current Open File"] = "0";
+    }
+    case "uuid_exists" {
+      @OSL_Vars_Set(name= "exists", data= mistsutils_patchreporter3(A= "typeof files.uuids[", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= "] !== \"undefined\""), current_command= "");
+    }
+    case "exists" {
+      @OSL_Vars_Set(name= "exists", data= (mistsutils_patchreporter3(A= "typeof files.uuids[", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= "] !== \"undefined\"") || (@originFS_Path_ID(Path= @Find_Directory(Directory= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))) > "0")), current_command= "");
+    }
+    case "get" {
+      if (vars["OSL// Current Open File"] > "0") {
+        mistsutils_patchcommand2(A= "let temp = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        @OSL_Set_Data_Var_To(data= @parse(json= @File_get_item(id= vars["OSL// Current Open File"], item= mistsutils_patchreporter(A= "temp"))));
+      }
+    }
+    case "append" {
+      if (vars["OSL// Current Open File"] > "0") {
+        if @Permissions_Can_i_edit_file(File_To_Get= vars["OSL// Current Open File"]) {
+          @originFS_Exec_file_file_data_id_input(command= "replace", Id= vars["OSL// Current Open File"], data_id= "4", input= (@File_get_item(id= vars["OSL// Current Open File"], item= "4") .. @Stringify(json= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")))));
+        } else {
+          @Log_Error(Data= "Unable to edit file, permissions are insufficient", Type= "File");
+        }
+      } else {
+        @Log_Error(Data= "No current file to edit", Type= "File");
+      }
+    }
+    case "set" {
+      if (vars["OSL// Current Open File"] > "0") {
+        if @Permissions_Can_i_edit_file(File_To_Get= vars["OSL// Current Open File"]) {
+          if ((data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) / 1) == "0") {
+            data_replaceitemoflist(INDEX= 3, ITEM= mistsutils_patchreporter3(A= "origin.files.entryLabels.indexOf(", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= ") + 1"), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+          }
+          @originFS_Exec_file_file_data_id_input(command= "replace", Id= vars["OSL// Current Open File"], data_id= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), input= @Stringify(json= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))));
+        } else {
+          @Log_Error(Data= "Unable to edit file, permissions are insufficient", Type= "File");
+        }
+      } else {
+        @Log_Error(Data= "No current file to edit", Type= "File");
+      }
+    }
+    case "move_to" {
+      if (vars["OSL// Current Open File"] > "0") {
+        if @Permissions_Can_i_edit_file(File_To_Get= vars["OSL// Current Open File"]) {
+          @originFS_Exec_file_file_data_id_input(command= "move", Id= vars["OSL// Current Open File"], data_id= "", input= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+        } else {
+          @Log_Error(Data= "Unable to edit file, permissions are insufficient", Type= "File");
+        }
+      } else {
+        @Log_Error(Data= "No current file to edit", Type= "File");
+      }
+    }
+    case "move_to_bin" {
+      if (vars["OSL// Current Open File"] > "0") {
+        if @Permissions_Can_i_edit_file(File_To_Get= vars["OSL// Current Open File"]) {
+          @originFS_Exec_file_file_data_id_input(command= "delete", Id= vars["OSL// Current Open File"], data_id= "", input= "");
+        } else {
+          @Log_Error(Data= "Unable to edit file, permissions are insufficient", Type= "File");
+        }
+      } else {
+        @Log_Error(Data= "No current file to edit", Type= "File");
+      }
+    }
+    case "delete" {
+      if (vars["OSL// Current Open File"] > "0") {
+        if @Permissions_Can_i_edit_file(File_To_Get= vars["OSL// Current Open File"]) {
+          @originFS_Exec_file_file_data_id_input(command= "immediately delete", Id= vars["OSL// Current Open File"], data_id= "", input= "");
+          vars["OSL// Current Open File"] = "0";
+        } else {
+          @Log_Error(Data= "Unable to edit file, permissions are insufficient", Type= "File");
+        }
+      } else {
+        @Log_Error(Data= "No current file to edit", Type= "File");
+      }
+    }
+    case "download" {
+      if (data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "") {
+        vars["OSL // Temp"] = @Find_Directory(Directory= "~/Downloads");
+      } else {
+        vars["OSL // Temp"] = data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("));
+      }
+      @OSL_Set_Data_Var_To(data= mistsutils_patchreporter(A= "null"));
+      mistsutils_patchcommand3(A= "const path = String(", B= vars["OSL // Temp"], C= ").toLowerCase()");
+      mistsutils_patchcommand(A= "let down_folder = String(osl.user_folder).toLowerCase()");
+      if not(@Permissions_Has(perm= "file admin")) {
+        if mistsutils_patchboolean(A= "path.startsWith(`${down_folder}/application data/`)") {
+          @Log_Error(Data= "Unable to update or create files in 'user/Application Data'", Type= "Permissions");
+          control_break();
+        }
+        if mistsutils_patchboolean(A= "path.startsWith(`${down_folder}/applications/`)") {
+          @Log_Error(Data= "Unable to update or create files in 'user/Applications'", Type= "Permissions");
+          control_break();
+        }
+      }
+      @Make_Directory(Directory= vars["OSL // Temp"]);
+      @OSL_Set_Data_Var_To(data= @File_add_Data_Icon_Perms(Location= vars["OSL // Temp"], Name= @item_of_split_by(int= "1", string= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), delimiter= "."), Type= @item_of_split_by(int= "2", string= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), delimiter= "."), Data= @Stringify(json= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), Icon= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), Perms= ""));
+    }
+    case "install_type" {
+      mistsutils_patchcommand2(A= "const val = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const icn = ", B= data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const name = ", B= data_itemoflist(INDEX= 5, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const openWith = ", B= data_itemoflist(INDEX= 6, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand(A= "window.osl_filetypes[`.${val}`] = [icn, name, openWith]");
+    }
+    case "use_type" {
+      mistsutils_patchcommand2(A= "const val2 = \".\" + ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand2(A= "const types = ", B= "window.osl_filetypes");
+      mistsutils_patchcommand3(A= "types[val2][2].push(", B= @originFS_ID_Path(id= @originFS_UUID_ID(UUID= vars["Window // UUID"])), C= ".toLowerCase())");
+      mistsutils_patchcommand(A= "types[val2][2] = Array.from(new Set(types[val2][2]))");
+    }
+    case "remove_type" {
+      mistsutils_patchcommand2(A= "const val3 = ", B= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+      mistsutils_patchcommand3(A= "delete ", B= "window.osl_filetypes", C= "[`.${val3}`]");
+    }
+    case "checkfor_type" {
+      @OSL_Set_Data_Var_To(data= mistsutils_patchreporter3(A= ("." .. data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v("))), B= " in ", C= "window.osl_filetypes"));
+    }
+    case "start" {
+      @File_open(Id= vars["OSL// Current Open File"]);
+    }
+    case "move" {
+      if (vars["Files // Current Dragging"] == "0") {
+        vars["Files // Current Dragging"] = vars["OSL// Current Open File"];
+      }
+    }
+    case "render" {
+      pen_setPenColorToColor(COLOR= @OSL_Vars_Get(Varname= "global_accent"));
+      mistsutils_patchcommand2(A= "let s = ", B= (data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) * 25));
+      @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= mistsutils_patchreporter(A= "s"), Height= mistsutils_patchreporter(A= "s"), Line_Width= "", Invisible= "1");
+      if (data_itemoflist(INDEX= 4, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")) == "interactable") {
+        if ((vars["Files // Current Dragging"] > "0") && (sensing_distanceto(DISTANCETOMENU= sensing_distancetomenu(DISTANCETOMENU: ["_mouse_",null])) < mistsutils_patchreporter(A= "s / 1.5"))) {
+          if not((vars["OSL// Current Open File"] == vars["Files // Current Dragging"])) {
+            if (@File_get_item(id= vars["OSL// Current Open File"], item= "1") == ".folder") {
+              vars["Move// Drop Loc"] = mistsutils_item(C= 1, A= data_itemoflist(INDEX= vars["OSL// Current Open File"], LIST: list("Files // UUIDS", ")w9t`ioSi%,BhS3G$t0K")), B= ".");
+              pen_setPenColorToColor(COLOR= @OSL_Vars_Get(Varname= "global_accent"));
+              @Draw_Square(X= motion_xposition(), Y= motion_yposition(), Width= mistsutils_patchreporter(A= "s"), Height= mistsutils_patchreporter(A= "s"), Line_Width= "10", Invisible= "");
+            }
+          }
+        }
+        if (@File_Interact(File_ID= vars["OSL// Current Open File"]) == "open") {
+          @File_open(Id= vars["OSL// Current Open File"]);
+        }
+      }
+      @Render_File(Id= vars["OSL// Current Open File"], Size= data_itemoflist(INDEX= 3, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+    }
+    case "interact" {
+      @OSL_Set_Data_Var_To(data= @File_Interact(File_ID= vars["OSL// Current Open File"]));
+    }
+    case "pick" {
+      @Window_create(name= "@File Explorer", window_data= mistsutils_patchreporter(A= "{passed_data: {\"mode\": \"picker\"}}"));
+    }
+    default {
+      @Log_Error(Data= mistsutils_patchreporter3(A= "`Unknown files command: ${", B= data_itemoflist(INDEX= 2, LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")), C= "}`"), Type= "Unknown Command");
+    }
+  }
+}

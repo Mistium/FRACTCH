@@ -1,0 +1,19 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aV=
+ * hatOpcode: procedures_definition
+ * threadIndex: 229
+ */
+
+import "../procedures_definition/Kernel_Log____s____s.fractch";
+def @Timed_Log(Data) "Timed Log %s" warp=false {
+  mistsutils_patchcommand(A= "const time = runtime.ioDevices.clock.projectTimer()");
+  mistsutils_patchcommand(A= "const dif =  time - origin.last_timer");
+  mistsutils_patchcommand(A= "const log_data = [p0]");
+  mistsutils_patchcommand(A= "if (dif > 0) log_data.push(Math.round(dif * 1000), \"ms\")");
+  mistsutils_patchcommand(A= "console.log(`[originOS]`, ...log_data)");
+  mistsutils_patchcommand(A= "window.origin.utils.last_log = p0");
+  mistsutils_patchcommand(A= "window.origin.last_timer = time");
+  @Kernel_Log(Thing= "system", Value= Data);
+}

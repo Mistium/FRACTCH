@@ -1,0 +1,21 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aW{
+ * hatOpcode: procedures_definition
+ * threadIndex: 236
+ */
+
+def @Renderer_Get_blur_skin() "Renderer // Get blur skin" warp=false {
+  mistsutils_patchcommand(A= "const myId = target.window.id");
+  mistsutils_patchcommand(A= "const winIds = origin.windows.ids");
+  mistsutils_patchcommand(A= "let idx = winIds.indexOf(myId)");
+  mistsutils_patchcommand(A= "let nextWin, winTarget");
+  mistsutils_patchcommand(A= "for (let i = idx; i < winIds.length; i ++) {");
+  mistsutils_patchcommand(A= "winTarget = origin.targets[winIds[idx + i]]");
+  mistsutils_patchcommand(A= "const win = winTarget?.window");
+  if mistsutils_patchboolean(A= "winTarget !== target && winTarget?.usable_blur && win && win._minimised === false") {
+    return mistsutils_patchreporter(A= "winTarget?.drawCacheSkinBlurred");
+  }
+  mistsutils_patchcommand(A= "}");
+}

@@ -1,0 +1,11 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aC/
+ * hatOpcode: procedures_definition
+ * threadIndex: 170
+ */
+
+def @Elements_Set_Style_of_to(style, name, value) "Elements // Set Style %s of %s to %s" warp=false {
+  mistsutils_patchcommand(A= "try { const style = origin.elements[p1].style; if (style[p0] == p2) return; style[p0] = p2 } catch {}");
+}

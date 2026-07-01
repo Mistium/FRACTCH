@@ -1,0 +1,44 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: +Q
+ * hatOpcode: procedures_definition
+ * threadIndex: 51
+ */
+
+import "../procedures_definition/OSL____Thread_Open__s.fractch";
+import "../procedures_definition/OSL____Thread_Close.fractch";
+def @Run_Definition(command_obj) "Run Definition %s" warp=true {
+  mistsutils_patchcommand2(A= "let last_package = ", B= vars["Import // Current Package"]);
+  mistsutils_patchcommand3(A= "const vars = ", B= command_obj, C= ".parameters");
+  mistsutils_patchcommand3(A= "let code = ", B= command_obj, C= ".code");
+  mistsutils_patchcommand(A= "const parent = p0.parent");
+  vars["Import // Current Package"] = mistsutils_patchreporter(A= "parent");
+  @OSL_Thread_Open(Name= mistsutils_patchreporter(A= "p0.name"));
+  mistsutils_patchcommand(A= "let i = 0");
+  repeat mistsutils_patchreporter(A= "vars.length") {
+    vars["OSL // Set Val Of"] = mistsutils_patchreporter(A= "vars[i ++]");
+    if mistsutils_starts(A= vars["OSL // Set Val Of"], B= "this.") {
+      vars["OSL // Set Val Of"] = @item_of_split_by(int= "2", string= vars["OSL // Set Val Of"], delimiter= ".");
+    }
+    mistsutils_patchcommand2(A= "const name = ", B= vars["OSL // Set Val Of"]);
+    mistsutils_patchcommand3(A= "target.osl_this[target.getThisIdx(target, name)]", B= " = ", C= data_itemoflist(INDEX= mistsutils_patchreporter(A= "i + 1"), LIST: list("Split Text", ")./tR8V[bp)bg1K2.|v(")));
+  }
+  mistsutils_patchcommand2(A= "let id = ", B= vars["WIndow // ID"]);
+  mistsutils_patchcommand(A= "const hasParent = (parent ?? \"\") !== \"\"");
+  mistsutils_patchcommand(A= "const con = target.osl_vars");
+  mistsutils_patchcommand(A= "let self = null");
+  mistsutils_patchcommand(A= "if (hasParent) {");
+  mistsutils_patchcommand(A= "self = con.__self__");
+  mistsutils_patchcommand(A= "osl_clone[id][parent] ??= {}");
+  mistsutils_patchcommand(A= "con.__self__ = con[parent]");
+  mistsutils_patchcommand(A= "}");
+  mistsutils_patchcommand(A= "i = 0");
+  repeat mistsutils_patchreporter(A= "code.length") {
+    mistsutils_patchcommand2(A= "const ret = ", B= @OSL_Parse_and_Run(Run= mistsutils_patchreporter(A= "code[i ++]")));
+    mistsutils_patchcommand(A= "if (ret && ret.type === \"return\") break;");
+  }
+  vars["Import // Current Package"] = mistsutils_patchreporter(A= "last_package");
+  mistsutils_patchcommand(A= "if (hasParent) con.__self__ = self");
+  @OSL_Thread_Close();
+}

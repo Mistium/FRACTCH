@@ -1,0 +1,13 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aMV
+ * hatOpcode: procedures_definition
+ * threadIndex: 197
+ */
+
+def @originPM_Get_permissions_json() "originPM // Get permissions.json" warp=false {
+  mistsutils_patchcommand(A= "let perms = {}");
+  mistsutils_patchcommand3(A= "try { perms = ", B= mistsutils_jsonparse(A= @File_get_item(id= @originFS_Path_ID(Path= mistsutils_patchreporter(A= "`origin/(c) users/${osl.user.username}/application data/permissions.json`")), item= "4")), C= " } catch {}");
+  return mistsutils_patchreporter(A= "perms");
+}

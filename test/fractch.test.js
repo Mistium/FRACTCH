@@ -34,18 +34,71 @@ test('build emits manifest, index, and script files', () => {
   assert.ok(walk(outDir).some((f) => f.endsWith('.fractch')));
 });
 
-test('lossless pack reproduces byte-identical project.json', () => {
-  run(`node ./bin/cli.js --pack --out "${outDir}" --outSb3 "${outSb3}" --no-preferDSL`);
-  const a = new AdmZip(path.join(root, SB3)).readAsText('project.json');
-  const b = new AdmZip(outSb3).readAsText('project.json');
-  assert.strictEqual(a, b);
+test('pack reconstructs every target purely from parsed DSL text', () => {
+  run(`node ./bin/cli.js --pack --out "${outDir}" --outSb3 "${outSb3}"`);
+  const a = JSON.parse(new AdmZip(path.join(root, SB3)).readAsText('project.json'));
+  const b = JSON.parse(new AdmZip(outSb3).readAsText('project.json'));
+  assert.strictEqual(a.targets.length, b.targets.length);
+  for (const ot of a.targets) {
+    const rt = b.targets.find((t) => t.name === ot.name);
+    assert.ok(rt, `target ${ot.name} missing from repack`);
+    const origCount = Object.keys(ot.blocks || {}).length;
+    const repackCount = Object.keys(rt.blocks || {}).length;
+    // Parsing pure text can't always distinguish every representational
+    // nuance (e.g. Scratch can encode "read variable X" as either a real
+    // data_variable block or an inline literal - both execute identically).
+    // This bounds against wholesale data loss, not byte-exact reconstruction.
+    if (origCount > 0) assert.ok(repackCount / origCount > 0.95, `${ot.name}: ${origCount} -> ${repackCount} blocks`);
+  }
+});
+
+test('pack accepts headerless handwritten projects without a manifest', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-hand-'));
+  const scriptDir = path.join(dir, 'Stage', 'event_whenflagclicked');
+  fs.mkdirSync(scriptDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(scriptDir, 'main.fractch'),
+    'event_whenflagclicked();\nlooks_say(MESSAGE= "hello from fractch");\n'
+  );
+  const sb3 = path.join(dir, 'hand.sb3');
+
+  run(`node ./bin/cli.js --pack --out "${dir}" --outSb3 "${sb3}"`);
+
+  const zip = new AdmZip(sb3);
+  const project = JSON.parse(zip.readAsText('project.json'));
+  const stage = project.targets.find((t) => t.name === 'Stage');
+  assert.ok(stage, 'Stage target missing');
+  assert.ok(Object.values(stage.blocks).some((b) => b.opcode === 'event_whenflagclicked'));
+  assert.ok(Object.values(stage.blocks).some((b) => b.opcode === 'looks_say'));
+  assert.ok(zip.getEntry(stage.costumes[0].md5ext), 'default svg asset missing');
+});
+
+test('index imports choose which top-level scripts are packed', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-index-'));
+  const scriptDir = path.join(dir, 'Stage', 'event_whenflagclicked');
+  fs.mkdirSync(scriptDir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'index.fractch'), 'import "./Stage/event_whenflagclicked/keep.fractch";\n');
+  fs.writeFileSync(path.join(scriptDir, 'keep.fractch'), 'event_whenflagclicked();\nlooks_say(MESSAGE= "keep");\n');
+  fs.writeFileSync(path.join(scriptDir, 'drop.fractch'), 'event_whenflagclicked();\nlooks_say(MESSAGE= "drop");\n');
+  const sb3 = path.join(dir, 'indexed.sb3');
+
+  run(`node ./bin/cli.js --pack --out "${dir}" --outSb3 "${sb3}"`);
+
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const stage = project.targets.find((t) => t.name === 'Stage');
+  const messages = Object.values(stage.blocks)
+    .filter((b) => b.opcode === 'looks_say')
+    .map((b) => b.inputs?.MESSAGE?.[1]?.[1]);
+  assert.deepStrictEqual(messages, ['keep']);
 });
 
 test('all assets (costumes/sounds) round-trip byte-identically', () => {
+  // project.json is reconstructed from parsed DSL text (see the pack test
+  // above) - only the non-block assets are expected byte-identical here.
   const a = new AdmZip(path.join(root, SB3));
   const b = new AdmZip(outSb3);
-  const ea = new Map(a.getEntries().map((e) => [e.entryName, a.readFile(e)]));
-  const eb = new Map(b.getEntries().map((e) => [e.entryName, b.readFile(e)]));
+  const ea = new Map(a.getEntries().map((e) => [e.entryName, a.readFile(e)]).filter(([name]) => name !== 'project.json'));
+  const eb = new Map(b.getEntries().map((e) => [e.entryName, b.readFile(e)]).filter(([name]) => name !== 'project.json'));
   assert.strictEqual(ea.size, eb.size);
   for (const [name, buf] of ea) {
     assert.ok(eb.has(name), `missing ${name}`);
@@ -81,14 +134,11 @@ test('extension opcodes are preserved literally (not renamed)', () => {
   assert.ok(hit, 'extension opcode mistsutils_patchcommand not found');
 });
 
-test('header carries a valid rawSubgraph snapshot for lossless repack', () => {
-  const f = walk(outDir).find((f) => f.endsWith('.fractch') && path.basename(f) !== 'index.fractch');
-  const text = fs.readFileSync(f, 'utf8');
-  const m = /rawSubgraph_b64:\s*([A-Za-z0-9+/=]+)/.exec(text);
-  assert.ok(m, 'no rawSubgraph_b64 in header');
-  const json = JSON.parse(Buffer.from(m[1], 'base64').toString('utf8'));
-  assert.strictEqual(typeof json, 'object');
-  assert.ok(Object.keys(json).length > 0, 'empty snapshot');
+test('script files carry no raw JSON block snapshot - DSL text is the only source of truth', () => {
+  for (const f of walk(outDir).filter((f) => f.endsWith('.fractch'))) {
+    const text = fs.readFileSync(f, 'utf8');
+    assert.ok(!/rawSubgraph/.test(text), `${path.basename(f)} still embeds a raw block snapshot`);
+  }
 });
 
 test('extensions: http url -> .url file, data url -> decoded source', () => {

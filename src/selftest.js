@@ -8,25 +8,43 @@ function assert(cond, msg) {
   }
 }
 
-console.log('Selftest: build -> pack:lossless -> pack');
+console.log('Selftest: build -> pack (pure DSL round trip, no JSON snapshot involved)');
 
 execSync('npm run build', { stdio: 'inherit' });
-
-execSync('npm run pack:lossless', { stdio: 'inherit' });
-const originText = new AdmZip('originv6.0.0.sb3').readAsText('project.json');
-const repackedLosslessText = new AdmZip('repacked.sb3').readAsText('project.json');
-assert(originText === repackedLosslessText, 'Lossless repack project.json mismatch');
-console.log('✓ Lossless identical');
-
 execSync('npm run pack', { stdio: 'inherit' });
-const repackedDslText = new AdmZip('repacked.sb3').readAsText('project.json');
-const a = JSON.parse(originText);
-const b = JSON.parse(repackedDslText);
-assert(JSON.stringify(Object.keys(a)) === JSON.stringify(Object.keys(b)), 'Top-level keys mismatch');
+const originProject = JSON.parse(new AdmZip('originv6.0.0.sb3').readAsText('project.json'));
+const repackedProject = JSON.parse(new AdmZip('repacked.sb3').readAsText('project.json'));
+
 assert(
-  Array.isArray(a.targets) && Array.isArray(b.targets) && a.targets.length === b.targets.length,
+  JSON.stringify(Object.keys(originProject).sort()) === JSON.stringify(Object.keys(repackedProject).sort()),
+  'Top-level keys mismatch'
+);
+assert(
+  Array.isArray(originProject.targets) &&
+    Array.isArray(repackedProject.targets) &&
+    originProject.targets.length === repackedProject.targets.length,
   'Targets length mismatch'
 );
-console.log('✓ DSL pack structural check');
 
+for (let i = 0; i < originProject.targets.length; i++) {
+  const ot = originProject.targets[i];
+  const rt = repackedProject.targets.find((t) => t.name === ot.name);
+  assert(rt, `Target ${ot.name} missing from repack`);
+  const origCount = Object.keys(ot.blocks || {}).length;
+  const repackCount = Object.keys(rt.blocks || {}).length;
+  // Parsing from pure text can't always distinguish every representational
+  // nuance (e.g. Scratch itself can encode "read variable X" as either a
+  // real data_variable block or an inline literal - both execute
+  // identically). This bounds against wholesale data loss, not byte-exact
+  // reconstruction; see scripts/_verify_dsl_roundtrip style deep checks for
+  // full structural comparison.
+  const ratio = origCount === 0 ? 1 : repackCount / origCount;
+  assert(
+    ratio > 0.95,
+    `Target ${ot.name}: block count dropped too far (${origCount} -> ${repackCount})`
+  );
+  console.log(`  ${ot.name}: ${origCount} -> ${repackCount} blocks`);
+}
+
+console.log('✓ DSL-only round trip reconstructs all targets with no significant block loss');
 console.log('Selftest complete');

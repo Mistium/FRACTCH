@@ -1,0 +1,22 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: au,
+ * hatOpcode: procedures_definition
+ * threadIndex: 161
+ */
+
+import "../procedures_definition/Timed_Log__s.fractch";
+def @rotur_auto_login(user_data) "rotur // auto login %s" warp=false {
+  @Timed_Log(Data= "Starting login");
+  mistsutils_patchcommand(A= "try {");
+  mistsutils_patchcommand(A= "if (!Object.hasOwn(p0, \"error\")) {");
+  mistsutils_patchcommand(A= "if (String(p0[\"sys.tos_accepted\"]).toLowerCase() !== \"true\") { localStorage.setItem(\"origin_login\",\"\")");
+  runtimeoptions_greenFlag();
+  mistsutils_patchcommand(A= "}");
+  mistsutils_patchcommand2(A= "return ", B= @rotur_Login_with_account_data(account_data= mistsutils_patchreporter(A= "p0")));
+  mistsutils_patchcommand(A= "}} catch {}");
+  mistsutils_patchcommand(A= "localStorage.setItem(\"origin_login\",\"\")");
+  runtimeoptions_greenFlag();
+  return "";
+}

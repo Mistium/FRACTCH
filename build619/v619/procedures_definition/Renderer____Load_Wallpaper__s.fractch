@@ -1,0 +1,25 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aCV
+ * hatOpcode: procedures_definition
+ * threadIndex: 168
+ */
+
+def @Renderer_Load_Wallpaper(url) "Renderer // Load Wallpaper %s" warp=false {
+  mistsutils_patchcommand(A= "origin.wallpaper.next = p0");
+  if mistsutils_ends(A= url, B= ".mp4") {
+    mistsutils_patchcommand(A= "origin.wallpaper.current = p0");
+    mistSkins_deleteSkin(NAME= "wallpaper");
+    lmsVideo_loadVideoURL(URL= url, NAME= "wallpaper");
+    wait_until skyhigh173JSON_json_has_value(json= lmsVideo_getLoadedVideos(), value= "wallpaper");
+    lmsVideo_startVideo(NAME= "wallpaper", DURATION= 0);
+    wait_until (lmsVideo_getAttribute(NAME= "wallpaper", ATTRIBUTE: ["current time",null]) > "0");
+    lmsVideo_toggleLooping(NAME= "wallpaper", LOOP: ["loop",null]);
+    @OSL_Vars_Set(name= "background_url", data= url, current_command= "global");
+  } else {
+    mistsutils_patchcommand(A= "target.wallpaper_to_load = p0");
+    broadcast "Load Wallpaper";
+    lmsVideo_deleteVideoURL(NAME= "wallpaper");
+  }
+}

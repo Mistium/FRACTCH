@@ -1,0 +1,19 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: ]:
+ * hatOpcode: procedures_definition
+ * threadIndex: 81
+ */
+
+def @Find_User(Name, all("all?")) "Find User %s %b" warp=true {
+  if skyhigh173JSON_json_has_value(json= skyhigh173JSON_json_array_filter(key= "username", json= cloudlink_returnUserListData()), value= Name) {
+    return Name;
+  } else {
+    vars["//return"] = truefantomregexp_regexp_match_block(A= skyhigh173JSON_json_array_filter(key= "username", json= cloudlink_returnUserListData()), B= ("/(?<=\")[a-z]{3}-" .. (Name .. "§\\S{10}(?=\")/ig")), C: ["values",null]);
+    if not(all) {
+      vars["//return"] = skyhigh173JSON_json_array_get(item= 1, json= vars["//return"]);
+    }
+    return mistsutils_ifthen(A= (vars["//return"] == "undefined"), B= "", C= vars["//return"]);
+  }
+}

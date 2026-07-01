@@ -1,0 +1,34 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: anD
+ * hatOpcode: procedures_definition
+ * threadIndex: 141
+ */
+
+def @OSL_Function(name, parameters, code) "OSL Function %s ( %s ) ( %s )" warp=false {
+  mistsutils_patchcommand(A= "if (target.JScompCache.has(p2)) return Object.clone(target.JScompCache.get(p2));");
+  mistsutils_patchcommand(A= "let func = Object.create(null)");
+  mistsutils_patchcommand(A= "func._symbol = origin.symbols.function; func.parent = \"\"; func.name = p0");
+  mistsutils_patchcommand(A= "func[Symbol.toPrimitive] = () => '[Object function]'");
+  mistsutils_patchcommand(A= "func.parameters = p1.length === 0 ? [] : p1.replace(/ *, */g,\",\").split(\",\")");
+  mistsutils_patchcommand(A= "func.accepts = func.parameters.map((v, i) => { const parts = v.split(\" \", 2); if (parts.length === 1) return \"any\"; else { func.parameters[i] = parts[1]; return parts[0] } })");
+  mistsutils_patchcommand(A= "if ((\"\"+p1).startsWith(\"...\")) func.parameters = p1.substring(3)");
+  mistsutils_patchcommand(A= "if (p2.constructor === (function*(){}).constructor) func.generator = true;");
+  mistsutils_patchcommand(A= "if (typeof p2 === \"function\") func.code = p2;");
+  mistsutils_patchcommand(A= "else if (typeof p2 === \"object\" && p2?.type === \"blk\") func.code = p2.data;");
+  mistsutils_patchcommand(A= "else if (typeof p2 !== \"string\") func.code = {};");
+  mistsutils_patchcommand2(A= "else func.code = ", B= OSLUtils_generateFullAST(CODE= code));
+  if mistsutils_patchboolean(A= "typeof func.code === \"object\" && false") {
+    mistsutils_patchcommand(A= "const body = func.code?.[0]");
+    mistsutils_patchcommand(A= "const first = body?.[0]");
+    if mistsutils_patchboolean(A= "(first?.num === osl_tkn.cmd && first.data === \"return\") && [osl_tkn.raw, osl_tkn.str, osl_tkn.num].includes(body[1].num)") {
+      mistsutils_patchcommand(A= "func.code = Function(`return ${JSON.stringify(body[1].data)}`)");
+    } else {
+      mistsutils_patchcommand3(A= "const compiled = ", B= @Compile_JS_from_OSL_Ast(ast= mistsutils_patchreporter(A= "func.code"), args= mistsutils_patchreporter(A= "[func.accepts, func.parameters]"), name= mistsutils_patchreporter(A= "func.name")), C= ";");
+      mistsutils_patchcommand(A= "if (typeof compiled === \"function\") { func.code = compiled; func.generator = true; }");
+    }
+  }
+  mistsutils_patchcommand(A= "target.JScompCache.set(p2, func)");
+  return mistsutils_patchreporter(A= "func");
+}

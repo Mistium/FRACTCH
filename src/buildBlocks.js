@@ -1,38 +1,82 @@
 import fs from 'fs';
 import path from 'path';
 
-export function buildBlocksFromCalls(calls, { hatOpcode, proceduresMapForTarget, idGen } = {}) {
+// Opcodes that are only ever legitimately used as shadow-only blocks
+// (literal input defaults / custom-block parameter reporters). Used to
+// restore the `shadow` flag for orphan top-level blocks reconstructed from
+// DSL text alone (the snapshot path preserves this exactly; this is the
+// best-effort text-only fallback).
+const SHADOW_ONLY_OPCODES = new Set([
+  'math_number', 'math_integer', 'math_whole_number', 'math_positive_number',
+  'math_angle', 'text', 'colour_picker', 'note',
+  'argument_reporter_string_number', 'argument_reporter_boolean',
+]);
+
+export function buildBlocksFromCalls(calls, opts = {}) {
+  const { hatOpcode, idGen, ...ctx } = opts;
+  const ids = idGen || new IdGen();
+
+  if (calls.length === 1 && calls[0].type === 'procDef') {
+    return buildProcDefScript(calls[0], ids, ctx);
+  }
+
+  // The whole chain/branch is nothing but a preserved dangling reference
+  // (e.g. a control_if's SUBSTACK that itself points at a nonexistent
+  // block) - reproduce the exact same id, not a real block.
+  if (calls.length === 1 && calls[0].type === 'danglingNext') {
+    return { topId: calls[0].id, blocks: {} };
+  }
+
   const blocks = {};
   let lastId = null;
-  const ids = idGen || new IdGen(); // Use provided ID generator or create new one
+  let topId = null;
 
   for (let idx = 0; idx < calls.length; idx++) {
     const call = calls[idx];
+    if (call.type === 'danglingNext') {
+      // Trailing sentinel: real content preceded it, this just restores the
+      // broken forward reference at the end of the chain rather than a
+      // real block continuing it.
+      if (lastId) blocks[lastId].next = call.id;
+      else topId = call.id;
+      break;
+    }
+    // Reserve this statement's own id before recursing into its nested
+    // values - buildNode may insert child blocks into the shared `blocks`
+    // object before this statement's own entry lands, so object key
+    // insertion order can't be trusted to recover the top id afterward.
     const id = ids.next();
-    const node = buildNode(call, ids, blocks, proceduresMapForTarget, id);
+    if (idx === 0) topId = id;
+    const node = buildNode(call, ids, blocks, ctx, id);
     if (idx === 0) {
       node.topLevel = true;
       node.parent = null;
       node.x = 0;
       node.y = 0;
-      if (hatOpcode) node.opcode = hatOpcode; // trust directory-derived opcode when provided
+      if (hatOpcode) {
+        // A dangling orphan reporter (`"name";` from a bare `__bare_value`
+        // statement) always carries its name under fields.VALUE; data_variable
+        // is the one opcode that expects it under a differently-named key.
+        if (hatOpcode === 'data_variable' && node.fields && 'VALUE' in node.fields) {
+          const [name] = node.fields.VALUE;
+          node.fields = { VARIABLE: [name, (ctx?.varMap && ctx.varMap.get(name)) || null] };
+        }
+        node.opcode = hatOpcode; // trust directory-derived opcode when provided
+      }
+      if (SHADOW_ONLY_OPCODES.has(node.opcode)) node.shadow = true;
     }
     if (lastId) blocks[lastId].next = id;
     blocks[id] = { id, ...node };
     lastId = id;
   }
 
-  return { topId: firstKey(blocks), blocks };
+  return { topId, blocks };
 }
 
-function firstKey(obj) {
-  return Object.keys(obj)[0] || null;
-}
-
-function buildNode(call, ids, blocks, proceduresMap, nodeId) {
+function buildNode(call, ids, blocks, ctx, nodeId) {
   const opcode = call.callee.type === 'procedureCall' ? 'procedures_call' : call.callee.name;
   const node = {
-    id: ids.peek(),
+    id: nodeId,
     opcode,
     next: null,
     parent: null,
@@ -41,21 +85,11 @@ function buildNode(call, ids, blocks, proceduresMap, nodeId) {
     mutation: undefined,
   };
 
-  if (opcode === 'procedures_call') {
-    const proccode = call.callee.name;
-    let idsList = (proceduresMap && (proceduresMap.get(proccode) || proceduresMap.get(String(proccode)))) || [];
-
-    if (proccode === '​​log​​ %s') {
-      console.log(`DEBUG: Applying Unicode fix for block ${nodeId}`);
-      idsList = ['arg0'];
-
-      const inputs = {};
-      inputs['arg0'] = [1, [10, '']]; // Shadow input with empty string
-      node.inputs = inputs;
-      node.mutation = { proccode, argumentids: JSON.stringify(idsList) };
-      console.log(`DEBUG: Unicode fix complete for ${nodeId}, returning node`);
-      return node;
-    } else if (idsList.length === 0 && call.args.length > 0) {
+  if (opcode === 'procedures_call' && call.callee.type === 'procedureCall') {
+    const ident = call.callee.name;
+    const proccode = (ctx.identToProccode && ctx.identToProccode.get(ident)) || ident;
+    let idsList = (ctx.proceduresMapForTarget && ctx.proceduresMapForTarget.get(proccode)) || [];
+    if (idsList.length === 0 && call.args.length > 0) {
       idsList = call.args.map((_, i) => `arg${i}`);
     }
 
@@ -70,78 +104,43 @@ function buildNode(call, ids, blocks, proceduresMap, nodeId) {
     for (let i = 0; i < idsList.length; i++) {
       const idName = idsList[i];
       const arg = call.args[i]?.value;
-      inputs[idName] = valueToInput(arg, ids, blocks);
+      // A param that was never filled in the original call renders as a bare
+      // `null` literal (stringify has no original input to read); Scratch
+      // itself omits the key entirely in that case rather than storing an
+      // empty default, so mirror that instead of fabricating one.
+      if (!arg || arg.type === 'null') continue;
+      inputs[idName] = valueToInput(arg, ids, blocks, ctx);
     }
     node.inputs = inputs;
-  } else if (opcode === 'procedures_prototype') {
-    const argumentIds = [];
-    const argumentNames = [];
-    const argumentDefaults = [];
+    return node;
+  }
 
-    for (const a of call.args) {
-      if (a.kind === 'keyed') {
-        const argId = a.key;
-        argumentIds.push(argId);
-
-        if (a.value?.type === 'call' && a.value.value?.callee?.name?.startsWith('argument_reporter_')) {
-          const valueArg = a.value.value.args?.find((arg) => arg.kind === 'keyed' && arg.key === 'value');
-          if (valueArg?.value?.type === 'array' && valueArg.value.value?.length > 0) {
-            argumentNames.push(valueArg.value.value[0]?.value || '');
-          } else {
-            argumentNames.push('');
-          }
-
-          if (a.value.value.callee.name === 'argument_reporter_boolean') {
-            argumentDefaults.push('false');
-          } else {
-            argumentDefaults.push('');
-          }
-        } else {
-          argumentNames.push('');
-          argumentDefaults.push('');
-        }
-
-        node.inputs[argId] = valueToInput(a.value, ids, blocks);
+  for (const a of call.args) {
+    if (a.kind === 'keyed') {
+      const keyName = a.key;
+      if (a.sep === 'field' && keyName === 'mutation' && a.value?.type === 'json') {
+        node.mutation = a.value.value;
+      } else if (a.sep === 'field') {
+        node.fields[keyName] = fieldValueFromNode(a.value, ctx);
+      } else {
+        const isBroadcastRef =
+          keyName === 'BROADCAST_INPUT' &&
+          (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') &&
+          a.value?.type === 'string';
+        const value = isBroadcastRef ? { type: 'broadcast', name: a.value.value, id: null } : a.value;
+        node.inputs[keyName] = valueToInput(value, ids, blocks, ctx);
       }
-    }
-
-    const proccode = argumentNames.map((name) => (name ? `${name} %s` : '%s')).join(' ');
-
-    node.mutation = {
-      tagName: 'mutation',
-      children: [],
-      proccode,
-      argumentids: JSON.stringify(argumentIds),
-      argumentnames: JSON.stringify(argumentNames),
-      argumentdefaults: JSON.stringify(argumentDefaults),
-      warp: 'false',
-    };
-  } else {
-    for (const a of call.args) {
-      if (a.kind === 'keyed') {
-        const isBracket = /[^A-Za-z0-9_]/.test(a.key);
-        let keyName = isBracket ? a.key : a.key.toUpperCase();
-        if ((node.opcode === 'control_if' || node.opcode === 'control_if_else') && a.key === 'CONDITION') {
-          keyName = 'CONDITION';
-        }
-        node.inputs[keyName] = valueToInput(a.value, ids, blocks);
-      } else if (a.kind === 'object' && a.value) {
-        for (const [k, v] of Object.entries(a.value)) {
-          if (v?.type === 'thunk') {
-            const { blocks: sub, topId } = buildBlocksFromCalls(v.body, {
-              proceduresMapForTarget: proceduresMap,
-            });
-            Object.assign(blocks, sub);
-            const wireKey = mapBranchKey(node.opcode, k);
-            node.inputs[wireKey] = [2, topId];
-
-            let cursor = topId;
-            while (cursor) {
-              if (!blocks[cursor]) break;
-              blocks[cursor].parent = node.id;
-              cursor = blocks[cursor].next;
-            }
-          }
+    } else if (a.kind === 'branch') {
+      const { blocks: sub, topId } = buildBlocksFromCalls(a.body, { ...ctx, idGen: ids });
+      Object.assign(blocks, sub);
+      if (topId) {
+        const wireKey = a.wireKey || a.key.toUpperCase();
+        node.inputs[wireKey] = [2, topId];
+        let cursor = topId;
+        while (cursor) {
+          if (!blocks[cursor]) break;
+          blocks[cursor].parent = node.id;
+          cursor = blocks[cursor].next;
         }
       }
     }
@@ -149,32 +148,201 @@ function buildNode(call, ids, blocks, proceduresMap, nodeId) {
   return node;
 }
 
-function valueToInput(val, ids, blocks) {
-  if (!val) return [3, [10, '']];
+function valueToInput(val, ids, blocks, ctx) {
+  if (!val) return [1, [10, '']];
   switch (val.type) {
     case 'null':
-      return [3, [10, '']];
+      return [1, [10, '']];
     case 'number':
-      return [3, [4, String(val.value)]];
+      // Prefer the literal source text (`raw`) over re-stringifying the
+      // parsed Number - Scratch stores numeric inputs as free-form text
+      // (".25", "007", "1e3", ...) and re-formatting via Number->String
+      // silently rewrites it (".25" -> "0.25").
+      return [1, [4, val.raw ?? String(val.value)]];
     case 'string':
-      return [3, [10, String(val.value)]];
+      return [1, [10, String(val.value)]];
     case 'boolean':
-      return [3, [10, String(val.value)]]; // Scratch booleans often as reporters; leave as string
-    case 'var':
-      return [3, [12, val.name, val.id || null]];
-    case 'list':
-      return [3, [13, val.name, val.id || null]];
-    case 'array':
-      return [3, val.value];
+      return [1, [10, String(val.value)]];
+    case 'var': {
+      const id = val.id || (ctx?.varMap && ctx.varMap.get(val.name)) || null;
+      return [1, [12, val.name, id]];
+    }
+    case 'list': {
+      const id = val.id || (ctx?.listMap && ctx.listMap.get(val.name)) || null;
+      return [1, [13, val.name, id]];
+    }
+    case 'broadcast': {
+      const id = val.id || (ctx?.broadcastNameToId && ctx.broadcastNameToId.get(val.name)) || null;
+      return [1, [11, val.name, id]];
+    }
+    case 'json': {
+      const v = val.value;
+      if (Array.isArray(v) && v.length >= 2 && typeof v[0] === 'number') return [1, v];
+      return [1, [10, JSON.stringify(v)]];
+    }
     case 'call': {
       const childId = ids.next();
-      const node = buildNode(val.value, ids, blocks);
+      const node = buildNode(val.value, ids, blocks, ctx, childId);
       blocks[childId] = { id: childId, ...node };
       return [2, childId];
     }
+    case 'ident': {
+      // A plain variable read plugs in as Scratch's compact inline literal
+      // ([1, [12, name, id]]) - there is no separate data_variable block for
+      // it anywhere in a real project.json. Only custom-block parameters
+      // (scopeParams) are genuinely their own block (argument_reporter_*).
+      if (!(ctx?.scopeParams && ctx.scopeParams.has(val.name))) {
+        const id = (ctx?.varMap && ctx.varMap.get(val.name)) || null;
+        return [1, [12, val.name, id]];
+      }
+      const childId = ids.next();
+      const node = buildIdentReporterNode(val.name, ctx, childId);
+      blocks[childId] = { id: childId, ...node };
+      return [1, childId];
+    }
+    case 'arg': {
+      // Explicit `arg("Name")` - an argument-reporter reference written out
+      // by name because it can't safely use bare-identifier sugar (either
+      // its display name collides with another param after cleanIdent, or
+      // it's orphaned: the body still refers to a param that's since been
+      // removed from the definition). Build the real reporter block by
+      // display name directly, independent of whether it's still declared.
+      const childId = ids.next();
+      const kind = (ctx?.scopeParams && ctx.scopeParams.get(val.name)?.kind) || 's';
+      const opcode = kind === 'b' ? 'argument_reporter_boolean' : 'argument_reporter_string_number';
+      blocks[childId] = {
+        id: childId,
+        opcode,
+        next: null,
+        parent: null,
+        inputs: {},
+        fields: { VALUE: [val.name, null] },
+        shadow: true,
+        topLevel: false,
+      };
+      return [1, childId];
+    }
     default:
-      return [3, [10, '']];
+      return [1, [10, '']];
   }
+}
+
+function fieldValueFromNode(v, ctx) {
+  if (!v) return [''];
+  switch (v.type) {
+    case 'var':
+      return [v.name, v.id || (ctx?.varMap && ctx.varMap.get(v.name)) || null];
+    case 'list':
+      return [v.name, v.id || (ctx?.listMap && ctx.listMap.get(v.name)) || null];
+    case 'broadcast':
+      return [v.name, v.id || (ctx?.broadcastNameToId && ctx.broadcastNameToId.get(v.name)) || null];
+    case 'array':
+      return v.value;
+    case 'json':
+      return Array.isArray(v.value) ? v.value : [v.value];
+    case 'string':
+      return [v.value];
+    case 'number':
+      return [v.raw ?? String(v.value)];
+    case 'ident':
+      return [v.name];
+    default:
+      return [''];
+  }
+}
+
+function buildIdentReporterNode(name, ctx, id) {
+  if (ctx?.scopeParams && ctx.scopeParams.has(name)) {
+    const { kind, displayName } = ctx.scopeParams.get(name);
+    const opcode = kind === 'b' ? 'argument_reporter_boolean' : 'argument_reporter_string_number';
+    return { id, opcode, next: null, parent: null, inputs: {}, fields: { VALUE: [displayName ?? name, null] }, shadow: true, topLevel: false };
+  }
+  const varId = (ctx?.varMap && ctx.varMap.get(name)) || null;
+  return { id, opcode: 'data_variable', next: null, parent: null, inputs: {}, fields: { VARIABLE: [name, varId] }, shadow: false, topLevel: false };
+}
+
+function synthesizeProccode(ident, params) {
+  const label = String(ident).replace(/_/g, ' ').trim() || 'proc';
+  return params.length ? `${label} ${params.map(() => '%s').join(' ')}` : label;
+}
+
+function extractPlaceholderTypes(proccode, count) {
+  const tokens = String(proccode || '').match(/%[snb]/g) || [];
+  const types = tokens.map((t) => t[1]);
+  while (types.length < count) types.push('s');
+  return types.slice(0, count);
+}
+
+function buildProcDefScript(procDef, ids, ctx) {
+  const blocks = {};
+  const defId = ids.next();
+  const protoId = ids.next();
+
+  const paramNames = procDef.params.map((p) => p.name);
+  const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params);
+  const typeTokens = extractPlaceholderTypes(proccode, procDef.params.length);
+  const argIds = (ctx.proceduresMapForTarget && ctx.proceduresMapForTarget.get(proccode)) || procDef.params.map((p) => p.ident);
+  const argDefaults = typeTokens.map((t) => (t === 'b' ? 'false' : ''));
+
+  const protoInputs = {};
+  for (let i = 0; i < procDef.params.length; i++) {
+    const rid = ids.next();
+    const isBool = typeTokens[i] === 'b';
+    blocks[rid] = {
+      id: rid,
+      opcode: isBool ? 'argument_reporter_boolean' : 'argument_reporter_string_number',
+      next: null,
+      parent: protoId,
+      inputs: {},
+      fields: { VALUE: [paramNames[i], null] },
+      shadow: true,
+      topLevel: false,
+    };
+    protoInputs[argIds[i] ?? procDef.params[i].ident] = [1, rid];
+  }
+
+  blocks[defId] = {
+    id: defId,
+    opcode: 'procedures_definition',
+    next: null,
+    parent: null,
+    inputs: { custom_block: [1, protoId] },
+    fields: {},
+    shadow: false,
+    topLevel: true,
+    x: 0,
+    y: 0,
+  };
+  blocks[protoId] = {
+    id: protoId,
+    opcode: 'procedures_prototype',
+    next: null,
+    parent: defId,
+    inputs: protoInputs,
+    fields: {},
+    shadow: true,
+    topLevel: false,
+    mutation: {
+      tagName: 'mutation',
+      children: [],
+      proccode,
+      argumentids: JSON.stringify(argIds),
+      argumentnames: JSON.stringify(paramNames),
+      argumentdefaults: JSON.stringify(argDefaults),
+      warp: String(!!procDef.warp),
+    },
+  };
+
+  const scopeParams = new Map(
+    procDef.params.map((p, i) => [p.ident, { kind: typeTokens[i], displayName: p.name ?? p.ident }])
+  );
+  const bodyCtx = { ...ctx, scopeParams };
+  const { blocks: bodyBlocks, topId: bodyTopId } = buildBlocksFromCalls(procDef.body, { ...bodyCtx, idGen: ids });
+  Object.assign(blocks, bodyBlocks);
+  blocks[defId].next = bodyTopId || null;
+  if (bodyTopId && blocks[bodyTopId]) blocks[bodyTopId].parent = defId;
+
+  return { topId: defId, blocks };
 }
 
 export class IdGen {
@@ -201,19 +369,11 @@ function base62(num) {
   return out || 'A';
 }
 
-function mapBranchKey(opcode, key) {
-  if (opcode === 'control_if' || opcode === 'control_if_else') {
-    if (key === 'then') return 'SUBSTACK';
-    if (key === 'else') return 'SUBSTACK2';
-  }
-  if (opcode === 'control_switch') {
-    if (key === 'cases') return 'SUBSTACK';
-  }
-  return key.toUpperCase();
-}
-
 export function mergeIntoManifest(manifest, builtTargets) {
   const clone = JSON.parse(JSON.stringify(manifest));
+  for (const t of clone.targets || []) {
+    if (!t.blocks) t.blocks = {};
+  }
   for (const bt of builtTargets) {
     const t = clone.targets.find((x) => x.name === bt.name);
     if (!t) continue;
@@ -305,10 +465,12 @@ function collectBlocksSubgraph(blocks, topId) {
 
     if (node.inputs) {
       for (const [, val] of Object.entries(node.inputs)) {
-        if (Array.isArray(val) && val.length >= 2) {
-          const childId = val[1];
-          if (typeof childId === 'string' && blocks[childId]) {
-            stack.push(childId);
+        if (Array.isArray(val)) {
+          for (let i = 1; i < val.length; i++) {
+            const childId = val[i];
+            if (typeof childId === 'string' && blocks[childId]) {
+              stack.push(childId);
+            }
           }
         }
       }

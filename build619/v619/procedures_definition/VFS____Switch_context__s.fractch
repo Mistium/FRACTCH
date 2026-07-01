@@ -1,0 +1,17 @@
+/**
+ * target: v619
+ * targetId: 
+ * topBlockId: aWO
+ * hatOpcode: procedures_definition
+ * threadIndex: 232
+ */
+
+def @VFS_Switch_context(name) "VFS // Switch context %s" warp=false {
+  mistsutils_patchcommand2(A= "const prev_id = ", B= vars["OSL // Current Zip Archive"]);
+  if mistsutils_patchboolean(A= "(prev_id ?? \"\") !== \"\"") {
+    mistsutils_patchcommand3(A= vars["OSL // Zip Archives"], B= "[prev_id] = ", C= vfs_getallfiles(EXPORT: ["json",null]));
+  }
+  vars["OSL // Current Zip Archive"] = name;
+  vfs_clearall();
+  mistsutils_patchcommand3(A= vars["OSL // Zip Archives"], B= "[p0] = ", C= vfs_getallfiles(EXPORT: ["json",null]));
+}
