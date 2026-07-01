@@ -13,7 +13,8 @@
     "pack": "node ./bin/cli.js --pack --out ./build --outSb3 ./repacked.sb3 --verbose --preferDSL",
     "pack:lossless": "node ./bin/cli.js --pack --out ./build --outSb3 ./repacked.sb3 --verbose --no-preferDSL",
     "lint": "echo 'No linter configured'",
-    "test": "node ./src/selftest.js"
+    "test": "node --test test/*.test.js",
+    "selftest": "node ./src/selftest.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.12",
