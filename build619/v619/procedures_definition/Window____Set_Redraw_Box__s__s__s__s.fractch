@@ -4,6 +4,7 @@
  * topBlockId: akx
  * hatOpcode: procedures_definition
  * threadIndex: 129
+ * pos: 5288,252704
  */
 
 def @Window_Set_Redraw_Box(left, top, right, bottom) "Window // Set Redraw Box %s %s %s %s" {

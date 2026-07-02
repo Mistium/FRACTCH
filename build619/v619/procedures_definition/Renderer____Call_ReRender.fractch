@@ -4,6 +4,7 @@
  * topBlockId: ako
  * hatOpcode: procedures_definition
  * threadIndex: 126
+ * pos: 5288,251912
  */
 
 def @Renderer_Call_ReRender() "Renderer // Call ReRender" {

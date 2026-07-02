@@ -4,6 +4,7 @@
  * topBlockId: aMA
  * hatOpcode: procedures_definition
  * threadIndex: 193
+ * pos: 51629,64
  */
 
 def @originFS_Generate_file_uuid() "originFS // Generate file uuid" {

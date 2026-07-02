@@ -4,6 +4,7 @@
  * topBlockId: afw
  * hatOpcode: procedures_definition
  * threadIndex: 114
+ * pos: 5288,218936
  */
 
 def @originFS_Generate_window_origin_index() "originFS // Generate window.origin index" warp {

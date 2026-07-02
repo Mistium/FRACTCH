@@ -4,6 +4,7 @@
  * topBlockId: aIo
  * hatOpcode: procedures_definition
  * threadIndex: 179
+ * pos: 74054,64
  */
 
 def @Kernel_Log(Thing, Value) "Kernel Log [ %s ] %s" {

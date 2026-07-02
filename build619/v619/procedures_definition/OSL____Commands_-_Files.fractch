@@ -4,6 +4,7 @@
  * topBlockId: `j
  * hatOpcode: procedures_definition
  * threadIndex: 91
+ * pos: 5288,123152
  */
 
 def @OSL_Commands_Files() "OSL // Commands - Files" {
@@ -182,7 +183,7 @@ def @OSL_Commands_Files() "OSL // Commands - Files" {
       mistsutils.patchcommand2(A: "let s = ", B: data.itemoflist(INDEX: 3, LIST: list("Split Text")) * 25);
       @Draw_Square(X: motion.xposition(), Y: motion.yposition(), Width: mistsutils.patchreporter(A: "s"), Height: mistsutils.patchreporter(A: "s"), Line_Width: "", Invisible: 1);
       if data.itemoflist(INDEX: 4, LIST: list("Split Text")) == "interactable" {
-        if vars["Files // Current Dragging"] > 0 && sensing.distanceto(DISTANCETOMENU: sensing.distancetomenu(field DISTANCETOMENU: "_mouse_")) < mistsutils.patchreporter(A: "s / 1.5") {
+        if vars["Files // Current Dragging"] > 0 && sensing.distanceto(DISTANCETOMENU: sensing.distancetomenu("_mouse_")) < mistsutils.patchreporter(A: "s / 1.5") {
           if vars["OSL// Current Open File"] != vars["Files // Current Dragging"] {
             if @File_get_item(id: vars["OSL// Current Open File"], item: 1) == ".folder" {
               vars["Move// Drop Loc"] = mistsutils.item(C: 1, A: data.itemoflist(INDEX: vars["OSL// Current Open File"], LIST: list("Files // UUIDS")), B: ".");

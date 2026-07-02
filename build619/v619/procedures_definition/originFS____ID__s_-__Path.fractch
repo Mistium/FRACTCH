@@ -4,6 +4,7 @@
  * topBlockId: anw
  * hatOpcode: procedures_definition
  * threadIndex: 140
+ * pos: 5288,275304
  */
 
 def @originFS_ID_Path(id) "originFS // ID %s -> Path" {

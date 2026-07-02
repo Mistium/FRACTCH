@@ -4,6 +4,7 @@
  * topBlockId: auP
  * hatOpcode: procedures_definition
  * threadIndex: 160
+ * pos: 86630,64
  */
 
 import "../procedures_definition/SYSTEM____Crash__s__s.fractch";

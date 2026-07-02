@@ -4,6 +4,7 @@
  * topBlockId: aPc
  * hatOpcode: procedures_definition
  * threadIndex: 212
+ * pos: 5288,232144
  */
 
 def @items_to_of(start, end, array) "items %s to %s of %s" {

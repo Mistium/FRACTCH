@@ -4,6 +4,7 @@
  * topBlockId: bS{
  * hatOpcode: event_whenbroadcastreceived
  * threadIndex: 237
+ * pos: 78106,920
  */
 
 import "../procedures_definition/OSL___Vars__Set__s__s__s.fractch";

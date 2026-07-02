@@ -4,6 +4,7 @@
  * topBlockId: aD%
  * hatOpcode: procedures_definition
  * threadIndex: 178
+ * pos: 63372,64
  */
 
 def @Window_Setup_Typed_Methods() "Window // Setup Typed Methods" {

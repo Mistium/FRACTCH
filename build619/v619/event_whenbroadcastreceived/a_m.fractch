@@ -4,6 +4,7 @@
  * topBlockId: a%m
  * hatOpcode: event_whenbroadcastreceived
  * threadIndex: 48
+ * pos: 5288,33352
  */
 
 event.whenbroadcastreceived(BROADCAST_OPTION: broadcast("// right click"));

@@ -4,6 +4,7 @@
  * topBlockId: aP/
  * hatOpcode: procedures_definition
  * threadIndex: 220
+ * pos: 5288,112576
  */
 
 def @Kernel_Tab_focus_change_handler() "Kernel // Tab focus change handler" {

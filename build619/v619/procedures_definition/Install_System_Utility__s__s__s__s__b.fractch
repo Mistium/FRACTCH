@@ -4,6 +4,7 @@
  * topBlockId: akz
  * hatOpcode: procedures_definition
  * threadIndex: 130
+ * pos: 5288,254000
  */
 
 def @Install_System_Utility(Location, Name_And_Type("Name And Type"), Data, Icon, not_system("not system?")) "Install System Utility %s %s %s %s %b" {

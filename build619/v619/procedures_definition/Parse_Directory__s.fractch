@@ -4,6 +4,7 @@
  * topBlockId: atF
  * hatOpcode: procedures_definition
  * threadIndex: 156
+ * pos: 89840,64
  */
 
 def @Parse_Directory(directory) "Parse Directory %s" {

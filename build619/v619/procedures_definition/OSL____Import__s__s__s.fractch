@@ -4,6 +4,7 @@
  * topBlockId: at@
  * hatOpcode: procedures_definition
  * threadIndex: 158
+ * pos: 5288,48360
  */
 
 import "../procedures_definition/OSL____Thread_Open__s.fractch";

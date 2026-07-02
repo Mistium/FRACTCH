@@ -4,6 +4,7 @@
  * topBlockId: ]W
  * hatOpcode: procedures_definition
  * threadIndex: 79
+ * pos: 5288,102640
  */
 
 def @originNM_Log_Request_Payload_Recipient_Received(Payload, Recipient, received) "originNM // Log Request. Payload: %s Recipient: %s Received?: %b" {

@@ -4,6 +4,7 @@
  * topBlockId: ]u
  * hatOpcode: procedures_definition
  * threadIndex: 75
+ * pos: 5288,99800
  */
 
 import "../procedures_definition/Draw_Right-click_Menu__s__s__s__s.fractch";

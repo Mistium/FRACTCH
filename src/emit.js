@@ -34,6 +34,7 @@ export function emitScriptFile({ target, script, subgraph, index, context, cfg =
     ` * topBlockId: ${escapeHeader(topBlockId)}\n` +
     ` * hatOpcode: ${escapeHeader(hatOpcode || '')}\n` +
     ` * threadIndex: ${index}\n` +
+    ` * pos: ${Math.round(subgraph[topBlockId]?.x ?? 0)},${Math.round(subgraph[topBlockId]?.y ?? 0)}\n` +
     ` */\n`;
 
   const imports = deriveImports(blocksArr, context);
@@ -142,7 +143,12 @@ function defSignature(defBlock, subgraph, context) {
     code === synthesizeProccode(info.ident, info.params.length) &&
     info.params.every((p) => p.name === p.ident);
   const codeLit = code != null && !derivable ? ` ${JSON.stringify(code)}` : '';
-  return `def @${info.ident}(${params})${codeLit}${warpLit}`;
+  const color = proto?.mutation?.customcolor;
+  const colorLit = color ? ` color=${JSON.stringify(String(color))}` : '';
+  // returns=1 (round reporter) is derived from expression position at pack
+  // time; only the boolean shape needs to be spelled out.
+  const returnsLit = info.returns === '2' ? ' returns=2' : '';
+  return `def @${info.ident}(${params})${codeLit}${warpLit}${returnsLit}${colorLit}`;
 }
 
 function indentBlock(str, spaces = 2) {

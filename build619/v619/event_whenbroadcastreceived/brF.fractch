@@ -4,6 +4,7 @@
  * topBlockId: brF
  * hatOpcode: event_whenbroadcastreceived
  * threadIndex: 153
+ * pos: 5288,250624
  */
 
 event.whenbroadcastreceived(BROADCAST_OPTION: broadcast("Load Files"));

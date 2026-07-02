@@ -4,6 +4,7 @@
  * topBlockId: bH#
  * hatOpcode: event_whenflagclicked
  * threadIndex: 195
+ * pos: 49943,64
  */
 
 event.whenflagclicked();

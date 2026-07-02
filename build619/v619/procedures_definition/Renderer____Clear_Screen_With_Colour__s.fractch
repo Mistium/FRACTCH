@@ -4,6 +4,7 @@
  * topBlockId: aqz
  * hatOpcode: procedures_definition
  * threadIndex: 145
+ * pos: 5288,277440
  */
 
 def @Renderer_Clear_Screen_With_Colour(colour) "Renderer // Clear Screen With Colour %s" {

@@ -4,6 +4,7 @@
  * topBlockId: aJ!
  * hatOpcode: procedures_definition
  * threadIndex: 187
+ * pos: 57887,64
  */
 
 def @Window_Setup_OSL_compilables() "Window // Setup OSL compilables" {

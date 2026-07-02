@@ -4,6 +4,7 @@
  * topBlockId: aML
  * hatOpcode: procedures_definition
  * threadIndex: 196
+ * pos: 49943,552
  */
 
 def @ICN_Compile(value) "ICN // Compile %s" warp {

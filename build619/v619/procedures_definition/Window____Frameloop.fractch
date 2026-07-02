@@ -4,6 +4,7 @@
  * topBlockId: aV}
  * hatOpcode: procedures_definition
  * threadIndex: 230
+ * pos: 45814,64
  */
 
 import "../procedures_definition/OSL___Window_Mainloop.fractch";

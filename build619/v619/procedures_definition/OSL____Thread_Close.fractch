@@ -4,6 +4,7 @@
  * topBlockId: aN{
  * hatOpcode: procedures_definition
  * threadIndex: 204
+ * pos: 5288,92504
  */
 
 def @OSL_Thread_Close() "OSL // Thread Close" {

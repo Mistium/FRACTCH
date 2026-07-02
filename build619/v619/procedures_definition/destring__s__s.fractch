@@ -4,6 +4,7 @@
  * topBlockId: abs
  * hatOpcode: procedures_definition
  * threadIndex: 100
+ * pos: 5288,163080
  */
 
 def @destring(Text, remove) warp {

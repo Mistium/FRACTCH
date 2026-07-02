@@ -4,6 +4,7 @@
  * topBlockId: +:
  * hatOpcode: procedures_definition
  * threadIndex: 52
+ * pos: 5288,38680
  */
 
 import "../procedures_definition/Window____Setup_Typed_Methods.fractch";

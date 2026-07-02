@@ -4,6 +4,7 @@
  * topBlockId: aU|
  * hatOpcode: procedures_definition
  * threadIndex: 227
+ * pos: 5288,185744
  */
 
 import "../procedures_definition/___Draw_Square__s__s__s__s__s__s.fractch";
@@ -28,7 +29,7 @@ def @Draw_Right_click_Menu(code, depth, x, y) "Draw Right-click Menu %s %s %s %s
   if !sensing.mousedown() {
     vars["RightClickClosable"] = mistsutils.true();
   }
-  if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching !== true") && (HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && (RightClickClosable == "true" && data.lengthoflist(LIST: list("Right Click Menu Depth")) == depth - 1)) {
+  if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching !== true") && (HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && (RightClickClosable == "true" && data.lengthoflist(LIST: list("Right Click Menu Depth")) == depth - 1)) {
     @Window_Reset_Redraw_Box();
     @Renderer_Call_ReRender();
     data.deletealloflist(LIST: list("Right Click Menu Depth"));
@@ -66,7 +67,7 @@ def @Draw_Right_click_Menu(code, depth, x, y) "Draw Right-click Menu %s %s %s %s
           }
         } else {
           data.deleteoflist(INDEX: depth, LIST: list("Right Click Menu Depth"));
-          if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
+          if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
             @Window_Reset_Redraw_Box();
             @Renderer_Call_ReRender();
             if mistsutils.patchboolean(A: "typeof current === \"object\"") {

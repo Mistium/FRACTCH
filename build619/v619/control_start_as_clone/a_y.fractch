@@ -4,6 +4,7 @@
  * topBlockId: a#y
  * hatOpcode: control_start_as_clone
  * threadIndex: 46
+ * pos: 48,64
  */
 
 import "../procedures_definition/Window____Setup_OSL_compilables.fractch";

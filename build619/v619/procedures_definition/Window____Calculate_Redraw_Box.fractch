@@ -4,6 +4,7 @@
  * topBlockId: ]{
  * hatOpcode: procedures_definition
  * threadIndex: 82
+ * pos: 5288,104472
  */
 
 def @Window_Calculate_Redraw_Box() "Window // Calculate Redraw Box" {

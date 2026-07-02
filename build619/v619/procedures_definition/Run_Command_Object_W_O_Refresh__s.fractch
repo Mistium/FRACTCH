@@ -4,6 +4,7 @@
  * topBlockId: aXA
  * hatOpcode: procedures_definition
  * threadIndex: 239
+ * pos: 2445,64
  */
 
 import "../procedures_definition/Run_Command_Object__s__s__s.fractch";

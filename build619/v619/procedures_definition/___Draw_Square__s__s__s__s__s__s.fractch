@@ -4,6 +4,7 @@
  * topBlockId: }X
  * hatOpcode: procedures_definition
  * threadIndex: 96
+ * pos: 5288,155680
  */
 
 def @Draw_Square(X, Y, Width, Height, Line_Width("Line Width"), Invisible("Invisible?")) "// Draw Square %s %s %s %s %s %s" warp {

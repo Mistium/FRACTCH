@@ -4,6 +4,7 @@
  * topBlockId: :A
  * hatOpcode: procedures_definition
  * threadIndex: 60
+ * pos: 5288,72464
  */
 
 def @OSL_Set_Data_Var_To(data) "OSL // Set Data Var To %s" {

@@ -221,5 +221,14 @@ export function buildProcByCode(targets) {
       map.set(proccode, { ident, params, label: proccode });
     }
   }
+  // Return-type (MistWarp/TurboWarp reporter custom blocks) lives only on
+  // call mutations, not prototypes - scan calls to attach it to the def info.
+  for (const target of targets) {
+    for (const b of Object.values(target.blocks || {})) {
+      if (!b || b.opcode !== 'procedures_call' || !b.mutation?.return) continue;
+      const info = map.get(b.mutation.proccode);
+      if (info && info.returns == null) info.returns = String(b.mutation.return);
+    }
+  }
   return map;
 }

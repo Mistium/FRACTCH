@@ -4,6 +4,7 @@
  * topBlockId: +N
  * hatOpcode: procedures_definition
  * threadIndex: 50
+ * pos: 5288,36832
  */
 
 def @OSL_Vars_Get(Varname) "OSL// Vars: Get %s" warp {

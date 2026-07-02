@@ -4,6 +4,7 @@
  * topBlockId: aMc
  * hatOpcode: procedures_definition
  * threadIndex: 192
+ * pos: 52392,536
  */
 
 import "../procedures_definition/originFS____Generate_Paths_And_Uuids.fractch";

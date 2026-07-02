@@ -4,6 +4,7 @@
  * topBlockId: aXm
  * hatOpcode: procedures_definition
  * threadIndex: 238
+ * pos: 40964,64
  */
 
 def @Kernel_Setup_roturLink_connection() "Kernel // Setup roturLink connection" {

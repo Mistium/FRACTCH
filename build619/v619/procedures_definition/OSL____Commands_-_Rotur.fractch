@@ -4,6 +4,7 @@
  * topBlockId: ag^
  * hatOpcode: procedures_definition
  * threadIndex: 119
+ * pos: 5288,229952
  */
 
 def @OSL_Commands_Rotur() "OSL // Commands - Rotur" warp {
@@ -23,14 +24,14 @@ def @OSL_Commands_Rotur() "OSL // Commands - Rotur" warp {
     }
     case "key_buy" {
       mistsutils.patchcommand2(A: "let key_data_b = ", B: cloudlink.fetchURL(url: "https://social.rotur.dev/keys/get/" .. data.itemoflist(INDEX: 3, LIST: list("Split Text"))));
-      if skyhigh173JSON.json_is(json: mistsutils.patchreporter(A: "key_data_b"), types: skyhigh173JSON.menu_types(field types: "Object")) {
+      if skyhigh173JSON.json_is(json: mistsutils.patchreporter(A: "key_data_b"), types: skyhigh173JSON.menu_types("Object")) {
         mistsutils.patchcommand(A: "const key_data = JSON.parse(key_data_b)");
         @Add_Popup_with_type_ontop_of(Title: mistsutils.patchreporter(A: "`Buy ${key_data.name ?? key_data.id}`"), Subtext: mistsutils.patchreporter(A: "`By ${key_data.creator} for ${key_data.price + \" credit\" + (key_data.price === 1 ? \"\" : \"s\")}`"), type: "buy_key", object: skyhigh173JSON.json_set(item: "id", json: "{}", value: @destring(Text: data.itemoflist(INDEX: 3, LIST: list("Split Text")), remove: "\"")));
       }
     }
     case "key_cancel" {
       mistsutils.patchcommand2(A: "let key_data_c = ", B: cloudlink.fetchURL(url: "https://social.rotur.dev/keys/get/" .. data.itemoflist(INDEX: 3, LIST: list("Split Text"))));
-      if skyhigh173JSON.json_is(json: mistsutils.patchreporter(A: "key_data_c"), types: skyhigh173JSON.menu_types(field types: "Object")) {
+      if skyhigh173JSON.json_is(json: mistsutils.patchreporter(A: "key_data_c"), types: skyhigh173JSON.menu_types("Object")) {
         mistsutils.patchcommand(A: "const key_data = JSON.parse(key_data_c)");
         @Add_Popup_with_type_ontop_of(Title: mistsutils.patchreporter(A: "`Cancel ${key_data.name ?? key_data.id}`"), Subtext: mistsutils.patchreporter(A: "`Are you sure?`"), type: "cancel_key", object: skyhigh173JSON.json_set(item: "id", json: "{}", value: @destring(Text: data.itemoflist(INDEX: 3, LIST: list("Split Text")), remove: "\"")));
       }

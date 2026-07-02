@@ -4,6 +4,7 @@
  * topBlockId: abm
  * hatOpcode: procedures_definition
  * threadIndex: 99
+ * pos: 5288,162408
  */
 
 import "../procedures_definition/File___get__s_item__s.fractch";

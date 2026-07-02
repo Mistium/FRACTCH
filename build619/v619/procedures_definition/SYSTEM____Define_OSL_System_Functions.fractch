@@ -4,6 +4,7 @@
  * topBlockId: aqN
  * hatOpcode: procedures_definition
  * threadIndex: 148
+ * pos: 96775,16488
  */
 
 def @SYSTEM_Define_OSL_System_Functions() "SYSTEM // Define OSL System Functions" {

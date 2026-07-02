@@ -4,6 +4,7 @@
  * topBlockId: {/
  * hatOpcode: procedures_definition
  * threadIndex: 94
+ * pos: 5288,137744
  */
 
 import "../procedures_definition/__log____s.fractch";
@@ -21,7 +22,7 @@ def @Window_Close(message) "Window // Close %s" warp {
   }
   mistsutils.patchcommand(A: "const id = target.window.id");
   vars["Window // Name"] = data.itemnumoflist(ITEM: vars["WIndow // ID"], LIST: list("Windows // ID"));
-  pointerlock.setLocked(enabled: pointerlock.menu_enabled(field enabled: "false"));
+  pointerlock.setLocked(enabled: pointerlock.menu_enabled("false"));
   mistsutils.patchcommand2(A: "const videos = ", B: mistsutils.jsonparse(A: lmsVideo.getLoadedVideos()));
   repeat mistsutils.patchreporter(A: "videos.length") {
     mistsutils.patchcommand(A: "const vid = videos.shift()");

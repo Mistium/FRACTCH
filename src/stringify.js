@@ -25,7 +25,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     if (info) {
       const args = info.params.map((p) => {
         const inp = block.inputs?.[p.id];
-        const val = Array.isArray(inp) ? getInputExpr(inp, subgraph) : 'null';
+        const val = Array.isArray(inp) ? inputValueText(inp, subgraph, p.id) : 'null';
         return `${p.ident}: ${val}`;
       });
       const call = `@${info.ident}(${args.join(', ')})`;
@@ -139,7 +139,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     // here - the statement keyword already says "this is a broadcast".
     const name =
       typeof childId === 'string' && subgraph[childId]
-        ? getInputExpr(tuple, subgraph)
+        ? inputValueText(tuple, subgraph, 'BROADCAST_INPUT')
         : JSON.stringify(Array.isArray(childId) ? String(childId[1] ?? '') : '');
     const w = opcode === 'event_broadcastandwait' ? 'broadcast_wait' : 'broadcast';
     return `${w} ${name};`;
@@ -196,6 +196,43 @@ function blockExprInfo(block, subgraph, id) {
   return { text: stringifyBlockCall(block, subgraph, id, /*inline*/ true), prec: ATOM_PREC };
 }
 
+function shadowBlockText(block, subgraph, id, inputName) {
+  const op = String(block.opcode || '');
+  if (op === 'argument_reporter_string_number' || op === 'argument_reporter_boolean') {
+    return stringifyBlockCall(block, subgraph, id, /*inline*/ true);
+  }
+  const fields = block.fields || {};
+  const keys = Object.keys(fields);
+  const hasInputs = Object.keys(block.inputs || {}).length > 0;
+  if (!hasInputs && keys.length === 1 && keys[0] === inputName && !block.mutation) {
+    const v = fields[keys[0]];
+    if (Array.isArray(v) && typeof v[0] === 'string' && (v.length === 1 || v[1] == null)) {
+      return `${formatOpcodeName(op)}(${JSON.stringify(v[0])})`;
+    }
+  }
+  return `shadow ${stringifyBlockCall(block, subgraph, id, /*inline*/ true)}`;
+}
+
+export function inputValueText(arr, subgraph, inputName) {
+  if (!Array.isArray(arr) || arr.length < 2) return 'null';
+  const childId = arr[1];
+  const child = typeof childId === 'string' ? subgraph[childId] : null;
+  if (child && child.shadow) {
+    return shadowBlockText(child, subgraph, childId, inputName);
+  }
+  const active = getInputExpr(arr, subgraph);
+  const sh = arr.length > 2 ? arr[2] : null;
+  if (sh != null) {
+    if (typeof sh === 'string' && subgraph[sh]) {
+      return `${active} ?? ${shadowBlockText(subgraph[sh], subgraph, sh, inputName)}`;
+    }
+    if (Array.isArray(sh) && sh[0] === 11) {
+      return `${active} ?? ${formatLiteral([1, sh])}`;
+    }
+  }
+  return active;
+}
+
 export function stringifyInputs(block, subgraph, cLike = false) {
   if (!block.inputs) return '';
   const args = [];
@@ -207,14 +244,7 @@ export function stringifyInputs(block, subgraph, cLike = false) {
       args.push(`${formatArgKey(name)}: null`);
       continue;
     }
-    const childId = arr[1];
-
-    if (typeof childId === 'string' && subgraph[childId]) {
-      const nested = stringifyBlockCall(subgraph[childId], subgraph, childId, /*inline*/ true);
-      args.push(`${formatArgKey(name)}: ${nested}`);
-    } else {
-      args.push(`${formatArgKey(name)}: ${formatLiteral(arr)}`);
-    }
+    args.push(`${formatArgKey(name)}: ${inputValueText(arr, subgraph, name)}`);
   }
   return args.join(', ');
 }

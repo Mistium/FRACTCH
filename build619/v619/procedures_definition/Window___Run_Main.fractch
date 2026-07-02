@@ -4,6 +4,7 @@
  * topBlockId: aR?
  * hatOpcode: procedures_definition
  * threadIndex: 226
+ * pos: 5288,163312
  */
 
 import "../procedures_definition/Window___Set_Frame__s__s__s__s__s__b.fractch";
@@ -91,7 +92,7 @@ def @Window_Run_Main() "Window// Run Main" warp {
     xeltallivclipblend.setClipbox(X1: vars["Window // Low X"] - 5, Y1: vars["Window // High Y"] + 5, X2: vars["Window // High X"] + 5, Y2: vars["Window // Low Y"] - 5);
     @Draw_Square(X: vars["Frame // X"], Y: vars["Frame // Y"], Width: mistsutils.patchreporter(A: "s"), Height: mistsutils.patchreporter(A: "s"), Line_Width: mistsutils.patchreporter(A: "s"), Invisible: "");
     vars["Can Click?"] = "true";
-    if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && @Check_Collision_in_square_at_of_dimensions(x: sensing.mousex(), y: sensing.mousey(), x2: motion.xposition(), y2: motion.yposition(), w: mistsutils.patchreporter(A: "s * 1.5"), h: mistsutils.patchreporter(A: "s * 1.5")) {
+    if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && @Check_Collision_in_square_at_of_dimensions(x: sensing.mousex(), y: sensing.mousey(), x2: motion.xposition(), y2: motion.yposition(), w: mistsutils.patchreporter(A: "s * 1.5"), h: mistsutils.patchreporter(A: "s * 1.5")) {
       mistsutils.patchcommand(A: "mini.splice(window_id - 1, 1)");
       mistsutils.patchcommand(A: "target.window._minimised = \"false\"");
       vars["Window // Interactable?"] = "true";
@@ -213,7 +214,7 @@ def @Window_Run_Main() "Window// Run Main" warp {
     if mistsutils.patchboolean(A: "target.lastExecuteMain === false && !executeMain") {
       looks.cleargraphiceffects();
       @Renderer_Draw_skin_over_window(skinId: mistsutils.patchreporter(A: "target.drawCacheSkin"));
-      mistSkins.restoreSkin(TARGET: mistSkins.menu_targetMenu(field targetMenu: "_myself_"));
+      mistSkins.restoreSkin(TARGET: shadow mistSkins.menu_targetMenu(field targetMenu: "_myself_"));
     }
     mistsutils.patchcommand(A: "target.lastExecuteMain = runOnFrame || interactable || responsive");
   }
@@ -244,7 +245,7 @@ def @Window_Run_Main() "Window// Run Main" warp {
     vars["Renderer // Frame Max Y"] = vars["Frame // Max Y"];
     vars["Frame // Min X"] = vars["Screen Size X"] / -2;
     vars["Frame // Max X"] = vars["Screen Size X"] / 2;
-    if !(vars["Inputs // Next Selected"] == "" || HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0"))) {
+    if !(vars["Inputs // Next Selected"] == "" || HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0"))) {
       vars["Inputs // Current Selected"] = vars["Inputs // Next Selected"];
       vars["Inputs // Cursor Position"] = 0;
       vars["Inputs // Start Letter Pos"] = 0;
@@ -323,7 +324,7 @@ def @Window_Run_Main() "Window// Run Main" warp {
       @OSL_Parse_and_Run(Run: "c global_accent");
       @Draw_Square(X: 0, Y: 0, Width: 400, Height: mistsutils.patchreporter(A: "height"), Line_Width: 15, Invisible: "");
       if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") {
-        MouseCursor.setCur(cur: MouseCursor.menu_cursors(field cursors: "default"));
+        MouseCursor.setCur(cur: shadow MouseCursor.menu_cursors(field cursors: "default"));
       }
       pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "osl.user.theme.background"));
       @Draw_Square(X: 0, Y: 0, Width: 400, Height: mistsutils.patchreporter(A: "height"), Line_Width: 10, Invisible: "");
@@ -356,8 +357,8 @@ def @Window_Run_Main() "Window// Run Main" warp {
       @OSL_Parse_and_Run(Run: "c global_accent");
       @Draw_Square(X: 100, Y: mistsutils.patchreporter(A: "target.y - 60"), Width: 180, Height: 30, Line_Width: 15, Invisible: "");
       if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") {
-        MouseCursor.setCur(cur: MouseCursor.menu_cursors(field cursors: "pointer"));
-        if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
+        MouseCursor.setCur(cur: shadow MouseCursor.menu_cursors(field cursors: "pointer"));
+        if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
           if vars["Kernel // Alert Close"] == "false" {
             vars["Kernel // Alert Close"] = "true";
             switch skyhigh173JSON.json_get(item: "type", json: mistsutils.patchreporter(A: "popup")) {
@@ -403,8 +404,8 @@ def @Window_Run_Main() "Window// Run Main" warp {
       @OSL_Parse_and_Run(Run: "c global_accent");
       @Draw_Square(X: -100, Y: mistsutils.patchreporter(A: "target.y"), Width: 180, Height: 30, Line_Width: 15, Invisible: "");
       if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") {
-        MouseCursor.setCur(cur: MouseCursor.menu_cursors(field cursors: "pointer"));
-        if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && vars["Kernel // Alert Close"] == "false" {
+        MouseCursor.setCur(cur: shadow MouseCursor.menu_cursors(field cursors: "pointer"));
+        if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && vars["Kernel // Alert Close"] == "false" {
           vars["Kernel // Alert Close"] = "true";
           mistsutils.patchcommand(A: "const parsed = JSON.parse(popup)");
           if mistsutils.patchreporter(A: "parsed.type") == "permission" {
@@ -424,8 +425,8 @@ def @Window_Run_Main() "Window// Run Main" warp {
       @Draw_Square(X: 0, Y: mistsutils.patchreporter(A: "target.y - 50"), Width: 380, Height: 30, Line_Width: 15, Invisible: "");
       pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "osl.user.theme.primary"));
       if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") {
-        MouseCursor.setCur(cur: MouseCursor.menu_cursors(field cursors: "pointer"));
-        if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && vars["Kernel // Alert Close"] == "false" {
+        MouseCursor.setCur(cur: shadow MouseCursor.menu_cursors(field cursors: "pointer"));
+        if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && vars["Kernel // Alert Close"] == "false" {
           vars["Kernel // Alert Close"] = "true";
           @RUSH_execute(Command: "kill " .. @File_get_item(id: vars["Kernel // Alert App"], item: 2));
           mistsutils.patchcommand(A: "const parsed = JSON.parse(popup)");

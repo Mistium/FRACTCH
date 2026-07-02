@@ -4,6 +4,7 @@
  * topBlockId: aqo
  * hatOpcode: procedures_definition
  * threadIndex: 144
+ * pos: 43569,648
  */
 
 def @Connect_As(user) "Connect As %s" {

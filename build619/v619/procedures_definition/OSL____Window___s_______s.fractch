@@ -4,6 +4,7 @@
  * topBlockId: ]x
  * hatOpcode: procedures_definition
  * threadIndex: 76
+ * pos: 5288,100288
  */
 
 def @OSL_Window(name, data) "OSL // Window[ %s ] =  %s" {

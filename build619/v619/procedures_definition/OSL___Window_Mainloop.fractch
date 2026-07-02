@@ -4,6 +4,7 @@
  * topBlockId: asz
  * hatOpcode: procedures_definition
  * threadIndex: 152
+ * pos: 5288,60808
  */
 
 import "../procedures_definition/OSL____Load_Permissions.fractch";

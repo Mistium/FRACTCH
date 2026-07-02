@@ -4,6 +4,7 @@
  * topBlockId: aWU
  * hatOpcode: procedures_definition
  * threadIndex: 233
+ * pos: 43569,64
  */
 
 def @Renderer_Draw_skin_over_window(skinId) "Renderer // Draw skin %s over window" {

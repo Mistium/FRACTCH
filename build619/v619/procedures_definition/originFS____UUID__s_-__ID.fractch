@@ -4,6 +4,7 @@
  * topBlockId: afO
  * hatOpcode: procedures_definition
  * threadIndex: 115
+ * pos: 55930,64
  */
 
 def @originFS_UUID_ID(UUID) "originFS // UUID %s -> ID" {

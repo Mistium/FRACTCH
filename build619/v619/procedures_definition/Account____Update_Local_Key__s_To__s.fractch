@@ -4,6 +4,7 @@
  * topBlockId: aDW
  * hatOpcode: procedures_definition
  * threadIndex: 177
+ * pos: 68226,624
  */
 
 import "../procedures_definition/OSL___Vars__Set__s__s__s.fractch";

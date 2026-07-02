@@ -4,6 +4,7 @@
  * topBlockId: brS
  * hatOpcode: event_whenbroadcastreceived
  * threadIndex: 154
+ * pos: 5288,32224
  */
 
 event.whenbroadcastreceived(BROADCAST_OPTION: broadcast("Dropped"));

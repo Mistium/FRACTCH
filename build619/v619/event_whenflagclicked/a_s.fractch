@@ -4,6 +4,7 @@
  * topBlockId: a+s
  * hatOpcode: event_whenflagclicked
  * threadIndex: 56
+ * pos: 5288,64048
  */
 
 event.whenflagclicked();
@@ -11,6 +12,6 @@ vars["SYSTEM // Scroll Multiplier"] = "none";
 forever {
   if mistsutils.patchreporter(A: "Date.now()") - vars["Camera // Last Accessed"] > 1000 && CameraSensingPlusSP.vidStatus() {
     CameraSensingPlusSP.turnOnCamera(field ON_OFF: "off");
-    videoSensing.videoToggle(VIDEO_STATE: videoSensing.menu_VIDEO_STATE(field VIDEO_STATE: "off"));
+    videoSensing.videoToggle(VIDEO_STATE: videoSensing.menu_VIDEO_STATE("off"));
   }
 }

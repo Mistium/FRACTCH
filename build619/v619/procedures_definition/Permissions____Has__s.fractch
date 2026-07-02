@@ -4,8 +4,9 @@
  * topBlockId: aV.
  * hatOpcode: procedures_definition
  * threadIndex: 228
+ * pos: 5288,232472
  */
 
-def @Permissions_Has(perm) "Permissions // Has %s" {
+def @Permissions_Has(perm) "Permissions // Has %s" returns=2 {
   return mistsutils.patchboolean(A: mistsutils.patchreporter3(A: "(", B: vars["OSL // Perms"], C: ").includes(p0)"));
 }

@@ -24,6 +24,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   const targets = new Map(); // manifestTargetName -> { name, stacks: Array<{hatOpcode, calls, topBlockId}> }
   const procArgMaps = new Map(); // targetName -> Map(proccode -> argumentids[])
   const identToProccode = new Map(); // targetName -> Map(ident -> proccode)
+  const procMetaMaps = new Map(); // targetName -> Map(proccode -> { warp, customcolor })
   let totalScripts = 0;
   let parsedScripts = 0;
 
@@ -46,8 +47,10 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         hatOpcode: headerInfo?.hatOpcode || inferredHat,
         calls,
         topBlockId: headerInfo?.topBlockId,
+        x: headerInfo?.x ?? null,
+        y: headerInfo?.y ?? null,
       });
-      registerProcDefs(procArgMaps, identToProccode, manifestName, calls);
+      registerProcDefs(procArgMaps, identToProccode, procMetaMaps, manifestName, calls);
       if (!hasManifest) collectNamesIntoManifest(manifestTarget, calls);
       parsedScripts++;
     } catch (e) {
@@ -76,16 +79,25 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
     const manifestTarget = (manifest.targets || []).find((t) => t.name === name);
     const varMap = new Map([...stageVarMap, ...buildNameIdMap(manifestTarget?.variables)]);
     const listMap = new Map([...stageListMap, ...buildNameIdMap(manifestTarget?.lists)]);
+    let stackIndex = 0;
     for (const s of data.stacks) {
       const { blocks, topId } = buildBlocksFromCalls(s.calls, {
         hatOpcode: s.hatOpcode,
         proceduresMapForTarget: procArgMaps.get(name),
         identToProccode: identToProccode.get(name),
+        procMeta: procMetaMaps.get(name),
         varMap,
         listMap,
         broadcastNameToId,
         idGen: sharedIdGen,
       });
+      // Canvas position from the header when present; a simple grid keeps
+      // headerless hand-written scripts from stacking on top of each other.
+      if (topId && blocks[topId] && blocks[topId].topLevel) {
+        blocks[topId].x = s.x ?? (stackIndex % 5) * 500;
+        blocks[topId].y = s.y ?? Math.floor(stackIndex / 5) * 700;
+      }
+      stackIndex++;
       scripts.push({ oldTopId: s.topBlockId || null, blocks, newTopId: topId });
     }
     builtTargets.push({ name, scripts });
@@ -382,16 +394,19 @@ function ensureDictEntry(dict, name, value) {
 // param idents, or the original ids if a call site elsewhere in the same
 // build supplied them) - scan every parsed procDef up front so calls to it
 // (which may live in an entirely different file) get consistent argument ids.
-function registerProcDefs(procArgMaps, identToProccode, targetName, calls) {
+function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName, calls) {
   if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
   const procDef = calls[0];
   const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
   if (!procArgMaps.has(targetName)) procArgMaps.set(targetName, new Map());
   if (!identToProccode.has(targetName)) identToProccode.set(targetName, new Map());
+  if (!procMetaMaps.has(targetName)) procMetaMaps.set(targetName, new Map());
   const map = procArgMaps.get(targetName);
   const identMap = identToProccode.get(targetName);
+  const metaMap = procMetaMaps.get(targetName);
   if (!identMap.has(procDef.ident)) identMap.set(procDef.ident, proccode);
   if (!map.has(proccode)) map.set(proccode, procDef.params.map((p) => p.ident));
+  if (!metaMap.has(proccode)) metaMap.set(proccode, { warp: procDef.warp, customcolor: procDef.customcolor, returns: procDef.returns });
 }
 
 function buildNameIdMap(dict) {
@@ -436,7 +451,13 @@ function parseHeaderInfo(text) {
       const m = /\*\s*([^:]+):\s*(.*)$/.exec(line.trim());
       if (m) map.set(m[1].trim(), m[2].trim());
     }
-    return { hatOpcode: map.get('hatOpcode'), topBlockId: map.get('topBlockId') };
+    const pos = /^(-?\d+),(-?\d+)$/.exec(map.get('pos') || '');
+    return {
+      hatOpcode: map.get('hatOpcode'),
+      topBlockId: map.get('topBlockId'),
+      x: pos ? Number(pos[1]) : null,
+      y: pos ? Number(pos[2]) : null,
+    };
   } catch {
     return null;
   }

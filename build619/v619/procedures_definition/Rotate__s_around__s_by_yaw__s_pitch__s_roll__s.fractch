@@ -4,6 +4,7 @@
  * topBlockId: amO
  * hatOpcode: procedures_definition
  * threadIndex: 135
+ * pos: 5288,267008
  */
 
 def @Rotate_around_by_yaw_pitch_roll(arr1, arr2, yaw, pitch, roll) "Rotate %s around %s by yaw %s pitch %s roll %s" {

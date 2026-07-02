@@ -4,6 +4,7 @@
  * topBlockId: akt
  * hatOpcode: procedures_definition
  * threadIndex: 127
+ * pos: 5288,252296
  */
 
 def @Stringify(json) {

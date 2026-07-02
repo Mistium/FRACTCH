@@ -4,6 +4,7 @@
  * topBlockId: bG!
  * hatOpcode: control_start_as_clone
  * threadIndex: 190
+ * pos: 2995,64
  */
 
 control.start_as_clone();

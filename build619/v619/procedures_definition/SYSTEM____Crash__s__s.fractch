@@ -4,6 +4,7 @@
  * topBlockId: aDi
  * hatOpcode: procedures_definition
  * threadIndex: 174
+ * pos: 72997,64
  */
 
 import "../procedures_definition/Renderer____Clear_Screen_With_Colour__s.fractch";

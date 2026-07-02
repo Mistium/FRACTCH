@@ -4,6 +4,7 @@
  * topBlockId: avc
  * hatOpcode: procedures_definition
  * threadIndex: 165
+ * pos: 101752,64
  */
 
 def @Inputs_Delete_text_from_to_and_replace_it_with(line, char, line2, char2, replace) "Inputs // Delete text from %s %s to %s %s and replace it with %s" warp {

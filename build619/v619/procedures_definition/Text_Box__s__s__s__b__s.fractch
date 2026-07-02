@@ -4,6 +4,7 @@
  * topBlockId: ==
  * hatOpcode: procedures_definition
  * threadIndex: 67
+ * pos: 96775,64
  */
 
 import "../procedures_definition/___Go_To_Location_Of_Window__s__s__s__s.fractch";
@@ -161,7 +162,7 @@ def @Text_Box(id, content, text_colour("text colour"), focused, parameters) "Tex
         @RightClick(Data_Rightclicked: mistsutils.patchreporter(A: "[\"Cut\",\"Copy\",\"Paste\"]"), X: sensing.mousex(), Y: sensing.mousey(), current_file: vars["Inputs // Selected String"]);
       }
       @Go_To_Location_Of_Window(X: 9999, Y: 2, X_2: mistsutils.patchreporter(A: "x_temp") + (60 - vars["Scroll // X"] + vars["Studio // Content Width"] / 2), Y_2: mistsutils.patchreporter(A: "12 - temp") + vars["Scroll// Y"]);
-      pen.setPenColorParamTo(COLOR_PARAM: pen.menu_colorParam(field colorParam: "transparency"), VALUE: 100);
+      pen.setPenColorParamTo(COLOR_PARAM: shadow pen.menu_colorParam(field colorParam: "transparency"), VALUE: 100);
       @Inputs_draw_Rounding_ID_text_size(data_value: temp, width: vars["Studio // Content Width"] + 20, height: mistsutils.patchreporter(A: "line_height * 2"), default_text: mistsutils.ifthen(A: mistsutils.patchreporter(A: "i") == 1, B: mistsutils.patchreporter(A: "p4.default_text"), C: ""), selected: vars["Inputs // Current Line"] == mistsutils.patchreporter(A: "i") && focused, Text_colour: text_colour, Rounding: 0, type: "", ID: mistsutils.patchreporter(A: "i"), draw_text: vars["Studio // OHF"] != "", txt_size: (30 - mistsutils.patchreporter(A: "line_height * 2")) / mistsutils.patchreporter(A: "line_height * 2"), sel_colour: mistsutils.patchreporter(A: "sel_colour"));
       if focused {
         @Draw_Square(X: motion.xposition(), Y: motion.yposition(), Width: vars["Studio // Content Width"] + 50, Height: mistsutils.patchreporter(A: "line_height"), Line_Width: 5, Invisible: 1);
@@ -259,7 +260,7 @@ def @Text_Box(id, content, text_colour("text colour"), focused, parameters) "Tex
       }
       stop "this script";
     } else {
-      if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
+      if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
         if !@Check_Collision_in_square_at_of_dimensions(x: sensing.mousex(), y: sensing.mousey(), x2: vars["Frame // X"], y2: vars["Frame // Y"], w: vars["Frame // Width"], h: vars["Frame // Height"]) {
           vars["Inputs // Current Selected"] = 0;
           vars["Inputs // Start Line"] = 0;

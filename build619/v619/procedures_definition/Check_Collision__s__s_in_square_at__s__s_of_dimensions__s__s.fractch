@@ -4,8 +4,9 @@
  * topBlockId: ^d
  * hatOpcode: procedures_definition
  * threadIndex: 84
+ * pos: 5288,105560
  */
 
-def @Check_Collision_in_square_at_of_dimensions(x, y, x2, y2, w, h) "Check Collision %s %s in square at %s %s of dimensions %s %s" {
+def @Check_Collision_in_square_at_of_dimensions(x, y, x2, y2, w, h) "Check Collision %s %s in square at %s %s of dimensions %s %s" returns=2 {
   return abs(x - x2) < w / 2 && abs(y - y2) < h / 2;
 }

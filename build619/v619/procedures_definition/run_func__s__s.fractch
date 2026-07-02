@@ -4,6 +4,7 @@
  * topBlockId: ^:
  * hatOpcode: procedures_definition
  * threadIndex: 89
+ * pos: 5288,113096
  */
 
 def @run_func(command, params) "run func %s %s" warp {
@@ -28,13 +29,13 @@ def @run_func(command, params) "run func %s %s" warp {
     case "askFile" {
       mistsutils.patchcommand(A: "let data = \"\"");
       if mistsutils.patchreporter(A: "typeof p1[0] === \"string\"") {
-        mistsutils.patchcommand2(A: "data = ", B: filesExpanded.showPickerExtensionsAs(extension: mistsutils.patchreporter(A: "p1[0]"), as: mistsutils.patchreporter(A: "p1[1] ?? \"text\"")));
+        mistsutils.patchcommand2(A: "data = ", B: filesExpanded.showPickerExtensionsAs(extension: mistsutils.patchreporter(A: "p1[0]"), as: mistsutils.patchreporter(A: "p1[1] ?? \"text\"") ?? shadow filesExpanded.menu_encoding(field encoding: "text")));
       } else {
-        mistsutils.patchcommand2(A: "data = ", B: filesExpanded.showPickerAs(as: mistsutils.patchreporter(A: "p1[1] ?? \"text\"")));
+        mistsutils.patchcommand2(A: "data = ", B: filesExpanded.showPickerAs(as: mistsutils.patchreporter(A: "p1[1] ?? \"text\"") ?? shadow filesExpanded.menu_encoding(field encoding: "text")));
       }
-      mistsutils.patchcommand2(A: "const name = ", B: filesExpanded.fileInfo(FORMAT: filesExpanded.menu_FILE_INFO(field FILE_INFO: "name")));
+      mistsutils.patchcommand2(A: "const name = ", B: filesExpanded.fileInfo(FORMAT: shadow filesExpanded.menu_FILE_INFO(field FILE_INFO: "name")));
       mistsutils.patchcommand(A: "const convertDate = (input) => { const [date, time] = input.split(', '); const [day, month, year] = date.split('/'); return `${year}-${month}-${day} ${time}`; }");
-      mistsutils.patchcommand2(A: "const modified = ", B: sipctime.TimeToTimestamp(time: mistsutils.patchreporter3(A: "convertDate(", B: filesExpanded.fileInfo(FORMAT: filesExpanded.menu_FILE_INFO(field FILE_INFO: "modified date")), C: ")")));
+      mistsutils.patchcommand2(A: "const modified = ", B: sipctime.TimeToTimestamp(time: mistsutils.patchreporter3(A: "convertDate(", B: filesExpanded.fileInfo(FORMAT: shadow filesExpanded.menu_FILE_INFO(field FILE_INFO: "modified date")), C: ")")));
       mistsutils.patchcommand(A: "return { name, data, modified }");
     }
     case "meshNew" {
@@ -77,7 +78,7 @@ def @run_func(command, params) "run func %s %s" warp {
       vars["Process // Type"] = "Worker";
       mistsutils.patchcommand2(A: "const worker_id = ", B: vars["WIndow // ID"] .. mistsutils.patchreporter(A: "\" \" + randomString(32)"));
       vars["Process // ID"] = mistsutils.patchreporter(A: "worker_id");
-      control.create_clone_of(CLONE_OPTION: control.create_clone_of_menu(field CLONE_OPTION: "_myself_"));
+      control.create_clone_of(CLONE_OPTION: control.create_clone_of_menu("_myself_"));
       vars["Process // Type"] = "App";
       mistsutils.patchcommand3(A: "let workers = origin.workers[+", B: vars["WIndow // ID"], C: "]");
       mistsutils.patchcommand2(A: "const data = ", B: mistsutils.squarebrackets(A: params, B: 0));

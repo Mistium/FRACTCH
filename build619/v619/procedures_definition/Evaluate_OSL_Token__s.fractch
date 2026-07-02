@@ -4,6 +4,7 @@
  * topBlockId: akV
  * hatOpcode: procedures_definition
  * threadIndex: 132
+ * pos: 5288,255600
  */
 
 def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" {
@@ -213,7 +214,7 @@ def @Evaluate_OSL_Token(Token_Obj("Token Obj")) "Evaluate OSL Token %s" {
           @OSL_Find_And_Run(command: "c", input2: mistsutils.patchreporter(A: "dat"), tokens: "");
         }
         case "o" {
-          pen.setPenColorParamTo(COLOR_PARAM: pen.menu_colorParam(field colorParam: "transparency"), VALUE: mistsutils.patchreporter(A: "100 - (+dat || 0)"));
+          pen.setPenColorParamTo(COLOR_PARAM: shadow pen.menu_colorParam(field colorParam: "transparency"), VALUE: mistsutils.patchreporter(A: "100 - (+dat || 0)"));
         }
         case "w" {
           pen.setPenSizeTo(SIZE: mistsutils.patchreporter(A: "dat"));

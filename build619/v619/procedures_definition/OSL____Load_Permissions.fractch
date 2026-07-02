@@ -4,6 +4,7 @@
  * topBlockId: aJt
  * hatOpcode: procedures_definition
  * threadIndex: 183
+ * pos: 61402,64
  */
 
 def @OSL_Load_Permissions() "OSL // Load Permissions" {

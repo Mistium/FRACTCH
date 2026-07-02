@@ -4,6 +4,7 @@
  * topBlockId: aQr
  * hatOpcode: procedures_definition
  * threadIndex: 224
+ * pos: 3861,256
  */
 
 def @Go_To_Location_Of_Window(X, Y, X_2("+X"), Y_2("+Y")) "// Go To Location Of Window %s %s %s %s" {

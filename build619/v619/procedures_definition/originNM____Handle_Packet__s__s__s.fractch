@@ -4,6 +4,7 @@
  * topBlockId: aN|
  * hatOpcode: procedures_definition
  * threadIndex: 205
+ * pos: 5288,95472
  */
 
 def @originNM_Handle_Packet(Value, Raw_Value("Raw Value"), From) "originNM // Handle Packet %s %s %s" {

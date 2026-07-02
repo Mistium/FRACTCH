@@ -4,6 +4,7 @@
  * topBlockId: aXN
  * hatOpcode: event_whenflagclicked
  * threadIndex: 45
+ * pos: 5288,64
  */
 
 import "../procedures_definition/Renderer____Clear_Screen_With_Colour__s.fractch";
@@ -60,7 +61,7 @@ mistsutils.patchcommand(A: "const GPU_VENDOR_REGEX=/(intel|nvidia|sis|amd|apple|
 mistsutils.patchcommand(A: "window.defineTypedProperty=(e,t,o,l,r)=>{const n=\"?\"===l[l.length-1],p=n?l.slice(0,-1):l,s=osl.typeof.code,y=`\"${t}\" must be of type ${l}`,f=`Initial value for \"${t}\" must be of type ${l}`;let i=o;null==o&&n||s(o)===p||r._oslError(f,\"type\"),Object.defineProperty(e,t,{get:()=>i,set(e){null==e&&n||s(e)===p?i=e:r._oslError(y,\"type\")},enumerable:!0,configurable:!0})};");
 mistsutils.patchcommand(A: "window.createTypedObject=function(e,r,o){const t={};let n;for(n in r)n in e||o._oslError(`Unknown property \"${n}\"`,\"interface\");for(n in e){const l=e[n];let i,s=l.type,c=!!l.optional,f=63===s.charCodeAt(s.length-1),p=f?s.slice(0,-1):s;n in r?(i=r[n],null===i?c||f||o._oslError(`\"${n}\" must be of type ${s}`,\"interface\"):osl.typeof.code(i)!==p&&o._oslError(`\"${n}\" must be of type ${s}`,\"interface\")):(c||o._oslError(`Missing required property \"${n}\"`,\"interface\"),i=null),Object.defineProperty(t,n,{get:()=>i,set(e){null===e?c||f||o._oslError(`\"${n}\" must be of type ${s}`,\"interface\"):osl.typeof.code(e)!==p&&o._oslError(`\"${n}\" must be of type ${s}`,\"interface\"),i=e},enumerable:!0,configurable:!1})}return t};");
 mistsutils.patchcommand(A: "vm._events.targetsUpdate = []");
-videoSensing.videoToggle(VIDEO_STATE: videoSensing.menu_VIDEO_STATE(field VIDEO_STATE: "off"));
+videoSensing.videoToggle(VIDEO_STATE: videoSensing.menu_VIDEO_STATE("off"));
 mistsutils.patchcommand(A: "if (window.origin?.roturLink?.ws?.readyState < 3) window.origin.roturLink.ws.close()");
 mistsutils.patchcommand(A: "window.origin = {auth: {}, targets: {}, osl_ast_cache: new Map(), account: {}, apps: {}, sudoTransmit: [], permissions: {writes: []}, repoSource: \"https://origin.mistium.com/\", applySource: function(url) { return this.repoSource + url }, fetches: {video: [], images: [], web: [], downloads: []}, time: {}, terminal: {}, roturLink: { enabled: false }, wallpaper: { transparency: 0, transparency_target: 0}, network: {logs: [], updates: [], update_ids: []}, symbols: {}, files: {mount_points: {}, transfers: [], processes: [], system_total: window?.origin?.files?.system_total ?? 0, queues:{delete:[], move:[], duplicate: []}}, notifications: [], renderer: {penSkin: vm.runtime.ext_pen._penSkinId, canvas: vm.renderer.canvas, last: [], queue: [], frame: []}, desktop: {current: 0, min: 1, max: 5, split: [0.5,0.5,0.5,0.5,0.5,0.5], popups: []}, keyboard: {keysObj: {}, keysDown: [], tabIndexes: [], tabIndex: 0}, workers:{}, processes: [], windows:{area: {}, positions: [], hovered: [], snapping: [], network_ids: [], names: [], minimised: [], received: [], render: [], shown: [], ids: [], icns: [], paths: []}, elements: {}, utils: {}}");
 mistsutils.patchcommand(A: "const origin = window.origin");
@@ -90,15 +91,15 @@ mistsutils.patchcommand(A: "connect()");
 xeltallivSimple3D.resetEverything();
 mistfetch.deleteAllRequests();
 if vars["Embed Mode"] == 0 {
-  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/scripts/system/setup.osl\")"), ID: "setup", headers: "{}", body: "{}");
-  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Resources/Rightclick.json\")"), ID: "rightclick", headers: "{}", body: "{}");
-  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/apps/System/.Install_system.json\")"), ID: "installer", headers: "{}", body: "{}");
+  mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/scripts/system/setup.osl\")"), ID: "setup", headers: "{}", body: "{}");
+  mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Resources/Rightclick.json\")"), ID: "rightclick", headers: "{}", body: "{}");
+  mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"OSL%20Programs/apps/System/.Install_system.json\")"), ID: "installer", headers: "{}", body: "{}");
 }
-mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: "https://origin.mistium.com/Resources/info.json", ID: "info.json", headers: "{}", body: "{}");
-mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: "https://origin.mistium.com/Resources/permissions_full.json", ID: "permissions", headers: "{}", body: "{}");
-mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Fonts/origin.ojff\")"), ID: "font", headers: "{}", body: "{}");
+mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: "https://origin.mistium.com/Resources/info.json", ID: "info.json", headers: "{}", body: "{}");
+mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: "https://origin.mistium.com/Resources/permissions_full.json", ID: "permissions", headers: "{}", body: "{}");
+mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Fonts/origin.ojff\")"), ID: "font", headers: "{}", body: "{}");
 mistsutils.patchcommand(A: "if (!sessionStorage.hasOwnProperty(\"icons\"))");
-mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Icons/all-icons.json\")"), ID: "icons", headers: "{}", body: "{}");
+mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "origin.applySource(\"Icons/all-icons.json\")"), ID: "icons", headers: "{}", body: "{}");
 webSocketPlus.disconnectall();
 xeltallivclipblend.clearClipbox();
 mistsutils.patchcommand(A: "const penSkinId = vm.renderer._penSkinId, penLine = vm.renderer.penLine.bind(vm.renderer), _getPenState = vm.runtime.ext_pen._getPenState");
@@ -122,7 +123,7 @@ data.deletealloflist(LIST: list("Files // Index Path"));
 data.deletealloflist(LIST: list("Files // UUIDS"));
 data.deletealloflist(LIST: list("App // Data"));
 data.deletealloflist(LIST: list("Files // Current"));
-skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("?[HcDcJb70Jr_)_.*)Kw")), json: mistsutils.replaceall(C: "null", A: skyhigh173JSON.json_array_setlen(json: "[]", len: 1000), B: "\"\""));
+skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("?[HcDcJb70Jr_)_.*)Kw")), json: mistsutils.replaceall(C: "null", A: skyhigh173JSON.json_array_setlen(json: "[]", len: 1000), B: "\"\""));
 data.deletealloflist(LIST: list("Network // Outgoing Packets"));
 vars["Kernel // Notification Y"] = 60;
 vars["WIndow // ID"] = 0;
@@ -161,14 +162,14 @@ mistsutils.patchcommand2(A: "window.origin.roturLink.send = ", B: @OSL_Function(
 theshovelcanvaseffects.cleareffects();
 cloudlink.clearAllPackets(field TYPE: "All data");
 vfs.clearall();
-pointerlock.setLocked(enabled: pointerlock.menu_enabled(field enabled: "false"));
+pointerlock.setLocked(enabled: pointerlock.menu_enabled("false"));
 @Timed_Log(Data: "Initialising indexedDB");
 if !mistiumindexeddb.isinitialised() {
   mistiumindexeddb.setDBName(NAME: "originOS");
   wait_until mistiumindexeddb.isinitialised();
 }
 vars["Account// Current"] = "";
-if sensing.keypressed(KEY_OPTION: sensing.keyoptions(field KEY_OPTION: "c")) {
+if sensing.keypressed(KEY_OPTION: sensing.keyoptions("c")) {
   mistiumindexeddb.importJSONToDatabase(jsonData: "{}");
 }
 mistsutils.patchcommand(A: "try {");
@@ -190,7 +191,7 @@ vars["newline"] = mistsutils.patchreporter(A: "\"\\n\"");
 repeat skyhigh173JSON.json_length(json: lmsVideo.getLoadedVideos()) {
   lmsVideo.deleteVideoURL(NAME: skyhigh173JSON.json_array_get(item: 1, json: lmsVideo.getLoadedVideos()));
 }
-lmsVideo.stopShowingVideo(TARGET: lmsVideo.menu_targets(field targets: "_myself_"));
+lmsVideo.stopShowingVideo(TARGET: shadow lmsVideo.menu_targets(field targets: "_myself_"));
 vars["SYSTEM // Volume"] = 100;
 vars["Screen Size X"] = mistsutils.stagewidth();
 vars["Screen Size Y"] = mistsutils.stageheight();
@@ -401,18 +402,18 @@ forever {
   mistsutils.patchcommand(A: "win.received.length = totalWindows");
   mistsutils.patchcommand(A: "win.render.length = totalWindows");
   if mistsutils.notequals(A: vars["System // Cursor"], B: MouseCursor.getCur()) {
-    MouseCursor.setCur(cur: vars["System // Cursor"]);
+    MouseCursor.setCur(cur: vars["System // Cursor"] ?? shadow MouseCursor.menu_cursors(field cursors: "pointer"));
   }
   vars["System // Cursor"] = "default";
   vars["SYSTEM // Tooltip"] = "";
   mistsutils.patchcommand3(A: "const lastKeyPressed = ", B: MistKeyHistoryExtension.recentKeysAsRawJs(), C: ".at(-1)?.data ?? \"\"");
-  if sensing.keypressed(KEY_OPTION: mistsutils.patchreporter(A: "lastKeyPressed")) {
+  if sensing.keypressed(KEY_OPTION: mistsutils.patchreporter(A: "lastKeyPressed") ?? sensing.keyoptions("any")) {
     if operator.contains(STRING1: mistsutils.patchreporter(A: "lastKeyPressed"), STRING2: " Arrow") {
       vars["Key// Current Pressed"] = "Arrow " .. mistsutils.replace(C: " Arrow", A: mistsutils.patchreporter(A: "lastKeyPressed"), B: "");
     } else {
       vars["Key// Current Pressed"] = mistsutils.patchreporter(A: "lastKeyPressed");
     }
-    if vars["Key // Temp"] == mistsutils.patchreporter(A: "lastKeyPressed") && HyperSenseSP.timeKeyPressed(KEY: vars["Key// Current Pressed"]) < 0.5 {
+    if vars["Key // Temp"] == mistsutils.patchreporter(A: "lastKeyPressed") && HyperSenseSP.timeKeyPressed(KEY: vars["Key// Current Pressed"] ?? shadow HyperSenseSP.menu_keys(field keys: "A")) < 0.5 {
       vars["Key// Current Pressed"] = "";
     } else {
       if operator.contains(STRING1: mistsutils.patchreporter(A: "lastKeyPressed"), STRING2: " Arrow") {
@@ -445,11 +446,11 @@ forever {
   }
   mistsutils.patchcommand2(A: "const canClick = ", B: mistsutils.equals(A: vars["Can Click?"], B: "true"));
   @OSL_Vars_Set(name: "mouse_ondown", data: mistsutils.equals(A: vars["SYSTEM // Onclick"], B: "true") && mistsutils.patchboolean(A: "canClick"), current_command: "Global");
-  mistsutils.patchcommand2(A: "const mouse_down = ", B: HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && mistsutils.patchboolean(A: "canClick"));
+  mistsutils.patchcommand2(A: "const mouse_down = ", B: HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && mistsutils.patchboolean(A: "canClick"));
   @OSL_Vars_Set(name: "mouse_down", data: mistsutils.patchreporter(A: "mouse_down"), current_command: "Global");
   @OSL_Vars_Set(name: "mouse_left", data: mistsutils.patchreporter(A: "mouse_down"), current_command: "Global");
-  @OSL_Vars_Set(name: "mouse_middle", data: HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "1")), current_command: "Global");
-  @OSL_Vars_Set(name: "mouse_right", data: HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "2")), current_command: "Global");
+  @OSL_Vars_Set(name: "mouse_middle", data: HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "1")), current_command: "Global");
+  @OSL_Vars_Set(name: "mouse_right", data: HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "2")), current_command: "Global");
   @OSL_Vars_Set(name: "mouse_moving", data: vars["Mouse // Moved"], current_command: "Global");
   @OSL_Vars_Set(name: "focused_application", data: mistsutils.patchreporter3(A: "origin.windows.names[", B: data.itemnumoflist(ITEM: vars["SYSTEM // Focused Application"], LIST: list("Windows // ID")), C: "-1]"), current_command: "Global");
   @OSL_Vars_Set(name: "focused_application_id", data: vars["SYSTEM // Focused Application"], current_command: "Global");
@@ -521,7 +522,7 @@ forever {
   mistsutils.patchcommand2(A: "osl.time.delta = ", B: mistsutils.max(A: mistsutils.patchreporter(A: "(1000 / runtime.frameLoop.framerate) / 1000"), B: vars["Kernel // Frame Time"] / 1000));
   @OSL_Vars_Set(name: "fps", data: vars["SYSTEM // Fps"], current_command: "Global");
   @OSL_Vars_Set(name: "delta_time", data: vars["Kernel // Frame Time"] / 1000, current_command: "Global");
-  @OSL_Vars_Set(name: "picker_colour", data: shovelColorPicker.getColor(TYPE: shovelColorPicker.menu_RGBMenu(field RGBMenu: "hex")), current_command: "Global");
+  @OSL_Vars_Set(name: "picker_colour", data: shovelColorPicker.getColor(TYPE: shadow shovelColorPicker.menu_RGBMenu(field RGBMenu: "hex")), current_command: "Global");
   mistsutils.patchcommand2(A: "let last = ", B: vars["Inputs // Keys Down"]);
   vars["Inputs // Keys Down"] = mistsutils.patchreporter(A: "origin.keyboard.keysDown.map(v => v.length === 1 ? v : v.toLowerCase())");
   vars["Inputs // Last Keys Down"] = mistsutils.patchreporter2(A: vars["Inputs // Keys Down"], B: ".filter(item => last.indexOf(item) === -1)");
@@ -549,7 +550,7 @@ forever {
     }
   }
   if vars["Window // File ID"] == 0 {
-    vars["Window // File ID"] = skyhigh173JSON.json_array_itemH(item: mistsutils.patchreporter3(A: "`${", B: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Names")), C: "}.osl`.toLowerCase()"), json: mistsutils.patchreporter3(A: "`${JSON.stringify(JSON.parse(", B: skyhigh173JSON.json_vm_getlist(list: skyhigh173JSON.menu_get_list(field get_list: list("CL33%0R^/cfdOsUUuN{9"))), C: ").join(\"\\n\").match(/(([^/]+)|\\/)$/gim))}`.toLowerCase()"));
+    vars["Window // File ID"] = skyhigh173JSON.json_array_itemH(item: mistsutils.patchreporter3(A: "`${", B: data.itemoflist(INDEX: 1, LIST: list("Windows // Create Names")), C: "}.osl`.toLowerCase()"), json: mistsutils.patchreporter3(A: "`${JSON.stringify(JSON.parse(", B: skyhigh173JSON.json_vm_getlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("CL33%0R^/cfdOsUUuN{9"))), C: ").join(\"\\n\").match(/(([^/]+)|\\/)$/gim))}`.toLowerCase()"));
   }
   if vars["Window // File ID"] != 0 {
     mistsutils.patchcommand(A: "origin.windows.received.unshift([])");

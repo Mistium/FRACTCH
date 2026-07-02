@@ -4,6 +4,7 @@
  * topBlockId: aO[
  * hatOpcode: procedures_definition
  * threadIndex: 210
+ * pos: 5288,229232
  */
 
 def @BOOT_Setup_account_perms(username) "BOOT // Setup account perms %s" warp {

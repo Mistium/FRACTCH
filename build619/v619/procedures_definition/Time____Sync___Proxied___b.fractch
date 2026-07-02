@@ -4,9 +4,10 @@
  * topBlockId: akg
  * hatOpcode: procedures_definition
  * threadIndex: 124
+ * pos: 5288,250368
  */
 
 def @Time_Sync_Proxied(Proxy) "Time // Sync | Proxied: %b" {
   mistsutils.patchcommand(A: "window.origin.time = {start: Date.now(), proxy: p0}");
-  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.ifthen(A: Proxy, B: "https://apps.mistium.com/cors?url=", C: "") .. "https://api.ipgeolocation.io/timezone?apiKey=3bcc5fda47224a869033f6c5ab64974f", ID: "systemTime", headers: "{}", body: "{}");
+  mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.ifthen(A: Proxy, B: "https://apps.mistium.com/cors?url=", C: "") .. "https://api.ipgeolocation.io/timezone?apiKey=3bcc5fda47224a869033f6c5ab64974f", ID: "systemTime", headers: "{}", body: "{}");
 }

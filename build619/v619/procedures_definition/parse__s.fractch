@@ -4,6 +4,7 @@
  * topBlockId: amL
  * hatOpcode: procedures_definition
  * threadIndex: 134
+ * pos: 62971,64
  */
 
 def @parse(json) {

@@ -4,6 +4,7 @@
  * topBlockId: [u
  * hatOpcode: procedures_definition
  * threadIndex: 69
+ * pos: 5288,89232
  */
 
 def @Studio_Render_Highlighted_OSL(OSL, Parsed, text_colour("text colour")) "Studio // Render Highlighted OSL %s %s %s" warp {

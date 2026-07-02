@@ -4,6 +4,7 @@
  * topBlockId: amX
  * hatOpcode: procedures_definition
  * threadIndex: 138
+ * pos: 71294,64
  */
 
 def @Window_Move_To_Target() "Window // Move To Target" {

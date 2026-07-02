@@ -4,6 +4,7 @@
  * topBlockId: aM]
  * hatOpcode: procedures_definition
  * threadIndex: 199
+ * pos: 5288,190880
  */
 
 def @Draw_Rightclick_Text(current, x) "Draw Rightclick Text %s %s" {

@@ -4,6 +4,7 @@
  * topBlockId: aM#
  * hatOpcode: procedures_definition
  * threadIndex: 198
+ * pos: 47371,64
  */
 
 def @OSL_3dr_Draw_Scene() "OSL // 3dr Draw Scene" {

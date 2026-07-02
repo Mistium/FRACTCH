@@ -4,6 +4,7 @@
  * topBlockId: ^T
  * hatOpcode: procedures_definition
  * threadIndex: 87
+ * pos: 5288,111280
  */
 
 import "../procedures_definition/originFS____Generate_window_origin_index.fractch";

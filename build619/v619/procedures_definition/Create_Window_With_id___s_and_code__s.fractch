@@ -4,6 +4,7 @@
  * topBlockId: aXC
  * hatOpcode: procedures_definition
  * threadIndex: 240
+ * pos: 27909,64
  */
 
 import "../procedures_definition/Window___create__s__s.fractch";

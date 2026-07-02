@@ -4,6 +4,7 @@
  * topBlockId: afW
  * hatOpcode: procedures_definition
  * threadIndex: 116
+ * pos: 5288,220064
  */
 
 import "../procedures_definition/___Draw_Square__s__s__s__s__s__s.fractch";
@@ -29,7 +30,7 @@ def @Inputs_draw_Rounding_ID_text_size(data_value("data value"), width, height, 
   }
   mistsutils.patchcommand3(A: "origin.keyboard.tabIndexes.push(", B: vars["WIndow // ID"] .. "," .. ID, C: ")");
   if selected == "true" && @Window_is_Execution_Target() {
-    if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
+    if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
       if !@Check_Collision_in_square_at_of_dimensions(x: sensing.mousex(), y: sensing.mousey(), x2: motion.xposition() + width / 2, y2: motion.yposition(), w: width + Rounding / 2, h: height / 2 + Rounding / 2) {
         @Inputs_Unfocus();
         mistsutils.patchcommand2(A: selected, B: " = false");
@@ -41,12 +42,12 @@ def @Inputs_draw_Rounding_ID_text_size(data_value("data value"), width, height, 
   }
   if selected == "true" {
     vars["Text // Clicked Letter ID"] = round((sensing.mousex() - Temp) / vars["Inputs // Character PX Width"]);
-    if sensing.timer() % 2 < 1 || (HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) || mistsutils.patchboolean(A: "origin.keyboard.keysDown.length > 0")) {
-      if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
+    if sensing.timer() % 2 < 1 || (HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) || mistsutils.patchboolean(A: "origin.keyboard.keysDown.length > 0")) {
+      if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
         vars["Inputs // Cursor Position"] = mistsutils.clamp(A: vars["Text // Clicked Letter ID"], B: 0, C: mistsutils.patchreporter(A: "length"));
       }
       motion.setx(X: Temp + vars["Inputs // Character PX Width"] * (mistsutils.clamp(A: vars["Inputs // Cursor Position"], B: 0, C: mistsutils.patchreporter(A: "length")) - vars["Inputs // Start Text Position"]));
-      if HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
+      if HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) {
         if mistsutils.patchboolean(A: "target.osl_vars.mouse_touching === true") && vars["Inputs // Selecting"] == "false" {
           if vars["Inputs // Selected String"] == "" {
             vars["Inputs // Start Letter Pos"] = vars["Inputs // Cursor Position"];
@@ -177,7 +178,7 @@ def @Inputs_draw_Rounding_ID_text_size(data_value("data value"), width, height, 
   } else {
     if data_value == "" {
       vars["Inputs // Text"] = default_text;
-      pen.setPenColorParamTo(COLOR_PARAM: pen.menu_colorParam(field colorParam: "brightness"), VALUE: 50);
+      pen.setPenColorParamTo(COLOR_PARAM: shadow pen.menu_colorParam(field colorParam: "brightness"), VALUE: 50);
     }
     if !draw_text {
       @Draw_Text(Text: vars["Inputs // Text"], X: Temp, Y: vars["Inputs // Save Y"], Size: vars["Inputs // Character PX Width"], Markdown_Enabled: "false");

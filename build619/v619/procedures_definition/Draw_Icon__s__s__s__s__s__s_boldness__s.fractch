@@ -4,6 +4,7 @@
  * topBlockId: aQy
  * hatOpcode: procedures_definition
  * threadIndex: 225
+ * pos: 5288,148200
  */
 
 def @Draw_Icon_boldness(Code, Size, setsize, x, y, direction, boldness) "Draw Icon %s %s %s %s %s %s boldness %s" warp {

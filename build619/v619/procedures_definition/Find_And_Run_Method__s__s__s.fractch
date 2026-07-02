@@ -4,6 +4,7 @@
  * topBlockId: ahF
  * hatOpcode: procedures_definition
  * threadIndex: 122
+ * pos: 5288,233608
  */
 
 import "../procedures_definition/Log_Error__s__s.fractch";
@@ -17,7 +18,7 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
     mistsutils.patchcommand3(A: "case mtd[\"eval()\"]: return ", B: @Permissions_Has(perm: "javascript"), C: mistsutils.patchreporter2(A: " ? eval(destr) : ", B: MistiumEval.restrictedReporterBlock(CODE: mistsutils.patchreporter(A: "destr"))));
     mistsutils.patchcommand2(A: "case mtd[\"onKeyDown()\"]: return ", B: @is_hit(key: mistsutils.patchreporter(A: "destr")));
     mistsutils.patchcommand2(A: "case mtd[\"isKeyDown()\"]: return ", B: @Is_pressed(key: mistsutils.patchreporter(A: "destr")));
-    mistsutils.patchcommand2(A: "case mtd[\"timeKeyDown()\"]: return ", B: HyperSenseSP.timeKeyPressed(KEY: mistsutils.patchreporter(A: "destr")));
+    mistsutils.patchcommand2(A: "case mtd[\"timeKeyDown()\"]: return ", B: HyperSenseSP.timeKeyPressed(KEY: mistsutils.patchreporter(A: "destr") ?? shadow HyperSenseSP.menu_keys(field keys: "A")));
     case mistsutils.patchreporter(A: "mtd[\"getAsync()\"]") {
       mistsutils.patchcommand(A: "if (typeof p0 !== \"string\") break");
       mistsutils.patchcommand3(A: "let net_data = ", B: vars["NETWORK // Get Web Outputs"], C: "[destr]");
@@ -39,8 +40,8 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       return input;
     }
     mistsutils.patchcommand3(A: "case mtd[\"httpGet()\"]: return JSON.safeParse(", B: cloudlink.fetchURL(url: mistsutils.patchreporter(A: "destr")), C: ")");
-    mistsutils.patchcommand2(A: "case mtd[\"encodeUTF16()\"]: return ", B: shovellzcompress.compress(TEXT: mistsutils.patchreporter(A: "destr"), TYPE: shovellzcompress.menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: "UTF16")));
-    mistsutils.patchcommand2(A: "case mtd[\"decodeUTF16()\"]: return ", B: shovellzcompress.decompress(TEXT: mistsutils.patchreporter(A: "destr"), TYPE: shovellzcompress.menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: "UTF16")));
+    mistsutils.patchcommand2(A: "case mtd[\"encodeUTF16()\"]: return ", B: shovellzcompress.compress(TEXT: mistsutils.patchreporter(A: "destr"), TYPE: shadow shovellzcompress.menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: "UTF16")));
+    mistsutils.patchcommand2(A: "case mtd[\"decodeUTF16()\"]: return ", B: shovellzcompress.decompress(TEXT: mistsutils.patchreporter(A: "destr"), TYPE: shadow shovellzcompress.menu_COMPRESSIONTYPES(field COMPRESSIONTYPES: "UTF16")));
     mistsutils.patchcommand3(A: "case mtd[\"newWebsocket()\"]: { const id = `${", B: webSocketPlus.connectSecure(URL: @item_of_split_by(int: 1, string: mistsutils.patchreporter(A: "destr"), delimiter: ":"), PORT: @item_of_split_by(int: 2, string: mistsutils.patchreporter(A: "destr"), delimiter: ":")), C: "}`; target.window.ws.push(id); return id }");
     mistsutils.patchcommand2(A: "case mtd[\"wsHasnew()\"]: return ", B: webSocketPlus.hasNewMessages(ID: mistsutils.patchreporter(A: "destr")));
     mistsutils.patchcommand2(A: "case mtd[\"wsGetall()\"]: return ", B: @parse(json: webSocketPlus.getAllMessages(ID: mistsutils.patchreporter(A: "destr"))));
@@ -177,9 +178,9 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
     case mistsutils.patchreporter(A: "mtd[\"getall()\"]") {
       mistsutils.patchcommand(A: "let key = params[0]");
       switch mistsutils.patchreporter(A: "key") {
-        mistsutils.patchcommand2(A: "case \"extract-letters\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: "letters"), STRING: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"extract-numbers\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: "numbers"), STRING: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"extract-special\": return ", B: HyperSenseSP.getAllString(TEXT: HyperSenseSP.menu_string_types(field string_types: "special characters"), STRING: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"extract-letters\": return ", B: HyperSenseSP.getAllString(TEXT: shadow HyperSenseSP.menu_string_types(field string_types: "letters"), STRING: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"extract-numbers\": return ", B: HyperSenseSP.getAllString(TEXT: shadow HyperSenseSP.menu_string_types(field string_types: "numbers"), STRING: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"extract-special\": return ", B: HyperSenseSP.getAllString(TEXT: shadow HyperSenseSP.menu_string_types(field string_types: "special characters"), STRING: mistsutils.patchreporter(A: "destr")));
       }
       mistsutils.patchcommand(A: "if (typeof p0 === \"object\" && p0 !== null) {return p0.map(x => { let cur = x[key]; if (typeof cur !== \"undefined\") return cur; return null; })}");
       if @is_array(input: input) {
@@ -192,8 +193,8 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       switch mistsutils.patchreporter(A: "params[0]") {
         mistsutils.patchcommand2(A: "case \"loaded\": return ", B: mistSkins.getSkinLoaded(NAME: mistsutils.patchreporter(A: "destr")));
         mistsutils.patchcommand2(A: "case \"loading\": return ", B: mistSkins.getSkinLoading(NAME: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"width\": return ", B: mistSkins.getSkinAttribute(ATTRIBUTE: mistSkins.menu_skinAttributes(field skinAttributes: "width"), NAME: mistsutils.patchreporter(A: "destr")));
-        mistsutils.patchcommand2(A: "case \"height\": return ", B: mistSkins.getSkinAttribute(ATTRIBUTE: mistSkins.menu_skinAttributes(field skinAttributes: "height"), NAME: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"width\": return ", B: mistSkins.getSkinAttribute(ATTRIBUTE: shadow mistSkins.menu_skinAttributes(field skinAttributes: "width"), NAME: mistsutils.patchreporter(A: "destr")));
+        mistsutils.patchcommand2(A: "case \"height\": return ", B: mistSkins.getSkinAttribute(ATTRIBUTE: shadow mistSkins.menu_skinAttributes(field skinAttributes: "height"), NAME: mistsutils.patchreporter(A: "destr")));
         default {
           @Log_Error(Data: "[MTII] invalid input for 'imageinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'imageinfo' method";
@@ -250,13 +251,13 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
       mistsutils.patchcommand2(A: "const input = ", B: vars["WIndow // ID"] .. mistsutils.patchreporter(A: "`-${destr}`"));
       switch mistsutils.patchreporter(A: "params[0]") {
         mistsutils.patchcommand2(A: "case \"loaded\": return ", B: SPtuneShark.soundCheck(NAME: mistsutils.patchreporter(A: "input"), field CONTROL: "exists?"));
-        mistsutils.patchcommand2(A: "case \"speed\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "speed")));
-        mistsutils.patchcommand2(A: "case \"pitch\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "pitch")));
+        mistsutils.patchcommand2(A: "case \"speed\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: shadow SPtuneShark.menu_soundProperties(field soundProperties: "speed")));
+        mistsutils.patchcommand2(A: "case \"pitch\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: shadow SPtuneShark.menu_soundProperties(field soundProperties: "pitch")));
         mistsutils.patchcommand2(A: "case \"current_time\": return ", B: SPtuneShark.currentSoundTime(NAME: mistsutils.patchreporter(A: "input")));
-        mistsutils.patchcommand2(A: "case \"duration\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "length")));
-        mistsutils.patchcommand2(A: "case \"volume\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "volume")));
+        mistsutils.patchcommand2(A: "case \"duration\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: shadow SPtuneShark.menu_soundProperties(field soundProperties: "length")));
+        mistsutils.patchcommand2(A: "case \"volume\": return ", B: SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: shadow SPtuneShark.menu_soundProperties(field soundProperties: "volume")));
         mistsutils.patchcommand2(A: "case \"playing\": return ", B: SPtuneShark.soundCheck(NAME: mistsutils.patchreporter(A: "input"), field CONTROL: "playing?"));
-        mistsutils.patchcommand2(A: "case \"completion\": return ", B: SPtuneShark.currentSoundTime(NAME: mistsutils.patchreporter(A: "input")) / SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: SPtuneShark.menu_soundProperties(field soundProperties: "length")));
+        mistsutils.patchcommand2(A: "case \"completion\": return ", B: SPtuneShark.currentSoundTime(NAME: mistsutils.patchreporter(A: "input")) / SPtuneShark.soundProperty(NAME: mistsutils.patchreporter(A: "input"), PROPERTY: shadow SPtuneShark.menu_soundProperties(field soundProperties: "length")));
         default {
           @Log_Error(Data: "[MTII] invalid input for 'soundinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'soundinfo' method";
@@ -270,7 +271,7 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
         mistsutils.patchcommand2(A: "case \"to-time\": case \"convert-time\": return ", B: @item_of_split_by(int: 2, string: sipctime.TimestampToTime(timestamp: mistsutils.patchreporter(A: "destr")), delimiter: " "));
         mistsutils.patchcommand2(A: "case \"to-relative\": case \"convert-relative\": return ", B: @Timestamp_Convert(data: mistsutils.patchreporter(A: "destr")));
         default {
-          return sipctime.Timedata(Timedata: mistsutils.replace(C: "get-", A: mistsutils.patchreporter(A: "params[0]"), B: ""), timestamp: mistsutils.patchreporter(A: "destr"));
+          return sipctime.Timedata(Timedata: mistsutils.replace(C: "get-", A: mistsutils.patchreporter(A: "params[0]"), B: "") ?? shadow sipctime.menu_Time(field Time: "second"), timestamp: mistsutils.patchreporter(A: "destr"));
         }
       }
     }
@@ -290,7 +291,7 @@ def @Find_And_Run_Method(input, command, params) "Find And Run Method %s %s %s" 
         mistsutils.patchcommand2(A: "case \"current_time\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: "current time"));
         mistsutils.patchcommand2(A: "case \"duration\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: "duration"));
         mistsutils.patchcommand2(A: "case \"volume\": return ", B: lmsVideo.getAttribute(NAME: mistsutils.patchreporter(A: "destr"), field ATTRIBUTE: "volume"));
-        mistsutils.patchcommand2(A: "case \"playing\": return ", B: lmsVideo.getState(NAME: mistsutils.patchreporter(A: "destr"), STATE: lmsVideo.menu_state(field state: "playing")));
+        mistsutils.patchcommand2(A: "case \"playing\": return ", B: lmsVideo.getState(NAME: mistsutils.patchreporter(A: "destr"), STATE: shadow lmsVideo.menu_state(field state: "playing")));
         default {
           @Log_Error(Data: "[MTII] invalid input for 'videoinfo' method", Type: "Invalid Input");
           return "[MTII] invalid input for 'videoinfo' method";

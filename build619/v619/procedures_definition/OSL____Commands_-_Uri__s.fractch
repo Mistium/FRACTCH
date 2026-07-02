@@ -4,6 +4,7 @@
  * topBlockId: aNG
  * hatOpcode: procedures_definition
  * threadIndex: 202
+ * pos: 5288,65888
  */
 
 def @OSL_Commands_Uri(command) "OSL // Commands - Uri %s" warp {
@@ -42,7 +43,7 @@ def @OSL_Commands_Uri(command) "OSL // Commands - Uri %s" warp {
       vars["OSL // Current Uri"] = blurImage.blurImage(URL: vars["OSL // Current Uri"], BLUR: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
     }
     case "effect" {
-      vars["OSL // Current Uri"] = imgEffectsSP.applyEffect(EFFECT: data.itemoflist(INDEX: 3, LIST: list("Split Text")), SVG: vars["OSL // Current Uri"], PERCENTAGE: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
+      vars["OSL // Current Uri"] = imgEffectsSP.applyEffect(EFFECT: data.itemoflist(INDEX: 3, LIST: list("Split Text")) ?? shadow imgEffectsSP.menu_EFFECTS(field EFFECTS: "Saturation"), SVG: vars["OSL // Current Uri"], PERCENTAGE: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "remove_transparent" {
       if data.itemoflist(INDEX: 3, LIST: list("Split Text")) == "under" {

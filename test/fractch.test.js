@@ -288,6 +288,52 @@ test('def accepts bare warp and omitted proccode', () => {
   assert.strictEqual(legacy.proccode, 'spin %s');
 });
 
+test('menu shadows round-trip: positional arg form and ?? obscured form', async () => {
+  const { buildBlocksFromCalls, IdGen } = await import('../src/buildBlocks.js');
+
+  const visible = parseFractch('sensing.keypressed(KEY_OPTION: sensing.keyoptions("space"));\n').calls;
+  const v = buildBlocksFromCalls(visible, { idGen: new IdGen() });
+  const vTop = v.blocks[v.topId];
+  assert.strictEqual(vTop.inputs.KEY_OPTION[0], 1);
+  const vMenu = v.blocks[vTop.inputs.KEY_OPTION[1]];
+  assert.strictEqual(vMenu.opcode, 'sensing_keyoptions');
+  assert.strictEqual(vMenu.shadow, true);
+  assert.strictEqual(vMenu.parent, v.topId);
+  assert.deepStrictEqual(vMenu.fields.KEY_OPTION[0], 'space');
+
+  const obscured = parseFractch('sensing.keypressed(KEY_OPTION: sensing.answer() ?? sensing.keyoptions("any"));\n').calls;
+  const o = buildBlocksFromCalls(obscured, { idGen: new IdGen() });
+  const oTop = o.blocks[o.topId];
+  const tuple = oTop.inputs.KEY_OPTION;
+  assert.strictEqual(tuple[0], 3);
+  assert.strictEqual(o.blocks[tuple[1]].opcode, 'sensing_answer');
+  assert.strictEqual(o.blocks[tuple[2]].opcode, 'sensing_keyoptions');
+  assert.strictEqual(o.blocks[tuple[2]].shadow, true);
+
+  const explicit = parseFractch('foo.bar(list: shadow skyhigh173JSON.menu_get_list(field get_list: "L"));\n').calls;
+  const e = buildBlocksFromCalls(explicit, { idGen: new IdGen() });
+  const eTop = e.blocks[e.topId];
+  assert.strictEqual(eTop.inputs.list[0], 1);
+  assert.strictEqual(e.blocks[eTop.inputs.list[1]].shadow, true);
+  assert.deepStrictEqual(e.blocks[eTop.inputs.list[1]].fields.get_list, ['L']);
+});
+
+test('repack preserves every shadow menu block (opcode histogram parity)', () => {
+  const a = JSON.parse(new AdmZip(path.join(root, SB3)).readAsText('project.json'));
+  const b = JSON.parse(new AdmZip(outSb3).readAsText('project.json'));
+  const hist = (p) => {
+    const m = new Map();
+    for (const t of p.targets) for (const bl of Object.values(t.blocks || {})) {
+      if (bl?.opcode?.includes('menu') || bl?.opcode === 'sensing_keyoptions') m.set(bl.opcode, (m.get(bl.opcode) || 0) + 1);
+    }
+    return m;
+  };
+  const ha = hist(a), hb = hist(b);
+  for (const [op, n] of ha) {
+    assert.ok((hb.get(op) || 0) >= n, `${op}: ${n} -> ${hb.get(op) || 0}`);
+  }
+});
+
 test('switch/case blocks render as readable switch statements', () => {
   const hit = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;

@@ -4,6 +4,7 @@
  * topBlockId: /O
  * hatOpcode: procedures_definition
  * threadIndex: 57
+ * pos: 5288,65472
  */
 
 def @letters_to_of_replaced_with(_1("1"), _2("2"), string, string2) "letters %s to %s of %s replaced with %s" {

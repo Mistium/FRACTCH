@@ -4,6 +4,7 @@
  * topBlockId: ar~
  * hatOpcode: procedures_definition
  * threadIndex: 150
+ * pos: 94611,64
  */
 
 def @Terminal_Global_Message(Command, Window_Id("Window Id")) "Terminal // Global Message %s %s" {

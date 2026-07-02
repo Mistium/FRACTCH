@@ -4,6 +4,7 @@
  * topBlockId: adC
  * hatOpcode: procedures_definition
  * threadIndex: 108
+ * pos: 5288,200336
  */
 
 def @Log_Error(Data, Type) "Log Error %s %s" {

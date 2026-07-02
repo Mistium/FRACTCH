@@ -4,6 +4,7 @@
  * topBlockId: aC:
  * hatOpcode: procedures_definition
  * threadIndex: 171
+ * pos: 84616,256
  */
 
 def @Elements_Remove_With_Name(name) "Elements // Remove With Name %s" {

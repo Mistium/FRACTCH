@@ -4,6 +4,7 @@
  * topBlockId: amT
  * hatOpcode: procedures_definition
  * threadIndex: 137
+ * pos: 5288,267624
  */
 
 def @Files_Name_And_Type_From(Data) "Files // Name And Type From %s" {

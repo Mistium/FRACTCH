@@ -4,6 +4,7 @@
  * topBlockId: aC_
  * hatOpcode: procedures_definition
  * threadIndex: 172
+ * pos: 77013,64
  */
 
 def @Files_List_all_uuids_recursively_in(path) "Files // List all uuids recursively in %s" {

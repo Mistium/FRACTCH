@@ -4,6 +4,7 @@
  * topBlockId: aOz
  * hatOpcode: procedures_definition
  * threadIndex: 207
+ * pos: 5288,105776
  */
 
 def @OSL_Commands_ZIP() "OSL // Commands - ZIP" {

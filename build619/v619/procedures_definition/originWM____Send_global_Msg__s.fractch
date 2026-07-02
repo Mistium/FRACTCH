@@ -4,6 +4,7 @@
  * topBlockId: aMC
  * hatOpcode: procedures_definition
  * threadIndex: 194
+ * pos: 50603,1840
  */
 
 def @originWM_Send_global_Msg(arr) "originWM // Send global Msg %s" {

@@ -4,6 +4,7 @@
  * topBlockId: ;;
  * hatOpcode: procedures_definition
  * threadIndex: 63
+ * pos: 5288,80872
  */
 
 def @Root_Permissions() "Root Permissions" {

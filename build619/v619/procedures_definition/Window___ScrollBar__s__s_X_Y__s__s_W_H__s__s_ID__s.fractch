@@ -4,6 +4,7 @@
  * topBlockId: {j
  * hatOpcode: procedures_definition
  * threadIndex: 92
+ * pos: 5288,132368
  */
 
 def @Window_ScrollBar_X_Y_W_H_ID(Max_W_Scroll("Max W Scroll"), Max_H_Scroll("Max H Scroll"), X, Y, W, H, Id) "Window// ScrollBar %s %s X,Y %s %s W,H %s %s ID %s" warp {
@@ -18,7 +19,7 @@ def @Window_ScrollBar_X_Y_W_H_ID(Max_W_Scroll("Max W Scroll"), Max_H_Scroll("Max
     mistsutils.patchcommand2(A: "let max = +", B: Max_H_Scroll);
     mistsutils.patchcommand2(A: "let focused = ", B: vars["Window // ID_Index"] == vars["Window // Top Index"]);
     mistsutils.patchcommand(A: "let scroll_val = target.scroll[`framey_${id}`]");
-    if mistsutils.patchboolean(A: "target.osl_vars.onclick === true") || HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && vars["Scroll// Dragging?"] == "v_" .. Id {
+    if mistsutils.patchboolean(A: "target.osl_vars.onclick === true") || HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && vars["Scroll// Dragging?"] == "v_" .. Id {
       if mistsutils.patchboolean(A: "focused") {
         mistsutils.patchcommand2(A: "let scroll_temp = ", B: H - H / Max_H_Scroll * H);
         mistsutils.patchcommand2(A: "scroll_val = ", B: mistsutils.patchreporter(A: "scroll_val") + ((mistsutils.patchreporter(A: "scroll_temp / 2") - (sensing.mousey() - motion.yposition())) * ((Max_H_Scroll - H) / mistsutils.patchreporter(A: "scroll_temp")) - mistsutils.patchreporter(A: "scroll_val")) / 6);
@@ -61,7 +62,7 @@ def @Window_ScrollBar_X_Y_W_H_ID(Max_W_Scroll("Max W Scroll"), Max_H_Scroll("Max
     mistsutils.patchcommand2(A: "let max = +", B: Max_W_Scroll);
     mistsutils.patchcommand2(A: "let focused = ", B: vars["Window // ID_Index"] == vars["Window // Top Index"]);
     mistsutils.patchcommand(A: "let scroll_val = target.scroll[`framex_${id}`]");
-    if mistsutils.patchboolean(A: "target.osl_vars.onclick === true") || HyperSenseSP.mouseClick(BUTTON: HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && vars["Scroll// Dragging?"] == "h_" .. Id {
+    if mistsutils.patchboolean(A: "target.osl_vars.onclick === true") || HyperSenseSP.mouseClick(BUTTON: shadow HyperSenseSP.menu_mouseButtons(field mouseButtons: "0")) && vars["Scroll// Dragging?"] == "h_" .. Id {
       if mistsutils.patchboolean(A: "focused") {
         mistsutils.patchcommand2(A: "let scroll_temp = ", B: W - W / Max_W_Scroll * W);
         mistsutils.patchcommand2(A: "scroll_val = ", B: mistsutils.patchreporter(A: "scroll_val") + ((mistsutils.patchreporter(A: "scroll_temp / 2") + (sensing.mousex() - motion.xposition())) * ((Max_W_Scroll - W) / mistsutils.patchreporter(A: "scroll_temp")) - mistsutils.patchreporter(A: "scroll_val")) / 6);

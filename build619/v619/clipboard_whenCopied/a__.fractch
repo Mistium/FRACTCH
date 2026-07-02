@@ -4,6 +4,7 @@
  * topBlockId: a=\*
  * hatOpcode: clipboard_whenCopied
  * threadIndex: 74
+ * pos: 5288,99344
  */
 
 import "../procedures_definition/Kernel____Copy__s.fractch";

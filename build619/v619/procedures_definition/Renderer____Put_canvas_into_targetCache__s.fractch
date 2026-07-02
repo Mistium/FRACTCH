@@ -4,6 +4,7 @@
  * topBlockId: aWo
  * hatOpcode: procedures_definition
  * threadIndex: 231
+ * pos: 44998,528
  */
 
 def @Renderer_Put_canvas_into_targetCache(target) "Renderer // Put canvas into targetCache %s" {

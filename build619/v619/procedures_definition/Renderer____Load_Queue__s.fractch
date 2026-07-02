@@ -4,6 +4,7 @@
  * topBlockId: aW^
  * hatOpcode: procedures_definition
  * threadIndex: 235
+ * pos: 55351,64
  */
 
 def @Renderer_Load_Queue(item) "Renderer // Load Queue %s" {

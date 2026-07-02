@@ -4,6 +4,7 @@
  * topBlockId: aXD
  * hatOpcode: procedures_definition
  * threadIndex: 241
+ * pos: 27909,312
  */
 
 import "../procedures_definition/Add_Global_Command__s__s__s.fractch";

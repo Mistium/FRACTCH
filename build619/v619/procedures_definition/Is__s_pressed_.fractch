@@ -4,9 +4,10 @@
  * topBlockId: akQ
  * hatOpcode: procedures_definition
  * threadIndex: 131
+ * pos: 5288,255320
  */
 
-def @Is_pressed(key) "Is %s pressed?" {
+def @Is_pressed(key) "Is %s pressed?" returns=2 {
   mistsutils.patchcommand(A: "if (p0 === \"space\") p0 = \" \"");
   mistsutils.patchcommand3(A: "return ", B: vars["Inputs // Keys Down"], C: ".indexOf((p0+\"\").toLowerCase()) !== -1");
   return mistsutils.false();

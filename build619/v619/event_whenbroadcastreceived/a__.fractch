@@ -4,6 +4,7 @@
  * topBlockId: a#{
  * hatOpcode: event_whenbroadcastreceived
  * threadIndex: 47
+ * pos: 50603,64
  */
 
 event.whenbroadcastreceived(BROADCAST_OPTION: broadcast("Send Global Message"));

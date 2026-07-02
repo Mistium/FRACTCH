@@ -4,9 +4,10 @@
  * topBlockId: atQ
  * hatOpcode: procedures_definition
  * threadIndex: 157
+ * pos: 89840,808
  */
 
-def @Permissions_Can_i_edit_file(File_To_Get("File To Get")) "Permissions // Can i edit file %s" {
+def @Permissions_Can_i_edit_file(File_To_Get("File To Get")) "Permissions // Can i edit file %s" returns=2 {
   if @Permissions_Has(perm: ".sandbox") {
     return mistsutils.false();
   }

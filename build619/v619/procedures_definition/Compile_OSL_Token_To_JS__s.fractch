@@ -4,6 +4,7 @@
  * topBlockId: aob
  * hatOpcode: procedures_definition
  * threadIndex: 143
+ * pos: 91453,64
  */
 
 def @Compile_OSL_Token_To_JS(token) "Compile OSL Token To JS %s" {

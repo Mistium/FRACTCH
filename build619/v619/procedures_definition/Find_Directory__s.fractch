@@ -4,6 +4,7 @@
  * topBlockId: ;?
  * hatOpcode: procedures_definition
  * threadIndex: 64
+ * pos: 5288,81656
  */
 
 def @Find_Directory(Directory) "Find Directory %s" {

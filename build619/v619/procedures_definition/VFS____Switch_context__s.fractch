@@ -4,9 +4,10 @@
  * topBlockId: aWO
  * hatOpcode: procedures_definition
  * threadIndex: 232
+ * pos: 44998,64
  */
 
-def @VFS_Switch_context(name) "VFS // Switch context %s" {
+def @VFS_Switch_context(name) "VFS // Switch context %s" color="#4a91e2" {
   mistsutils.patchcommand2(A: "const prev_id = ", B: vars["OSL // Current Zip Archive"]);
   if mistsutils.patchboolean(A: "(prev_id ?? \"\") !== \"\"") {
     mistsutils.patchcommand3(A: vars["OSL // Zip Archives"], B: "[prev_id] = ", C: vfs.getallfiles(field EXPORT: "json"));

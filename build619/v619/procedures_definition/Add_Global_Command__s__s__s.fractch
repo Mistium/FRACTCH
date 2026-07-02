@@ -4,6 +4,7 @@
  * topBlockId: aqJ
  * hatOpcode: procedures_definition
  * threadIndex: 147
+ * pos: 108541,64
  */
 
 def @Add_Global_Command(name, parameters, code) "Add Global Command %s %s %s" {

@@ -4,6 +4,7 @@
  * topBlockId: ]p
  * hatOpcode: procedures_definition
  * threadIndex: 73
+ * pos: 5288,95008
  */
 
 def @Window_Reset_Redraw_Box() "Window // Reset Redraw Box" warp {

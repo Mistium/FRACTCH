@@ -4,8 +4,9 @@
  * topBlockId: aP[
  * hatOpcode: procedures_definition
  * threadIndex: 221
+ * pos: 5288,62920
  */
 
-def @is_array(input) "is array? %s" {
+def @is_array(input) "is array? %s" returns=2 {
   return mistsutils.patchboolean(A: "Array.isArray(p0)");
 }

@@ -4,6 +4,7 @@
  * topBlockId: .U
  * hatOpcode: procedures_definition
  * threadIndex: 54
+ * pos: 5288,53512
  */
 
 def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" {
@@ -157,7 +158,7 @@ def @OSL_Commands_Window(command, input2) "OSL // Commands - Window %s %s" {
     }
     case "register_ext" {
       vars["//return"] = skyhigh173JSON.json_array_insert(item: "> " .. vars["Window // UUID"] .. (" " .. vars["WIndow // ID"]), pos: 1, json: "");
-      if skyhigh173JSON.json_is(json: vars["//return"], types: skyhigh173JSON.menu_types(field types: "Array")) {
+      if skyhigh173JSON.json_is(json: vars["//return"], types: skyhigh173JSON.menu_types("Array")) {
         mistsutils.patchcommand3(A: "window.osl_extensions[", B: vars["WIndow // ID"], C: mistsutils.patchreporter2(A: "] = ", B: @parse(json: vars["//return"])));
       }
     }

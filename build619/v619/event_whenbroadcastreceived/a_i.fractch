@@ -4,6 +4,7 @@
  * topBlockId: a@i
  * hatOpcode: event_whenbroadcastreceived
  * threadIndex: 85
+ * pos: 5288,108472
  */
 
 event.whenbroadcastreceived(BROADCAST_OPTION: broadcast("Refresh GUI"));

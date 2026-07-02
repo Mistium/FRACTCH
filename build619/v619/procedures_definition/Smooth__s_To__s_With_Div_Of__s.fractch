@@ -4,6 +4,7 @@
  * topBlockId: [r
  * hatOpcode: procedures_definition
  * threadIndex: 68
+ * pos: 5288,87024
  */
 
 def @Smooth_To_With_Div_Of(X, Target, Divider) "Smooth %s To %s With Div Of %s" {

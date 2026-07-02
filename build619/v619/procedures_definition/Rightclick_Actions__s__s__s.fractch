@@ -4,6 +4,7 @@
  * topBlockId: |D
  * hatOpcode: procedures_definition
  * threadIndex: 95
+ * pos: 5288,141680
  */
 
 import "../procedures_definition/File___get__s_item__s.fractch";
@@ -22,7 +23,7 @@ def @Rightclick_Actions(Action, file, Type) "Rightclick Actions %s %s %s" warp {
     }
     case "Copy File As JSON" {
       @File_get_item(id: file, item: "");
-      clipboard.setClipboard(TEXT: skyhigh173JSON.json_vm_getlist(list: skyhigh173JSON.menu_get_list(field get_list: list("sZuM+zCt8vo`B5=)O+p."))));
+      clipboard.setClipboard(TEXT: skyhigh173JSON.json_vm_getlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("sZuM+zCt8vo`B5=)O+p."))));
     }
     case "Copy Link To Script" {
       zxmushroom63searchparams.setsearchparam(ID: "embed", VAL: @File_get_item(id: file, item: 4));

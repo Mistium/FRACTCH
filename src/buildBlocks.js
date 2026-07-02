@@ -10,7 +10,7 @@ const SHADOW_ONLY_OPCODES = new Set([
 ]);
 
 export function buildBlocksFromCalls(calls, opts = {}) {
-  const { hatOpcode, idGen, ...ctx } = opts;
+  const { hatOpcode, idGen, nested = false, ...ctx } = opts;
   const ids = idGen || new IdGen();
 
   if (calls.length === 1 && calls[0].type === 'procDef') {
@@ -44,8 +44,8 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     // insertion order can't be trusted to recover the top id afterward.
     const id = ids.next();
     if (idx === 0) topId = id;
-    const node = buildNode(call, ids, blocks, ctx, id);
-    if (idx === 0) {
+    const node = buildNode(call, ids, blocks, { ...ctx, asExpression: false }, id);
+    if (idx === 0 && !nested) {
       node.topLevel = true;
       node.parent = null;
       node.x = 0;
@@ -61,6 +61,10 @@ export function buildBlocksFromCalls(calls, opts = {}) {
         node.opcode = hatOpcode; // trust directory-derived opcode when provided
       }
       if (SHADOW_ONLY_OPCODES.has(node.opcode)) node.shadow = true;
+    }
+    if (node.opcode === 'control_stop' && !node.mutation) {
+      const opt = node.fields?.STOP_OPTION?.[0];
+      node.mutation = { tagName: 'mutation', children: [], hasnext: String(opt === 'other scripts in sprite') };
     }
     if (lastId) blocks[lastId].next = id;
     blocks[id] = { id, ...node };
@@ -90,12 +94,19 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       idsList = call.args.map((_, i) => `arg${i}`);
     }
 
+    const meta = (ctx.procMeta && ctx.procMeta.get(proccode)) || {};
     node.mutation = {
       tagName: 'mutation',
       children: [],
       proccode,
       argumentids: JSON.stringify(idsList),
+      warp: String(!!meta.warp),
     };
+    if (meta.customcolor) node.mutation.customcolor = meta.customcolor;
+    // A call used as an expression is a reporter-style custom block; the
+    // editor needs the mutation to say so or the block is statement-shaped
+    // and refuses to connect into a value slot.
+    if (ctx.asExpression) node.mutation.return = meta.returns === '2' ? '2' : '1';
 
     const inputs = {};
     for (let i = 0; i < idsList.length; i++) {
@@ -106,7 +117,7 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       // itself omits the key entirely in that case rather than storing an
       // empty default, so mirror that instead of fabricating one.
       if (!arg || arg.type === 'null') continue;
-      inputs[idName] = valueToInput(arg, ids, blocks, ctx);
+      inputs[idName] = valueToInput(arg, ids, blocks, ctx, nodeId, idName);
     }
     node.inputs = inputs;
     return node;
@@ -118,17 +129,26 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       if (a.sep === 'field' && keyName === 'mutation' && a.value?.type === 'json') {
         node.mutation = a.value.value;
       } else if (a.sep === 'field') {
-        node.fields[keyName] = fieldValueFromNode(a.value, ctx);
+        const fv = fieldValueFromNode(a.value, ctx);
+        if (typeof fv[0] === 'string' && (fv.length < 2 || fv[1] == null)) {
+          const idMap =
+            keyName === 'VARIABLE' ? ctx.varMap : keyName === 'LIST' ? ctx.listMap : keyName === 'BROADCAST_OPTION' ? ctx.broadcastNameToId : null;
+          const rid = idMap && idMap.get(fv[0]);
+          if (rid) node.fields[keyName] = [fv[0], rid];
+          else node.fields[keyName] = fv;
+        } else {
+          node.fields[keyName] = fv;
+        }
       } else {
         const isBroadcastRef =
           keyName === 'BROADCAST_INPUT' &&
           (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') &&
           a.value?.type === 'string';
         const value = isBroadcastRef ? { type: 'broadcast', name: a.value.value, id: null } : a.value;
-        node.inputs[keyName] = valueToInput(value, ids, blocks, ctx);
+        node.inputs[keyName] = valueToInput(value, ids, blocks, ctx, nodeId, keyName);
       }
     } else if (a.kind === 'branch') {
-      const { blocks: sub, topId } = buildBlocksFromCalls(a.body, { ...ctx, idGen: ids });
+      const { blocks: sub, topId } = buildBlocksFromCalls(a.body, { ...ctx, idGen: ids, nested: true, asExpression: false });
       Object.assign(blocks, sub);
       if (topId) {
         const wireKey = a.wireKey || a.key.toUpperCase();
@@ -145,11 +165,25 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
   return node;
 }
 
-function valueToInput(val, ids, blocks, ctx) {
+function buildShadowRef(sh, ids, blocks, ctx, parentId, inputKey) {
+  if (sh && sh.type === 'call') {
+    const tuple = valueToInput({ ...sh, shadow: true }, ids, blocks, ctx, parentId, inputKey);
+    return tuple[1];
+  }
+  const tuple = valueToInput(sh, ids, blocks, ctx, parentId, inputKey);
+  return tuple[1];
+}
+
+function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
   if (!val) return [1, [10, '']];
   switch (val.type) {
     case 'null':
       return [1, [10, '']];
+    case 'obscured': {
+      const active = valueToInput(val.active, ids, blocks, ctx, parentId, inputKey);
+      const shadowRef = buildShadowRef(val.shadow, ids, blocks, ctx, parentId, inputKey);
+      return [3, active[1], shadowRef];
+    }
     case 'number':
       // Prefer the literal source text (`raw`) over re-stringifying the
       // parsed Number - Scratch stores numeric inputs as free-form text
@@ -178,9 +212,34 @@ function valueToInput(val, ids, blocks, ctx) {
       return [1, [10, JSON.stringify(v)]];
     }
     case 'call': {
+      const callNode = val.value;
+      const positional =
+        callNode.callee.type === 'opcode' &&
+        callNode.args.length === 1 &&
+        callNode.args[0].kind === 'positional' &&
+        inputKey;
+      if (positional) {
+        const childId = ids.next();
+        blocks[childId] = {
+          id: childId,
+          opcode: callNode.callee.name,
+          next: null,
+          parent: parentId,
+          inputs: {},
+          fields: { [inputKey]: fieldValueFromNode(callNode.args[0].value, ctx) },
+          shadow: true,
+          topLevel: false,
+        };
+        return [1, childId];
+      }
       const childId = ids.next();
-      const node = buildNode(val.value, ids, blocks, ctx, childId);
-      blocks[childId] = { id: childId, ...node };
+      const node = buildNode(callNode, ids, blocks, { ...ctx, asExpression: true }, childId);
+      blocks[childId] = { id: childId, ...node, parent: parentId };
+      if (val.shadow) {
+        blocks[childId].shadow = true;
+        blocks[childId].topLevel = false;
+        return [1, childId];
+      }
       return [2, childId];
     }
     case 'ident': {
@@ -194,8 +253,8 @@ function valueToInput(val, ids, blocks, ctx) {
       }
       const childId = ids.next();
       const node = buildIdentReporterNode(val.name, ctx, childId);
-      blocks[childId] = { id: childId, ...node };
-      return [1, childId];
+      blocks[childId] = { id: childId, ...node, parent: parentId };
+      return [2, childId];
     }
     case 'arg': {
       // Explicit `arg("Name")` - an argument-reporter reference written out
@@ -211,13 +270,13 @@ function valueToInput(val, ids, blocks, ctx) {
         id: childId,
         opcode,
         next: null,
-        parent: null,
+        parent: parentId,
         inputs: {},
         fields: { VALUE: [val.name, null] },
-        shadow: true,
+        shadow: false,
         topLevel: false,
       };
-      return [1, childId];
+      return [2, childId];
     }
     default:
       return [1, [10, '']];
@@ -252,7 +311,9 @@ function buildIdentReporterNode(name, ctx, id) {
   if (ctx?.scopeParams && ctx.scopeParams.has(name)) {
     const { kind, displayName } = ctx.scopeParams.get(name);
     const opcode = kind === 'b' ? 'argument_reporter_boolean' : 'argument_reporter_string_number';
-    return { id, opcode, next: null, parent: null, inputs: {}, fields: { VALUE: [displayName ?? name, null] }, shadow: true, topLevel: false };
+    // Body references to custom-block params are real blocks (shadow: false);
+    // only the copies inside the procedures_prototype are shadows.
+    return { id, opcode, next: null, parent: null, inputs: {}, fields: { VALUE: [displayName ?? name, null] }, shadow: false, topLevel: false };
   }
   const varId = (ctx?.varMap && ctx.varMap.get(name)) || null;
   return { id, opcode: 'data_variable', next: null, parent: null, inputs: {}, fields: { VARIABLE: [name, varId] }, shadow: false, topLevel: false };
@@ -327,6 +388,7 @@ function buildProcDefScript(procDef, ids, ctx) {
       argumentnames: JSON.stringify(paramNames),
       argumentdefaults: JSON.stringify(argDefaults),
       warp: String(!!procDef.warp),
+      ...(procDef.customcolor ? { customcolor: procDef.customcolor } : {}),
     },
   };
 
@@ -334,7 +396,7 @@ function buildProcDefScript(procDef, ids, ctx) {
     procDef.params.map((p, i) => [p.ident, { kind: typeTokens[i], displayName: p.name ?? p.ident }])
   );
   const bodyCtx = { ...ctx, scopeParams };
-  const { blocks: bodyBlocks, topId: bodyTopId } = buildBlocksFromCalls(procDef.body, { ...bodyCtx, idGen: ids });
+  const { blocks: bodyBlocks, topId: bodyTopId } = buildBlocksFromCalls(procDef.body, { ...bodyCtx, idGen: ids, nested: true });
   Object.assign(blocks, bodyBlocks);
   blocks[defId].next = bodyTopId || null;
   if (bodyTopId && blocks[bodyTopId]) blocks[bodyTopId].parent = defId;
@@ -342,6 +404,11 @@ function buildProcDefScript(procDef, ids, ctx) {
   return { topId: defId, blocks };
 }
 
+// Generated ids carry a '~' prefix: scratch-gui's toolbox XML assigns fixed
+// readable ids to palette blocks (e.g. the Sensing "of" block gets id "of"),
+// and its block init code looks those ids up in the editing target's blocks.
+// Bare sequential base62 ids collide with them ("of" = the 3141st block) and
+// crash the editor's flyout; the prefix keeps the id space disjoint.
 export class IdGen {
   constructor() {
     this.n = 0;
@@ -351,7 +418,7 @@ export class IdGen {
     return this.peek();
   }
   peek() {
-    return base62(this.n);
+    return `~${base62(this.n)}`;
   }
 }
 
@@ -377,39 +444,43 @@ export function mergeIntoManifest(manifest, builtTargets) {
     const originalBlocks = t.blocks || {};
 
     if (bt.scripts && Array.isArray(bt.scripts)) {
+      // Two phases: run every deletion against the original blocks before any
+      // rebuilt subgraph is inserted. Rebuilt ids are freshly generated and
+      // can coincide with another script's original topBlockId - interleaving
+      // insertions would make that later script's delete pass wipe
+      // just-inserted rebuilt blocks instead of the origin ones.
+      const inserts = [];
       for (const script of bt.scripts) {
         const { oldTopId, blocks: newSubgraph } = script;
         if (!newSubgraph || !Object.keys(newSubgraph).length) continue;
+        let incoming = null;
+        let matched = false;
         if (oldTopId && originalBlocks[oldTopId]) {
+          matched = true;
           const toDelete = new Set(Object.keys(collectBlocksSubgraph(originalBlocks, oldTopId)));
-
-          const incoming = findIncomingEdge(originalBlocks, oldTopId);
-
+          incoming = findIncomingEdge(originalBlocks, oldTopId);
           for (const id of toDelete) delete originalBlocks[id];
+        }
+        inserts.push({ script, incoming, matched });
+      }
 
-          for (const [nid, nb] of Object.entries(newSubgraph)) {
-            originalBlocks[nid] = nb;
+      for (const { script, incoming, matched } of inserts) {
+        const newSubgraph = script.blocks;
+        for (const [nid, nb] of Object.entries(newSubgraph)) {
+          originalBlocks[nid] = nb;
+        }
+        if (!matched) continue;
+        const newTopId = script.newTopId || findTopIdFromBlocks(newSubgraph) || Object.keys(newSubgraph)[0];
+        if (incoming && originalBlocks[incoming.owner]) {
+          if (incoming.kind === 'next') {
+            originalBlocks[incoming.owner].next = newTopId;
+          } else if (incoming.kind === 'input') {
+            const tuple = originalBlocks[incoming.owner].inputs?.[incoming.input];
+            if (Array.isArray(tuple) && tuple.length >= 2) tuple[1] = newTopId;
           }
-
-          const newTopId = script.newTopId || findTopIdFromBlocks(newSubgraph) || Object.keys(newSubgraph)[0];
-          if (incoming && originalBlocks[incoming.owner]) {
-            if (incoming.kind === 'next') {
-              originalBlocks[incoming.owner].next = newTopId;
-            } else if (incoming.kind === 'input') {
-              const tuple = originalBlocks[incoming.owner].inputs?.[incoming.input];
-              if (Array.isArray(tuple) && tuple.length >= 2) tuple[1] = newTopId;
-            }
-          }
-
-          if (!incoming) {
-            if (originalBlocks[newTopId]) {
-              originalBlocks[newTopId].topLevel = true;
-            }
-          }
-        } else {
-          for (const [nid, nb] of Object.entries(newSubgraph)) {
-            originalBlocks[nid] = nb;
-          }
+        }
+        if (!incoming && originalBlocks[newTopId]) {
+          originalBlocks[newTopId].topLevel = true;
         }
       }
       t.blocks = originalBlocks;

@@ -4,6 +4,7 @@
  * topBlockId: ar|
  * hatOpcode: procedures_definition
  * threadIndex: 149
+ * pos: 107819,64
  */
 
 def @OSL(object, type, name, value) "OSL // %s .( %s ) %s = %s" {

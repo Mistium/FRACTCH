@@ -203,12 +203,12 @@ class Parser {
       case 'forever':
         return this.parseSingleBranch('control_forever');
       case 'switch': {
-        const value = this.parseExpr();
+        const value = this.parseInputValue();
         const body = this.parseBraceBody();
         return makeCall('control_switch', [keyedInput('VALUE', value), branchArg('substack', body)]);
       }
       case 'case': {
-        const value = this.parseExpr();
+        const value = this.parseInputValue();
         let fallthrough = false;
         this.skipWS();
         if (this.peekWord() === 'fallthrough') {
@@ -226,7 +226,7 @@ class Parser {
         return makeCall('control_default', [branchArg('substack', body)]);
       }
       case 'repeat': {
-        const times = this.parseExpr();
+        const times = this.parseInputValue();
         const body = this.parseBraceBody();
         return makeCall('control_repeat', [keyedInput('TIMES', times), branchArg('substack', body)]);
       }
@@ -241,7 +241,7 @@ class Parser {
         return makeCall('control_while', [keyedInput('CONDITION', cond), branchArg('substack', body)]);
       }
       case 'wait': {
-        const v = this.parseExpr();
+        const v = this.parseInputValue();
         this.tryChar(';');
         return makeCall('control_wait', [keyedInput('DURATION', v)]);
       }
@@ -260,18 +260,18 @@ class Parser {
         this.skipWS();
         let v = null;
         if (this.peek() !== ';' && this.peek() !== '\n' && !this.eof()) {
-          v = this.parseExpr();
+          v = this.parseInputValue();
         }
         this.tryChar(';');
         return makeCall('procedures_return', v ? [keyedInput('VALUE', v)] : []);
       }
       case 'broadcast': {
-        const v = this.parseExpr();
+        const v = this.parseInputValue();
         this.tryChar(';');
         return makeCall('event_broadcast', [keyedInput('BROADCAST_INPUT', v)]);
       }
       case 'broadcast_wait': {
-        const v = this.parseExpr();
+        const v = this.parseInputValue();
         this.tryChar(';');
         return makeCall('event_broadcastandwait', [keyedInput('BROADCAST_INPUT', v)]);
       }
@@ -289,7 +289,7 @@ class Parser {
           op = '=';
         }
         if (op) {
-          const v = this.parseExpr();
+          const v = this.parseInputValue();
           this.tryChar(';');
           return makeCall(op === '+=' ? 'data_changevariableby' : 'data_setvariableto', [
             keyedField('VARIABLE', { type: 'array', value: [name] }),
@@ -356,21 +356,39 @@ class Parser {
     }
 
     let warp = false;
-    this.skipWS();
-    if (this.peekWord() === 'warp') {
-      this.tryIdentifier();
+    let customcolor = null;
+    let returns = null;
+    for (;;) {
       this.skipWS();
-      if (this.peek() === '=') {
-        this.i++;
-        const w = this.tryIdentifier();
-        warp = w === 'true';
+      const word = this.peekWord();
+      if (word === 'warp') {
+        this.tryIdentifier();
+        this.skipWS();
+        if (this.peek() === '=') {
+          this.i++;
+          const w = this.tryIdentifier();
+          warp = w === 'true';
+        } else {
+          warp = true;
+        }
+      } else if (word === 'color') {
+        this.tryIdentifier();
+        this.skipWS();
+        if (this.peek() === '=') this.i++;
+        customcolor = this.parseStringLiteral();
+      } else if (word === 'returns') {
+        this.tryIdentifier();
+        this.skipWS();
+        if (this.peek() === '=') this.i++;
+        this.skipWS();
+        returns = this.peek() === '"' ? this.parseStringLiteral() : String(this.parseNumberLiteral().value);
       } else {
-        warp = true;
+        break;
       }
     }
 
     const body = this.parseBraceBody();
-    return { type: 'procDef', ident, proccode, warp, params, body };
+    return { type: 'procDef', ident, proccode, warp, customcolor, returns, params, body };
   }
 
   parseIf() {
@@ -474,6 +492,19 @@ class Parser {
     return this.parsePrimary();
   }
 
+  parseInputValue() {
+    const v = this.parseExpr();
+    this.skipWS();
+    if (this.peek() === '?' && this.peek(1) === '?') {
+      this.i += 2;
+      this.skipWS();
+      if (this.peekWord() === 'shadow') this.tryIdentifier();
+      const sh = this.parseExpr();
+      return { type: 'obscured', active: v, shadow: sh };
+    }
+    return v;
+  }
+
   parsePrimary() {
     this.skipWS();
     if (this.eof()) throw new ParseError('unexpected end of input');
@@ -491,6 +522,16 @@ class Parser {
     if (word === 'true') return { type: 'boolean', value: true };
     if (word === 'false') return { type: 'boolean', value: false };
     if (word === 'null') return { type: 'null' };
+
+    if (word === 'shadow') {
+      this.skipWS();
+      const nx = this.peek();
+      if (nx === '@' || (nx && /[A-Za-z_]/.test(nx))) {
+        const inner = this.parsePrimary();
+        if (inner.type === 'call') return { ...inner, shadow: true };
+        return inner;
+      }
+    }
 
     if (word === 'var' || word === 'list' || word === 'broadcast' || word === 'arg') {
       return this.parseNamedRefCall(word);
@@ -624,39 +665,51 @@ class Parser {
     this.skipWS();
     if (this.peek() === ')') return args;
     for (;;) {
-      this.skipWS();
-      let forceField = false;
-      const maybeField = this.snapshot();
-      const maybeKeyword = this.tryIdentifier();
-      if (maybeKeyword === 'field') {
-        const afterField = this.snapshot();
-        this.skipWS();
-        if (this.peek() !== ':' && this.peek() !== '=' && this.peek() !== ',' && this.peek() !== ')') {
-          forceField = true;
-        } else {
-          this.restore(maybeField);
-        }
-      } else {
-        this.restore(maybeField);
+      const argStart = this.snapshot();
+      let arg = null;
+      try {
+        arg = this.parseKeyedArg();
+      } catch {
+        this.restore(argStart);
+        const value = this.parseInputValue();
+        arg = { kind: 'positional', value };
       }
-
-      const key = this.parseArgKey();
-      this.skipWS();
-      let token;
-      if (forceField) {
-        this.expectChar(':');
-        token = ':';
-      } else if (this.tryChar('=')) token = '=';
-      else if (this.tryChar(':')) token = ':';
-      else throw new ParseError(`expected '=' or ':' after key '${key}'`);
-      const value = this.parseExpr();
-      const sep = forceField || (token === ':' && isLegacyFieldArg(key, value)) ? 'field' : 'input';
-      args.push({ kind: 'keyed', sep, key, value });
+      args.push(arg);
       this.skipWS();
       if (this.tryChar(',')) continue;
       break;
     }
     return args;
+  }
+
+  parseKeyedArg() {
+    this.skipWS();
+    let forceField = false;
+    const maybeField = this.snapshot();
+    const maybeKeyword = this.tryIdentifier();
+    if (maybeKeyword === 'field') {
+      this.skipWS();
+      if (this.peek() !== ':' && this.peek() !== '=' && this.peek() !== ',' && this.peek() !== ')') {
+        forceField = true;
+      } else {
+        this.restore(maybeField);
+      }
+    } else {
+      this.restore(maybeField);
+    }
+
+    const key = this.parseArgKey();
+    this.skipWS();
+    let token;
+    if (forceField) {
+      this.expectChar(':');
+      token = ':';
+    } else if (this.tryChar('=')) token = '=';
+    else if (this.tryChar(':')) token = ':';
+    else throw new ParseError(`expected '=' or ':' after key '${key}'`);
+    const value = this.parseInputValue();
+    const sep = forceField || (token === ':' && isLegacyFieldArg(key, value)) ? 'field' : 'input';
+    return { kind: 'keyed', sep, key, value };
   }
 
   parseArgKey() {

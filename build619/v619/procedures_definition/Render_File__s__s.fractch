@@ -4,6 +4,7 @@
  * topBlockId: aci
  * hatOpcode: procedures_definition
  * threadIndex: 102
+ * pos: 5288,191552
  */
 
 import "../procedures_definition/OSL____Draw_Icon__s_size___s.fractch";

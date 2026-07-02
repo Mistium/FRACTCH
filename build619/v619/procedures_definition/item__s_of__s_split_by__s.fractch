@@ -4,6 +4,7 @@
  * topBlockId: ag=
  * hatOpcode: procedures_definition
  * threadIndex: 117
+ * pos: 5288,228864
  */
 
 def @item_of_split_by(int, string, delimiter) "item %s of %s split by %s" {

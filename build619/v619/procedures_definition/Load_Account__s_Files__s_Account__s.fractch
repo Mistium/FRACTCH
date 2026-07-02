@@ -4,6 +4,7 @@
  * topBlockId: :.
  * hatOpcode: procedures_definition
  * threadIndex: 62
+ * pos: 5288,75784
  */
 
 import "../procedures_definition/Timed_Log__s.fractch";
@@ -101,7 +102,7 @@ def @Load_Account_Files_Account(Token, Files, Account) "Load Account %s Files %s
   vars["WIndow // ID"] = -1;
   mistsutils.patchcommand2(A: "onboot = ", B: mistsutils.jsonparse(A: vars["App // Temp"]));
   @Window_create(name: "Loader", window_data: "");
-  if sensing.keypressed(KEY_OPTION: sensing.keyoptions(field KEY_OPTION: "t")) || mistsutils.patchboolean(A: "onboot.length === 0") {
+  if sensing.keypressed(KEY_OPTION: sensing.keyoptions("t")) || mistsutils.patchboolean(A: "onboot.length === 0") {
     @Window_create(name: "Terminal", window_data: "");
   } else {
     repeat mistsutils.patchreporter(A: "onboot.length") {

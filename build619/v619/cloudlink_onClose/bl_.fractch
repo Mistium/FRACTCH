@@ -4,6 +4,7 @@
  * topBlockId: bl=
  * hatOpcode: cloudlink_onClose
  * threadIndex: 128
+ * pos: 5288,252528
  */
 
 import "../procedures_definition/Show_Notification__s__s__s__s__s.fractch";

@@ -4,9 +4,10 @@
  * topBlockId: aP_
  * hatOpcode: procedures_definition
  * threadIndex: 222
+ * pos: 5288,63104
  */
 
-def @is_object(input) "is object? %s" {
+def @is_object(input) "is object? %s" returns=2 {
   mistsutils.patchcommand(A: "const type = typeof p0");
   if mistsutils.patchboolean(A: "type === \"object\"") {
     return mistsutils.true();

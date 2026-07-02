@@ -4,6 +4,7 @@
  * topBlockId: +f
  * hatOpcode: procedures_definition
  * threadIndex: 49
+ * pos: 5288,34064
  */
 
 def @fillTri(a, b, c, d, e, f, r) warp {

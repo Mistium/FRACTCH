@@ -4,6 +4,7 @@
  * topBlockId: aLt
  * hatOpcode: procedures_definition
  * threadIndex: 191
+ * pos: 53603,64
  */
 
 def @Kernel_Wallpaper() "Kernel // Wallpaper" {
@@ -32,8 +33,8 @@ def @Kernel_Wallpaper() "Kernel // Wallpaper" {
       vars["SYSTEM // Background Width"] = lmsVideo.getAttribute(NAME: "wallpaper", field ATTRIBUTE: "width") / 100;
       vars["SYSTEM // Background Height"] = lmsVideo.getAttribute(NAME: "wallpaper", field ATTRIBUTE: "height") / 100;
     } else {
-      vars["SYSTEM // Background Width"] = mistSkins.getSkinAttribute(ATTRIBUTE: mistSkins.menu_skinAttributes(field skinAttributes: "width"), NAME: "wallpaper") / 100;
-      vars["SYSTEM // Background Height"] = mistSkins.getSkinAttribute(ATTRIBUTE: mistSkins.menu_skinAttributes(field skinAttributes: "height"), NAME: "wallpaper") / 100;
+      vars["SYSTEM // Background Width"] = mistSkins.getSkinAttribute(ATTRIBUTE: shadow mistSkins.menu_skinAttributes(field skinAttributes: "width"), NAME: "wallpaper") / 100;
+      vars["SYSTEM // Background Height"] = mistSkins.getSkinAttribute(ATTRIBUTE: shadow mistSkins.menu_skinAttributes(field skinAttributes: "height"), NAME: "wallpaper") / 100;
     }
     vars["temp"] = vars["Screen Size X"] / vars["SYSTEM // Background Width"];
     vars["temp2"] = vars["Screen Size Y"] / vars["SYSTEM // Background Height"];
@@ -71,11 +72,11 @@ def @Kernel_Wallpaper() "Kernel // Wallpaper" {
       @OSL_Vars_Set(name: "background_height", data: looks.size() * vars["SYSTEM // Background Height"], current_command: "global");
     }
     if mistsutils.ends(A: mistsutils.patchreporter(A: "origin.wallpaper.current"), B: ".mp4") {
-      lmsVideo.showVideo(NAME: "wallpaper", TARGET: lmsVideo.menu_targets(field targets: "_myself_"));
+      lmsVideo.showVideo(NAME: "wallpaper", TARGET: shadow lmsVideo.menu_targets(field targets: "_myself_"));
       mistsutils.patchcommand(A: "queue = [[-10000, 10000, 10000, -10000]]");
       mistsutils.patchcommand(A: "origin.renderer.queue = queue");
     } else {
-      mistSkins.setSkin(TARGET: mistSkins.menu_targetMenu(field targetMenu: "_myself_"), NAME: "wallpaper");
+      mistSkins.setSkin(TARGET: shadow mistSkins.menu_targetMenu(field targetMenu: "_myself_"), NAME: "wallpaper");
     }
     pen.setPenColorToColor(COLOR: mistsutils.patchreporter(A: "osl?.user?.theme?.background ?? \"#000\""));
     pen.setPenSizeTo(SIZE: mistsutils.stagewidth() + mistsutils.stageheight());

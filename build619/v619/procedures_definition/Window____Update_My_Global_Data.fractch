@@ -4,6 +4,7 @@
  * topBlockId: aJy
  * hatOpcode: procedures_definition
  * threadIndex: 184
+ * pos: 59501,1200
  */
 
 def @Window_Update_My_Global_Data() "Window // Update My Global Data" {

@@ -4,6 +4,7 @@
  * topBlockId: anD
  * hatOpcode: procedures_definition
  * threadIndex: 141
+ * pos: 108541,408
  */
 
 def @OSL_Function(name, parameters, code) "OSL Function %s ( %s ) ( %s )" {

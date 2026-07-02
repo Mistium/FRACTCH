@@ -4,6 +4,7 @@
  * topBlockId: a@J
  * hatOpcode: clipboard_whenPasted
  * threadIndex: 88
+ * pos: 5288,112048
  */
 
 clipboard.whenPasted();

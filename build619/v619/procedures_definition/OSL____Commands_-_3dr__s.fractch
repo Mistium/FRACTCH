@@ -4,6 +4,7 @@
  * topBlockId: aeK
  * hatOpcode: procedures_definition
  * threadIndex: 113
+ * pos: 5288,209080
  */
 
 def @OSL_Commands_3dr(input2) "OSL // Commands - 3dr %s" {
@@ -11,9 +12,9 @@ def @OSL_Commands_3dr(input2) "OSL // Commands - 3dr %s" {
   if input2 == "setup" {
     xeltallivSimple3D.resetEverything();
     xeltallivSimple3D.createMesh(NAME: mistsutils.patchreporter(A: "texture"));
-    xeltallivSimple3D.setMeshPrimitives(NAME: mistsutils.patchreporter(A: "texture"), PRIMITIVES: xeltallivSimple3D.menu_primitives(field primitives: "triangle strip"));
-    skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[0,1,0,1]");
-    skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[0,0,1,1]");
+    xeltallivSimple3D.setMeshPrimitives(NAME: mistsutils.patchreporter(A: "texture"), PRIMITIVES: shadow xeltallivSimple3D.menu_primitives(field primitives: "triangle strip"));
+    skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[0,1,0,1]");
+    skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[0,0,1,1]");
     xeltallivSimple3D.setMeshPositionsXY(NAME: mistsutils.patchreporter(A: "texture"), field X: "3dr // Temp1", field Y: "3dr // Temp2");
     xeltallivSimple3D.setMeshTexCoordUV(NAME: mistsutils.patchreporter(A: "texture"), field U: "3dr // Temp1", field V: "3dr // Temp2");
     xeltallivSimple3D.setMeshTexture(NAME: mistsutils.patchreporter(A: "texture"), TEXTURE: xeltallivSimple3D.textureFromSize(WIDTH: mistsutils.patchreporter(A: "target.window.width"), HEIGHT: mistsutils.patchreporter(A: "target.window.height")), field WRAP: "clamp to edge", field FILTER: "pixelated");
@@ -22,7 +23,7 @@ def @OSL_Commands_3dr(input2) "OSL // Commands - 3dr %s" {
   }
   switch input2 {
     case "clear" {
-      xeltallivSimple3D.clear(LAYERS: xeltallivSimple3D.menu_clearLayers(field clearLayers: "color and depth"));
+      xeltallivSimple3D.clear(LAYERS: shadow xeltallivSimple3D.menu_clearLayers(field clearLayers: "color and depth"));
     }
     case "viewport" {
       switch data.itemoflist(INDEX: 3, LIST: list("Split Text")) {
@@ -42,10 +43,10 @@ def @OSL_Commands_3dr(input2) "OSL // Commands - 3dr %s" {
     case "clear_c" {
       mistsutils.patchcommand2(A: "let _c = ", B: data.itemoflist(INDEX: 3, LIST: list("Split Text")));
       xeltallivSimple3D.clearColor(RED: mistsutils.patchreporter(A: "_c[0]"), GREEN: mistsutils.patchreporter(A: "_c[1]"), BLUE: mistsutils.patchreporter(A: "_c[2]"), ALPHA: mistsutils.patchreporter(A: "_c[3]"));
-      xeltallivSimple3D.clear(LAYERS: xeltallivSimple3D.menu_clearLayers(field clearLayers: "color and depth"));
+      xeltallivSimple3D.clear(LAYERS: shadow xeltallivSimple3D.menu_clearLayers(field clearLayers: "color and depth"));
     }
     case "draw_world" {
-      xeltallivSimple3D.depth(TEST: xeltallivSimple3D.menu_depthTest(field depthTest: "closer"), WRITE: xeltallivSimple3D.menu_onOff(field onOff: "true"));
+      xeltallivSimple3D.depth(TEST: shadow xeltallivSimple3D.menu_depthTest(field depthTest: "closer"), WRITE: shadow xeltallivSimple3D.menu_onOff(field onOff: "true"));
       xeltallivSimple3D.matSelect(field TRANSFORM: "modelToWorld");
       xeltallivSimple3D.matStartWithIdentity();
       mistsutils.patchcommand(A: "const width = target.window.width");
@@ -68,8 +69,8 @@ def @OSL_Commands_3dr(input2) "OSL // Commands - 3dr %s" {
     }
     case "reset_transform" {
       xeltallivSimple3D.matStartWithIdentity();
-      xeltallivSimple3D.matReset(COMPONENT: xeltallivSimple3D.menu_matComponent(field matComponent: "offset"));
-      xeltallivSimple3D.matReset(COMPONENT: xeltallivSimple3D.menu_matComponent(field matComponent: "rotation"));
+      xeltallivSimple3D.matReset(COMPONENT: shadow xeltallivSimple3D.menu_matComponent(field matComponent: "offset"));
+      xeltallivSimple3D.matReset(COMPONENT: shadow xeltallivSimple3D.menu_matComponent(field matComponent: "rotation"));
     }
     case "start_perspective" {
       xeltallivSimple3D.matSelect(field TRANSFORM: "viewToProjected");
@@ -98,59 +99,59 @@ def @OSL_Commands_3dr(input2) "OSL // Commands - 3dr %s" {
       xeltallivSimple3D.inheritMeshes(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), NAMES: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
     }
     case "set_mesh_vertex_indicies" {
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
       xeltallivSimple3D.setMeshIndices(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field INDICES: "3dr // Temp1");
     }
     case "set_mesh_to_obj" {
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
       xeltallivSimple3D.setMeshFromFile(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field FILETYPE: "obj mtl", field SRCLIST: list("3dr // Temp1"));
     }
     case "set_mesh_blending" {
-      xeltallivSimple3D.setMeshBlending(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), BLENDING: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
+      xeltallivSimple3D.setMeshBlending(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), BLENDING: data.itemoflist(INDEX: 4, LIST: list("Split Text")) ?? shadow xeltallivSimple3D.menu_blending(field blending: "default"));
     }
     case "set_mesh_culling" {
-      xeltallivSimple3D.setMeshCulling(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), CULLING: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
+      xeltallivSimple3D.setMeshCulling(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), CULLING: data.itemoflist(INDEX: 4, LIST: list("Split Text")) ?? shadow xeltallivSimple3D.menu_culling(field culling: "nothing"));
     }
     case "set_mesh_texture_filtering" {
-      xeltallivSimple3D.setMeshTextureAnisotropy(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), ANISOTROPY: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
+      xeltallivSimple3D.setMeshTextureAnisotropy(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), ANISOTROPY: data.itemoflist(INDEX: 4, LIST: list("Split Text")) ?? shadow xeltallivSimple3D.menu_powersOfTwo(field powersOfTwo: "16"));
     }
     case "set_mesh_primitives" {
-      xeltallivSimple3D.setMeshPrimitives(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), PRIMITIVES: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
+      xeltallivSimple3D.setMeshPrimitives(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), PRIMITIVES: data.itemoflist(INDEX: 4, LIST: list("Split Text")) ?? shadow xeltallivSimple3D.menu_primitives(field primitives: "points"));
     }
     case "set_mesh_default" {
       switch data.itemoflist(INDEX: 4, LIST: list("Split Text")) {
         case "plane" {
-          skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[-1, 1,-1,-1, 1, 1]");
-          skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[-1,-1, 1, 1,-1, 1]");
+          skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[-1, 1,-1,-1, 1, 1]");
+          skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[-1,-1, 1, 1,-1, 1]");
           xeltallivSimple3D.setMeshPositionsXY(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field X: "3dr // Temp1", field Y: "3dr // Temp2");
-          skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[0,100,0,0,100,100]");
-          skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[0,0,100,100,0,100]");
+          skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[0,100,0,0,100,100]");
+          skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[0,0,100,100,0,100]");
           xeltallivSimple3D.setMeshTexCoordUV(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field U: "3dr // Temp1", field V: "3dr // Temp2");
         }
         case "cube" {
-          skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[-1, 1,-1,-1, 1, 1]");
-          skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[-1,-1, 1, 1,-1, 1]");
+          skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[-1, 1,-1,-1, 1, 1]");
+          skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[-1,-1, 1, 1,-1, 1]");
           xeltallivSimple3D.setMeshPositionsXY(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field X: "3dr // Temp1", field Y: "3dr // Temp2");
-          skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[0,100,0,0,100,100]");
-          skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[0,0,100,100,0,100]");
+          skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: "[0,100,0,0,100,100]");
+          skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: "[0,0,100,100,0,100]");
           xeltallivSimple3D.setMeshTexCoordUV(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field U: "3dr // Temp1", field V: "3dr // Temp2");
         }
       }
     }
     case "set_mesh_xy" {
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: @Stringify(json: data.itemoflist(INDEX: 5, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: @Stringify(json: data.itemoflist(INDEX: 5, LIST: list("Split Text"))));
       xeltallivSimple3D.setMeshPositionsXY(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field X: "3dr // Temp1", field Y: "3dr // Temp2");
     }
     case "set_mesh_xyz" {
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: @Stringify(json: data.itemoflist(INDEX: 5, LIST: list("Split Text"))));
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("(6NYIRNI@$HIl1Zn{RDD")), json: @Stringify(json: data.itemoflist(INDEX: 6, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: @Stringify(json: data.itemoflist(INDEX: 5, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("(6NYIRNI@$HIl1Zn{RDD")), json: @Stringify(json: data.itemoflist(INDEX: 6, LIST: list("Split Text"))));
       xeltallivSimple3D.setMeshPositionsXYZ(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field X: "3dr // Temp1", field Y: "3dr // Temp2", field Z: "3dr // Temp3");
     }
     case "set_texture_uv" {
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
-      skyhigh173JSON.json_vm_setlist(list: skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: @Stringify(json: data.itemoflist(INDEX: 5, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("Zi~czhtteJ6hR7:$hW|h")), json: @Stringify(json: data.itemoflist(INDEX: 4, LIST: list("Split Text"))));
+      skyhigh173JSON.json_vm_setlist(list: shadow skyhigh173JSON.menu_get_list(field get_list: list("a]Z/U14`;am|lUR2~m~+")), json: @Stringify(json: data.itemoflist(INDEX: 5, LIST: list("Split Text"))));
       xeltallivSimple3D.setMeshTexCoordUV(NAME: data.itemoflist(INDEX: 3, LIST: list("Split Text")), field U: "3dr // Temp1", field V: "3dr // Temp2");
     }
     case "rotate" {
@@ -194,10 +195,10 @@ def @OSL_Commands_3dr(input2) "OSL // Commands - 3dr %s" {
       mistsutils.patchcommand2(A: "let c = ", B: data.itemoflist(INDEX: 4, LIST: list("Split Text")));
       switch data.itemoflist(INDEX: 3, LIST: list("Split Text")) {
         case "on" {
-          xeltallivSimple3D.setFogEnabled(STATE: xeltallivSimple3D.menu_onOff(field onOff: "true"));
+          xeltallivSimple3D.setFogEnabled(STATE: shadow xeltallivSimple3D.menu_onOff(field onOff: "true"));
         }
         case "off" {
-          xeltallivSimple3D.setFogEnabled(STATE: xeltallivSimple3D.menu_onOff(field onOff: "false"));
+          xeltallivSimple3D.setFogEnabled(STATE: shadow xeltallivSimple3D.menu_onOff(field onOff: "false"));
         }
         case "c" {
           xeltallivSimple3D.setFogColor(RED: mistsutils.patchreporter(A: "c[0]"), GREEN: mistsutils.patchreporter(A: "c[1]"), BLUE: mistsutils.patchreporter(A: "c[2]"));

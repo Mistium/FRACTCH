@@ -4,6 +4,7 @@
  * topBlockId: auj
  * hatOpcode: procedures_definition
  * threadIndex: 159
+ * pos: 86630,1256
  */
 
 import "../procedures_definition/Draw_Icon__s__s__s__s__s__s_boldness__s.fractch";
@@ -27,7 +28,7 @@ def @Start_Login(account_data("account data")) "Start Login %s" {
   mistsutils.patchcommand(A: "const Generator = (function*(){}).constructor");
   mistsutils.patchcommand3(A: "window.origin.getFile = function*(uuid) { return JSON.parse(", B: cloudlink.fetchURL(url: mistsutils.patchreporter(A: "`https://api.rotur.dev/files/by-uuid?auth=${key}&uuid=${uuid}`")), C: ")[3] }");
   mistsutils.patchcommand(A: "window.origin.sendUpdates = function (updates) { return fetch(`https://api.rotur.dev/files?auth=${key}`, { method: \"POST\", headers: { \"Content-Type\": \"application/json\" }, body: JSON.stringify({updates: updates}) }); };");
-  mistfetch.fetchUrlWithId(method: mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "`https://api.rotur.dev/files/index?auth=${key}`"), ID: "user_files", headers: "{}", body: "{}");
+  mistfetch.fetchUrlWithId(method: shadow mistfetch.menu_METHODS(field METHODS: "GET"), URL: mistsutils.patchreporter(A: "`https://api.rotur.dev/files/index?auth=${key}`"), ID: "user_files", headers: "{}", body: "{}");
   cloudlink.runCMDnoID(CMD: "auth", DATA: mistsutils.patchreporter(A: "key"));
   broadcast "Load Files";
   @Connect_As(user: mistsutils.patchreporter(A: "{ username: p0.payload.username }"));
@@ -37,7 +38,7 @@ def @Start_Login(account_data("account data")) "Start Login %s" {
     vars["Frame // Max Y"] = mistsutils.stageheight() / 2;
     @Renderer_Clear_Screen_With_Colour(colour: "#000");
     pen.setPenColorToColor(COLOR: "#ffffff");
-    mistsutils.patchcommand3(A: "percent += (", B: mistfetch.getInfoById(INFO: mistfetch.menu_INFO(field INFO: "PERCENT"), ID: "user_files"), C: " - percent) / 2");
+    mistsutils.patchcommand3(A: "percent += (", B: mistfetch.getInfoById(INFO: mistfetch.menu_INFO("PERCENT"), ID: "user_files"), C: " - percent) / 2");
     mistsutils.patchcommand(A: "const text = (Math.round(percent * 100) / 100) + \"% Downloaded\"");
     motion.gotoxy(X: 0, Y: 0);
     @Draw_Icon_boldness(Code: mistsutils.patchreporter(A: "`w 40 c #000 dot 0 0 w 2 c #fff cutcircle 0 0 25 0 ${1.8 * percent}`"), Size: 10, setsize: "", x: "", y: "", direction: sensing.timer() * 360, boldness: "");

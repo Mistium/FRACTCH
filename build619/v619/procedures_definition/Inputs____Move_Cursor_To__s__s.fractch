@@ -4,6 +4,7 @@
  * topBlockId: aPM
  * hatOpcode: procedures_definition
  * threadIndex: 216
+ * pos: 85480,64
  */
 
 import "../procedures_definition/Inputs____Select_From__s__s_to__s__s.fractch";

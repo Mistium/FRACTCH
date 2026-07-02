@@ -4,6 +4,7 @@
  * topBlockId: aNh
  * hatOpcode: procedures_definition
  * threadIndex: 201
+ * pos: 5288,120648
  */
 
 import "../procedures_definition/set_stretch_to_x___s_y___s.fractch";

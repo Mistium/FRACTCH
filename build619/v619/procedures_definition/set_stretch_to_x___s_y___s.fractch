@@ -4,6 +4,7 @@
  * topBlockId: akl
  * hatOpcode: procedures_definition
  * threadIndex: 125
+ * pos: 5288,251624
  */
 
 def @set_stretch_to_x_y(x, y) "set stretch to x: %s y: %s" {

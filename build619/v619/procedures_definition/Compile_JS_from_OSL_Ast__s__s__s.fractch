@@ -4,6 +4,7 @@
  * topBlockId: anU
  * hatOpcode: procedures_definition
  * threadIndex: 142
+ * pos: 5288,275712
  */
 
 def @Compile_JS_from_OSL_Ast(ast, args, name) "Compile JS from OSL Ast %s %s %s" warp {

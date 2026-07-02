@@ -4,6 +4,7 @@
  * topBlockId: aQa
  * hatOpcode: procedures_definition
  * threadIndex: 223
+ * pos: 5288,64512
  */
 
 def @Clear_Data() "Clear Data" {

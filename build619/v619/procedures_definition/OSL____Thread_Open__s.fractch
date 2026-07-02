@@ -4,6 +4,7 @@
  * topBlockId: aeI
  * hatOpcode: procedures_definition
  * threadIndex: 112
+ * pos: 48,7144
  */
 
 def @OSL_Thread_Open(Name) "OSL // Thread Open %s" {

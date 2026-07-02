@@ -4,6 +4,7 @@
  * topBlockId: acJ
  * hatOpcode: procedures_definition
  * threadIndex: 106
+ * pos: 5288,194288
  */
 
 def @RightClick(Data_Rightclicked("Data - Rightclicked"), X, Y, current_file("current file")) "RightClick %s %s %s %s" warp {
@@ -36,7 +37,7 @@ def @RightClick(Data_Rightclicked("Data - Rightclicked"), X, Y, current_file("cu
       mistsutils.patchcommand2(A: "const file_id = ", B: mistsutils.squarebrackets(A: vars["Files// Selected ID"], B: 0));
       if mistsutils.length(A: vars["Files// Selected ID"]) == 1 {
         vars["Rightclick// File Is System"] = operator.contains(STRING1: @File_get_item(id: mistsutils.patchreporter(A: "file_id"), item: 13), STRING2: "\"System\"");
-        if sensing.keypressed(KEY_OPTION: "shift" .. "") {
+        if sensing.keypressed(KEY_OPTION: "shift" .. "" ?? sensing.keyoptions("space")) {
           vars["Rightclick// File Is System"] = "false";
         } else {
           if Data_Rightclicked == "Desktop" {

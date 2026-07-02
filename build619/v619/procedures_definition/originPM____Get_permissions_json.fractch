@@ -4,6 +4,7 @@
  * topBlockId: aMV
  * hatOpcode: procedures_definition
  * threadIndex: 197
+ * pos: 48451,64
  */
 
 def @originPM_Get_permissions_json() "originPM // Get permissions.json" {

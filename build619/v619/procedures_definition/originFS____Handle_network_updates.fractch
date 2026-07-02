@@ -4,6 +4,7 @@
  * topBlockId: ^p
  * hatOpcode: procedures_definition
  * threadIndex: 86
+ * pos: 5288,109216
  */
 
 def @originFS_Handle_network_updates() "originFS // Handle network updates" warp {

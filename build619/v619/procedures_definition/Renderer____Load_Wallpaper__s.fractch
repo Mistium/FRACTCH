@@ -4,6 +4,7 @@
  * topBlockId: aCV
  * hatOpcode: procedures_definition
  * threadIndex: 168
+ * pos: 78106,64
  */
 
 def @Renderer_Load_Wallpaper(url) "Renderer // Load Wallpaper %s" {

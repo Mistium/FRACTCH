@@ -4,6 +4,7 @@
  * topBlockId: aNa
  * hatOpcode: procedures_definition
  * threadIndex: 200
+ * pos: 46710,64
  */
 
 def @Kernel_Copy(value) "Kernel // Copy %s" {

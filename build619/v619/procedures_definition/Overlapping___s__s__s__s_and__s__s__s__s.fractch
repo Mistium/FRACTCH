@@ -4,8 +4,9 @@
  * topBlockId: ]l
  * hatOpcode: procedures_definition
  * threadIndex: 72
+ * pos: 5288,94792
  */
 
-def @Overlapping_and(minAx, maxAx, minAy, maxAy, minBx, maxBx, minBy, maxBy) "Overlapping? %s %s %s %s and %s %s %s %s" {
+def @Overlapping_and(minAx, maxAx, minAy, maxAy, minBx, maxBx, minBy, maxBy) "Overlapping? %s %s %s %s and %s %s %s %s" returns=2 {
   return !(minAx > maxBx || minAy > maxBy || (maxAy < minBy || maxAx < minBx));
 }

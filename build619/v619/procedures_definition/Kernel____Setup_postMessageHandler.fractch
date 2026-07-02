@@ -4,6 +4,7 @@
  * topBlockId: aW%
  * hatOpcode: procedures_definition
  * threadIndex: 234
+ * pos: 42602,64
  */
 
 def @Kernel_Setup_postMessageHandler() "Kernel // Setup postMessageHandler" {
