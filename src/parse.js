@@ -3,8 +3,40 @@
 const STATEMENT_KEYWORDS = new Set([
   'def', 'if', 'forever', 'switch', 'case', 'default', 'repeat', 'until',
   'while', 'wait', 'wait_until', 'stop', 'return', 'broadcast', 'broadcast_wait', 'vars',
-  'dangling_next',
+  'dangling_next', 'when', 'script', 'lists', 'local',
+  'say', 'think', 'ask', 'show', 'hide', 'move', 'turn', 'turn_left', 'goto',
+  'point', 'set_x', 'set_y', 'change_x', 'change_y', 'set_size', 'change_size',
+  'costume', 'next_costume', 'backdrop', 'next_backdrop', 'clone', 'delete_clone',
+  'reset_timer', 'pen_up', 'pen_down', 'pen_clear', 'stamp',
 ]);
+
+// Zero-argument statement aliases: `show;` -> looks_show().
+const SIMPLE_ALIASES = {
+  show: 'looks_show', hide: 'looks_hide',
+  next_costume: 'looks_nextcostume', next_backdrop: 'looks_nextbackdrop',
+  delete_clone: 'control_delete_this_clone', reset_timer: 'sensing_resettimer',
+  pen_up: 'pen_penUp', pen_down: 'pen_penDown', pen_clear: 'pen_clear', stamp: 'pen_stamp',
+};
+
+// One-argument statement aliases: `move 10;` -> motion_movesteps(STEPS: 10).
+const UNARY_ALIASES = {
+  say: ['looks_say', 'MESSAGE'], think: ['looks_think', 'MESSAGE'],
+  ask: ['sensing_askandwait', 'QUESTION'],
+  move: ['motion_movesteps', 'STEPS'],
+  turn: ['motion_turnright', 'DEGREES'], turn_left: ['motion_turnleft', 'DEGREES'],
+  point: ['motion_pointindirection', 'DIRECTION'],
+  set_x: ['motion_setx', 'X'], set_y: ['motion_sety', 'Y'],
+  change_x: ['motion_changexby', 'DX'], change_y: ['motion_changeyby', 'DY'],
+  set_size: ['looks_setsizeto', 'SIZE'], change_size: ['looks_changesizeby', 'CHANGE'],
+};
+
+// Statement aliases whose argument is a dropdown-menu shadow block:
+// `costume "walk";` builds looks_switchcostumeto with a looks_costume shadow.
+const MENU_ALIASES = {
+  costume: ['looks_switchcostumeto', 'COSTUME', 'looks_costume'],
+  backdrop: ['looks_switchbackdropto', 'BACKDROP', 'looks_backdrops'],
+  clone: ['control_create_clone_of', 'CLONE_OPTION', 'control_create_clone_of_menu'],
+};
 
 // Unary math/logic sugar: `name(x)` desugars to a single-arg operator block.
 const UNARY_SUGAR = new Set([
@@ -48,8 +80,36 @@ const LEGACY_FIELD_KEYS = new Set([
 export function parseFractch(content) {
   const text = stripHeader(content);
   const parser = new Parser(text);
-  const calls = parser.parseStatementList(/* stopAtBrace */ false);
-  return { calls };
+  const stmts = parser.parseStatementList(/* stopAtBrace */ false);
+
+  // Split the file into scripts: `when ... {}` / `script {}` / `def` each
+  // start their own stack; loose statements group into an implicit stack
+  // (the classic one-script-per-file format).
+  const scripts = [];
+  let cur = null;
+  const flush = () => {
+    if (cur && cur.calls.length) scripts.push(cur);
+    cur = null;
+  };
+  for (const st of stmts) {
+    if (st.type === 'procDef') {
+      flush();
+      scripts.push({ kind: 'def', calls: [st], x: st.x ?? null, y: st.y ?? null });
+    } else if (st.type === 'whenScript') {
+      flush();
+      scripts.push({ kind: 'explicit', calls: [st.hat, ...st.body], x: st.x, y: st.y });
+    } else if (st.type === 'chainScript') {
+      flush();
+      scripts.push({ kind: 'explicit', calls: st.body, x: st.x, y: st.y });
+    } else {
+      if (!cur) cur = { kind: 'implicit', calls: [], x: null, y: null };
+      cur.calls.push(st);
+    }
+  }
+  flush();
+
+  const calls = scripts.length === 1 ? scripts[0].calls : scripts.flatMap((s) => s.calls);
+  return { calls, scripts, errors: parser.errors };
 }
 
 export function preprocess(text) {
@@ -60,7 +120,12 @@ function stripHeader(text) {
   const s = String(text || '');
   if (s.startsWith('/**')) {
     const end = s.indexOf('*/');
-    if (end >= 0) return s.slice(end + 2);
+    // Replace the header with an equal number of newlines so reported line
+    // numbers still match the file on disk.
+    if (end >= 0) {
+      const newlines = (s.slice(0, end + 2).match(/\n/g) || []).length;
+      return '\n'.repeat(newlines) + s.slice(end + 2);
+    }
   }
   return s;
 }
@@ -72,6 +137,13 @@ class Parser {
     this.s = text;
     this.i = 0;
     this.len = text.length;
+    this.errors = [];
+  }
+
+  lineAt(pos) {
+    let line = 1;
+    for (let j = 0; j < pos && j < this.len; j++) if (this.s[j] === '\n') line++;
+    return line;
   }
 
   eof() {
@@ -169,9 +241,11 @@ class Parser {
           stmts.push(stmt);
           continue;
         }
-      } catch {
+      } catch (e) {
         // Malformed statement: skip the offending line and keep going so one
-        // bad line doesn't take down the whole file.
+        // bad line doesn't take down the whole file, but record what was
+        // skipped so tooling can surface it.
+        this.errors.push({ line: this.lineAt(save), message: e && e.message ? e.message : String(e) });
       }
       this.restore(save);
       this.skipToEOL();
@@ -189,9 +263,90 @@ class Parser {
       return this.parseKeywordStatement(word);
     }
 
+    // Bare assignment sugar: `score = 1;` / `score += 1;` sets a variable by
+    // its (identifier-safe) name. `vars["..."]` remains for other names.
+    if (word) {
+      const save = this.snapshot();
+      this.tryIdentifier();
+      this.skipWS();
+      if (this.peek() === '+' && this.peek(1) === '=') {
+        this.i += 2;
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall('data_changevariableby', [
+          keyedField('VARIABLE', { type: 'ident', name: word }),
+          keyedInput('VALUE', v),
+        ]);
+      }
+      if (this.peek() === '=' && this.peek(1) !== '=') {
+        this.i++;
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall('data_setvariableto', [
+          keyedField('VARIABLE', { type: 'ident', name: word }),
+          keyedInput('VALUE', v),
+        ]);
+      }
+      this.restore(save);
+    }
+
     const expr = this.parseExprStatementHead();
     this.tryChar(';');
     return expr;
+  }
+
+  parseNameToken() {
+    this.skipWS();
+    return this.peek() === '"' ? this.parseStringLiteral() : this.expectIdentifier();
+  }
+
+  tryAt() {
+    this.skipWS();
+    if (this.peekWord() !== 'at') return { x: null, y: null };
+    this.tryIdentifier();
+    this.skipWS();
+    const x = this.parseNumberLiteral().value;
+    this.tryChar(',');
+    this.skipWS();
+    const y = this.parseNumberLiteral().value;
+    return { x, y };
+  }
+
+  parseHatSpec() {
+    this.skipWS();
+    const word = this.peekWord();
+    if (word === 'flag') {
+      this.tryIdentifier();
+      return makeCall('event_whenflagclicked', []);
+    }
+    if (word === 'clone' || word === 'cloned') {
+      this.tryIdentifier();
+      return makeCall('control_start_as_clone', []);
+    }
+    if (word === 'clicked') {
+      this.tryIdentifier();
+      return makeCall('event_whenthisspriteclicked', []);
+    }
+    if (word === 'broadcast' || word === 'receive') {
+      this.tryIdentifier();
+      const name = this.parseNameToken();
+      return makeCall('event_whenbroadcastreceived', [
+        keyedField('BROADCAST_OPTION', { type: 'broadcast', name, id: null }),
+      ]);
+    }
+    if (word === 'key') {
+      this.tryIdentifier();
+      const name = this.parseNameToken();
+      return makeCall('event_whenkeypressed', [keyedField('KEY_OPTION', { type: 'array', value: [name] })]);
+    }
+    if (word === 'backdrop') {
+      this.tryIdentifier();
+      const name = this.parseNameToken();
+      return makeCall('event_whenbackdropswitchesto', [keyedField('BACKDROP', { type: 'array', value: [name] })]);
+    }
+    const e = this.parsePrimary();
+    if (e.type === 'call' && e.value.callee.type === 'opcode') return e.value;
+    throw new ParseError('expected a hat block after `when`');
   }
 
   parseKeywordStatement(word) {
@@ -253,7 +408,9 @@ class Parser {
       case 'stop': {
         const v = this.parseExpr();
         this.tryChar(';');
-        const opt = v.type === 'string' ? v.value : String(v.value ?? 'all');
+        // `stop all;` / `stop this_script;` / `stop other_scripts_in_sprite;`
+        // - bare idents map underscores back to the Scratch option names.
+        const opt = v.type === 'string' ? v.value : v.type === 'ident' ? v.name.replace(/_/g, ' ') : String(v.value ?? 'all');
         return makeCall('control_stop', [keyedField('STOP_OPTION', { type: 'array', value: [opt] })]);
       }
       case 'return': {
@@ -266,12 +423,12 @@ class Parser {
         return makeCall('procedures_return', v ? [keyedInput('VALUE', v)] : []);
       }
       case 'broadcast': {
-        const v = this.parseInputValue();
+        const v = broadcastName(this.parseInputValue());
         this.tryChar(';');
         return makeCall('event_broadcast', [keyedInput('BROADCAST_INPUT', v)]);
       }
       case 'broadcast_wait': {
-        const v = this.parseInputValue();
+        const v = broadcastName(this.parseInputValue());
         this.tryChar(';');
         return makeCall('event_broadcastandwait', [keyedInput('BROADCAST_INPUT', v)]);
       }
@@ -301,6 +458,119 @@ class Parser {
         if (expr.type === 'call') return expr.value;
         return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(expr))]);
       }
+      case 'when': {
+        const hat = this.parseHatSpec();
+        const { x, y } = this.tryAt();
+        const body = this.parseBraceBody();
+        return { type: 'whenScript', hat, x, y, body };
+      }
+      case 'script': {
+        const { x, y } = this.tryAt();
+        const body = this.parseBraceBody();
+        return { type: 'chainScript', x, y, body };
+      }
+      case 'local': {
+        const name = this.expectIdentifier();
+        this.skipWS();
+        this.expectChar('=');
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        return { type: 'localDecl', name, value: v };
+      }
+      case 'lists': {
+        this.expectChar('[');
+        const name = this.parseStringLiteral();
+        this.expectChar(']');
+        const listF = keyedField('LIST', { type: 'list', name, id: null });
+        this.skipWS();
+        if (this.peek() === '[') {
+          this.i++;
+          const idx = this.parseExpr();
+          this.expectChar(']');
+          this.skipWS();
+          if (this.peek() === '=' && this.peek(1) !== '=') {
+            this.i++;
+            const v = this.parseInputValue();
+            this.tryChar(';');
+            return makeCall('data_replaceitemoflist', [keyedInput('INDEX', idx), keyedInput('ITEM', v), listF]);
+          }
+          // Bare `lists["x"][i];` - an orphan item-of-list reporter statement.
+          this.tryChar(';');
+          return makeCall('data_itemoflist', [keyedInput('INDEX', idx), listF]);
+        }
+        this.expectChar('.');
+        const method = this.expectIdentifier();
+        this.expectChar('(');
+        const args = [];
+        this.skipWS();
+        while (this.peek() !== ')') {
+          args.push(this.parseInputValue());
+          this.skipWS();
+          if (!this.tryChar(',')) break;
+          this.skipWS();
+        }
+        this.expectChar(')');
+        this.tryChar(';');
+        switch (method) {
+          case 'add':
+          case 'push':
+            return makeCall('data_addtolist', [keyedInput('ITEM', args[0]), listF]);
+          case 'delete':
+            return makeCall('data_deleteoflist', [keyedInput('INDEX', args[0]), listF]);
+          case 'clear':
+            return makeCall('data_deletealloflist', [listF]);
+          case 'insert':
+            return makeCall('data_insertatlist', [keyedInput('INDEX', args[0]), keyedInput('ITEM', args[1]), listF]);
+          case 'replace':
+            return makeCall('data_replaceitemoflist', [keyedInput('INDEX', args[0]), keyedInput('ITEM', args[1]), listF]);
+          case 'show':
+            return makeCall('data_showlist', [listF]);
+          case 'hide':
+            return makeCall('data_hidelist', [listF]);
+          default:
+            throw new ParseError(`unknown list method '${method}'`);
+        }
+      }
+      case 'say':
+      case 'think': {
+        const v = this.parseInputValue();
+        this.skipWS();
+        if (this.peekWord() === 'for') {
+          this.tryIdentifier();
+          const secs = this.parseInputValue();
+          this.tryChar(';');
+          return makeCall(word === 'say' ? 'looks_sayforsecs' : 'looks_thinkforsecs', [
+            keyedInput('MESSAGE', v),
+            keyedInput('SECS', secs),
+          ]);
+        }
+        this.tryChar(';');
+        return makeCall(word === 'say' ? 'looks_say' : 'looks_think', [keyedInput('MESSAGE', v)]);
+      }
+      case 'goto': {
+        const x = this.parseInputValue();
+        this.tryChar(',');
+        const y = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall('motion_gotoxy', [keyedInput('X', x), keyedInput('Y', y)]);
+      }
+      case 'costume':
+      case 'backdrop':
+      case 'clone': {
+        const [opcode, inputKey, menuOpcode] = MENU_ALIASES[word];
+        this.skipWS();
+        let v = null;
+        if (this.peek() !== ';' && this.peek() !== '}' && !this.eof() && this.peek() !== '\n') {
+          v = this.parseInputValue();
+        }
+        this.tryChar(';');
+        if (v == null && word === 'clone') v = { type: 'string', value: '_myself_' };
+        if (v == null) throw new ParseError(`'${word}' needs a value`);
+        if (v.type === 'string') {
+          v = { type: 'call', value: makeCall(menuOpcode, [{ kind: 'positional', value: v }]) };
+        }
+        return makeCall(opcode, [keyedInput(inputKey, v)]);
+      }
       case 'dangling_next': {
         // Preserves a forward reference to a block id that doesn't actually
         // exist in the source project.json (a corrupted/hand-edited sb3 -
@@ -314,8 +584,19 @@ class Parser {
         this.tryChar(';');
         return { type: 'danglingNext', id };
       }
-      default:
+      default: {
+        if (SIMPLE_ALIASES[word]) {
+          this.tryChar(';');
+          return makeCall(SIMPLE_ALIASES[word], []);
+        }
+        if (UNARY_ALIASES[word]) {
+          const [opcode, inputKey] = UNARY_ALIASES[word];
+          const v = this.parseInputValue();
+          this.tryChar(';');
+          return makeCall(opcode, [keyedInput(inputKey, v)]);
+        }
         throw new ParseError(`unhandled keyword ${word}`);
+      }
     }
   }
 
@@ -358,6 +639,8 @@ class Parser {
     let warp = false;
     let customcolor = null;
     let returns = null;
+    let x = null;
+    let y = null;
     for (;;) {
       this.skipWS();
       const word = this.peekWord();
@@ -382,13 +665,17 @@ class Parser {
         if (this.peek() === '=') this.i++;
         this.skipWS();
         returns = this.peek() === '"' ? this.parseStringLiteral() : String(this.parseNumberLiteral().value);
+      } else if (word === 'at') {
+        const pos = this.tryAt();
+        x = pos.x;
+        y = pos.y;
       } else {
         break;
       }
     }
 
     const body = this.parseBraceBody();
-    return { type: 'procDef', ident, proccode, warp, customcolor, returns, params, body };
+    return { type: 'procDef', ident, proccode, warp, customcolor, returns, x, y, params, body };
   }
 
   parseIf() {
@@ -536,6 +823,13 @@ class Parser {
     if (word === 'var' || word === 'list' || word === 'broadcast' || word === 'arg') {
       return this.parseNamedRefCall(word);
     }
+    if (word === 'lists' && this.peek() === '[') {
+      this.i++;
+      const name = this.parseStringLiteral();
+      this.skipWS();
+      this.expectChar(']');
+      return this.parseListPostfix(name);
+    }
     if (word === 'vars' && this.peek() === '[') {
       // `vars["name"]` as an expression is a bare variable-name literal
       // (Scratch's type-12 dropdown default) - same shape as var("name").
@@ -581,6 +875,45 @@ class Parser {
     if (callee !== word) throw new ParseError(`expected call after dotted opcode '${callee.replace(/_/g, '.')}'`);
 
     return { type: 'ident', name: word };
+  }
+
+  parseListPostfix(name) {
+    const listF = keyedField('LIST', { type: 'list', name, id: null });
+    this.skipWS();
+    if (this.peek() === '[') {
+      this.i++;
+      const idx = this.parseExpr();
+      this.expectChar(']');
+      return { type: 'call', value: makeCall('data_itemoflist', [keyedInput('INDEX', idx), listF]) };
+    }
+    if (this.peek() === '.' && this.peek(1) !== '.') {
+      this.i++;
+      const method = this.expectIdentifier();
+      if (method === 'length') {
+        this.skipWS();
+        if (this.peek() === '(') {
+          this.i++;
+          this.skipWS();
+          this.expectChar(')');
+        }
+        return { type: 'call', value: makeCall('data_lengthoflist', [listF]) };
+      }
+      this.expectChar('(');
+      const arg = this.parseExpr();
+      this.skipWS();
+      this.expectChar(')');
+      if (method === 'contains') {
+        return { type: 'call', value: makeCall('data_listcontainsitem', [keyedInput('ITEM', arg), listF]) };
+      }
+      if (method === 'indexof') {
+        return { type: 'call', value: makeCall('data_itemnumoflist', [keyedInput('ITEM', arg), listF]) };
+      }
+      if (method === 'item') {
+        return { type: 'call', value: makeCall('data_itemoflist', [keyedInput('INDEX', arg), listF]) };
+      }
+      throw new ParseError(`unknown list method '${method}'`);
+    }
+    return { type: 'list', name, id: null };
   }
 
   parseNamedRefCall(kind) {
@@ -795,6 +1128,13 @@ function isLegacyFieldArg(key, value) {
   return false;
 }
 
+// `broadcast LoadFiles;` - a bare identifier in broadcast position is the
+// broadcast's name, not a variable read.
+function broadcastName(v) {
+  if (v && v.type === 'ident') return { type: 'string', value: v.name };
+  return v;
+}
+
 function makeCall(opcode, args) {
   return { type: 'call', callee: { type: 'opcode', name: opcode }, args };
 }
@@ -829,4 +1169,4 @@ function toFieldValueNode(e) {
   }
 }
 
-export { BRANCH_SUBSTACK_OPCODES, LEGACY_FIELD_KEYS };
+export { BRANCH_SUBSTACK_OPCODES, LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS };

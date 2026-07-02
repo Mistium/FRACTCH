@@ -22,9 +22,17 @@ export function emitScriptFile({ target, script, subgraph, index, context, cfg =
       setContext({ ...context, scopeParamNames });
     }
     const inner = subgraph[topBlockId]?.next ? renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
-    body = inner ? `${sig} {\n${indentBlock(inner)}\n}` : `${sig} {}`;
+    const at = atText(subgraph[topBlockId]);
+    body = inner ? `${sig}${at} {\n${indentBlock(inner)}\n}` : `${sig}${at} {}`;
   } else {
-    body = renderBody(subgraph, topBlockId, cfg);
+    const top = subgraph[topBlockId];
+    const sugar = top ? whenSugarFor(top, context) : null;
+    if (sugar) {
+      const rest = top.next ? renderBody(subgraph, top.next, cfg) : '';
+      body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
+    } else {
+      body = renderBody(subgraph, topBlockId, cfg);
+    }
   }
 
   const header =
@@ -149,6 +157,48 @@ function defSignature(defBlock, subgraph, context) {
   // time; only the boolean shape needs to be spelled out.
   const returnsLit = info.returns === '2' ? ' returns=2' : '';
   return `def @${info.ident}(${params})${codeLit}${warpLit}${returnsLit}${colorLit}`;
+}
+
+function atText(block) {
+  if (!block || !block.topLevel) return '';
+  return ` at ${Math.round(block.x ?? 0)},${Math.round(block.y ?? 0)}`;
+}
+
+const BARE_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function nameToken(name) {
+  return BARE_NAME_RE.test(name) && name !== 'at' ? name : JSON.stringify(name);
+}
+
+// Hat blocks with a `when` sugar spelling. Anything not here (extension
+// hats, orphan chains) keeps the plain call-chain format, which the parser
+// still accepts - and hand-written files can use `when <any.call()> { }`.
+function whenSugarFor(block, context) {
+  const op = block.opcode;
+  const fields = block.fields || {};
+  const inputs = Object.keys(block.inputs || {});
+  if (inputs.length || block.mutation) return null;
+  const fieldKeys = Object.keys(fields);
+  if (op === 'event_whenflagclicked' && !fieldKeys.length) return 'flag';
+  if (op === 'control_start_as_clone' && !fieldKeys.length) return 'clone';
+  if (op === 'event_whenthisspriteclicked' && !fieldKeys.length) return 'clicked';
+  if (op === 'event_whenbroadcastreceived' && fieldKeys.length === 1 && fieldKeys[0] === 'BROADCAST_OPTION') {
+    const [name, id] = fields.BROADCAST_OPTION;
+    if (typeof name !== 'string') return null;
+    if (id != null && !(context?.broadcastNameToId && context.broadcastNameToId.get(name) === id)) return null;
+    return `broadcast ${nameToken(name)}`;
+  }
+  if (op === 'event_whenkeypressed' && fieldKeys.length === 1 && fieldKeys[0] === 'KEY_OPTION') {
+    const name = fields.KEY_OPTION[0];
+    if (typeof name !== 'string') return null;
+    return `key ${nameToken(name)}`;
+  }
+  if (op === 'event_whenbackdropswitchesto' && fieldKeys.length === 1 && fieldKeys[0] === 'BACKDROP') {
+    const name = fields.BACKDROP[0];
+    if (typeof name !== 'string') return null;
+    return `backdrop ${nameToken(name)}`;
+  }
+  return null;
 }
 
 function indentBlock(str, spaces = 2) {

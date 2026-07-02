@@ -1,4 +1,4 @@
-import { LEGACY_FIELD_KEYS } from './parse.js';
+import { LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS } from './parse.js';
 
 let CTX = {};
 export function setContext(c) { CTX = c || {}; }
@@ -14,6 +14,47 @@ const UNARY_PREC = 7;
 const ATOM_PREC = 100;
 
 const REPARSABLE_NUMBER = /^-?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/;
+
+const BARE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const RESERVED_WORDS = new Set(['true', 'false', 'null', 'shadow', 'var', 'list', 'broadcast', 'arg', 'vars', 'menu', 'at', 'for', 'fallthrough', 'else', 'import', 'field', 'warp', 'color', 'returns', 'not', 'round']);
+
+function bareNameOk(name) {
+  return BARE_NAME.test(name) && !RESERVED_WORDS.has(name) && !STATEMENT_KEYWORDS.has(name);
+}
+
+const SIMPLE_ALIAS_EMIT = {
+  looks_show: 'show', looks_hide: 'hide',
+  looks_nextcostume: 'next_costume', looks_nextbackdrop: 'next_backdrop',
+  control_delete_this_clone: 'delete_clone', sensing_resettimer: 'reset_timer',
+  pen_penUp: 'pen_up', pen_penDown: 'pen_down', pen_clear: 'pen_clear', pen_stamp: 'stamp',
+};
+
+const UNARY_ALIAS_EMIT = {
+  looks_say: ['say', 'MESSAGE'], looks_think: ['think', 'MESSAGE'],
+  sensing_askandwait: ['ask', 'QUESTION'],
+  motion_movesteps: ['move', 'STEPS'],
+  motion_turnright: ['turn', 'DEGREES'], motion_turnleft: ['turn_left', 'DEGREES'],
+  motion_pointindirection: ['point', 'DIRECTION'],
+  motion_setx: ['set_x', 'X'], motion_sety: ['set_y', 'Y'],
+  motion_changexby: ['change_x', 'DX'], motion_changeyby: ['change_y', 'DY'],
+  looks_setsizeto: ['set_size', 'SIZE'], looks_changesizeby: ['change_size', 'CHANGE'],
+};
+
+const MENU_ALIAS_EMIT = {
+  looks_switchcostumeto: ['costume', 'COSTUME', 'looks_costume'],
+  looks_switchbackdropto: ['backdrop', 'BACKDROP', 'looks_backdrops'],
+  control_create_clone_of: ['clone', 'CLONE_OPTION', 'control_create_clone_of_menu'],
+};
+
+const LIST_STMT_EMIT = {
+  data_addtolist: ['add', ['ITEM']],
+  data_deleteoflist: ['delete', ['INDEX']],
+  data_deletealloflist: ['clear', []],
+  data_insertatlist: ['insert', ['INDEX', 'ITEM']],
+  data_replaceitemoflist: ['replace', ['INDEX', 'ITEM']],
+  data_showlist: ['show', []],
+  data_hidelist: ['hide', []],
+};
 
 export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}) {
   const opcode = block.opcode;
@@ -76,15 +117,12 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     return `${header} {\n${indent(thenBody)}\n}`;
   }
 
-  if (opcode === 'data_setvariableto') {
-    const varName = block.fields?.VARIABLE?.[0] ?? '';
-    const value = getInputExpr(block.inputs?.VALUE, subgraph);
-    return `vars[${JSON.stringify(varName)}] = ${value};`;
-  }
-  if (opcode === 'data_changevariableby') {
-    const varName = block.fields?.VARIABLE?.[0] ?? '';
-    const value = getInputExpr(block.inputs?.VALUE, subgraph);
-    return `vars[${JSON.stringify(varName)}] += ${value};`;
+  if (opcode === 'data_setvariableto' || opcode === 'data_changevariableby') {
+    const varName = String(block.fields?.VARIABLE?.[0] ?? '');
+    const value = inputValueText(block.inputs?.VALUE, subgraph, 'VALUE');
+    const op = opcode === 'data_changevariableby' ? '+=' : '=';
+    if (bareNameOk(varName)) return `${varName} ${op} ${value};`;
+    return `vars[${JSON.stringify(varName)}] ${op} ${value};`;
   }
 
   if (opcode === 'control_forever') {
@@ -126,7 +164,8 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
   if (opcode === 'control_stop') {
     const opt = block.fields?.STOP_OPTION?.[0] ?? 'all';
-    return `stop ${JSON.stringify(opt)};`;
+    const bare = { all: 'all', 'this script': 'this_script', 'other scripts in sprite': 'other_scripts_in_sprite' }[opt];
+    return `stop ${bare ?? JSON.stringify(opt)};`;
   }
   if (opcode === 'procedures_return' || opcode === 'control_return') {
     const v = block.inputs?.VALUE ? getInputExpr(block.inputs.VALUE, subgraph) : '';
@@ -137,17 +176,30 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const childId = Array.isArray(tuple) ? tuple[1] : null;
     // A literal broadcast name reference doesn't need the broadcast() wrapper
     // here - the statement keyword already says "this is a broadcast".
-    const name =
-      typeof childId === 'string' && subgraph[childId]
-        ? inputValueText(tuple, subgraph, 'BROADCAST_INPUT')
-        : JSON.stringify(Array.isArray(childId) ? String(childId[1] ?? '') : '');
+    let name;
+    if (typeof childId === 'string' && subgraph[childId]) {
+      name = inputValueText(tuple, subgraph, 'BROADCAST_INPUT');
+    } else {
+      const raw = Array.isArray(childId) ? String(childId[1] ?? '') : '';
+      name = BARE_NAME.test(raw) && !RESERVED_WORDS.has(raw) ? raw : JSON.stringify(raw);
+    }
     const w = opcode === 'event_broadcastandwait' ? 'broadcast_wait' : 'broadcast';
     return `${w} ${name};`;
+  }
+
+  if (!inline) {
+    const alias = tryStatementAlias(block, subgraph);
+    if (alias) return alias;
   }
 
   const opExpr = tryOperatorInfo(block, subgraph);
   if (opExpr) {
     return inline ? opExpr.text : opExpr.text + ';';
+  }
+
+  const listExpr = tryListExpr(block, subgraph);
+  if (listExpr) {
+    return inline ? listExpr.text : listExpr.text + ';';
   }
 
   const inputsStr = stringifyInputs(block, subgraph, /*cLike*/ true);
@@ -193,7 +245,104 @@ function getInputExprInfo(arr, subgraph) {
 function blockExprInfo(block, subgraph, id) {
   const op = tryOperatorInfo(block, subgraph);
   if (op) return op;
+  const le = tryListExpr(block, subgraph);
+  if (le) return le;
   return { text: stringifyBlockCall(block, subgraph, id, /*inline*/ true), prec: ATOM_PREC };
+}
+
+function listFieldName(block) {
+  const fields = block.fields || {};
+  const keys = Object.keys(fields);
+  if (keys.length !== 1 || keys[0] !== 'LIST') return null;
+  const v = fields.LIST;
+  if (!Array.isArray(v) || typeof v[0] !== 'string') return null;
+  const id = v.length > 1 ? v[1] : undefined;
+  if (id != null && !(CTX.listMap && CTX.listMap.get(v[0]) === id)) return null;
+  return v[0];
+}
+
+function listRefText(name) {
+  return `lists[${JSON.stringify(name)}]`;
+}
+
+function tryListExpr(block, subgraph) {
+  const op = block?.opcode;
+  if (block?.mutation) return null;
+  const name = op && op.startsWith('data_') ? listFieldName(block) : null;
+  if (name == null) return null;
+  const inputKeys = Object.keys(block.inputs || {});
+  const one = (k) => inputKeys.length === 1 && inputKeys[0] === k;
+  if (op === 'data_itemoflist' && one('INDEX')) {
+    return { text: `${listRefText(name)}[${inputValueText(block.inputs.INDEX, subgraph, 'INDEX')}]`, prec: ATOM_PREC };
+  }
+  if (op === 'data_lengthoflist' && inputKeys.length === 0) {
+    return { text: `${listRefText(name)}.length`, prec: ATOM_PREC };
+  }
+  if (op === 'data_listcontainsitem' && one('ITEM')) {
+    return { text: `${listRefText(name)}.contains(${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
+  }
+  if (op === 'data_itemnumoflist' && one('ITEM')) {
+    return { text: `${listRefText(name)}.indexof(${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
+  }
+  return null;
+}
+
+function tryStatementAlias(block, subgraph) {
+  const op = String(block.opcode || '');
+  if (block.mutation) return null;
+  const fields = block.fields || {};
+  const inputs = block.inputs || {};
+  const fieldKeys = Object.keys(fields);
+  const inputKeys = Object.keys(inputs);
+  const exactInputs = (...keys) => inputKeys.length === keys.length && keys.every((k) => k in inputs);
+
+  if (SIMPLE_ALIAS_EMIT[op] && !fieldKeys.length && !inputKeys.length) {
+    return `${SIMPLE_ALIAS_EMIT[op]};`;
+  }
+  if (UNARY_ALIAS_EMIT[op]) {
+    const [kw, key] = UNARY_ALIAS_EMIT[op];
+    if (!fieldKeys.length && exactInputs(key)) {
+      return `${kw} ${inputValueText(inputs[key], subgraph, key)};`;
+    }
+  }
+  if ((op === 'looks_sayforsecs' || op === 'looks_thinkforsecs') && !fieldKeys.length && exactInputs('MESSAGE', 'SECS')) {
+    const kw = op === 'looks_sayforsecs' ? 'say' : 'think';
+    return `${kw} ${inputValueText(inputs.MESSAGE, subgraph, 'MESSAGE')} for ${inputValueText(inputs.SECS, subgraph, 'SECS')};`;
+  }
+  if (op === 'motion_gotoxy' && !fieldKeys.length && exactInputs('X', 'Y')) {
+    return `goto ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+  }
+  if (MENU_ALIAS_EMIT[op] && !fieldKeys.length) {
+    const [kw, key, menuOpcode] = MENU_ALIAS_EMIT[op];
+    if (exactInputs(key)) {
+      const arr = inputs[key];
+      const childId = Array.isArray(arr) ? arr[1] : null;
+      const child = typeof childId === 'string' ? subgraph[childId] : null;
+      if (child && child.shadow && child.opcode === menuOpcode) {
+        const mf = child.fields || {};
+        const mk = Object.keys(mf);
+        if (!Object.keys(child.inputs || {}).length && mk.length === 1 && mk[0] === key && typeof mf[key][0] === 'string' && (mf[key].length === 1 || mf[key][1] == null)) {
+          const value = mf[key][0];
+          if (kw === 'clone' && value === '_myself_') return 'clone;';
+          return `${kw} ${JSON.stringify(value)};`;
+        }
+        return null;
+      }
+      if (child && !child.shadow) {
+        return `${kw} ${inputValueText(arr, subgraph, key)};`;
+      }
+    }
+    return null;
+  }
+  if (LIST_STMT_EMIT[op]) {
+    const name = listFieldName(block);
+    if (name == null) return null;
+    const [method, keys] = LIST_STMT_EMIT[op];
+    if (!exactInputs(...keys)) return null;
+    const args = keys.map((k) => inputValueText(inputs[k], subgraph, k)).join(', ');
+    return `${listRefText(name)}.${method}(${args});`;
+  }
+  return null;
 }
 
 function shadowBlockText(block, subgraph, id, inputName) {
@@ -393,13 +542,14 @@ function formatLiteral(arr) {
         case 12: {
           // variable/parameter reference label -> print as bare identifier when safe
           const name = String(value ?? '');
-          if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return name;
+          if (bareNameOk(name)) return name;
           return `vars[${JSON.stringify(name)}]`;
         }
         case 13: {
           // list reference
           const name = String(value ?? '');
           const id = payload.length > 2 ? String(payload[2]) : undefined;
+          if (id == null || (CTX.listMap && CTX.listMap.get(name) === id)) return listRefText(name);
           return refCall('list', name, id, CTX.listMap);
         }
         default: {

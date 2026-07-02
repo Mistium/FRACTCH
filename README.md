@@ -29,8 +29,38 @@ Outputs will be written to `./build` with:
 
 ## Fractch DSL overview
 
+A file holds any number of scripts. Hats are written as `when`, custom blocks as `def`, and hatless stacks as `script`; each takes an optional `at x,y` canvas position:
+
+```txt
+when flag at 0,0 {
+  local elapsed = 0;          // script-local variable (namespaced on the Scratch side)
+  score = 0;                  // plain variables assign by name
+  forever {
+    elapsed += 1;
+    say "score: " .. score;
+    if lists["queue"].length > 0 {
+      handle = lists["queue"][1];
+      lists["queue"].delete(1);
+      broadcast HandleItem;
+    }
+  }
+}
+
+when broadcast HandleItem {
+  costume "active";
+  move 10;
+}
+
+def @reset() {
+  lists["queue"].clear();
+  goto 0, 0;
+}
+```
+
+`when` sugar covers `flag`, `clone`, `clicked`, `broadcast <name>`, `key <name>`, `backdrop <name>`; any other hat is `when some.extension_hat() { ... }`. Statement aliases: `say E;`, `say E for N;`, `think`, `ask`, `move`, `turn`, `turn_left`, `point`, `goto X, Y;`, `set_x/set_y/change_x/change_y`, `set_size/change_size`, `costume "name";`, `backdrop "name";`, `next_costume;`, `next_backdrop;`, `clone;` / `clone "sprite";`, `delete_clone;`, `show; hide;`, `reset_timer;`, `pen_up; pen_down; pen_clear; stamp;`. Lists: `lists["x"].add(v)`, `.delete(i)`, `.insert(i, v)`, `.clear()`, `.show()`, `.hide()`, `lists["x"][i]` (read), `lists["x"][i] = v;` (replace), `.length`, `.contains(v)`, `.indexof(v)`, and bare `lists["x"]` for the list-contents reporter. Variables: `name = v;` / `name += v;` for identifier-safe names, `vars["any name"]` for the rest, and `local name = v;` declares a script-scoped variable that packs to a namespaced real variable (`local_1_name`).
+
 - Blocks are encoded as calls where the function name is the Scratch `opcode`, with the first underscore shown as a namespace dot for readability: `motion.changexby(DX: 10)` packs as Scratch opcode `motion_changexby`. Plain `name: value` arguments are Scratch inputs and may nest reporter blocks. `field name: value` arguments are Scratch fields, such as dropdowns or variable/list/broadcast references; dropdown values are written as plain strings (`field EFFECT: "COLOR"`). The `field` keyword is optional (and not emitted) when the key + value shape already identify a field: `VARIABLE: var("x")`, `LIST: list("x")`, `BROADCAST_OPTION: broadcast("x")`. The older `name= value` input form and raw underscore opcode names are still accepted for handwritten files.
-- Common control-flow blocks get readable sugar instead of the generic call form: `if cond { ... }`, `if cond { ... } else { ... }`, `forever { ... }`, `repeat n { ... }`, `until cond { ... }`, `while cond { ... }`, `switch v { case x { ... } case y fallthrough { ... } default { ... } }`, `wait n;`, `wait_until cond;`, `stop "all";`, `return v;`, `broadcast "name";`, `broadcast_wait "name";`, `vars["name"] = value;`, `vars["name"] += value;`.
+- Common control-flow blocks get readable sugar instead of the generic call form: `if cond { ... }`, `if cond { ... } else { ... }`, `forever { ... }`, `repeat n { ... }`, `until cond { ... }`, `while cond { ... }`, `switch v { case x { ... } case y fallthrough { ... } default { ... } }`, `wait n;`, `wait_until cond;`, `stop all;` / `stop this_script;` / `stop other_scripts_in_sprite;`, `return v;`, `broadcast SomeName;` (quotes only needed when the name isn't a plain identifier), `broadcast_wait name;`, `vars["name"] = value;`, `vars["name"] += value;`. Semicolons are optional.
 - Arithmetic/logic operators are plain infix expressions with the usual precedence (`||` < `&&` < comparisons < `..` < `+ -` < `* / %`, left-associative): `a + b * c`, string concat `a .. b` (deliberately distinct from `+` since `operator_add`/`operator_join` are different opcodes), `a == b`, `a < b`, `a > b`, `a && b`, `a || b`, plus `round(a)` and math-op functions (`abs`, `floor`, `sqrt`, `sin`, `exp`, ...). Parens group as usual, and fully parenthesized old-style text still parses to the identical tree. Since Scratch operator blocks are binary, parens are emitted wherever the tree shape needs them (e.g. `a .. (b .. c)` for a right-nested join).
 - Negated comparisons and boolean negation get sugar too: `a != b`, `a <= b`, `a >= b`, and prefix `!cond` — each desugars to the exact `not(...)` block pair Scratch stores (`not(a == b)` etc.), so the round trip is unchanged. `not(a)` is still accepted.
 - Dropdown menu shadow blocks (the editor's default value living inside an input slot) are written as a call with a single positional argument: `sensing.keypressed(KEY_OPTION: sensing.keyoptions("space"))` rebuilds the `sensing_keyoptions` shadow block with `shadow: true` and its field named after the enclosing input. When the menu's field name differs from the input name, the explicit form is `shadow opcode(field name: value)`. A reporter plugged in over a menu (an *obscured* shadow) is written `reporter() ?? sensing.keyoptions("any")` — both the active block and the shadow behind it survive the round trip, which the Scratch/TurboWarp editor requires to render dropdowns without crashing. Obscured plain text/number defaults are still dropped (cosmetic only).
@@ -50,6 +80,23 @@ if vars["score"] >= 10 && !sensing.mousedown() {
 ```
 
 Generated `.fractch` files begin with a small header comment (target, targetId, topBlockId, hatOpcode, threadIndex) used only to route rebuilt blocks back to the right place in converted projects — it carries no block data. The header is optional when writing files by hand; pack can infer the target and hat from `build/<Target>/<hatOpcode>/<name>.fractch`.
+
+## Using a fractch project as your codebase
+
+The text files are the source of truth; the `.sb3` is a build artifact. A working setup:
+
+```sh
+fractch new my-project        # scaffold Stage/event_whenflagclicked/main.fractch + .gitignore
+cd my-project && git init
+fractch check .               # parse + lint every file, errors with file:line, exit 1 on problems
+fractch run .                 # pack, open in the MistWarp editor, repack on every save
+```
+
+- `fractch watch <dir> [to <sb3>]` repacks on every save (200ms debounce) without opening anything — point your runner at the output `.sb3`.
+- `fractch run <dir>` additionally serves the packed project over localhost and opens the editor with `?project_url=` pointing at it; edit files, save, refresh the editor tab to reload. `--editor <url>` switches editors (default `https://warp.mistium.com/editor.html` — any TurboWarp-family editor that supports `project_url` works).
+- `fractch check <dir>` reports unterminated strings / unbalanced brackets, statements the parser had to skip (with line numbers), and calls to custom blocks that have no `def`.
+- Packing also prints a warning for every statement it skips, so a typo can't silently drop blocks.
+- Existing projects: `fractch from game.sb3 to ./game`, commit `./game`, delete the `.sb3`.
 
 ## Hand-written projects
 

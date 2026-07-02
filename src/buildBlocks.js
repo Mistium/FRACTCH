@@ -75,6 +75,18 @@ export function buildBlocksFromCalls(calls, opts = {}) {
 }
 
 function buildNode(call, ids, blocks, ctx, nodeId) {
+  if (call.type === 'localDecl') {
+    const mangled = (ctx.localVars && ctx.localVars.get(call.name)) || call.name;
+    return {
+      id: nodeId,
+      opcode: 'data_setvariableto',
+      next: null,
+      parent: null,
+      inputs: { VALUE: valueToInput(call.value, ids, blocks, ctx, nodeId, 'VALUE') },
+      fields: { VARIABLE: [mangled, (ctx.varMap && ctx.varMap.get(mangled)) || null] },
+      mutation: undefined,
+    };
+  }
   const opcode = call.callee.type === 'procedureCall' ? 'procedures_call' : call.callee.name;
   const node = {
     id: nodeId,
@@ -129,7 +141,16 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       if (a.sep === 'field' && keyName === 'mutation' && a.value?.type === 'json') {
         node.mutation = a.value.value;
       } else if (a.sep === 'field') {
-        const fv = fieldValueFromNode(a.value, ctx);
+        let fieldNode = a.value;
+        if (
+          keyName === 'VARIABLE' &&
+          fieldNode?.type === 'ident' &&
+          ctx.localVars &&
+          ctx.localVars.has(fieldNode.name)
+        ) {
+          fieldNode = { type: 'ident', name: ctx.localVars.get(fieldNode.name) };
+        }
+        const fv = fieldValueFromNode(fieldNode, ctx);
         if (typeof fv[0] === 'string' && (fv.length < 2 || fv[1] == null)) {
           const idMap =
             keyName === 'VARIABLE' ? ctx.varMap : keyName === 'LIST' ? ctx.listMap : keyName === 'BROADCAST_OPTION' ? ctx.broadcastNameToId : null;
@@ -248,8 +269,9 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       // it anywhere in a real project.json. Only custom-block parameters
       // (scopeParams) are genuinely their own block (argument_reporter_*).
       if (!(ctx?.scopeParams && ctx.scopeParams.has(val.name))) {
-        const id = (ctx?.varMap && ctx.varMap.get(val.name)) || null;
-        return [1, [12, val.name, id]];
+        const name = (ctx?.localVars && ctx.localVars.get(val.name)) || val.name;
+        const id = (ctx?.varMap && ctx.varMap.get(name)) || null;
+        return [1, [12, name, id]];
       }
       const childId = ids.next();
       const node = buildIdentReporterNode(val.name, ctx, childId);

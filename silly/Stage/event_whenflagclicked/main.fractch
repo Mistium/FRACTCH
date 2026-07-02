@@ -1,0 +1,8 @@
+when flag {
+  local greeting = "hello from fractch";
+  say greeting for 2;
+}
+
+when broadcast Ping {
+  say "pong";
+}

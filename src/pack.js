@@ -40,18 +40,26 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
 
     try {
       assertValidFractch(content, fPath);
-      const calls = parseFractch(content).calls;
+      const parsed = parseFractch(content);
+      for (const err of parsed.errors || []) {
+        console.warn(`[fractch] ${fPath}:${err.line}: skipped unparsable statement: ${err.message}`);
+      }
       if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
       const inferredHat = hatDir === 'nohat' ? null : hatDir;
-      targets.get(manifestName).stacks.push({
-        hatOpcode: headerInfo?.hatOpcode || inferredHat,
-        calls,
-        topBlockId: headerInfo?.topBlockId,
-        x: headerInfo?.x ?? null,
-        y: headerInfo?.y ?? null,
+      const fileScripts = parsed.scripts?.length
+        ? parsed.scripts
+        : [{ kind: 'implicit', calls: parsed.calls, x: null, y: null }];
+      fileScripts.forEach((s, i) => {
+        targets.get(manifestName).stacks.push({
+          hatOpcode: s.kind === 'implicit' && i === 0 ? headerInfo?.hatOpcode || inferredHat : null,
+          calls: s.calls,
+          topBlockId: i === 0 ? headerInfo?.topBlockId : null,
+          x: s.x ?? (i === 0 ? headerInfo?.x ?? null : null),
+          y: s.y ?? (i === 0 ? headerInfo?.y ?? null : null),
+        });
+        registerProcDefs(procArgMaps, identToProccode, procMetaMaps, manifestName, s.calls);
       });
-      registerProcDefs(procArgMaps, identToProccode, procMetaMaps, manifestName, calls);
-      if (!hasManifest) collectNamesIntoManifest(manifestTarget, calls);
+      if (!hasManifest) collectNamesIntoManifest(manifestTarget, parsed.calls);
       parsedScripts++;
     } catch (e) {
       if (verbose) console.warn(`Skip unparsable file: ${fPath}: ${e.message}`);
@@ -80,7 +88,21 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
     const varMap = new Map([...stageVarMap, ...buildNameIdMap(manifestTarget?.variables)]);
     const listMap = new Map([...stageListMap, ...buildNameIdMap(manifestTarget?.lists)]);
     let stackIndex = 0;
+    let localSeq = 0;
     for (const s of data.stacks) {
+      // `local name = ...` declarations get a per-script namespaced real
+      // variable on the Scratch side while the DSL keeps the short name.
+      let localVars = null;
+      const localNames = collectLocalDeclNames(s.calls);
+      if (localNames.size) {
+        localVars = new Map();
+        for (const n of localNames) {
+          const mangled = `local_${++localSeq}_${n}`;
+          const id = ensureDictEntry(manifestTarget?.variables || {}, mangled, [mangled, 0]);
+          if (id) varMap.set(mangled, id);
+          localVars.set(n, mangled);
+        }
+      }
       const { blocks, topId } = buildBlocksFromCalls(s.calls, {
         hatOpcode: s.hatOpcode,
         proceduresMapForTarget: procArgMaps.get(name),
@@ -89,6 +111,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         varMap,
         listMap,
         broadcastNameToId,
+        localVars,
         idGen: sharedIdGen,
       });
       // Canvas position from the header when present; a simple grid keeps
@@ -320,6 +343,7 @@ function collectNamesIntoManifest(target, calls) {
   const lists = new Set();
   const broadcasts = new Set();
   collectNames(calls, { vars, lists, broadcasts });
+  for (const local of collectLocalDeclNames(calls)) vars.delete(local);
   for (const name of vars) ensureDictEntry(target.variables, name, [name, 0]);
   for (const name of lists) ensureDictEntry(target.lists, name, [name, []]);
   for (const name of broadcasts) ensureDictEntry(target.broadcasts, name, name);
@@ -333,6 +357,10 @@ function collectNamesFromNode(node, out) {
   if (!node) return;
   if (node.type === 'procDef') {
     collectNames(node.body, out);
+    return;
+  }
+  if (node.type === 'localDecl') {
+    collectNamesFromValue(node.value, out);
     return;
   }
   if (node.type === 'danglingNext') return;
@@ -377,10 +405,10 @@ function collectBroadcastInputName(value, set) {
 }
 
 function ensureDictEntry(dict, name, value) {
-  if (!dict || !name) return;
-  for (const entry of Object.values(dict)) {
+  if (!dict || !name) return null;
+  for (const [key, entry] of Object.entries(dict)) {
     const existing = Array.isArray(entry) ? entry[0] : entry;
-    if (existing === name) return;
+    if (existing === name) return key;
   }
   let id = sanitize(name) || 'item';
   if (!/^[A-Za-z_]/.test(id)) id = `_${id}`;
@@ -388,6 +416,26 @@ function ensureDictEntry(dict, name, value) {
   let finalId = id;
   while (Object.prototype.hasOwnProperty.call(dict, finalId)) finalId = `${id}_${++n}`;
   dict[finalId] = value;
+  return finalId;
+}
+
+function collectLocalDeclNames(calls, out = new Set()) {
+  for (const node of calls || []) {
+    if (!node) continue;
+    if (node.type === 'localDecl') {
+      out.add(node.name);
+      continue;
+    }
+    if (node.type === 'procDef') {
+      collectLocalDeclNames(node.body, out);
+      continue;
+    }
+    if (node.type !== 'call') continue;
+    for (const a of node.args || []) {
+      if (a.kind === 'branch') collectLocalDeclNames(a.body, out);
+    }
+  }
+  return out;
 }
 
 // Custom-block definitions carry their own argument ids implicitly (the

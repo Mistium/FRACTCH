@@ -5,6 +5,7 @@ import { convertProject as convertProjectCore } from './convert.js';
 import { buildProjectFromBuildDir as buildProjectCore } from './pack.js';
 import { writeExtensions as writeExtensionsCore } from './extensions.js';
 import { packFromBuildDir } from './packSb3.js';
+import { checkProject as checkProjectCore } from './check.js';
 import { writeAssets } from './assets.js';
 
 export async function convertProject(projectJson, opts = {}) {
@@ -17,6 +18,10 @@ export async function buildProjectFromBuildDir(opts = {}) {
 
 export async function writeExtensions(projectJson, outDir, opts = {}) {
   return writeExtensionsCore(projectJson, outDir, { fs: nodeFs, ...opts });
+}
+
+export async function checkProject(opts = {}) {
+  return checkProjectCore({ fs: nodeFs, ...opts });
 }
 
 export async function unpackSb3({ input, outDir, verbose = false }) {

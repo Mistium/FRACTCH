@@ -213,13 +213,13 @@ test('emitted calls use readable colon inputs and explicit field arguments', () 
     const text = fs.readFileSync(f, 'utf8');
     return /mistsutils\.patchcommand2\(A:/.test(text);
   });
-  const hasBareFieldRef = walk(outDir).some((f) => {
+  const hasWhenSugar = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;
     const text = fs.readFileSync(f, 'utf8');
-    return /(?<!field )BROADCAST_OPTION: broadcast\(/.test(text);
+    return /^when broadcast .+ at -?\d+,-?\d+ \{/m.test(text);
   });
   assert.ok(hasColonInput, 'no readable colon input syntax found');
-  assert.ok(hasBareFieldRef, 'no self-classifying field ref syntax found');
+  assert.ok(hasWhenSugar, 'no when-broadcast sugar found in emitted output');
 
   const parsed = parseFractch('data_changevariableby(VALUE: 1, field VARIABLE: var("score", "id"));\n').calls[0];
   assert.strictEqual(parsed.args[0].sep, 'input');
@@ -278,6 +278,28 @@ test('negated comparisons desugar to not() wrapping the opposite operator', () =
   assert.strictEqual(bang.args[0].value.value.callee.name, 'sensing_mousedown');
 });
 
+test('bare broadcast names and stop options parse to the right blocks', () => {
+  const b = parseFractch('broadcast LoadFiles;\n').calls[0];
+  assert.strictEqual(b.callee.name, 'event_broadcast');
+  assert.strictEqual(b.args[0].value.type, 'string');
+  assert.strictEqual(b.args[0].value.value, 'LoadFiles');
+
+  const s = parseFractch('stop this_script;\n').calls[0];
+  assert.strictEqual(s.callee.name, 'control_stop');
+  assert.deepStrictEqual(s.args[0].value.value, ['this script']);
+
+  const quoted = parseFractch('stop "other scripts in sprite";\nbroadcast "Load Files";\n').calls;
+  assert.deepStrictEqual(quoted[0].args[0].value.value, ['other scripts in sprite']);
+  assert.strictEqual(quoted[1].args[0].value.value, 'Load Files');
+});
+
+test('parse errors carry file line numbers', () => {
+  const { calls, errors } = parseFractch('/**\n * target: X\n */\nlooks.say(MESSAGE: "ok");\nlooks.say(MESSAGE: );\n');
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(errors.length, 1);
+  assert.strictEqual(errors[0].line, 5);
+});
+
 test('def accepts bare warp and omitted proccode', () => {
   const def = parseFractch('def @spin(turns) warp {\n  motion.turnright(DEGREES: turns);\n}\n').calls[0];
   assert.strictEqual(def.type, 'procDef');
@@ -332,6 +354,74 @@ test('repack preserves every shadow menu block (opcode histogram parity)', () =>
   for (const [op, n] of ha) {
     assert.ok((hb.get(op) || 0) >= n, `${op}: ${n} -> ${hb.get(op) || 0}`);
   }
+});
+
+test('multiple scripts per file: when/def/script split into separate stacks', () => {
+  const src =
+    'when flag at 0,0 {\n  say "hi";\n}\n\n' +
+    'when broadcast Boot {\n  move 10;\n}\n\n' +
+    'def @helper(x) {\n  turn x;\n}\n\n' +
+    'script at 5,5 {\n  goto 0, 0;\n}\n';
+  const { scripts, errors } = parseFractch(src);
+  assert.deepStrictEqual(errors, []);
+  assert.strictEqual(scripts.length, 4);
+  assert.strictEqual(scripts[0].calls[0].callee.name, 'event_whenflagclicked');
+  assert.strictEqual(scripts[0].calls[1].callee.name, 'looks_say');
+  assert.strictEqual(scripts[1].calls[0].callee.name, 'event_whenbroadcastreceived');
+  assert.strictEqual(scripts[2].kind, 'def');
+  assert.strictEqual(scripts[3].calls[0].callee.name, 'motion_gotoxy');
+  assert.strictEqual(scripts[3].x, 5);
+});
+
+test('statement aliases and bare assignment desugar to real opcodes', () => {
+  const src = 'score = 1;\nscore += 2;\nsay score for 2;\ncostume "walk";\nclone;\nshow;\n';
+  const { calls, errors } = parseFractch(src);
+  assert.deepStrictEqual(errors, []);
+  assert.deepStrictEqual(
+    calls.map((c) => c.callee.name),
+    ['data_setvariableto', 'data_changevariableby', 'looks_sayforsecs', 'looks_switchcostumeto', 'control_create_clone_of', 'looks_show']
+  );
+  assert.strictEqual(calls[0].args[0].sep, 'field');
+  assert.strictEqual(calls[0].args[0].value.name, 'score');
+});
+
+test('list sugar desugars to data_* blocks and round-trips through build', async () => {
+  const { buildBlocksFromCalls, IdGen } = await import('../src/buildBlocks.js');
+  const src =
+    'lists["inv"].add("sword");\nlists["inv"][1] = "shield";\nlists["inv"].delete(1);\n' +
+    'vars["n"] = lists["inv"].length;\nvars["x"] = lists["inv"][2];\n' +
+    'if lists["inv"].contains("bow") {\n  say lists["inv"].indexof("bow");\n}\n';
+  const { calls, errors } = parseFractch(src);
+  assert.deepStrictEqual(errors, []);
+  assert.deepStrictEqual(
+    calls.map((c) => c.callee.name).slice(0, 3),
+    ['data_addtolist', 'data_replaceitemoflist', 'data_deleteoflist']
+  );
+  const { blocks } = buildBlocksFromCalls(calls, { idGen: new IdGen() });
+  const ops = Object.values(blocks).map((b) => b.opcode);
+  for (const op of ['data_lengthoflist', 'data_itemoflist', 'data_listcontainsitem', 'data_itemnumoflist']) {
+    assert.ok(ops.includes(op), `${op} missing`);
+  }
+});
+
+test('local declarations become namespaced variables at pack time', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-local-'));
+  const scriptDir = path.join(dir, 'Stage', 'event_whenflagclicked');
+  fs.mkdirSync(scriptDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(scriptDir, 'main.fractch'),
+    'when flag {\n  local temp = 10;\n  temp += 1;\n  say temp;\n}\n\nwhen flag {\n  local temp = 20;\n  say temp;\n}\n'
+  );
+  const sb3 = path.join(dir, 'local.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const stage = project.targets.find((t) => t.name === 'Stage');
+  const varNames = Object.values(stage.variables).map((v) => v[0]);
+  assert.ok(varNames.includes('local_1_temp'), 'first local missing');
+  assert.ok(varNames.includes('local_2_temp'), 'second local missing: ' + varNames.join(','));
+  const sets = Object.values(stage.blocks).filter((b) => b.opcode === 'data_setvariableto');
+  assert.ok(sets.every((b) => b.fields.VARIABLE[0].startsWith('local_')));
+  assert.ok(sets.every((b) => b.fields.VARIABLE[1]), 'local variable field ids resolved');
 });
 
 test('switch/case blocks render as readable switch statements', () => {
