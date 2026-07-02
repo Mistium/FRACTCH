@@ -23,6 +23,7 @@ Stage/main.fractch:7:10: skipped unparsable statement: 'when flg' is not a known
 | `sprites have no '.xpos' property` | Property typo; valid: `.x .y .direction .size .volume .costume_number .costume_name .backdrop_number .backdrop_name`, or `.vars["name"]` for that sprite's variables. Suggests the closest name. |
 | `expected a value but found ...` | The parser needed an expression: a number, `"string"`, variable name, `vars["..."]`, `lists["..."]`, or a call. Reaching the end of the file here usually means a missing `}` above. |
 | `'costume' needs a value` / `expected a "quoted name" after 'sound'` | Statement aliases need their argument: `costume "walk";`, `sound "pop" file "assets/pop.wav";`. |
+| `cloud lists do not exist in Scratch` | Only variables can be cloud; use `cloud name = 0;`. |
 | `a sound declaration needs 'file' after its name` | Asset declarations are `sound "name" file "path";` — without `file` the parser has no way to know it's a declaration. |
 
 ## Project-level problems (`fractch check`)

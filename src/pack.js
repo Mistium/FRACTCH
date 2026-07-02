@@ -176,9 +176,12 @@ const BUILTIN_NAMESPACES = new Set([
 
 function autoRegisterExtensions(manifest) {
   const found = new Set();
+  const declared = (manifest.extensions || []).slice().sort((a, b) => b.length - a.length);
   for (const t of manifest.targets || []) {
     for (const b of Object.values(t.blocks || {})) {
       if (!b || Array.isArray(b) || typeof b.opcode !== 'string') continue;
+      const byDecl = declared.find((id) => b.opcode.startsWith(id + '_'));
+      if (byDecl) continue;
       const m = /^([A-Za-z][A-Za-z0-9]*)_/.exec(b.opcode);
       if (m && !BUILTIN_NAMESPACES.has(m[1])) found.add(m[1]);
     }

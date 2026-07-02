@@ -30,6 +30,27 @@ script at 100,200 {         // a top-level stack with no hat
 | `when backdrop "name"` | when backdrop switches to |
 | `when any.extension_hat(...)` | any other hat block |
 
+## Project declarations
+
+Everything a project needs is declarable in code — no manifest required:
+
+```txt
+use "pen";                                        // register an extension
+use "mistsutils" from "https://extensions.mistium.com/featured/Mist's Utils.js";
+
+sprite at 100,-50 size 150 direction 45 hidden rotation "left-right";
+stage tempo 90 volume 80;                         // in the Stage's file
+
+var score = 0;                                    // this target's variable + initial value
+var highscores = ["alice", "bob"];                // a list with initial items
+cloud total_plays = 0;                            // cloud variable (stage-owned, "☁ " prefixed;
+                                                  // read/write it by its bare name)
+```
+
+- `use` registers an extension id (plus its source URL for custom extensions). Extensions are also auto-detected from opcodes (`mistsutils.patchcommand(...)` registers `mistsutils`), so `use` is mainly for attaching URLs.
+- `sprite` attributes: `at x,y`, `size`, `direction`, `visible`/`hidden`, `draggable`, `rotation "all around"|"left-right"|"don't rotate"`, `volume`, `layer`. `stage` takes `tempo` and `volume`.
+- `var` in a sprite's file makes a for-this-sprite-only variable; in the Stage's file it's global. Variables also spring into existence on first assignment (value 0) — `var` is for initial values and lists.
+
 ## Variables
 
 ```txt

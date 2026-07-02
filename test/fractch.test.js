@@ -529,6 +529,45 @@ test('custom block calls take positional arguments', () => {
   assert.strictEqual(call.args[0].kind, 'positional');
 });
 
+test('project declarations: use/var/cloud/sprite/stage make hand-written projects self-sufficient', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-decls-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Player'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'use "custom_ext" from "https://example.com/ext.js";\n' +
+      'stage tempo 90 volume 80;\n' +
+      'var score = 5;\nvar names = ["a", "b"];\ncloud plays = 0;\n' +
+      'when flag {\n  plays += 1;\n  otherExt.dothing(A: 1);\n}\n'
+  );
+  fs.writeFileSync(
+    path.join(dir, 'Player', 'main.fractch'),
+    'sprite at 100,-50 size 150 direction 45 hidden rotation "left-right";\n' +
+      'var hp = 100;\nwhen flag {\n  hp = 100;\n}\n'
+  );
+  const sb3 = path.join(dir, 'decls.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+  const p = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const st = p.targets.find((t) => t.isStage);
+  const pl = p.targets.find((t) => t.name === 'Player');
+  assert.ok(p.extensions.includes('custom_ext') && p.extensions.includes('otherExt'), 'extensions registered');
+  assert.strictEqual(p.extensionURLs.custom_ext, 'https://example.com/ext.js');
+  assert.strictEqual(st.tempo, 90);
+  assert.strictEqual(st.volume, 80);
+  const vars = Object.values(st.variables);
+  assert.ok(vars.some((v) => v[0] === 'score' && v[1] === 5));
+  assert.ok(vars.some((v) => v[0] === '\u2601 plays' && v[2] === true), 'cloud var created');
+  assert.ok(!vars.some((v) => v[0] === 'plays'), 'no spurious plain var for cloud alias');
+  assert.ok(Object.values(st.lists).some((l) => l[0] === 'names' && l[1].length === 2));
+  const change = Object.values(st.blocks).find((b) => b.opcode === 'data_changevariableby');
+  assert.strictEqual(change.fields.VARIABLE[0], '\u2601 plays', 'bare cloud name resolves to the cloud var');
+  assert.deepStrictEqual(
+    { x: pl.x, y: pl.y, size: pl.size, direction: pl.direction, visible: pl.visible, rotationStyle: pl.rotationStyle },
+    { x: 100, y: -50, size: 150, direction: 45, visible: false, rotationStyle: 'left-right' }
+  );
+  assert.ok(Object.values(pl.variables).some((v) => v[0] === 'hp' && v[1] === 100));
+});
+
 test('error suite: clear messages with hints and did-you-mean', async () => {
   const { checkProject } = await import('../src/check.js');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-errors-'));
