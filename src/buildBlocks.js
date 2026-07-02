@@ -214,7 +214,7 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
     case 'string':
       return [1, [10, String(val.value)]];
     case 'boolean':
-      return [1, [10, String(val.value)]];
+      return booleanLiteralInput(Boolean(val.value), ids, blocks, parentId);
     case 'var': {
       const id = val.id || (ctx?.varMap && ctx.varMap.get(val.name)) || null;
       return [1, [12, val.name, id]];
@@ -303,6 +303,24 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
     default:
       return [1, [10, '']];
   }
+}
+
+function booleanLiteralInput(value, ids, blocks, parentId) {
+  const childId = ids.next();
+  blocks[childId] = {
+    id: childId,
+    opcode: 'operator_equals',
+    next: null,
+    parent: parentId,
+    inputs: {
+      OPERAND1: [1, [4, '0']],
+      OPERAND2: [1, [4, value ? '0' : '1']],
+    },
+    fields: {},
+    shadow: false,
+    topLevel: false,
+  };
+  return [2, childId];
 }
 
 function fieldValueFromNode(v, ctx) {

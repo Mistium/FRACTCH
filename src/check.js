@@ -1,74 +1,140 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
-import { parseFractch } from './parse.js';
+import { parseFractch, closestMatch } from './parse.js';
 import { checkFractch } from './lint.js';
 
 export async function checkProject({ buildDir, fs: fsLike }) {
   const vfs = toPromiseFs(fsLike);
   const problems = [];
   const files = await collectFractchFiles(vfs, buildDir);
+  const sources = new Map();
 
-  const defs = new Set();
-  const calls = [];
+  const perTarget = new Map();
+  const targetState = (name) => {
+    if (!perTarget.has(name)) perTarget.set(name, { defs: new Map(), calls: [] });
+    return perTarget.get(name);
+  };
+
+  const push = (file, line, col, message, hint = null) => problems.push({ file, line, col, message, hint });
 
   for (const fPath of files) {
     const rel = path.relative(buildDir, fPath);
+    const target = rel.split('/')[0];
     let text;
     try {
       text = String(await vfs.readFile(fPath, 'utf8'));
     } catch (e) {
-      problems.push({ file: rel, line: 0, message: `unreadable: ${e.message}` });
+      push(rel, 0, 0, `unreadable: ${e.message}`);
       continue;
     }
+    sources.set(rel, text);
+
     for (const e of checkFractch(text)) {
-      problems.push({ file: rel, line: e.line, message: e.message.replace(/ \(line \d+, col \d+\)$/, '') });
+      push(rel, e.line, e.col, e.message.replace(/ \(line \d+, col \d+\)$/, ''));
     }
+
     let parsed;
     try {
       parsed = parseFractch(text);
     } catch (e) {
-      problems.push({ file: rel, line: 0, message: `parse failed: ${e.message}` });
+      push(rel, 0, 0, `parse failed: ${e.message}`, e.hint || null);
       continue;
     }
     for (const err of parsed.errors || []) {
-      problems.push({ file: rel, line: err.line, message: `skipped unparsable statement: ${err.message}` });
+      push(rel, err.line, err.col ?? 0, `skipped unparsable statement: ${err.message}`, err.hint || null);
     }
-    collectProcUsage(parsed.calls, rel, defs, calls);
+
+    const st = targetState(target);
+    for (const script of parsed.scripts || []) {
+      const locals = new Set();
+      collectScriptFacts(script.calls, rel, st, locals, push);
+    }
+
+    for (const decl of [...(parsed.assets?.costumes || []), ...(parsed.assets?.sounds || [])]) {
+      const kind = parsed.assets.costumes.includes(decl) ? 'costume' : 'sound';
+      const fileRel = String(decl.file || '');
+      const abs = path.join(buildDir, target, ...fileRel.split('/').filter(Boolean));
+      if (!fileRel) continue; // parse already complains
+      if (!(await vfs.exists(abs))) {
+        push(rel, decl.line ?? 0, 0, `${kind} "${decl.name}" points at a missing file: ${fileRel}`, `expected it at ${target}/${fileRel}`);
+      }
+    }
+    checkDuplicateAssets(parsed.assets, rel, push);
   }
 
-  for (const c of calls) {
-    if (!defs.has(c.ident)) {
-      problems.push({ file: c.file, line: 0, message: `call to undefined custom block @${c.ident}` });
+  for (const [, st] of perTarget) {
+    for (const c of st.calls) {
+      const def = st.defs.get(c.ident);
+      if (!def) {
+        const near = closestMatch(c.ident, [...st.defs.keys()], 3);
+        push(c.file, c.line ?? 0, 0, `call to undefined custom block @${c.ident}${near ? ` - did you mean @${near}?` : ''}`,
+          near ? null : 'define it with: def @' + c.ident + '(...) { ... }');
+        continue;
+      }
+      if (c.argCount > def.paramCount) {
+        push(c.file, c.line ?? 0, 0,
+          `@${c.ident} takes ${def.paramCount} argument${def.paramCount === 1 ? '' : 's'} but this call passes ${c.argCount}`,
+          `defined in ${def.file} as def @${c.ident}(${def.params.join(', ')})`);
+      }
     }
   }
 
-  problems.sort((a, b) => (a.file === b.file ? a.line - b.line : a.file < b.file ? -1 : 1));
-  return { files: files.length, problems };
+  problems.sort((a, b) => (a.file === b.file ? (a.line || 0) - (b.line || 0) : a.file < b.file ? -1 : 1));
+  return { files: files.length, problems, sources };
 }
 
-function collectProcUsage(nodes, file, defs, calls) {
+function collectScriptFacts(nodes, file, st, locals, push) {
   for (const node of nodes || []) {
     if (!node) continue;
+    if (node.type === 'localDecl') {
+      if (locals.has(node.name)) {
+        push(file, 0, 0, `local '${node.name}' is declared twice in the same script`,
+          'a script has one namespace for locals; drop the second `local` or rename it');
+      }
+      locals.add(node.name);
+      collectFromValue(node.value, file, st, locals, push);
+      continue;
+    }
     if (node.type === 'procDef') {
-      defs.add(node.ident);
-      collectProcUsage(node.body, file, defs, calls);
+      if (st.defs.has(node.ident)) {
+        push(file, 0, 0, `custom block @${node.ident} is defined more than once in this sprite`,
+          `first definition in ${st.defs.get(node.ident).file}`);
+      } else {
+        st.defs.set(node.ident, { paramCount: node.params.length, params: node.params.map((p) => p.ident), file });
+      }
+      collectScriptFacts(node.body, file, st, locals, push);
       continue;
     }
     if (node.type !== 'call') continue;
-    if (node.callee?.type === 'procedureCall') calls.push({ ident: node.callee.name, file });
+    if (node.callee?.type === 'procedureCall') {
+      st.calls.push({ ident: node.callee.name, line: node.callee.line ?? 0, argCount: node.args.length, file });
+    }
     for (const a of node.args || []) {
-      if (a.kind === 'branch') collectProcUsage(a.body, file, defs, calls);
-      else if (a.kind === 'keyed' || a.kind === 'positional') collectFromValue(a.value, file, defs, calls);
+      if (a.kind === 'branch') collectScriptFacts(a.body, file, st, locals, push);
+      else if (a.kind === 'keyed' || a.kind === 'positional') collectFromValue(a.value, file, st, locals, push);
     }
   }
 }
 
-function collectFromValue(v, file, defs, calls) {
+function collectFromValue(v, file, st, locals, push) {
   if (!v) return;
-  if (v.type === 'call') collectProcUsage([v.value], file, defs, calls);
+  if (v.type === 'call') collectScriptFacts([v.value], file, st, locals, push);
   else if (v.type === 'obscured') {
-    collectFromValue(v.active, file, defs, calls);
-    collectFromValue(v.shadow, file, defs, calls);
+    collectFromValue(v.active, file, st, locals, push);
+    collectFromValue(v.shadow, file, st, locals, push);
+  }
+}
+
+function checkDuplicateAssets(assets, file, push) {
+  for (const [kind, list] of [['costume', assets?.costumes || []], ['sound', assets?.sounds || []]]) {
+    const seen = new Set();
+    for (const d of list) {
+      const name = String(d.name ?? '');
+      if (seen.has(name)) {
+        push(file, 0, 0, `two ${kind}s are both named "${name}"`, 'Scratch identifies costumes/sounds by name - rename one');
+      }
+      seen.add(name);
+    }
   }
 }
 

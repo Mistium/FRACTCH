@@ -12,8 +12,15 @@ import AdmZip from 'adm-zip';
 import { parseFractch } from '../src/parse.js';
 import { buildBlocksFromCalls, IdGen } from '../src/buildBlocks.js';
 import { buildProcByCode } from '../src/convert.js';
+import { groupTopLevelScripts } from '../src/graph.js';
 
-const originPath = process.argv[2] || path.resolve('./originv6.0.0.sb3');
+const defaultOrigin = () => {
+  for (const c of [process.env.FRACTCH_ORIGIN, path.join(process.env.HOME || '', 'origin-fractch', 'originv619.sb3'), './originv6.0.0.sb3']) {
+    if (c && fs.existsSync(c)) return path.resolve(c);
+  }
+  return path.resolve('./originv6.0.0.sb3');
+};
+const originPath = process.argv[2] || defaultOrigin();
 const buildDir = process.argv[3] || path.resolve('./build');
 
 const project = JSON.parse(new AdmZip(originPath).readAsText('project.json'));
@@ -77,6 +84,12 @@ function parseHeader(text) {
     if (m) map.set(m[1].trim(), m[2].trim());
   }
   return { target: map.get('target'), topBlockId: map.get('topBlockId'), hatOpcode: map.get('hatOpcode') };
+}
+
+function targetNameForFile(f, header) {
+  if (header.target) return header.target;
+  const rel = path.relative(buildDir, f).split(path.sep);
+  return rel.length >= 2 ? rel[0] : null;
 }
 
 function collectSubgraph(blocks, topId) {
@@ -164,44 +177,54 @@ function compareTrees(origBlocks, origId, newBlocks, newId, path_ = '$', seen = 
 }
 
 const files = walk(buildDir);
+const targetScriptCursor = new Map();
 let total = 0, ok = 0;
 const failures = [];
 for (const f of files) {
   const text = fs.readFileSync(f, 'utf8');
   const h = parseHeader(text);
-  if (!h.target || !h.topBlockId) continue;
-  const t = project.targets.find((x) => x.name === h.target);
+  const targetName = targetNameForFile(f, h);
+  if (!targetName) continue;
+  const t = project.targets.find((x) => x.name === targetName);
   if (!t) continue;
-  const origBlock = t.blocks[h.topBlockId];
-  if (!origBlock) continue; // orphan-sweep synthetic file etc - skip for this check
-  total++;
 
-  let calls;
+  let scripts;
   try {
-    calls = parseFractch(text).calls;
+    const parsed = parseFractch(text);
+    scripts = h.topBlockId ? [{ calls: parsed.calls, topBlockId: h.topBlockId, hatOpcode: h.hatOpcode }] : parsed.scripts;
   } catch (e) {
     failures.push({ f, err: 'parse: ' + e.message });
     continue;
   }
 
-  try {
-    const { blocks: newBlocks, topId } = buildBlocksFromCalls(calls, {
-      hatOpcode: h.hatOpcode,
-      proceduresMapForTarget: procArgMaps.get(h.target),
-      identToProccode: identToProccode.get(h.target),
-      varMap: new Map([...stageVarMap, ...nameIdMap(t.variables)]),
-      listMap: new Map([...stageListMap, ...nameIdMap(t.lists)]),
-      broadcastNameToId,
-      idGen: new IdGen(),
-    });
-    const diff = compareTrees(t.blocks, h.topBlockId, newBlocks, topId);
-    if (diff) {
-      failures.push({ f, err: diff });
-    } else {
-      ok++;
+  const originScripts = groupTopLevelScripts(t);
+  const sharedIdGen = new IdGen();
+  for (const s of scripts || []) {
+    const cursor = targetScriptCursor.get(targetName) || 0;
+    const expected = s.topBlockId ? { topBlockId: s.topBlockId, hatOpcode: s.hatOpcode } : originScripts[cursor];
+    targetScriptCursor.set(targetName, cursor + 1);
+    if (!expected?.topBlockId || !t.blocks[expected.topBlockId]) continue;
+    total++;
+
+    try {
+      const { blocks: newBlocks, topId } = buildBlocksFromCalls(s.calls, {
+        hatOpcode: s.kind === 'implicit' ? expected.hatOpcode : null,
+        proceduresMapForTarget: procArgMaps.get(targetName),
+        identToProccode: identToProccode.get(targetName),
+        varMap: new Map([...stageVarMap, ...nameIdMap(t.variables)]),
+        listMap: new Map([...stageListMap, ...nameIdMap(t.lists)]),
+        broadcastNameToId,
+        idGen: sharedIdGen,
+      });
+      const diff = compareTrees(t.blocks, expected.topBlockId, newBlocks, topId);
+      if (diff) {
+        failures.push({ f, err: diff });
+      } else {
+        ok++;
+      }
+    } catch (e) {
+      failures.push({ f, err: 'build: ' + e.message });
     }
-  } catch (e) {
-    failures.push({ f, err: 'build: ' + e.message });
   }
 }
 

@@ -6,7 +6,7 @@ export function setContext(c) { CTX = c || {}; }
 const PREC = {
   '||': 1, '&&': 2,
   '==': 3, '!=': 3, '<': 3, '>': 3, '<=': 3, '>=': 3,
-  '..': 4,
+  '++': 4,
   '+': 5, '-': 5,
   '*': 6, '/': 6, '%': 6,
 };
@@ -25,6 +25,7 @@ function bareNameOk(name) {
 const SIMPLE_ALIAS_EMIT = {
   looks_show: 'show', looks_hide: 'hide',
   looks_nextcostume: 'next_costume', looks_nextbackdrop: 'next_backdrop',
+  looks_cleargraphiceffects: 'clear_effects',
   control_delete_this_clone: 'delete_clone', sensing_resettimer: 'reset_timer',
   pen_penUp: 'pen_up', pen_penDown: 'pen_down', pen_clear: 'pen_clear', pen_stamp: 'stamp',
 };
@@ -64,10 +65,11 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const code = block.mutation?.proccode;
     const info = code && CTX.procByCode?.get(code);
     if (info) {
+      // Positional: argument order is the def's parameter order. Named form
+      // (`@Name(param: v)`) still parses.
       const args = info.params.map((p) => {
         const inp = block.inputs?.[p.id];
-        const val = Array.isArray(inp) ? inputValueText(inp, subgraph, p.id) : 'null';
-        return `${p.ident}: ${val}`;
+        return Array.isArray(inp) ? inputValueText(inp, subgraph, p.id) : 'null';
       });
       const call = `@${info.ident}(${args.join(', ')})`;
       return inline ? call : call + ';';
@@ -164,12 +166,12 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
   if (opcode === 'control_stop') {
     const opt = block.fields?.STOP_OPTION?.[0] ?? 'all';
-    const bare = { all: 'all', 'this script': 'this_script', 'other scripts in sprite': 'other_scripts_in_sprite' }[opt];
+    if (opt === 'this script') return 'return;';
+    const bare = { all: 'all', 'other scripts in sprite': 'other_scripts_in_sprite' }[opt];
     return `stop ${bare ?? JSON.stringify(opt)};`;
   }
-  if (opcode === 'procedures_return' || opcode === 'control_return') {
-    const v = block.inputs?.VALUE ? getInputExpr(block.inputs.VALUE, subgraph) : '';
-    return `return${v ? ' ' + v : ''};`;
+  if ((opcode === 'procedures_return' || opcode === 'control_return') && block.inputs?.VALUE) {
+    return `return ${inputValueText(block.inputs.VALUE, subgraph, 'VALUE')};`;
   }
   if (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') {
     const tuple = block.inputs?.BROADCAST_INPUT;
@@ -247,7 +249,35 @@ function blockExprInfo(block, subgraph, id) {
   if (op) return op;
   const le = tryListExpr(block, subgraph);
   if (le) return le;
+  const so = trySpriteOf(block, subgraph);
+  if (so) return so;
   return { text: stringifyBlockCall(block, subgraph, id, /*inline*/ true), prec: ATOM_PREC };
+}
+
+const SPRITE_PROP_EMIT = {
+  'x position': 'x', 'y position': 'y', direction: 'direction',
+  size: 'size', volume: 'volume',
+  'costume #': 'costume_number', 'costume name': 'costume_name',
+  'backdrop #': 'backdrop_number', 'backdrop name': 'backdrop_name',
+};
+
+function trySpriteOf(block, subgraph) {
+  if (block?.opcode !== 'sensing_of' || block.mutation) return null;
+  const fields = block.fields || {};
+  const inputs = block.inputs || {};
+  if (Object.keys(fields).length !== 1 || !fields.PROPERTY) return null;
+  if (Object.keys(inputs).length !== 1 || !Array.isArray(inputs.OBJECT)) return null;
+  const menuId = inputs.OBJECT[1];
+  const menu = typeof menuId === 'string' ? subgraph[menuId] : null;
+  if (!menu || !menu.shadow || menu.opcode !== 'sensing_of_object_menu') return null;
+  const mf = menu.fields || {};
+  const name = mf.OBJECT?.[0];
+  if (typeof name !== 'string' || (mf.OBJECT.length > 1 && mf.OBJECT[1] != null)) return null;
+  if (Object.keys(menu.inputs || {}).length) return null;
+  const prop = String(fields.PROPERTY[0] ?? '');
+  const dot = SPRITE_PROP_EMIT[prop];
+  const suffix = dot ? `.${dot}` : `.vars[${JSON.stringify(prop)}]`;
+  return { text: `sprites[${JSON.stringify(name)}]${suffix}`, prec: ATOM_PREC };
 }
 
 function listFieldName(block) {
@@ -263,6 +293,22 @@ function listFieldName(block) {
 
 function listRefText(name) {
   return `lists[${JSON.stringify(name)}]`;
+}
+
+function effectFieldName(block) {
+  const fields = block.fields || {};
+  const keys = Object.keys(fields);
+  if (keys.length !== 1 || keys[0] !== 'EFFECT') return null;
+  const v = fields.EFFECT;
+  if (!Array.isArray(v) || typeof v[0] !== 'string') return null;
+  return v[0];
+}
+
+function effectNameToken(name) {
+  const raw = String(name);
+  const normalized = raw.toLowerCase().replace(/\s+/g, '_');
+  if (bareNameOk(normalized)) return normalized;
+  return JSON.stringify(raw);
 }
 
 function tryListExpr(block, subgraph) {
@@ -309,8 +355,28 @@ function tryStatementAlias(block, subgraph) {
     const kw = op === 'looks_sayforsecs' ? 'say' : 'think';
     return `${kw} ${inputValueText(inputs.MESSAGE, subgraph, 'MESSAGE')} for ${inputValueText(inputs.SECS, subgraph, 'SECS')};`;
   }
+  if (op === 'looks_changeeffectby' || op === 'looks_seteffectto') {
+    const effect = effectFieldName(block);
+    if (effect == null) return null;
+    const inputKey = op === 'looks_changeeffectby' ? 'CHANGE' : 'VALUE';
+    if (!exactInputs(inputKey)) return null;
+    const kw = op === 'looks_changeeffectby' ? 'change_effect' : 'set_effect';
+    const connector = op === 'looks_changeeffectby' ? 'by' : 'to';
+    return `${kw} ${effectNameToken(effect)} ${connector} ${inputValueText(inputs[inputKey], subgraph, inputKey)};`;
+  }
   if (op === 'motion_gotoxy' && !fieldKeys.length && exactInputs('X', 'Y')) {
     return `goto ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+  }
+  if (op === 'looks_gotofrontback' && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'FRONT_BACK') {
+    const v = fields.FRONT_BACK[0];
+    if (v === 'front') return 'go_front;';
+    if (v === 'back') return 'go_back;';
+  }
+  if (op === 'looks_goforwardbackwardlayers' && exactInputs('NUM') && fieldKeys.length === 1 && fieldKeys[0] === 'FORWARD_BACKWARD') {
+    const v = fields.FORWARD_BACKWARD[0];
+    if (v === 'forward' || v === 'backward') {
+      return `go_${v} ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
+    }
   }
   if (MENU_ALIAS_EMIT[op] && !fieldKeys.length) {
     const [kw, key, menuOpcode] = MENU_ALIAS_EMIT[op];
@@ -329,6 +395,12 @@ function tryStatementAlias(block, subgraph) {
         return null;
       }
       if (child && !child.shadow) {
+        return `${kw} ${inputValueText(arr, subgraph, key)};`;
+      }
+      if (!child && Array.isArray(arr[1])) {
+        // Literal payloads: variable reads etc. use the alias; plain text
+        // literals stay generic so they aren't rebuilt as menu shadows.
+        if (arr[1][0] === 10) return null;
         return `${kw} ${inputValueText(arr, subgraph, key)};`;
       }
     }
@@ -369,17 +441,11 @@ export function inputValueText(arr, subgraph, inputName) {
   if (child && child.shadow) {
     return shadowBlockText(child, subgraph, childId, inputName);
   }
-  const active = getInputExpr(arr, subgraph);
-  const sh = arr.length > 2 ? arr[2] : null;
-  if (sh != null) {
-    if (typeof sh === 'string' && subgraph[sh]) {
-      return `${active} ?? ${shadowBlockText(subgraph[sh], subgraph, sh, inputName)}`;
-    }
-    if (Array.isArray(sh) && sh[0] === 11) {
-      return `${active} ?? ${formatLiteral([1, sh])}`;
-    }
-  }
-  return active;
+  // Obscured shadows (the dropdown default hidden behind a plugged-in
+  // reporter) are deliberately not written out: the editor regenerates menu
+  // shadows on load, so `expr ?? menu("x")` would be pure noise. The parser
+  // still accepts the ?? form.
+  return getInputExpr(arr, subgraph);
 }
 
 export function stringifyInputs(block, subgraph, cLike = false) {
@@ -599,10 +665,21 @@ function tryOperatorInfo(block, subgraph) {
       const fn = raw === 'e ^' ? 'exp' : raw === '10 ^' ? 'exp10' : raw;
       return { text: `${fn}(${getInputExpr(input('NUM'), subgraph)})`, prec: ATOM_PREC };
     }
+    case 'operator_length':
+      return { text: `length(${getInputExpr(input('STRING'), subgraph)})`, prec: ATOM_PREC };
+    case 'operator_letter_of':
+      return { text: `letter(${getInputExpr(input('LETTER'), subgraph)}, ${getInputExpr(input('STRING'), subgraph)})`, prec: ATOM_PREC };
+    case 'operator_random':
+      return { text: `random(${getInputExpr(input('FROM'), subgraph)}, ${getInputExpr(input('TO'), subgraph)})`, prec: ATOM_PREC };
+    case 'operator_contains':
+      return { text: `contains(${getInputExpr(input('STRING1'), subgraph)}, ${getInputExpr(input('STRING2'), subgraph)})`, prec: ATOM_PREC };
     case 'operator_join':
-      return bin('..', 'STRING1', 'STRING2');
-    case 'operator_equals':
+      return bin('++', 'STRING1', 'STRING2');
+    case 'operator_equals': {
+      const bool = booleanLiteralInfo(block);
+      if (bool) return bool;
       return bin('==', 'OPERAND1', 'OPERAND2', 'NUM1', 'NUM2');
+    }
     case 'operator_lt':
       return bin('<', 'OPERAND1', 'OPERAND2', 'NUM1', 'NUM2');
     case 'operator_gt':
@@ -618,6 +695,24 @@ function tryOperatorInfo(block, subgraph) {
   }
 }
 
+function booleanLiteralInfo(block) {
+  const left = literalInputText(block.inputs?.OPERAND1 ?? block.inputs?.NUM1);
+  const right = literalInputText(block.inputs?.OPERAND2 ?? block.inputs?.NUM2);
+  if (left === '0' && right === '0') return { text: 'true', prec: ATOM_PREC };
+  if (left === '0' && right === '1') return { text: 'false', prec: ATOM_PREC };
+  return null;
+}
+
+function literalInputText(tuple) {
+  if (!Array.isArray(tuple) || tuple.length < 2) return null;
+  const payload = tuple[1];
+  if (!Array.isArray(payload)) return null;
+  if (payload[0] === 4 || payload[0] === 6 || payload[0] === 7 || payload[0] === 10) {
+    return String(payload[1] ?? '');
+  }
+  return null;
+}
+
 function binaryInfo(sym, L, R) {
   const p = PREC[sym];
   const lt = L.prec < p ? `(${L.text})` : L.text;
@@ -627,6 +722,7 @@ function binaryInfo(sym, L, R) {
 
 function notInfo(block, subgraph) {
   const tuple = block.inputs?.OPERAND;
+  if (isEmptyBooleanInput(tuple)) return { text: 'true', prec: ATOM_PREC };
   const childId = Array.isArray(tuple) ? tuple[1] : null;
   const child = typeof childId === 'string' ? subgraph[childId] : null;
   if (child && NEGATED_CMP[child.opcode]) {
@@ -640,4 +736,10 @@ function notInfo(block, subgraph) {
   const inner = Array.isArray(tuple) ? getInputExprInfo(tuple, subgraph) : { text: '""', prec: ATOM_PREC };
   const it = inner.prec < UNARY_PREC ? `(${inner.text})` : inner.text;
   return { text: `!${it}`, prec: UNARY_PREC };
+}
+
+function isEmptyBooleanInput(tuple) {
+  if (!Array.isArray(tuple)) return true;
+  const payload = tuple[1];
+  return Array.isArray(payload) && payload[0] === 10 && String(payload[1] ?? '') === '';
 }

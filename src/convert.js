@@ -1,7 +1,8 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
-import { emitScriptFile, emitIndex, emitTargetIndex } from './emit.js';
+import { emitMultiScriptFile } from './emit.js';
 import { groupTopLevelScripts, collectBlocksSubgraph } from './graph.js';
+import { decodeFileStemFromTopId } from './fileMarkers.js';
 
 export async function convertProject(projectJson, { outDir, fs: fsLike, config = {}, verbose = false } = {}) {
   const vfs = toPromiseFs(fsLike);
@@ -92,60 +93,65 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       subgraphs.set(id, subgraph);
     }
 
-    let idx = 0;
-    const usedNames = new Set();
+    const groups = new Map();
+    const filenameForGroup = new Map();
+    const usedNames = new Set(['index.fractch']);
+    if ((target.costumes || []).length || (target.sounds || []).length) {
+      groups.set('main', []);
+      filenameForGroup.set('main', uniqueFilename('main.fractch', usedNames));
+    }
     for (const script of scripts) {
       const { topBlockId, hatOpcode } = script;
       const subgraph = subgraphs.get(topBlockId);
-      const hatDir = path.join(tDir, sanitize(hatOpcode || 'nohat'));
-      await vfs.mkdirp(hatDir);
 
       const procLabel =
         hatOpcode === 'procedures_definition' ? procedureDefsByTarget.get(target.name)?.get(topBlockId) || null : null;
-      const baseRaw = procLabel || topBlockId || 'top';
-      let base = sanitize(baseRaw);
-      let filename = `${base}.fractch`;
-
-      let counter = 1;
-      while (usedNames.has(path.join(hatDir, filename))) {
-        filename = `${base}_${counter++}.fractch`;
+      const markerStem = decodeFileStemFromTopId(topBlockId);
+      const groupKey = markerStem || 'main';
+      if (!groups.has(groupKey)) groups.set(groupKey, []);
+      if (!filenameForGroup.has(groupKey)) {
+        const preferred = markerStem ? `${markerStem}.fractch` : 'main.fractch';
+        filenameForGroup.set(groupKey, uniqueFilename(preferred, usedNames));
       }
-      usedNames.add(path.join(hatDir, filename));
-      const filePath = path.join(hatDir, filename);
-      const content = emitScriptFile({
-        target,
-        script,
-        subgraph,
-        index: idx++,
-        context: { broadcastMap, proceduresMap, procByCode, varMap, listMap, broadcastNameToId },
-        cfg: config,
-      });
-      await vfs.writeFile(filePath, content);
-      const rel = `./${sanitize(target.name)}/${sanitize(hatOpcode || 'nohat')}/${filename}`;
-      const label = procLabel;
-      files.push({
-        target: target.name,
-        hatOpcode: hatOpcode || 'nohat',
-        filePath,
-        rel,
-        label,
-      });
+      groups.get(groupKey).push({ script, subgraph, procLabel });
     }
 
-    const tIndex = emitTargetIndex(files.filter((f) => f.target === target.name));
-    await vfs.writeFile(path.join(tDir, 'index.fractch'), tIndex);
+    let idx = 0;
+    for (const [groupKey, entries] of groups) {
+      const filename = filenameForGroup.get(groupKey);
+      const filePath = path.join(tDir, filename);
+      await vfs.mkdirp(path.dirname(filePath));
+      const content = emitMultiScriptFile({
+        target,
+        entries,
+        context: { broadcastMap, proceduresMap, procByCode, varMap, listMap, broadcastNameToId },
+        cfg: config,
+        includeAssets: groupKey === 'main',
+      });
+      await vfs.writeFile(filePath, content);
+      const rel = `./${sanitize(target.name)}/${filename}`;
+      const procLabels = entries.map((e) => e.procLabel).filter(Boolean);
+      files.push({
+        target: target.name,
+        hatOpcode: entries.length === 1 ? entries[0].script.hatOpcode || 'nohat' : 'mixed',
+        filePath,
+        rel,
+        targetRel: `./${filename}`,
+        label: procLabels.length === 1 ? procLabels[0] : null,
+      });
+      idx += entries.length;
+    }
+
   }
 
-  const indexContent = emitIndex(files);
   const manifest = manifestWithoutBlocks(projectJson);
   await vfs.writeFile(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
-  await vfs.writeFile(path.join(outDir, 'index.fractch'), indexContent);
   if (verbose) console.log(`[convert] ${files.length} script files across ${targets.length} targets`);
 
   return {
-    filesWritten: files.length + (targets.length || 0) + 1,
+    filesWritten: files.length,
     manifest,
-    indexContent,
+    indexContent: '',
   };
 }
 
@@ -153,7 +159,7 @@ function manifestWithoutBlocks(projectJson) {
   return {
     ...projectJson,
     targets: (projectJson.targets || []).map((t) => {
-      const { blocks, ...rest } = t;
+      const { blocks, costumes, sounds, ...rest } = t;
       return rest;
     }),
   };
@@ -161,6 +167,16 @@ function manifestWithoutBlocks(projectJson) {
 
 function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
+}
+
+function uniqueFilename(preferred, used) {
+  const ext = preferred.endsWith('.fractch') ? '.fractch' : '';
+  const base = ext ? preferred.slice(0, -ext.length) : preferred;
+  let filename = preferred;
+  let counter = 1;
+  while (used.has(filename)) filename = `${base}_${counter++}${ext}`;
+  used.add(filename);
+  return filename;
 }
 
 function nameIdMap(dict) {

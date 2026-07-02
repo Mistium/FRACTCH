@@ -1,9 +1,77 @@
-import { stringifyBlockCall, setContext, renderBody } from './stringify.js';
+import { stringifyBlockCall, stringifyFields, stringifyInputs, setContext, renderBody } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
 export function emitScriptFile({ target, script, subgraph, index, context, cfg = {} }) {
+  const body = emitScriptBody({ script, subgraph, context, cfg });
+  const header = scriptHeader({ target, script, subgraph, index });
+  const blocksArr = linearize(subgraph, script.topBlockId);
+  const imports = deriveImports(blocksArr, context);
+
+  return `${header}\n${imports}${imports ? '\n' : ''}${body}\n`;
+}
+
+export function emitMultiScriptFile({ target, entries, context, cfg = {}, includeAssets = false }) {
+  const header =
+    `/**\n` +
+    ` * target: ${escapeHeader(target.name)}\n` +
+    ` * targetId: ${escapeHeader(target.id ?? '')}\n` +
+    ` * scripts: ${entries.length}\n` +
+    ` */\n`;
+  const assets = includeAssets ? emitAssetDecls(target) : '';
+  const bodies = entries.map(({ script, subgraph }) => emitScriptBody({ script, subgraph, context, cfg }));
+  return `${header}\n${[assets, bodies.join('\n\n')].filter(Boolean).join('\n\n')}\n`;
+}
+
+// One human-named file per distinct asset: md5ext -> "assets/<name>.<ext>".
+// Shared by the asset extractor (assets.js) and the declaration emitter so
+// the file on disk and the `file` attribute always agree.
+export function targetAssetFiles(target) {
+  const used = new Set();
+  const map = new Map();
+  for (const asset of [...(target.costumes || []), ...(target.sounds || [])]) {
+    const md5ext = asset.md5ext || (asset.assetId && `${asset.assetId}.${asset.dataFormat || ''}`);
+    if (!md5ext || map.has(md5ext)) continue;
+    const ext = asset.dataFormat || String(md5ext).split('.').pop() || 'dat';
+    const base = String(asset.name ?? 'asset').replace(/[^a-zA-Z0-9-_]/g, '_') || 'asset';
+    let file = `${base}.${ext}`;
+    let n = 2;
+    while (used.has(file)) file = `${base}_${n++}.${ext}`;
+    used.add(file);
+    map.set(md5ext, `assets/${file}`);
+  }
+  return map;
+}
+
+function emitAssetDecls(target) {
+  const fileMap = targetAssetFiles(target);
+  const fileFor = (asset) => {
+    const md5ext = asset.md5ext || (asset.assetId && `${asset.assetId}.${asset.dataFormat || ''}`);
+    return fileMap.get(md5ext) || `assets/${md5ext || 'missing'}`;
+  };
+  const lines = [];
+  for (const c of target.costumes || []) {
+    const parts = [`costume ${JSON.stringify(String(c.name ?? ''))}`, `file ${JSON.stringify(fileFor(c))}`];
+    parts.push(`center ${numText(c.rotationCenterX)},${numText(c.rotationCenterY)}`);
+    if (c.bitmapResolution != null && c.bitmapResolution !== 1) parts.push(`bitmap ${numText(c.bitmapResolution)}`);
+    lines.push(parts.join(' ') + ';');
+  }
+  for (const s of target.sounds || []) {
+    const parts = [`sound ${JSON.stringify(String(s.name ?? ''))}`, `file ${JSON.stringify(fileFor(s))}`];
+    if (s.rate != null) parts.push(`rate ${numText(s.rate)}`);
+    if (s.sampleCount != null) parts.push(`samples ${numText(s.sampleCount)}`);
+    if (s.format) parts.push(`format ${JSON.stringify(String(s.format))}`);
+    lines.push(parts.join(' ') + ';');
+  }
+  return lines.join('\n');
+}
+
+function numText(n) {
+  const v = Number(n);
+  return Number.isFinite(v) ? String(v) : '0';
+}
+
+function emitScriptBody({ script, subgraph, context, cfg = {} }) {
   const { topBlockId, hatOpcode } = script;
-  const blocksArr = linearize(subgraph, topBlockId);
 
   setContext(context);
 
@@ -31,11 +99,17 @@ export function emitScriptFile({ target, script, subgraph, index, context, cfg =
       const rest = top.next ? renderBody(subgraph, top.next, cfg) : '';
       body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
-      body = renderBody(subgraph, topBlockId, cfg);
+      const inner = renderFallbackBody(subgraph, topBlockId, cfg);
+      body = `script${atText(top)} {\n${indentBlock(inner)}\n}`;
     }
   }
 
-  const header =
+  return body;
+}
+
+function scriptHeader({ target, script, subgraph, index }) {
+  const { topBlockId, hatOpcode } = script;
+  return (
     `/**\n` +
     ` * target: ${escapeHeader(target.name)}\n` +
     ` * targetId: ${escapeHeader(target.id ?? '')}\n` +
@@ -43,11 +117,8 @@ export function emitScriptFile({ target, script, subgraph, index, context, cfg =
     ` * hatOpcode: ${escapeHeader(hatOpcode || '')}\n` +
     ` * threadIndex: ${index}\n` +
     ` * pos: ${Math.round(subgraph[topBlockId]?.x ?? 0)},${Math.round(subgraph[topBlockId]?.y ?? 0)}\n` +
-    ` */\n`;
-
-  const imports = deriveImports(blocksArr, context);
-
-  return `${header}\n${imports}${imports ? '\n' : ''}${body}\n`;
+    ` */\n`
+  );
 }
 
 export function emitIndex(files) {
@@ -68,10 +139,10 @@ export function emitTargetIndex(targetFiles) {
   const header = `/**\n * fractch index for target\n * scripts: ${targetFiles.length}\n */\n`;
   const imports = targetFiles
     .map((f) => {
-      const shortRel = f.rel
+      const shortRel = (f.targetRel || f.rel
         .split('/')
         .slice(-2)
-        .join('/')
+        .join('/'))
         .replace(/\\.js$/i, '.fractch');
       const base = `import "${shortRel}";`;
       if (f.hatOpcode === 'procedures_definition' && f.label) {
@@ -93,6 +164,52 @@ function linearize(subgraph, topId) {
     cursor = node.next;
   }
   return arr;
+}
+
+function renderFallbackBody(subgraph, topId, cfg) {
+  const ids = linearizeIds(subgraph, topId);
+  const lines = ids.map((id, index) => {
+    const block = subgraph[id];
+    return index === 0 && needsExplicitTopOpcode(block)
+      ? stringifyRawBlockCall(block, subgraph)
+      : stringifyBlockCall(block, subgraph, id, false, cfg);
+  });
+  return lines.join('\n');
+}
+
+function linearizeIds(subgraph, topId) {
+  const ids = [];
+  let cursor = topId;
+  while (cursor) {
+    const node = subgraph[cursor];
+    if (!node) break;
+    ids.push(cursor);
+    cursor = node.next;
+  }
+  return ids;
+}
+
+function needsExplicitTopOpcode(block) {
+  return block && ['argument_reporter_string_number', 'argument_reporter_boolean', 'data_variable'].includes(block.opcode);
+}
+
+function stringifyRawBlockCall(block, subgraph) {
+  const argParts = [];
+  const inputsStr = stringifyInputs(block, subgraph, true);
+  const fieldsStr = stringifyFields(block);
+  if (inputsStr) argParts.push(inputsStr);
+  if (fieldsStr) argParts.push(fieldsStr);
+  if (block.mutation) argParts.push(`mutation: ${JSON.stringify(block.mutation)}`);
+  return `${formatOpcodeName(block.opcode)}(${argParts.join(', ')});`;
+}
+
+function formatOpcodeName(opcode) {
+  const s = String(opcode || '');
+  const m = /^([A-Za-z][A-Za-z0-9]*)_(.+)$/.exec(s);
+  if (!m) return s;
+  const [, namespace, rest] = m;
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(rest)) return s;
+  return `${namespace}.${rest}`;
 }
 
 function escapeHeader(s) {

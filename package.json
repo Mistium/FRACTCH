@@ -1,6 +1,6 @@
 {
   "name": "fractch",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Convert Scratch 3 .sb3 projects into a lossless, human-readable DSL and pack them back",
   "keywords": [
     "scratch",
@@ -37,10 +37,6 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "npm run clean && node ./bin/cli.js --input ./originv6.0.0.sb3 --out ./build",
-    "clean": "rm -rf build && mkdir -p build",
-    "dev": "node ./bin/cli.js --input ./originv6.0.0.sb3 --out ./build --verbose",
-    "pack": "node ./bin/cli.js --pack --out ./build --outSb3 ./repacked.sb3 --verbose",
     "lint": "echo 'No linter configured'",
     "test": "node --test test/*.test.js",
     "selftest": "node ./src/selftest.js"

@@ -3,9 +3,9 @@
 This tool converts a Scratch 3 `.sb3` project into a lossless, human-readable DSL called Fractch. The converter is JavaScript (Node.js), but the output is plain `.fractch` text files.
 
 - Input: `originv6.0.0.sb3` (in the repo root)
-- Output: `build/` directory with one file per hat/script, grouped by target (sprite/stage) and hat opcode.
+- Output: `build/` directory with one `main.fractch` file per target (sprite/stage), unless a project was intentionally split into extra `.fractch` files or folders.
 - DSL: Each block becomes a call where the function name is the Scratch `opcode`, allowing all extensions to be represented.
-- Lossless: every block lives only in its `.fractch` script file, as DSL text — no other copy exists anywhere. There is no raw JSON snapshot in the file headers or in `manifest.json`: packing reparses the DSL body and rebuilds `blocks` from scratch. `build/manifest.json` carries everything else (variables, lists, broadcasts, comments, costumes/sounds metadata, monitors, extensions, meta) but never a target's `blocks`.
+- Lossless: every block lives only in its `.fractch` script file, as DSL text — no other copy exists anywhere. There is no raw JSON snapshot in the file headers or in `manifest.json`: packing reparses the DSL body and rebuilds `blocks` from scratch. Target costume/sound metadata is written as `asset` declarations in code, with files kept beside the target under `assets/`.
 - Hand-written projects are supported: headers and `manifest.json` are optional when packing. Without a manifest, Fractch synthesizes a minimal Scratch project and default SVG asset from the target/script directory layout.
 
 ## Install
@@ -22,10 +22,13 @@ npm run build
 
 Outputs will be written to `./build` with:
 
-- `index.fractch` that imports everything
-- `<Target>/index.fractch` per target
-- `<Target>/<hatOpcode>/<topBlockId>.fractch` script files
-- `manifest.json` capturing the Scratch `project.json` minus per-target `blocks` (those live entirely in the `.fractch` files)
+- `<Target>/main.fractch` containing that target's top-level scripts
+- `<Target>/assets/` containing that target's referenced costume/sound files
+- `manifest.json` capturing the Scratch `project.json` minus per-target `blocks`, `costumes`, and `sounds` (those live in the `.fractch` source)
+
+## Documentation
+
+Full docs live in [`docs/`](docs/README.md): [getting started](docs/getting-started.md), [CLI](docs/cli.md), [syntax reference](docs/syntax.md), [assets](docs/assets.md), [programmatic API](docs/api.md), [architecture](docs/architecture.md).
 
 ## Fractch DSL overview
 
@@ -37,7 +40,7 @@ when flag at 0,0 {
   score = 0;                  // plain variables assign by name
   forever {
     elapsed += 1;
-    say "score: " .. score;
+    say "score: " ++ score;
     if lists["queue"].length > 0 {
       handle = lists["queue"][1];
       lists["queue"].delete(1);
@@ -57,14 +60,25 @@ def @reset() {
 }
 ```
 
-`when` sugar covers `flag`, `clone`, `clicked`, `broadcast <name>`, `key <name>`, `backdrop <name>`; any other hat is `when some.extension_hat() { ... }`. Statement aliases: `say E;`, `say E for N;`, `think`, `ask`, `move`, `turn`, `turn_left`, `point`, `goto X, Y;`, `set_x/set_y/change_x/change_y`, `set_size/change_size`, `costume "name";`, `backdrop "name";`, `next_costume;`, `next_backdrop;`, `clone;` / `clone "sprite";`, `delete_clone;`, `show; hide;`, `reset_timer;`, `pen_up; pen_down; pen_clear; stamp;`. Lists: `lists["x"].add(v)`, `.delete(i)`, `.insert(i, v)`, `.clear()`, `.show()`, `.hide()`, `lists["x"][i]` (read), `lists["x"][i] = v;` (replace), `.length`, `.contains(v)`, `.indexof(v)`, and bare `lists["x"]` for the list-contents reporter. Variables: `name = v;` / `name += v;` for identifier-safe names, `vars["any name"]` for the rest, and `local name = v;` declares a script-scoped variable that packs to a namespaced real variable (`local_1_name`).
+Costumes and sounds are one-line declarations. Only the name and the file are required — the asset id, md5 and data format are derived from the file's bytes at pack time:
+
+```txt
+costume "walk" file "assets/walk.svg";
+costume "wallpaper" file "assets/wallpaper.png" center 240,180 bitmap 2;
+sound "pop" file "assets/pop.wav";
+sound "song" file "assets/song.mp3" rate 48000 samples 1123;
+```
+
+`center X,Y` sets the rotation center (default `0,0`), `bitmap N` the bitmap resolution (default 1), and `rate` / `samples` / `format "adpcm"` carry sound metadata when you have it. Asset files live next to the code in `<Target>/assets/`, named after the costume/sound rather than a hash. Drop a PNG in, write one `costume` line, done.
+
+`when` sugar covers `flag`, `clone`, `clicked`, `broadcast <name>`, `key <name>`, `backdrop <name>`; any other hat is `when some.extension_hat() { ... }`. Statement aliases: `say E;`, `say E for N;`, `think`, `ask`, `move`, `turn`, `turn_left`, `point`, `goto X, Y;`, `set_x/set_y/change_x/change_y`, `set_size/change_size`, `change_effect brightness by 25;`, `set_effect ghost to 50;`, `clear_effects;`, `costume "name";`, `backdrop "name";`, `next_costume;`, `next_backdrop;`, `clone;` / `clone "sprite";`, `delete_clone;`, `show; hide;`, `reset_timer;`, `pen_up; pen_down; pen_clear; stamp;`. Lists: `lists["x"].add(v)`, `.delete(i)`, `.insert(i, v)`, `.clear()`, `.show()`, `.hide()`, `lists["x"][i]` (read), `lists["x"][i] = v;` (replace), `.length`, `.contains(v)`, `.indexof(v)`, and bare `lists["x"]` for the list-contents reporter. Variables: `name = v;` / `name += v;` for identifier-safe names, `vars["any name"]` for the rest, and `local name = v;` declares a script-scoped variable that packs to a namespaced real variable (`local_1_name`).
 
 - Blocks are encoded as calls where the function name is the Scratch `opcode`, with the first underscore shown as a namespace dot for readability: `motion.changexby(DX: 10)` packs as Scratch opcode `motion_changexby`. Plain `name: value` arguments are Scratch inputs and may nest reporter blocks. `field name: value` arguments are Scratch fields, such as dropdowns or variable/list/broadcast references; dropdown values are written as plain strings (`field EFFECT: "COLOR"`). The `field` keyword is optional (and not emitted) when the key + value shape already identify a field: `VARIABLE: var("x")`, `LIST: list("x")`, `BROADCAST_OPTION: broadcast("x")`. The older `name= value` input form and raw underscore opcode names are still accepted for handwritten files.
-- Common control-flow blocks get readable sugar instead of the generic call form: `if cond { ... }`, `if cond { ... } else { ... }`, `forever { ... }`, `repeat n { ... }`, `until cond { ... }`, `while cond { ... }`, `switch v { case x { ... } case y fallthrough { ... } default { ... } }`, `wait n;`, `wait_until cond;`, `stop all;` / `stop this_script;` / `stop other_scripts_in_sprite;`, `return v;`, `broadcast SomeName;` (quotes only needed when the name isn't a plain identifier), `broadcast_wait name;`, `vars["name"] = value;`, `vars["name"] += value;`. Semicolons are optional.
-- Arithmetic/logic operators are plain infix expressions with the usual precedence (`||` < `&&` < comparisons < `..` < `+ -` < `* / %`, left-associative): `a + b * c`, string concat `a .. b` (deliberately distinct from `+` since `operator_add`/`operator_join` are different opcodes), `a == b`, `a < b`, `a > b`, `a && b`, `a || b`, plus `round(a)` and math-op functions (`abs`, `floor`, `sqrt`, `sin`, `exp`, ...). Parens group as usual, and fully parenthesized old-style text still parses to the identical tree. Since Scratch operator blocks are binary, parens are emitted wherever the tree shape needs them (e.g. `a .. (b .. c)` for a right-nested join).
+- Common control-flow blocks get readable sugar instead of the generic call form: `if cond { ... }`, `if cond { ... } else { ... }`, `forever { ... }`, `repeat n { ... }`, `until cond { ... }`, `while cond { ... }`, `switch v { case x { ... } case y fallthrough { ... } default { ... } }`, `wait n;`, `wait_until cond;`, `stop all;` / `stop other_scripts_in_sprite;`, `return;` (stop this script), `return v;`, `broadcast SomeName;` (quotes only needed when the name isn't a plain identifier), `broadcast_wait name;`, `vars["name"] = value;`, `vars["name"] += value;`. Semicolons are optional.
+- Arithmetic/logic operators are plain infix expressions with the usual precedence (`||` < `&&` < comparisons < `++` < `+ -` < `* / %`, left-associative): `a + b * c`, string concat `a ++ b` (legacy `a .. b` still parses) (deliberately distinct from `+` since `operator_add`/`operator_join` are different opcodes), `a == b`, `a < b`, `a > b`, `a && b`, `a || b`, plus `round(a)` and math-op functions (`abs`, `floor`, `sqrt`, `sin`, `exp`, ...). Parens group as usual, and fully parenthesized old-style text still parses to the identical tree. Since Scratch operator blocks are binary, parens are emitted wherever the tree shape needs them (e.g. `a ++ (b ++ c)` for a right-nested join).
 - Negated comparisons and boolean negation get sugar too: `a != b`, `a <= b`, `a >= b`, and prefix `!cond` — each desugars to the exact `not(...)` block pair Scratch stores (`not(a == b)` etc.), so the round trip is unchanged. `not(a)` is still accepted.
-- Dropdown menu shadow blocks (the editor's default value living inside an input slot) are written as a call with a single positional argument: `sensing.keypressed(KEY_OPTION: sensing.keyoptions("space"))` rebuilds the `sensing_keyoptions` shadow block with `shadow: true` and its field named after the enclosing input. When the menu's field name differs from the input name, the explicit form is `shadow opcode(field name: value)`. A reporter plugged in over a menu (an *obscured* shadow) is written `reporter() ?? sensing.keyoptions("any")` — both the active block and the shadow behind it survive the round trip, which the Scratch/TurboWarp editor requires to render dropdowns without crashing. Obscured plain text/number defaults are still dropped (cosmetic only).
-- Custom blocks: `def @Name(param1, param2) "Original Proccode %s %s" warp { ... }` defines a custom block — the quoted string preserves exact fidelity even though `@Name` is a cleaned-up identifier, and is omitted entirely when it's just the name plus `%s` placeholders (the pack step re-derives it). Bare `warp` means warp on; omit it for off (`warp=true`/`warp=false` still parse). Call sites use `@Name(param1: value, param2: value)`. A param whose display name doesn't match its identifier (e.g. contains spaces) is written `ident("Original Name")` in the signature.
+- Dropdown menu shadow blocks (the editor's default value living inside an input slot) are written as a call with a single positional argument: `sensing.keypressed(KEY_OPTION: sensing.keyoptions("space"))` rebuilds the `sensing_keyoptions` shadow block with `shadow: true` and its field named after the enclosing input. When the menu's field name differs from the input name, the explicit form is `shadow opcode(field name: value)`. Shadows hidden behind a plugged-in reporter (*obscured* shadows — menu or plain default text) are not written out at all: the editor regenerates them on load, so they'd be pure noise. The `reporter() ?? menu("x")` form still parses for files that carry them.
+- Custom blocks: `def @Name(param1, param2) "Original Proccode %s %s" warp { ... }` defines a custom block — the quoted string preserves exact fidelity even though `@Name` is a cleaned-up identifier, and is omitted entirely when it's just the name plus `%s` placeholders (the pack step re-derives it). Bare `warp` means warp on; omit it for off (`warp=true`/`warp=false` still parse). Call sites are positional: `@Name(value1, value2)` (named `@Name(param: value)` still parses). A param whose display name doesn't match its identifier (e.g. contains spaces) is written `ident("Original Name")` in the signature.
 - Extension "C-block" opcodes (custom blocks with a body slot that aren't one of the hardcoded keywords above) still get their body: `some_extension_opcode(args) { ... }`.
 - Variables/lists/broadcasts referenced by name resolve to their real id at pack time via the target's (and Stage's global) variable/list/broadcast tables — `var("name")`, `list("name")`, `broadcast("name")`, or just a bare identifier for the common case (`myVar`). A bare identifier reconstructs Scratch's own compact inline form (there is no separate `data_variable` block in real project.json files), so this is byte-exact, not just behaviorally equivalent.
 - Custom-block parameters referenced inside the body are also just a bare identifier (`paramName`) when unambiguous. If a param's display name collides with another param's only after identifier-cleaning (e.g. `"X"` and `"+X"` both clean to `X`), or the body still references a parameter that's since been removed from the definition (Scratch leaves those dangling), it's written explicitly as `arg("Original Name")` instead.
@@ -79,14 +93,14 @@ if vars["score"] >= 10 && !sensing.mousedown() {
 }
 ```
 
-Generated `.fractch` files begin with a small header comment (target, targetId, topBlockId, hatOpcode, threadIndex) used only to route rebuilt blocks back to the right place in converted projects — it carries no block data. The header is optional when writing files by hand; pack can infer the target and hat from `build/<Target>/<hatOpcode>/<name>.fractch`.
+Generated `.fractch` files begin with a small header comment used only as routing metadata — it carries no block data. The header is optional when writing files by hand; explicit `when`, `def`, and `script` statements carry the top-level block semantics.
 
 ## Using a fractch project as your codebase
 
 The text files are the source of truth; the `.sb3` is a build artifact. A working setup:
 
 ```sh
-fractch new my-project        # scaffold Stage/event_whenflagclicked/main.fractch + .gitignore
+fractch new my-project        # scaffold Stage/main.fractch + .gitignore
 cd my-project && git init
 fractch check .               # parse + lint every file, errors with file:line, exit 1 on problems
 fractch run .                 # pack, open in the MistWarp editor, repack on every save
@@ -105,13 +119,13 @@ A minimal hand-written project can be packed without first converting an `.sb3`:
 ```txt
 my-project/
   Stage/
-    event_whenflagclicked/
-      main.fractch
+    main.fractch
 ```
 
 ```txt
-event_whenflagclicked();
-looks_say(MESSAGE: "hello from fractch");
+when flag {
+  say "hello from fractch";
+}
 ```
 
 Pack it with:
@@ -120,13 +134,13 @@ Pack it with:
 fractch --pack --out ./my-project --outSb3 ./my-project.sb3
 ```
 
-If `index.fractch` imports one or more scripts, those imports are the pack list. This lets agents keep draft or unwanted top-level scripts in the tree without packaging them:
+If `index.fractch` imports one or more scripts, those imports are the pack list. This lets agents keep draft or unwanted top-level scripts in the tree without packaging them, and unimported non-stage targets are pruned so their costumes/sounds are not packed either:
 
 ```txt
-import "./Stage/event_whenflagclicked/main.fractch";
+import "./Stage/main.fractch";
 ```
 
-When no index imports are present, pack scans all `build/<Target>/<hatOpcode>/*.fractch` files. To exclude a scanned file, add `fractch:ignore` near the top of the file or name it `*.ignore.fractch`.
+When no index imports are present, pack scans all `.fractch` files under each target folder recursively. `main.fractch` is the default file for a target; any other `.fractch` file, including files inside folders like `Stage/ui/buttons.fractch`, is tagged into the rebuilt `.sb3` so a later `fractch from project.sb3` recreates that same separate file path instead of folding it into `main.fractch`. The older `build/<Target>/<hatOpcode>/*.fractch` layout is still accepted for compatibility with implicit opcode-call scripts. To exclude a scanned file, add `fractch:ignore` near the top of the file or name it `*.ignore.fractch`.
 
 ## Verifying round-trip fidelity
 
@@ -177,8 +191,8 @@ await unpackSb3({ input: './project.sb3', outDir: './project' });
 await packSb3({ buildDir: './project', outSb3: './repacked.sb3' });
 ```
 
-`packSb3` accepts an optional `originSb3` path for the project whose non-block
-assets (costumes, sounds) should be carried into the repack; without it the
+`packSb3` accepts an optional `originSb3` path to supply referenced non-block
+assets (costumes, sounds) that are not present under `assets/`; without it the
 current working directory is searched, matching the CLI.
 
 ### In the browser

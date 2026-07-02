@@ -39,6 +39,14 @@ export function checkFractch(text) {
 
     if (ch === '/' && src[i + 1] === '/') { while (i < src.length && src[i] !== '\n') adv(); continue; }
 
+    if (ch === '/' && src[i + 1] === '*') {
+      adv();
+      adv();
+      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) adv();
+      if (i < src.length) { adv(); adv(); }
+      continue;
+    }
+
     if (ch === '"' || ch === "'") {
       const quote = ch;
       const start = at();

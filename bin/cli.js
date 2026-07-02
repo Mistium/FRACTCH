@@ -13,6 +13,7 @@ const USAGE =
   '  fractch new <dir>                       scaffold a fresh fractch project\n' +
   '  fractch from <project.sb3> [to <dir>]   unpack an .sb3 into .fractch text\n' +
   '  fractch [to] <project.sb3> from <dir>   pack a project dir into an .sb3\n' +
+  '                                          (--origin <sb3> copies non-asset extras from it)\n' +
   '  fractch check <dir>                     parse + lint every .fractch file\n' +
   '  fractch watch <dir> [to <sb3>]          repack automatically on change\n' +
   '  fractch run <dir>                       pack, open in the editor, repack on save\n' +
@@ -22,7 +23,7 @@ const USAGE =
 const rawArgs = hideBin(process.argv);
 const words = [];
 for (let i = 0; i < rawArgs.length; i++) {
-  if (rawArgs[i] === '--editor') {
+  if (rawArgs[i] === '--editor' || rawArgs[i] === '--origin') {
     i++; // skip its value
     continue;
   }
@@ -61,9 +62,19 @@ function defaultSb3For(dir) {
 
 async function runCheck(dir) {
   const buildDir = path.resolve(dir || '.');
-  const { files, problems } = await checkProject({ buildDir, fs });
+  const { files, problems, sources } = await checkProject({ buildDir, fs });
   for (const p of problems) {
-    console.log(`${p.file}${p.line ? ':' + p.line : ''}: ${p.message}`);
+    const loc = p.line ? `:${p.line}${p.col ? ':' + p.col : ''}` : '';
+    console.log(`${p.file}${loc}: ${p.message}`);
+    const src = sources?.get(p.file);
+    if (src && p.line) {
+      const lineText = src.split('\n')[p.line - 1];
+      if (lineText !== undefined && lineText.trim()) {
+        console.log(`    ${lineText}`);
+        if (p.col) console.log(`    ${' '.repeat(Math.max(p.col - 1, 0))}^`);
+      }
+    }
+    if (p.hint) console.log(`    hint: ${p.hint}`);
   }
   console.log(`${files} file${files === 1 ? '' : 's'} checked, ${problems.length} problem${problems.length === 1 ? '' : 's'}`);
   process.exit(problems.length ? 1 : 0);
@@ -152,7 +163,7 @@ function runNew(dir) {
     process.exit(1);
   }
   const root = path.resolve(dir);
-  const scriptDir = path.join(root, 'Stage', 'event_whenflagclicked');
+  const scriptDir = path.join(root, 'Stage');
   if (fs.existsSync(root) && fs.readdirSync(root).length) {
     console.error(`refusing to scaffold into non-empty directory: ${root}`);
     process.exit(1);
@@ -171,7 +182,7 @@ function runNew(dir) {
   );
   fs.writeFileSync(path.join(root, '.gitignore'), '*.sb3\n');
   const name = path.basename(root);
-  console.log(`Created ${name}/Stage/event_whenflagclicked/main.fractch`);
+  console.log(`Created ${name}/Stage/main.fractch`);
   console.log('');
   console.log('Next steps:');
   console.log(`  fractch check ${dir}`);
@@ -224,10 +235,12 @@ function runNew(dir) {
       .help().argv;
 
     const verbose = argv.verbose;
+    const originIdx = rawArgs.indexOf('--origin');
     if (argv.pack) {
       await packSb3({
         buildDir: path.resolve(argv.out),
         outSb3: path.resolve(argv.outSb3 || path.join(process.cwd(), 'out.sb3')),
+        originSb3: originIdx >= 0 ? path.resolve(rawArgs[originIdx + 1]) : undefined,
         verbose,
       });
       process.exit(0);

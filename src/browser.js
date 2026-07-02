@@ -7,5 +7,5 @@ export { cleanIdent, buildProcByCode } from './convert.js';
 export { parseFractch, preprocess } from './parse.js';
 export { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode } from './buildBlocks.js';
 export { checkFractch, assertValidFractch, FractchSyntaxError } from './lint.js';
-export { emitScriptFile, emitIndex, emitTargetIndex } from './emit.js';
+export { emitScriptFile, emitMultiScriptFile, emitIndex, emitTargetIndex } from './emit.js';
 export { stringifyBlockCall, renderBody, setContext } from './stringify.js';

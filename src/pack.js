@@ -3,6 +3,8 @@ import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode } from './buildBlocks.js';
 import { assertValidFractch } from './lint.js';
+import { cleanRelStem, idSafeSuffix, markerPrefixForFileStem } from './fileMarkers.js';
+import { md5hex } from './md5.js';
 
 export const BLANK_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><rect width="100%" height="100%" fill="white"/></svg>';
@@ -17,19 +19,23 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   const hasManifest = await vfs.exists(manifestPath);
   let manifest = hasManifest ? JSON.parse(await vfs.readFile(manifestPath, 'utf8')) : null;
 
-  const scriptFiles = await collectScriptFiles(vfs, buildDir, manifest, verbose);
+  const { files: scriptFiles, fromIndex } = await collectScriptFiles(vfs, buildDir, manifest, verbose);
   if (!manifest) manifest = synthesizeManifest(scriptFiles);
   ensureTargetsForScripts(manifest, scriptFiles);
+  if (fromIndex) pruneManifestToScriptTargets(manifest, scriptFiles);
 
   const targets = new Map(); // manifestTargetName -> { name, stacks: Array<{hatOpcode, calls, topBlockId}> }
+  const assetFiles = new Map(); // md5ext -> buildDir-relative source path
+  const assetSeenForTarget = new Set();
   const procArgMaps = new Map(); // targetName -> Map(proccode -> argumentids[])
   const identToProccode = new Map(); // targetName -> Map(ident -> proccode)
   const procMetaMaps = new Map(); // targetName -> Map(proccode -> { warp, customcolor })
+  const cloudAliasMaps = new Map(); // targetName -> Map(bareName -> '\u2601 name')
   let totalScripts = 0;
   let parsedScripts = 0;
 
   for (const scriptFile of scriptFiles) {
-    const { fPath, targetDir, hatDir } = scriptFile;
+    const { fPath, targetDir, hatDir, sourceRel } = scriptFile;
     const manifestTarget = findManifestTargetForDir(manifest, targetDir);
     if (!manifestTarget) continue;
     const manifestName = manifestTarget.name;
@@ -42,13 +48,21 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       assertValidFractch(content, fPath);
       const parsed = parseFractch(content);
       for (const err of parsed.errors || []) {
-        console.warn(`[fractch] ${fPath}:${err.line}: skipped unparsable statement: ${err.message}`);
+        console.warn(`[fractch] ${fPath}:${err.line}${err.col ? ':' + err.col : ''}: skipped unparsable statement: ${err.message}`);
+        if (err.hint) console.warn(`[fractch]   hint: ${err.hint}`);
       }
       if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
-      const inferredHat = hatDir === 'nohat' ? null : hatDir;
+      await applyParsedAssets(vfs, buildDir, manifestTarget, parsed.assets, targetDir, assetFiles, assetSeenForTarget);
+      applyUses(manifest, parsed.uses);
+      if (!cloudAliasMaps.has(manifestName)) cloudAliasMaps.set(manifestName, new Map());
+      applyVarDecls(manifest, manifestTarget, parsed.varDecls, cloudAliasMaps.get(manifestName));
+      applySpriteProps(manifestTarget, parsed.spriteProps);
+      const inferredHat = hatDir && hatDir !== 'nohat' ? hatDir : null;
       const fileScripts = parsed.scripts?.length
         ? parsed.scripts
         : [{ kind: 'implicit', calls: parsed.calls, x: null, y: null }];
+      const sourceStem = cleanRelStem(sourceRel);
+      const fileMarkerPrefix = sourceStem && sourceStem !== 'main' ? markerPrefixForFileStem(sourceStem) : null;
       fileScripts.forEach((s, i) => {
         targets.get(manifestName).stacks.push({
           hatOpcode: s.kind === 'implicit' && i === 0 ? headerInfo?.hatOpcode || inferredHat : null,
@@ -56,10 +70,11 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
           topBlockId: i === 0 ? headerInfo?.topBlockId : null,
           x: s.x ?? (i === 0 ? headerInfo?.x ?? null : null),
           y: s.y ?? (i === 0 ? headerInfo?.y ?? null : null),
+          fileMarkerPrefix,
         });
         registerProcDefs(procArgMaps, identToProccode, procMetaMaps, manifestName, s.calls);
       });
-      if (!hasManifest) collectNamesIntoManifest(manifestTarget, parsed.calls);
+      if (!hasManifest) collectNamesIntoManifest(manifestTarget, parsed.calls, cloudAliasMaps.get(manifestName));
       parsedScripts++;
     } catch (e) {
       if (verbose) console.warn(`Skip unparsable file: ${fPath}: ${e.message}`);
@@ -92,10 +107,11 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
     for (const s of data.stacks) {
       // `local name = ...` declarations get a per-script namespaced real
       // variable on the Scratch side while the DSL keeps the short name.
-      let localVars = null;
+      const cloudAliases = cloudAliasMaps.get(name);
+      let localVars = cloudAliases && cloudAliases.size ? new Map(cloudAliases) : null;
       const localNames = collectLocalDeclNames(s.calls);
       if (localNames.size) {
-        localVars = new Map();
+        localVars = localVars || new Map();
         for (const n of localNames) {
           const mangled = `local_${++localSeq}_${n}`;
           const id = ensureDictEntry(manifestTarget?.variables || {}, mangled, [mangled, 0]);
@@ -103,7 +119,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
           localVars.set(n, mangled);
         }
       }
-      const { blocks, topId } = buildBlocksFromCalls(s.calls, {
+      const built = buildBlocksFromCalls(s.calls, {
         hatOpcode: s.hatOpcode,
         proceduresMapForTarget: procArgMaps.get(name),
         identToProccode: identToProccode.get(name),
@@ -114,6 +130,12 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         localVars,
         idGen: sharedIdGen,
       });
+      let { blocks, topId } = built;
+      if (topId && s.fileMarkerPrefix) {
+        const markedTopId = uniqueBlockId(blocks, `${s.fileMarkerPrefix}${idSafeSuffix(topId)}`);
+        renameBlockId(blocks, topId, markedTopId);
+        topId = markedTopId;
+      }
       // Canvas position from the header when present; a simple grid keeps
       // headerless hand-written scripts from stacking on top of each other.
       if (topId && blocks[topId] && blocks[topId].topLevel) {
@@ -127,12 +149,185 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   }
 
   const newManifest = mergeIntoManifest(manifest, builtTargets);
-  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts };
+  autoRegisterExtensions(newManifest);
+  pruneUnusedAssets(newManifest, verbose);
+  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles };
+}
+
+function applyUses(manifest, uses) {
+  for (const u of uses || []) {
+    if (!Array.isArray(manifest.extensions)) manifest.extensions = [];
+    if (!manifest.extensions.includes(u.id)) manifest.extensions.push(u.id);
+    if (u.url) {
+      if (!manifest.extensionURLs) manifest.extensionURLs = {};
+      manifest.extensionURLs[u.id] = u.url;
+    }
+  }
+}
+
+// Scratch/TurboWarp built-in opcode namespaces. Anything else in front of the
+// first underscore of an opcode is a custom extension id.
+const BUILTIN_NAMESPACES = new Set([
+  'motion', 'looks', 'sound', 'event', 'control', 'sensing', 'operator', 'data',
+  'procedures', 'argument', 'pen', 'music', 'videoSensing', 'text2speech',
+  'translate', 'makeymakey', 'microbit', 'ev3', 'boost', 'wedo2', 'gdxfor', 'text',
+  'math', 'colour', 'note',
+]);
+
+function autoRegisterExtensions(manifest) {
+  const found = new Set();
+  for (const t of manifest.targets || []) {
+    for (const b of Object.values(t.blocks || {})) {
+      if (!b || Array.isArray(b) || typeof b.opcode !== 'string') continue;
+      const m = /^([A-Za-z][A-Za-z0-9]*)_/.exec(b.opcode);
+      if (m && !BUILTIN_NAMESPACES.has(m[1])) found.add(m[1]);
+    }
+  }
+  if (!found.size) return;
+  if (!Array.isArray(manifest.extensions)) manifest.extensions = [];
+  for (const id of found) {
+    if (!manifest.extensions.includes(id)) manifest.extensions.push(id);
+  }
+}
+
+function applyVarDecls(manifest, target, decls, cloudAliases) {
+  for (const d of decls || []) {
+    const owner = d.cloud ? (manifest.targets || []).find((t) => t.isStage) || target : target;
+    if (!owner) continue;
+    if (d.isList) {
+      const id = ensureDictEntry(owner.lists, d.name, [d.name, d.value]);
+      if (id) owner.lists[id] = [d.name, d.value];
+    } else {
+      const name = d.cloud && !String(d.name).startsWith('\u2601 ') ? `\u2601 ${d.name}` : d.name;
+      const entry = d.cloud ? [name, d.value, true] : [name, d.value];
+      const id = ensureDictEntry(owner.variables, name, entry);
+      if (id) owner.variables[id] = entry;
+      if (d.cloud && cloudAliases) cloudAliases.set(d.name, name);
+    }
+  }
+}
+
+function applySpriteProps(target, props) {
+  if (!target || !props) return;
+  if (props.x != null) target.x = props.x;
+  if (props.y != null) target.y = props.y;
+  if (props.size != null) target.size = props.size;
+  if (props.direction != null) target.direction = props.direction;
+  if (props.visible != null) target.visible = props.visible;
+  if (props.draggable != null) target.draggable = props.draggable;
+  if (props.rotationStyle != null) target.rotationStyle = props.rotationStyle;
+  if (props.volume != null) target.volume = props.volume;
+  if (props.tempo != null) target.tempo = props.tempo;
+  if (props.layer != null) target.layerOrder = props.layer;
+}
+
+// Costumes/sounds the code never references are dropped from the packed
+// project. A costume/sound picked by anything non-constant (a reporter
+// plugged into the menu slot, next-costume cycling, "random backdrop", ...)
+// makes the whole set reachable, so everything is kept for that target.
+const COSTUME_MENU_OPCODES = new Set(['looks_costume']);
+const BACKDROP_MENU_OPCODES = new Set(['looks_backdrops']);
+const SOUND_MENU_OPCODES = new Set(['sound_sounds_menu']);
+const BACKDROP_SPECIALS = new Set(['next backdrop', 'previous backdrop', 'random backdrop']);
+
+function pruneUnusedAssets(manifest, verbose) {
+  const targets = manifest.targets || [];
+  let stageAll = false;
+  const stageRefs = new Set();
+  const perTarget = new Map();
+
+  for (const t of targets) {
+    const st = { all: false, refs: new Set(), allSounds: false, soundRefs: new Set() };
+    perTarget.set(t, st);
+    const blocks = t.blocks || {};
+    for (const b of Object.values(blocks)) {
+      if (!b || Array.isArray(b) || typeof b.opcode !== 'string') continue;
+      if (b.opcode === 'looks_nextcostume') st.all = true;
+      if (b.opcode === 'looks_nextbackdrop') stageAll = true;
+      if (b.opcode === 'event_whenbackdropswitchesto') {
+        const n = b.fields?.BACKDROP?.[0];
+        if (typeof n === 'string') stageRefs.add(n);
+      }
+      for (const tuple of Object.values(b.inputs || {})) {
+        if (!Array.isArray(tuple)) continue;
+        const activeId = typeof tuple[1] === 'string' ? tuple[1] : null;
+        const ids = tuple.slice(1).filter((x) => typeof x === 'string');
+        for (const id of ids) {
+          const mb = blocks[id];
+          if (!mb || typeof mb.opcode !== 'string') continue;
+          const isCostumeMenu = COSTUME_MENU_OPCODES.has(mb.opcode);
+          const isBackdropMenu = BACKDROP_MENU_OPCODES.has(mb.opcode);
+          const isSoundMenu = SOUND_MENU_OPCODES.has(mb.opcode);
+          if (!isCostumeMenu && !isBackdropMenu && !isSoundMenu) continue;
+          const constant = activeId === id;
+          const value = Object.values(mb.fields || {})[0]?.[0];
+          if (isCostumeMenu) {
+            if (constant && typeof value === 'string') st.refs.add(value);
+            else st.all = true;
+          } else if (isBackdropMenu) {
+            if (constant && typeof value === 'string') {
+              if (BACKDROP_SPECIALS.has(value)) stageAll = true;
+              else stageRefs.add(value);
+            } else stageAll = true;
+          } else if (isSoundMenu) {
+            if (constant && typeof value === 'string') st.soundRefs.add(value);
+            else st.allSounds = true;
+          }
+        }
+        // A plain text literal typed straight into a known consumer input
+        // counts as a constant reference; a reporter there means dynamic.
+        if (b.opcode === 'looks_switchcostumeto' || b.opcode === 'looks_switchbackdropto') {
+          const isBackdrop = b.opcode === 'looks_switchbackdropto';
+          if (activeId && !ids.some((id) => blocks[id] && (COSTUME_MENU_OPCODES.has(blocks[id].opcode) || BACKDROP_MENU_OPCODES.has(blocks[id].opcode)))) {
+            if (isBackdrop) stageAll = true;
+            else st.all = true;
+          } else if (!activeId && Array.isArray(tuple[1]) && typeof tuple[1][1] === 'string') {
+            if (isBackdrop) {
+              if (BACKDROP_SPECIALS.has(tuple[1][1])) stageAll = true;
+              else stageRefs.add(tuple[1][1]);
+            } else st.refs.add(tuple[1][1]);
+          }
+        }
+        if ((b.opcode === 'sound_play' || b.opcode === 'sound_playuntildone') && !activeId && Array.isArray(tuple[1]) && typeof tuple[1][1] === 'string') {
+          st.soundRefs.add(tuple[1][1]);
+        }
+        if ((b.opcode === 'sound_play' || b.opcode === 'sound_playuntildone') && activeId && !ids.some((id) => blocks[id] && SOUND_MENU_OPCODES.has(blocks[id].opcode))) {
+          st.allSounds = true;
+        }
+      }
+    }
+  }
+
+  for (const t of targets) {
+    const st = perTarget.get(t);
+    if (!st) continue;
+    const keepAllCostumes = st.all || (t.isStage && stageAll);
+    const costumeRefs = t.isStage ? new Set([...st.refs, ...stageRefs]) : st.refs;
+    const costumes = t.costumes || [];
+    const currentIdx = Math.min(Math.max(t.currentCostume ?? 0, 0), Math.max(costumes.length - 1, 0));
+    if (!keepAllCostumes && costumes.length) {
+      const kept = costumes.filter((c, i) => i === currentIdx || costumeRefs.has(String(c.name)));
+      if (kept.length !== costumes.length) {
+        t.currentCostume = kept.indexOf(costumes[currentIdx]);
+        if (verbose) console.log(`[pack] ${t.name}: removed ${costumes.length - kept.length} unused costume(s)`);
+        t.costumes = kept;
+      }
+    }
+    const sounds = t.sounds || [];
+    if (!st.allSounds && sounds.length) {
+      const kept = sounds.filter((s) => st.soundRefs.has(String(s.name)));
+      if (kept.length !== sounds.length) {
+        if (verbose) console.log(`[pack] ${t.name}: removed ${sounds.length - kept.length} unused sound(s)`);
+        t.sounds = kept;
+      }
+    }
+  }
 }
 
 async function collectScriptFiles(vfs, buildDir, manifest, verbose) {
   const fromIndex = await collectScriptFilesFromIndexes(vfs, buildDir);
-  const files = fromIndex.length ? fromIndex : await scanScriptFiles(vfs, buildDir, manifest);
+  const usedIndex = fromIndex.length > 0;
+  const files = usedIndex ? fromIndex : await scanScriptFiles(vfs, buildDir, manifest);
   const unique = [];
   const seen = new Set();
   for (const file of files) {
@@ -145,7 +340,7 @@ async function collectScriptFiles(vfs, buildDir, manifest, verbose) {
     }
     unique.push(file);
   }
-  return unique;
+  return { files: unique, fromIndex: usedIndex };
 }
 
 async function collectScriptFilesFromIndexes(vfs, buildDir) {
@@ -202,15 +397,22 @@ async function scanScriptFiles(vfs, buildDir, manifest) {
     const tPath = path.join(buildDir, dirName);
     if (!(await vfs.isDirectory(tPath)) || isReservedBuildDir(dirName)) continue;
     if (manifest && !findManifestTargetForDir(manifest, dirName)) continue;
-    for (const hatDir of await safeListDir(vfs, tPath)) {
-      const hPath = path.join(tPath, hatDir);
-      if (!(await vfs.isDirectory(hPath))) continue;
-      for (const file of await safeListDir(vfs, hPath)) {
-        if (!file.endsWith('.fractch') || file === 'index.fractch') continue;
-        const info = scriptPathInfo(buildDir, path.join(hPath, file));
-        if (info) files.push(info);
-      }
+    files.push(...(await scanTargetScripts(vfs, buildDir, tPath)));
+  }
+  return files;
+}
+
+async function scanTargetScripts(vfs, buildDir, dir) {
+  const files = [];
+  for (const entry of await safeListDir(vfs, dir)) {
+    const ePath = path.join(dir, entry);
+    if (entry.startsWith('.')) continue;
+    if (entry.endsWith('.fractch') && entry !== 'index.fractch') {
+      const info = scriptPathInfo(buildDir, ePath);
+      if (info) files.push(info);
+      continue;
     }
+    if (await vfs.isDirectory(ePath)) files.push(...(await scanTargetScripts(vfs, buildDir, ePath)));
   }
   return files;
 }
@@ -219,10 +421,12 @@ function scriptPathInfo(buildDir, fPath) {
   const rel = path.relative(buildDir, fPath);
   if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
   const parts = rel.split('/');
-  if (parts.length < 3) return null;
-  const [targetDir, hatDir] = parts;
-  if (!targetDir || !hatDir || isReservedBuildDir(targetDir)) return null;
-  return { fPath, targetDir, hatDir };
+  if (parts.length < 2) return null;
+  const [targetDir, maybeHatDir] = parts;
+  if (!targetDir || isReservedBuildDir(targetDir)) return null;
+  const hatDir = parts.length >= 3 ? maybeHatDir : null;
+  const sourceRel = parts.slice(1).join('/');
+  return { fPath, targetDir, hatDir, sourceRel };
 }
 
 async function isIgnoredScript(vfs, buildDir, fPath) {
@@ -291,6 +495,16 @@ function ensureTargetsForScripts(manifest, scriptFiles) {
   }
 }
 
+function pruneManifestToScriptTargets(manifest, scriptFiles) {
+  if (!Array.isArray(manifest.targets)) return;
+  const imported = new Set();
+  for (const f of scriptFiles) imported.add(f.targetDir);
+  manifest.targets = manifest.targets.filter((t) => {
+    if (t.isStage) return true;
+    return imported.has(t.name) || imported.has(sanitize(t.name));
+  });
+}
+
 function makeTarget(name, index) {
   const isStage = name === 'Stage' || index === 0;
   const target = {
@@ -338,12 +552,86 @@ function defaultCostume(isStage) {
   };
 }
 
-function collectNamesIntoManifest(target, calls) {
+// Asset declarations carry only what a human would write (name, file path,
+// centers, ...). Everything Scratch derives from the bytes - assetId, md5ext,
+// dataFormat - is computed here by hashing the referenced file.
+async function applyParsedAssets(vfs, buildDir, target, assets, targetDir, assetFiles, seenTargets) {
+  if (!target || !assets) return;
+  const hasAssets = (assets.costumes?.length || 0) || (assets.sounds?.length || 0);
+  if (!hasAssets) return;
+  if (!seenTargets.has(target.name)) {
+    target.costumes = [];
+    target.sounds = [];
+    seenTargets.add(target.name);
+  }
+  for (const decl of assets.costumes || []) {
+    const resolved = await resolveAssetDecl(vfs, buildDir, targetDir, decl, 'costume');
+    if (!resolved) continue;
+    target.costumes.push({
+      name: String(decl.name ?? ''),
+      bitmapResolution: decl.bitmap ?? 1,
+      dataFormat: resolved.ext,
+      assetId: resolved.assetId,
+      md5ext: resolved.md5ext,
+      rotationCenterX: decl.centerX ?? 0,
+      rotationCenterY: decl.centerY ?? 0,
+    });
+    assetFiles.set(resolved.md5ext, resolved.sourceRel);
+  }
+  for (const decl of assets.sounds || []) {
+    const resolved = await resolveAssetDecl(vfs, buildDir, targetDir, decl, 'sound');
+    if (!resolved) continue;
+    const sound = {
+      name: String(decl.name ?? ''),
+      assetId: resolved.assetId,
+      dataFormat: resolved.ext,
+      format: decl.format ?? '',
+    };
+    if (decl.rate != null) sound.rate = decl.rate;
+    if (decl.samples != null) sound.sampleCount = decl.samples;
+    sound.md5ext = resolved.md5ext;
+    target.sounds.push(sound);
+    assetFiles.set(resolved.md5ext, resolved.sourceRel);
+  }
+}
+
+async function resolveAssetDecl(vfs, buildDir, targetDir, decl, kind) {
+  const file = String(decl.file || '');
+  const ext = (file.split('.').pop() || '').toLowerCase();
+  if (!file || !ext || file === `.${ext}`) {
+    console.warn(`[fractch] ${kind} "${decl.name}": missing or extension-less file path, skipped`);
+    return null;
+  }
+  const sourceRel = assetSourceRel(targetDir, file);
+  if (!sourceRel) {
+    console.warn(`[fractch] ${kind} "${decl.name}": invalid file path ${file}, skipped`);
+    return null;
+  }
+  let bytes;
+  try {
+    bytes = await vfs.readFile(path.join(buildDir, sourceRel));
+  } catch {
+    console.warn(`[fractch] ${kind} "${decl.name}": file not found: ${sourceRel}, skipped`);
+    return null;
+  }
+  const assetId = md5hex(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+  return { assetId, ext, md5ext: `${assetId}.${ext}`, sourceRel };
+}
+
+function assetSourceRel(targetDir, file) {
+  const rel = String(file || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  const parts = rel.split('/').filter(Boolean);
+  if (!parts.length || parts.some((p) => p === '.' || p === '..' || p.startsWith('.'))) return null;
+  return path.join(targetDir, ...parts);
+}
+
+function collectNamesIntoManifest(target, calls, cloudAliases) {
   const vars = new Set();
   const lists = new Set();
   const broadcasts = new Set();
   collectNames(calls, { vars, lists, broadcasts });
   for (const local of collectLocalDeclNames(calls)) vars.delete(local);
+  if (cloudAliases) for (const bare of cloudAliases.keys()) vars.delete(bare);
   for (const name of vars) ensureDictEntry(target.variables, name, [name, 0]);
   for (const name of lists) ensureDictEntry(target.lists, name, [name, []]);
   for (const name of broadcasts) ensureDictEntry(target.broadcasts, name, name);
@@ -417,6 +705,30 @@ function ensureDictEntry(dict, name, value) {
   while (Object.prototype.hasOwnProperty.call(dict, finalId)) finalId = `${id}_${++n}`;
   dict[finalId] = value;
   return finalId;
+}
+
+function uniqueBlockId(blocks, preferred) {
+  let id = preferred;
+  let n = 1;
+  while (Object.prototype.hasOwnProperty.call(blocks, id)) id = `${preferred}_${++n}`;
+  return id;
+}
+
+function renameBlockId(blocks, oldId, newId) {
+  if (!oldId || !newId || oldId === newId || !blocks[oldId]) return;
+  blocks[newId] = { ...blocks[oldId], id: newId };
+  delete blocks[oldId];
+  for (const block of Object.values(blocks)) {
+    if (!block || typeof block !== 'object') continue;
+    if (block.next === oldId) block.next = newId;
+    if (block.parent === oldId) block.parent = newId;
+    for (const tuple of Object.values(block.inputs || {})) {
+      if (!Array.isArray(tuple)) continue;
+      for (let i = 1; i < tuple.length; i++) {
+        if (tuple[i] === oldId) tuple[i] = newId;
+      }
+    }
+  }
 }
 
 function collectLocalDeclNames(calls, out = new Set()) {

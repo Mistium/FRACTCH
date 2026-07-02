@@ -6,18 +6,30 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 import { writeExtensions } from '../src/index.js';
 import { checkFractch } from '../src/lint.js';
 import { parseFractch } from '../src/parse.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SB3 = 'originv6.0.0.sb3';
+const SB3 = (() => {
+  const candidates = [
+    process.env.FRACTCH_ORIGIN,
+    path.join(os.homedir(), 'origin-fractch', 'originv619.sb3'),
+    'originv6.0.0.sb3',
+  ].filter(Boolean);
+  for (const c of candidates) {
+    const abs = path.isAbsolute(c) ? c : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', c);
+    if (fs.existsSync(abs)) return abs;
+  }
+  throw new Error('no origin sb3 found - set FRACTCH_ORIGIN');
+})();
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-'));
 const outDir = path.join(tmp, 'build');
 const outSb3 = path.join(tmp, 'repacked.sb3');
 const run = (cmd) => execSync(cmd, { cwd: root, stdio: 'pipe' });
 
-run(`node ./bin/cli.js --input ${SB3} --out "${outDir}"`);
+run(`node ./bin/cli.js --input "${SB3}" --out "${outDir}"`);
 
 function walk(dir) {
   const out = [];
@@ -29,15 +41,24 @@ function walk(dir) {
   return out;
 }
 
-test('build emits manifest, index, and script files', () => {
+test('build emits manifest and script files without indexes by default', () => {
   assert.ok(fs.existsSync(path.join(outDir, 'manifest.json')));
-  assert.ok(fs.existsSync(path.join(outDir, 'index.fractch')));
+  assert.ok(!fs.existsSync(path.join(outDir, 'index.fractch')));
+  assert.ok(!walk(outDir).some((f) => path.basename(f) === 'index.fractch'));
   assert.ok(walk(outDir).some((f) => f.endsWith('.fractch')));
+});
+
+test('converted output groups each target into main.fractch by default', () => {
+  const scriptFiles = walk(outDir).filter((f) => f.endsWith('.fractch') && path.basename(f) !== 'index.fractch');
+  assert.ok(scriptFiles.length > 0, 'no generated script files');
+  assert.ok(scriptFiles.every((f) => path.relative(outDir, f).split(path.sep).length === 2), 'script file is nested below target');
+  assert.ok(scriptFiles.every((f) => path.basename(f) === 'main.fractch'), 'generated a non-main script file without a marker');
+  assert.ok(scriptFiles.some((f) => /^when flag /m.test(fs.readFileSync(f, 'utf8'))), 'no when-flag script emitted');
 });
 
 test('pack reconstructs every target purely from parsed DSL text', () => {
   run(`node ./bin/cli.js --pack --out "${outDir}" --outSb3 "${outSb3}"`);
-  const a = JSON.parse(new AdmZip(path.join(root, SB3)).readAsText('project.json'));
+  const a = JSON.parse(new AdmZip(SB3).readAsText('project.json'));
   const b = JSON.parse(new AdmZip(outSb3).readAsText('project.json'));
   assert.strictEqual(a.targets.length, b.targets.length);
   for (const ot of a.targets) {
@@ -55,11 +76,11 @@ test('pack reconstructs every target purely from parsed DSL text', () => {
 
 test('pack accepts headerless handwritten projects without a manifest', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-hand-'));
-  const scriptDir = path.join(dir, 'Stage', 'event_whenflagclicked');
+  const scriptDir = path.join(dir, 'Stage');
   fs.mkdirSync(scriptDir, { recursive: true });
   fs.writeFileSync(
     path.join(scriptDir, 'main.fractch'),
-    'event_whenflagclicked();\nlooks_say(MESSAGE= "hello from fractch");\n'
+    'when flag {\n  say "hello from fractch";\n}\n'
   );
   const sb3 = path.join(dir, 'hand.sb3');
 
@@ -94,14 +115,14 @@ test('programmatic API: unpackSb3/packSb3 round-trip without touching cwd', asyn
   const buildDir = path.join(dir, 'build');
   const sb3 = path.join(dir, 'repacked.sb3');
 
-  const result = await unpackSb3({ input: path.join(root, SB3), outDir: buildDir });
+  const result = await unpackSb3({ input: SB3, outDir: buildDir });
   assert.ok(result.filesWritten > 0);
   assert.ok(fs.existsSync(path.join(buildDir, 'manifest.json')));
-  assert.ok(fs.existsSync(path.join(buildDir, 'index.fractch')));
+  assert.ok(!fs.existsSync(path.join(buildDir, 'index.fractch')));
 
-  await packSb3({ buildDir, outSb3: sb3, originSb3: path.join(root, SB3) });
+  await packSb3({ buildDir, outSb3: sb3, originSb3: SB3 });
   const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
-  const orig = JSON.parse(new AdmZip(path.join(root, SB3)).readAsText('project.json'));
+  const orig = JSON.parse(new AdmZip(SB3).readAsText('project.json'));
   assert.strictEqual(project.targets.length, orig.targets.length);
 });
 
@@ -143,12 +164,14 @@ function makeMemoryFs() {
 test('browser entry: convert + pack against an in-memory lightning-fs style fs', async () => {
   const { convertProject, buildProjectFromBuildDir } = await import('../src/browser.js');
   const memfs = makeMemoryFs();
-  const projectJson = JSON.parse(new AdmZip(path.join(root, SB3)).readAsText('project.json'));
+  const projectJson = JSON.parse(new AdmZip(SB3).readAsText('project.json'));
 
   const result = await convertProject(projectJson, { outDir: '/build', fs: memfs });
   assert.ok(result.filesWritten > 0);
   assert.ok((await memfs.promises.readFile('/build/manifest.json', 'utf8')).length > 0);
-  assert.ok((await memfs.promises.readFile('/build/index.fractch', 'utf8')).includes('import "'));
+  const mainTarget = projectJson.targets.find((t) => Object.keys(t.blocks || {}).length > 0);
+  const sanitized = mainTarget.name.replace(/[^a-zA-Z0-9-_]/g, '_');
+  assert.ok((await memfs.promises.readFile(`/build/${sanitized}/main.fractch`, 'utf8')).includes('when '));
 
   const { manifest } = await buildProjectFromBuildDir({ buildDir: '/build', fs: memfs });
   const origCounts = projectJson.targets.map((t) => Object.keys(t.blocks || {}).length);
@@ -162,11 +185,11 @@ test('browser entry: convert + pack against an in-memory lightning-fs style fs',
 
 test('index imports choose which top-level scripts are packed', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-index-'));
-  const scriptDir = path.join(dir, 'Stage', 'event_whenflagclicked');
+  const scriptDir = path.join(dir, 'Stage');
   fs.mkdirSync(scriptDir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'index.fractch'), 'import "./Stage/event_whenflagclicked/keep.fractch";\n');
-  fs.writeFileSync(path.join(scriptDir, 'keep.fractch'), 'event_whenflagclicked();\nlooks_say(MESSAGE= "keep");\n');
-  fs.writeFileSync(path.join(scriptDir, 'drop.fractch'), 'event_whenflagclicked();\nlooks_say(MESSAGE= "drop");\n');
+  fs.writeFileSync(path.join(dir, 'index.fractch'), 'import "./Stage/keep.fractch";\n');
+  fs.writeFileSync(path.join(scriptDir, 'keep.fractch'), 'when flag {\n  say "keep";\n}\n');
+  fs.writeFileSync(path.join(scriptDir, 'drop.fractch'), 'when flag {\n  say "drop";\n}\n');
   const sb3 = path.join(dir, 'indexed.sb3');
 
   run(`node ./bin/cli.js --pack --out "${dir}" --outSb3 "${sb3}"`);
@@ -179,22 +202,179 @@ test('index imports choose which top-level scripts are packed', () => {
   assert.deepStrictEqual(messages, ['keep']);
 });
 
-test('all assets (costumes/sounds) round-trip byte-identically', () => {
-  // project.json is reconstructed from parsed DSL text (see the pack test
-  // above) - only the non-block assets are expected byte-identical here.
-  const a = new AdmZip(path.join(root, SB3));
+test('human asset declarations derive ids/formats from file bytes', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-humanassets-'));
+  fs.mkdirSync(path.join(dir, 'Stage', 'assets'), { recursive: true });
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><!--bg--></svg>';
+  const wav = Buffer.from('RIFFfakewavdata');
+  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 'bg.svg'), svg);
+  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 'pop.wav'), wav);
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'costume "bg" file "assets/bg.svg" center 240,180;\n' +
+      'sound "pop" file "assets/pop.wav" rate 48000 samples 1123;\n' +
+      'when flag {\n  sound.playuntildone(SOUND_MENU: sound.sounds_menu("pop"));\n  say "hi";\n}\n'
+  );
+  const sb3 = path.join(dir, 'human.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+
+  const zip = new AdmZip(sb3);
+  const stage = JSON.parse(zip.readAsText('project.json')).targets.find((t) => t.name === 'Stage');
+  const svgMd5 = crypto.createHash('md5').update(svg).digest('hex');
+  const wavMd5 = crypto.createHash('md5').update(wav).digest('hex');
+  assert.deepStrictEqual(stage.costumes[0], {
+    name: 'bg',
+    bitmapResolution: 1,
+    dataFormat: 'svg',
+    assetId: svgMd5,
+    md5ext: `${svgMd5}.svg`,
+    rotationCenterX: 240,
+    rotationCenterY: 180,
+  });
+  assert.deepStrictEqual(stage.sounds[0], {
+    name: 'pop',
+    assetId: wavMd5,
+    dataFormat: 'wav',
+    format: '',
+    rate: 48000,
+    sampleCount: 1123,
+    md5ext: `${wavMd5}.wav`,
+  });
+  assert.ok(zip.getEntry(`${svgMd5}.svg`), 'costume bytes missing from sb3');
+  assert.ok(zip.getEntry(`${wavMd5}.wav`), 'sound bytes missing from sb3');
+});
+
+test('unused costumes/sounds are pruned; dynamic references keep everything', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-prune-'));
+  fs.mkdirSync(path.join(dir, 'Stage', 'assets'), { recursive: true });
+  const mk = (n) => fs.writeFileSync(path.join(dir, 'Stage', 'assets', n), `<svg xmlns="http://www.w3.org/2000/svg"><!--${n}--></svg>`);
+  mk('a.svg');
+  mk('b.svg');
+  mk('c.svg');
+  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 's1.wav'), 'RIFF1');
+  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 's2.wav'), 'RIFF2');
+  const decls =
+    'costume "a" file "assets/a.svg";\ncostume "b" file "assets/b.svg";\ncostume "c" file "assets/c.svg";\n' +
+    'sound "used" file "assets/s1.wav";\nsound "unused" file "assets/s2.wav";\n';
+
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    decls + 'when flag {\n  backdrop "b";\n  sound.play(SOUND_MENU: sound.sounds_menu("used"));\n}\n'
+  );
+  const sb3 = path.join(dir, 'pruned.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+  const stage = JSON.parse(new AdmZip(sb3).readAsText('project.json')).targets.find((t) => t.name === 'Stage');
+  assert.deepStrictEqual(stage.costumes.map((c) => c.name), ['a', 'b'], 'current + referenced costumes kept');
+  assert.strictEqual(stage.currentCostume, 0);
+  assert.deepStrictEqual(stage.sounds.map((s) => s.name), ['used']);
+
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    decls + 'when flag {\n  costume sensing.answer();\n}\n'
+  );
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+  const stage2 = JSON.parse(new AdmZip(sb3).readAsText('project.json')).targets.find((t) => t.name === 'Stage');
+  assert.deepStrictEqual(stage2.costumes.map((c) => c.name), ['a', 'b', 'c'], 'dynamic costume keeps all');
+});
+
+test('index imports prune unimported target assets from packed sb3', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-assets-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Sprite'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Stage', 'assets'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Sprite', 'assets'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'index.fractch'), 'import "./Stage/main.fractch";\n');
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'costume "backdrop" file "assets/stage.svg";\n' + 'when flag {\n  say "stage";\n}\n'
+  );
+  fs.writeFileSync(
+    path.join(dir, 'Sprite', 'main.fractch'),
+    'costume "costume" file "assets/sprite.svg";\n' + 'when flag {\n  say "sprite";\n}\n'
+  );
+  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 'stage.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><!--stage--></svg>');
+  fs.writeFileSync(path.join(dir, 'Sprite', 'assets', 'sprite.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><!--sprite--></svg>');
+  fs.writeFileSync(
+    path.join(dir, 'manifest.json'),
+    JSON.stringify({
+      targets: [
+        {
+          isStage: true,
+          name: 'Stage',
+          variables: {},
+          lists: {},
+          broadcasts: {},
+          blocks: {},
+          comments: {},
+          currentCostume: 0,
+          costumes: [{ name: 'backdrop', assetId: 'stage', dataFormat: 'svg', md5ext: 'stage.svg' }],
+          sounds: [],
+          volume: 100,
+          layerOrder: 0,
+          tempo: 60,
+          videoTransparency: 50,
+          videoState: 'on',
+          textToSpeechLanguage: null,
+        },
+        {
+          isStage: false,
+          name: 'Sprite',
+          variables: {},
+          lists: {},
+          broadcasts: {},
+          blocks: {},
+          comments: {},
+          currentCostume: 0,
+          costumes: [{ name: 'costume', assetId: 'sprite', dataFormat: 'svg', md5ext: 'sprite.svg' }],
+          sounds: [],
+          volume: 100,
+          layerOrder: 1,
+          visible: true,
+          x: 0,
+          y: 0,
+          size: 100,
+          direction: 90,
+          draggable: false,
+          rotationStyle: 'all around',
+        },
+      ],
+      monitors: [],
+      extensions: [],
+      meta: { semver: '3.0.0', vm: '0.2.0', agent: 'FRACTCH' },
+    })
+  );
+  const sb3 = path.join(dir, 'assets.sb3');
+
+  run(`node ./bin/cli.js --pack --out "${dir}" --outSb3 "${sb3}"`);
+
+  const zip = new AdmZip(sb3);
+  const project = JSON.parse(zip.readAsText('project.json'));
+  assert.ok(project.targets.some((t) => t.name === 'Stage'));
+  assert.ok(!project.targets.some((t) => t.name === 'Sprite'));
+  const stageCostume = project.targets.find((t) => t.name === 'Stage').costumes[0];
+  assert.match(stageCostume.md5ext, /^[0-9a-f]{32}\.svg$/, 'md5ext not derived from file contents');
+  const svgEntries = zip.getEntries().filter((e) => e.entryName.endsWith('.svg')).map((e) => e.entryName);
+  assert.deepStrictEqual(svgEntries, [stageCostume.md5ext], 'unimported target asset was packed');
+});
+
+test('every repacked asset is byte-identical to its original', () => {
+  // Unused assets may be pruned and non-asset extras need --origin, so the
+  // repack's asset set is a subset of the origin's - but every asset that IS
+  // packed must be byte-for-byte the original.
+  const a = new AdmZip(SB3);
   const b = new AdmZip(outSb3);
-  const ea = new Map(a.getEntries().map((e) => [e.entryName, a.readFile(e)]).filter(([name]) => name !== 'project.json'));
-  const eb = new Map(b.getEntries().map((e) => [e.entryName, b.readFile(e)]).filter(([name]) => name !== 'project.json'));
-  assert.strictEqual(ea.size, eb.size);
-  for (const [name, buf] of ea) {
-    assert.ok(eb.has(name), `missing ${name}`);
-    assert.strictEqual(Buffer.compare(buf, eb.get(name)), 0, `differs ${name}`);
+  const assetShaped = /^[0-9a-f]{32}\.[A-Za-z0-9]+$/;
+  const ea = new Map(a.getEntries().map((e) => [e.entryName, a.readFile(e)]));
+  const repackAssets = b.getEntries().filter((e) => assetShaped.test(e.entryName));
+  assert.ok(repackAssets.length > 0, 'no assets in repack');
+  for (const e of repackAssets) {
+    assert.ok(ea.has(e.entryName), `unexpected asset ${e.entryName}`);
+    assert.strictEqual(Buffer.compare(b.readFile(e), ea.get(e.entryName)), 0, `differs ${e.entryName}`);
   }
 });
 
 test('custom block defs and calls use the @ prefix', () => {
-  const procFiles = walk(outDir).filter((f) => f.includes('procedures_definition') && f.endsWith('.fractch'));
+  const procFiles = walk(outDir).filter((f) => f.endsWith('.fractch'));
   assert.ok(procFiles.length > 0, 'no procedure files');
   const withDef = procFiles.map((f) => fs.readFileSync(f, 'utf8')).find((t) => /def @[A-Za-z0-9_]+\(/.test(t));
   assert.ok(withDef, 'no `def @Name(` found');
@@ -278,6 +458,28 @@ test('negated comparisons desugar to not() wrapping the opposite operator', () =
   assert.strictEqual(bang.args[0].value.value.callee.name, 'sensing_mousedown');
 });
 
+test('boolean literals use Scratch equality blocks and empty not renders true', async () => {
+  const { buildBlocksFromCalls, IdGen } = await import('../src/buildBlocks.js');
+  const { stringifyBlockCall } = await import('../src/stringify.js');
+
+  const parsed = parseFractch('if true {\n  say "ok";\n}\n').calls;
+  const { blocks, topId } = buildBlocksFromCalls(parsed, { idGen: new IdGen() });
+  const condId = blocks[topId].inputs.CONDITION[1];
+  assert.strictEqual(blocks[condId].opcode, 'operator_equals');
+  assert.deepStrictEqual(blocks[condId].inputs.OPERAND1, [1, [4, '0']]);
+  assert.deepStrictEqual(blocks[condId].inputs.OPERAND2, [1, [4, '0']]);
+
+  const truth = {
+    opcode: 'operator_equals',
+    inputs: { OPERAND1: [1, [4, '0']], OPERAND2: [1, [4, '0']] },
+    fields: {},
+  };
+  assert.strictEqual(stringifyBlockCall(truth, {}, 'truth', true), 'true');
+
+  const emptyNot = { opcode: 'operator_not', inputs: {}, fields: {} };
+  assert.strictEqual(stringifyBlockCall(emptyNot, {}, 'not', true), 'true');
+});
+
 test('bare broadcast names and stop options parse to the right blocks', () => {
   const b = parseFractch('broadcast LoadFiles;\n').calls[0];
   assert.strictEqual(b.callee.name, 'event_broadcast');
@@ -291,6 +493,76 @@ test('bare broadcast names and stop options parse to the right blocks', () => {
   const quoted = parseFractch('stop "other scripts in sprite";\nbroadcast "Load Files";\n').calls;
   assert.deepStrictEqual(quoted[0].args[0].value.value, ['other scripts in sprite']);
   assert.strictEqual(quoted[1].args[0].value.value, 'Load Files');
+});
+
+test('comments are skipped everywhere and never reach the project', () => {
+  const src = '// header note\nwhen flag { // trailing\n  say "hi"; /* block { ( */\n  move 10;\n}\n';
+  const { scripts, errors } = parseFractch(src);
+  assert.deepStrictEqual(errors, []);
+  assert.deepStrictEqual(
+    scripts[0].calls.map((c) => c.callee.name),
+    ['event_whenflagclicked', 'looks_say', 'motion_movesteps']
+  );
+  assert.strictEqual(checkFractch(src).length, 0, 'lint should ignore comment contents');
+});
+
+test('sprites[] property sugar round-trips through sensing_of', async () => {
+  const { buildBlocksFromCalls, IdGen } = await import('../src/buildBlocks.js');
+  const src = 'when flag {\n  goto sprites["Ui"].x, sprites["hotbar//h"].y;\n  say sprites["P"].vars["hp"];\n}\n';
+  const { scripts, errors } = parseFractch(src);
+  assert.deepStrictEqual(errors, []);
+  const { blocks } = buildBlocksFromCalls(scripts[0].calls, { idGen: new IdGen() });
+  const ofs = Object.values(blocks).filter((b) => b.opcode === 'sensing_of');
+  assert.deepStrictEqual(ofs.map((b) => b.fields.PROPERTY[0]), ['x position', 'y position', 'hp']);
+  const menus = Object.values(blocks).filter((b) => b.opcode === 'sensing_of_object_menu');
+  assert.strictEqual(menus.length, 3);
+  assert.ok(menus.every((m) => m.shadow === true));
+});
+
+test('custom block calls take positional arguments', () => {
+  const src = 'def @add(amount, reason) {\n  score += amount;\n}\n\nwhen flag {\n  @add(10, "bonus");\n}\n';
+  const { scripts, errors } = parseFractch(src);
+  assert.deepStrictEqual(errors, []);
+  const call = scripts[1].calls[1];
+  assert.strictEqual(call.callee.type, 'procedureCall');
+  assert.strictEqual(call.args.length, 2);
+  assert.strictEqual(call.args[0].kind, 'positional');
+});
+
+test('error suite: clear messages with hints and did-you-mean', async () => {
+  const { checkProject } = await import('../src/check.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-errors-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'costume "bg" file "assets/missing.svg";\n' +
+      'def @add_score(amount) {\n  score += amount;\n}\n' +
+      'when flg {\n}\n' +
+      'when flag {\n' +
+      '  local hp = 10;\n  local hp = 20;\n' +
+      '  @ad_score(1);\n  @add_score(1, 2, 3);\n' +
+      '  lists["inv"].append("x");\n  say sprites["P"].xpos;\n' +
+      '  looks.say(MESSAGE 5);\n' +
+      '}\n'
+  );
+  const { problems } = await checkProject({ buildDir: dir, fs });
+  const all = problems.map((p) => p.message).join('\n');
+  assert.match(all, /did you mean 'when flag'/);
+  assert.match(all, /did you mean @add_score/);
+  assert.match(all, /takes 1 argument but this call passes 3/);
+  assert.match(all, /local 'hp' is declared twice/);
+  assert.match(all, /missing file: assets\/missing\.svg/);
+  assert.match(all, /lists have no '\.append/);
+  assert.match(all, /sprites have no '\.xpos'/);
+  assert.match(all, /expected ',' or '\)' after an argument/);
+  assert.ok(problems.some((p) => p.hint), 'problems carry hints');
+  assert.ok(problems.some((p) => p.line > 0 && p.col > 0), 'problems carry positions');
+});
+
+test('unterminated strings fail at the line break instead of eating the file', () => {
+  const { errors, scripts } = parseFractch('when flag {\n  say "oops;\n  move 10;\n}\n');
+  assert.ok(errors.some((e) => /never closes/.test(e.message)));
+  assert.ok(scripts[0].calls.some((c) => c.callee.name === 'motion_movesteps'), 'statements after the bad string still parse');
 });
 
 test('parse errors carry file line numbers', () => {
@@ -340,13 +612,27 @@ test('menu shadows round-trip: positional arg form and ?? obscured form', async 
   assert.deepStrictEqual(e.blocks[eTop.inputs.list[1]].fields.get_list, ['L']);
 });
 
-test('repack preserves every shadow menu block (opcode histogram parity)', () => {
-  const a = JSON.parse(new AdmZip(path.join(root, SB3)).readAsText('project.json'));
+test('repack preserves every visible shadow menu block', () => {
+  // Obscured menu shadows (hidden behind a plugged-in reporter) are
+  // intentionally dropped - the editor regenerates them on load. Visible
+  // menus carry the block's actual argument and must all survive.
+  const a = JSON.parse(new AdmZip(SB3).readAsText('project.json'));
   const b = JSON.parse(new AdmZip(outSb3).readAsText('project.json'));
   const hist = (p) => {
     const m = new Map();
-    for (const t of p.targets) for (const bl of Object.values(t.blocks || {})) {
-      if (bl?.opcode?.includes('menu') || bl?.opcode === 'sensing_keyoptions') m.set(bl.opcode, (m.get(bl.opcode) || 0) + 1);
+    for (const t of p.targets) {
+      const blocks = t.blocks || {};
+      for (const bl of Object.values(blocks)) {
+        if (!bl || Array.isArray(bl) || !bl.inputs) continue;
+        for (const tuple of Object.values(bl.inputs)) {
+          if (!Array.isArray(tuple) || typeof tuple[1] !== 'string') continue;
+          const child = blocks[tuple[1]];
+          if (!child?.opcode) continue;
+          if (child.opcode.includes('menu') || child.opcode === 'sensing_keyoptions') {
+            m.set(child.opcode, (m.get(child.opcode) || 0) + 1);
+          }
+        }
+      }
     }
     return m;
   };
@@ -374,15 +660,56 @@ test('multiple scripts per file: when/def/script split into separate stacks', ()
 });
 
 test('statement aliases and bare assignment desugar to real opcodes', () => {
-  const src = 'score = 1;\nscore += 2;\nsay score for 2;\ncostume "walk";\nclone;\nshow;\n';
+  const src = 'score = 1;\nscore += 2;\nsay score for 2;\ncostume "walk";\nclone;\nshow;\nchange_effect brightness by 25;\nset_effect ghost to 50;\nclear_effects;\n';
   const { calls, errors } = parseFractch(src);
   assert.deepStrictEqual(errors, []);
   assert.deepStrictEqual(
     calls.map((c) => c.callee.name),
-    ['data_setvariableto', 'data_changevariableby', 'looks_sayforsecs', 'looks_switchcostumeto', 'control_create_clone_of', 'looks_show']
+    [
+      'data_setvariableto',
+      'data_changevariableby',
+      'looks_sayforsecs',
+      'looks_switchcostumeto',
+      'control_create_clone_of',
+      'looks_show',
+      'looks_changeeffectby',
+      'looks_seteffectto',
+      'looks_cleargraphiceffects',
+    ]
   );
   assert.strictEqual(calls[0].args[0].sep, 'field');
   assert.strictEqual(calls[0].args[0].value.name, 'score');
+  assert.deepStrictEqual(calls[6].args[1].value.value, ['BRIGHTNESS']);
+  assert.deepStrictEqual(calls[7].args[1].value.value, ['GHOST']);
+});
+
+test('looks effect blocks render as effect statement sugar', async () => {
+  const { buildBlocksFromCalls, IdGen } = await import('../src/buildBlocks.js');
+  const { stringifyBlockCall } = await import('../src/stringify.js');
+  const { calls } = parseFractch('change_effect brightness by 25;\nset_effect ghost to 50;\nclear_effects;\n');
+  const { blocks, topId } = buildBlocksFromCalls(calls, { idGen: new IdGen() });
+
+  assert.strictEqual(stringifyBlockCall(blocks[topId], blocks, topId), 'change_effect brightness by 25;');
+  const secondId = blocks[topId].next;
+  assert.strictEqual(stringifyBlockCall(blocks[secondId], blocks, secondId), 'set_effect ghost to 50;');
+  const thirdId = blocks[secondId].next;
+  assert.strictEqual(stringifyBlockCall(blocks[thirdId], blocks, thirdId), 'clear_effects;');
+});
+
+test('nested non-main fractch files are preserved across pack then convert', async () => {
+  const { buildProjectFromBuildDir, convertProject } = await import('../src/index.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-folders-'));
+  fs.mkdirSync(path.join(dir, 'Stage', 'systems'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'Stage', 'main.fractch'), 'when flag {\n  say "main";\n}\n');
+  fs.writeFileSync(path.join(dir, 'Stage', 'systems', 'ui.fractch'), 'when broadcast Ping {\n  say "ui";\n}\n');
+
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir });
+  const out = path.join(dir, 'out');
+  await convertProject(manifest, { outDir: out });
+
+  assert.ok(fs.existsSync(path.join(out, 'Stage', 'main.fractch')), 'main.fractch missing after convert');
+  assert.ok(fs.existsSync(path.join(out, 'Stage', 'systems', 'ui.fractch')), 'nested side file missing after convert');
+  assert.match(fs.readFileSync(path.join(out, 'Stage', 'systems', 'ui.fractch'), 'utf8'), /when broadcast Ping/);
 });
 
 test('list sugar desugars to data_* blocks and round-trips through build', async () => {
@@ -406,7 +733,7 @@ test('list sugar desugars to data_* blocks and round-trips through build', async
 
 test('local declarations become namespaced variables at pack time', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-local-'));
-  const scriptDir = path.join(dir, 'Stage', 'event_whenflagclicked');
+  const scriptDir = path.join(dir, 'Stage');
   fs.mkdirSync(scriptDir, { recursive: true });
   fs.writeFileSync(
     path.join(scriptDir, 'main.fractch'),
@@ -467,13 +794,14 @@ test('extensions folder is generated during build', () => {
   assert.ok(fs.existsSync(path.join(outDir, 'extensions', 'index.json')));
 });
 
-test('costumes/sounds are extracted to the build (assets + listings)', () => {
-  assert.ok(fs.existsSync(path.join(outDir, 'assets')));
-  assert.ok(fs.readdirSync(path.join(outDir, 'assets')).length > 0);
-  const listings = walk(outDir).filter((f) => path.basename(f) === 'costumes.json');
-  assert.ok(listings.length > 0, 'no costumes.json emitted');
-  const costumes = JSON.parse(fs.readFileSync(listings[0], 'utf8'));
-  assert.ok(Array.isArray(costumes) && costumes.length > 0);
+test('costumes/sounds are emitted as target-local assets and code declarations', () => {
+  assert.ok(!fs.existsSync(path.join(outDir, 'assets')), 'global assets folder should not be emitted');
+  assert.ok(!walk(outDir).some((f) => path.basename(f) === 'costumes.json'), 'costumes.json should not be emitted');
+  assert.ok(!walk(outDir).some((f) => path.basename(f) === 'sounds.json'), 'sounds.json should not be emitted');
+  const targetAssets = walk(outDir).filter((f) => f.includes(`${path.sep}assets${path.sep}`));
+  assert.ok(targetAssets.length > 0, 'no target-local assets emitted');
+  const main = walk(outDir).find((f) => path.basename(f) === 'main.fractch');
+  assert.match(fs.readFileSync(main, 'utf8'), /^costume ".+" file "assets\//m);
 });
 
 test('lint accepts valid fractch and reports balanced-delimiter errors', () => {
