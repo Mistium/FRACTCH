@@ -1,4 +1,4 @@
-import { stringifyBlockCall, stringifyFields, stringifyInputs, setContext, renderBody, commentDeclLine } from './stringify.js';
+import { stringifyBlockCall, stringifyFields, stringifyInputs, setContext, renderBody, commentDeclLine, inputValueText } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
 export function emitScriptFile({ target, script, subgraph, index, context, cfg = {} }) {
@@ -224,7 +224,7 @@ function emitScriptBody({ script, subgraph, context, cfg = {} }) {
     body = inner ? `${sig}${at} {\n${indentBlock(inner)}\n}` : `${sig}${at} {}`;
   } else {
     const top = subgraph[topBlockId];
-    const sugar = top ? whenSugarFor(top, context) : null;
+    const sugar = top ? whenSugarFor(top, context, subgraph) : null;
     if (sugar) {
       let rest = top.next ? renderBody(subgraph, top.next, cfg) : '';
       rest = prependOwnComments(context, topBlockId, rest);
@@ -435,10 +435,16 @@ function nameToken(name) {
 // Hat blocks with a `when` sugar spelling. Anything not here (extension
 // hats, orphan chains) keeps the plain call-chain format, which the parser
 // still accepts - and hand-written files can use `when <any.call()> { }`.
-function whenSugarFor(block, context) {
+function whenSugarFor(block, context, subgraph) {
   const op = block.opcode;
   const fields = block.fields || {};
   const inputs = Object.keys(block.inputs || {});
+  if (op === 'event_whengreaterthan' && !block.mutation && inputs.length === 1 && inputs[0] === 'VALUE') {
+    const menu = String(fields.WHENGREATERTHANMENU?.[0] ?? '').toLowerCase();
+    if (menu === 'loudness' || menu === 'timer') {
+      return `${menu} > ${inputValueText(block.inputs.VALUE, subgraph, 'VALUE')}`;
+    }
+  }
   if (inputs.length || block.mutation) return null;
   const fieldKeys = Object.keys(fields);
   if (op === 'event_whenflagclicked' && !fieldKeys.length) return 'flag';

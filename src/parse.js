@@ -16,7 +16,7 @@ const STATEMENT_KEYWORDS = setWithCamel([
   'dangling_next', 'when', 'script', 'lists', 'local', 'sound',
   'use', 'var', 'cloud', 'sprite', 'stage', 'watch', 'comment', 'platform',
   'say', 'think', 'ask', 'show', 'hide', 'move', 'turn', 'turn_left', 'goto', 'glide',
-  'gotoXY', 'glideXY', 'glide_to', 'goto_mouse', 'goto_random', 'glide_to_mouse', 'glide_to_random',
+  'gotoXY', 'glideXY', 'changeXY', 'glide_to', 'goto_mouse', 'goto_random', 'glide_to_mouse', 'glide_to_random',
   'point', 'point_towards', 'point_towards_mouse', 'point_towards_random', 'set_x', 'set_y', 'change_x', 'change_y', 'set_size', 'change_size',
   'set_effect', 'change_effect', 'clear_effects', 'if_on_edge_bounce', 'set_rotation_style',
   'costume', 'next_costume', 'backdrop', 'next_backdrop', 'clone', 'clone_myself', 'delete_clone',
@@ -99,6 +99,40 @@ const UNARY_SUGAR = new Set([
   'asin', 'acos', 'atan', 'ln', 'log', 'exp', 'exp10',
 ]);
 const MATHOP_NAME = { exp: 'e ^', exp10: '10 ^' };
+
+// Builtin reporters as function calls: `answer()`, `xPosition()`, `touchingMouse()`.
+const REPORTER_NULLARY = {
+  xPosition: 'motion_xposition', yPosition: 'motion_yposition', direction: 'motion_direction',
+  size: 'looks_size', volume: 'sound_volume',
+  answer: 'sensing_answer', timer: 'sensing_timer', loudness: 'sensing_loudness',
+  mouseX: 'sensing_mousex', mouseY: 'sensing_mousey', mouseDown: 'sensing_mousedown',
+  username: 'sensing_username', daysSince2000: 'sensing_dayssince2000',
+};
+const REPORTER_FIELD = {
+  costumeNumber: ['looks_costumenumbername', 'NUMBER_NAME', 'number'],
+  costumeName: ['looks_costumenumbername', 'NUMBER_NAME', 'name'],
+  backdropNumber: ['looks_backdropnumbername', 'NUMBER_NAME', 'number'],
+  backdropName: ['looks_backdropnumbername', 'NUMBER_NAME', 'name'],
+  currentYear: ['sensing_current', 'CURRENTMENU', 'YEAR'],
+  currentMonth: ['sensing_current', 'CURRENTMENU', 'MONTH'],
+  currentDate: ['sensing_current', 'CURRENTMENU', 'DATE'],
+  currentDayOfWeek: ['sensing_current', 'CURRENTMENU', 'DAYOFWEEK'],
+  currentHour: ['sensing_current', 'CURRENTMENU', 'HOUR'],
+  currentMinute: ['sensing_current', 'CURRENTMENU', 'MINUTE'],
+  currentSecond: ['sensing_current', 'CURRENTMENU', 'SECOND'],
+};
+const REPORTER_MENU_SUGAR = {
+  touching: ['sensing_touchingobject', 'TOUCHINGOBJECTMENU', 'sensing_touchingobjectmenu', null],
+  touchingMouse: ['sensing_touchingobject', 'TOUCHINGOBJECTMENU', 'sensing_touchingobjectmenu', '_mouse_'],
+  touchingEdge: ['sensing_touchingobject', 'TOUCHINGOBJECTMENU', 'sensing_touchingobjectmenu', '_edge_'],
+  distanceTo: ['sensing_distanceto', 'DISTANCETOMENU', 'sensing_distancetomenu', null],
+  distanceToMouse: ['sensing_distanceto', 'DISTANCETOMENU', 'sensing_distancetomenu', '_mouse_'],
+  keyPressed: ['sensing_keypressed', 'KEY_OPTION', 'sensing_keyoptions', null],
+};
+const REPORTER_FUNC_SUGAR = {
+  touchingColor: ['sensing_touchingcolor', ['COLOR']],
+  colorTouchingColor: ['sensing_coloristouchingcolor', ['COLOR', 'COLOR2']],
+};
 
 const BRANCH_SUBSTACK_OPCODES = new Set([
   'control_forever', 'control_switch', 'control_case', 'control_case_fallthrough',
@@ -622,6 +656,20 @@ class Parser {
       const name = this.parseNameToken();
       return makeCall('event_whenbackdropswitchesto', [keyedField('BACKDROP', { type: 'array', value: [name] })]);
     }
+    if (word === 'loudness' || word === 'timer') {
+      const save = this.snapshot();
+      this.tryIdentifier();
+      this.skipWS();
+      if (this.peek() === '>') {
+        this.i++;
+        const v = this.parseInputValue();
+        return makeCall('event_whengreaterthan', [
+          keyedField('WHENGREATERTHANMENU', { type: 'array', value: [word.toUpperCase()] }),
+          keyedInput('VALUE', v),
+        ]);
+      }
+      this.restore(save);
+    }
     if (word && /^[A-Za-z_]+$/.test(word)) {
       const save = this.snapshot();
       this.tryIdentifier();
@@ -864,6 +912,23 @@ class Parser {
         const y = this.parseInputValue();
         this.tryChar(';');
         return makeCall('motion_gotoxy', [keyedInput('X', x), keyedInput('Y', y)]);
+      }
+      case 'change_xy': {
+        const dx = this.parseInputValue();
+        this.tryChar(',');
+        const dy = this.parseInputValue();
+        this.tryChar(';');
+        const rel = (posOpcode, delta) => ({
+          type: 'call',
+          value: makeCall('operator_add', [
+            keyedInput('NUM1', { type: 'call', value: makeCall(posOpcode, []) }),
+            keyedInput('NUM2', delta),
+          ]),
+        });
+        return makeCall('motion_gotoxy', [
+          keyedInput('X', rel('motion_xposition', dx)),
+          keyedInput('Y', rel('motion_yposition', dy)),
+        ]);
       }
       case 'goto': {
         const first = this.parseInputValue();
@@ -1597,6 +1662,45 @@ class Parser {
         type: 'call',
         value: makeCall('operator_mathop', [keyedField('OPERATOR', { type: 'array', value: [opName] }), keyedInput('NUM', arg)]),
       };
+    }
+    if (REPORTER_NULLARY[word] && this.peek() === '(') {
+      this.i++;
+      this.skipWS();
+      this.expectChar(')');
+      return { type: 'call', value: makeCall(REPORTER_NULLARY[word], []) };
+    }
+    if (REPORTER_FIELD[word] && this.peek() === '(') {
+      this.i++;
+      this.skipWS();
+      this.expectChar(')');
+      const [opcode, fk, fv] = REPORTER_FIELD[word];
+      return { type: 'call', value: makeCall(opcode, [keyedField(fk, { type: 'array', value: [fv] })]) };
+    }
+    if (REPORTER_MENU_SUGAR[word] && this.peek() === '(') {
+      const [opcode, key, menuOpcode, sentinel] = REPORTER_MENU_SUGAR[word];
+      this.i++;
+      this.skipWS();
+      let v;
+      if (sentinel != null) {
+        v = menuValueNode(menuOpcode, sentinel);
+      } else {
+        v = menuInputNode(menuOpcode, this.parseExpr());
+      }
+      this.skipWS();
+      this.expectChar(')');
+      return { type: 'call', value: makeCall(opcode, [keyedInput(key, v)]) };
+    }
+    if (REPORTER_FUNC_SUGAR[word] && this.peek() === '(') {
+      const [opcode, keys] = REPORTER_FUNC_SUGAR[word];
+      this.i++;
+      const args = [];
+      for (let k = 0; k < keys.length; k++) {
+        if (k) this.tryChar(',');
+        args.push(keyedInput(keys[k], this.parseExpr()));
+      }
+      this.skipWS();
+      this.expectChar(')');
+      return { type: 'call', value: makeCall(opcode, args) };
     }
 
     let callee = word;

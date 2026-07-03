@@ -223,7 +223,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
       const raw = Array.isArray(childId) ? String(childId[1] ?? '') : '';
       name = BARE_NAME.test(raw) && !RESERVED_WORDS.has(raw) ? raw : JSON.stringify(raw);
     }
-    const w = opcode === 'event_broadcastandwait' ? 'broadcast_wait' : 'broadcast';
+    const w = opcode === 'event_broadcastandwait' ? 'broadcastWait' : 'broadcast';
     return `${w} ${name};`;
   }
 
@@ -235,6 +235,11 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   const opExpr = tryOperatorInfo(block, subgraph);
   if (opExpr) {
     return inline ? opExpr.text : opExpr.text + ';';
+  }
+
+  const rep = tryReporterInfo(block, subgraph);
+  if (rep) {
+    return inline ? rep.text : rep.text + ';';
   }
 
   const listExpr = tryListExpr(block, subgraph);
@@ -334,6 +339,82 @@ const SPRITE_PROP_EMIT = {
   'costume #': 'costume_number', 'costume name': 'costume_name',
   'backdrop #': 'backdrop_number', 'backdrop name': 'backdrop_name',
 };
+
+const NULLARY_REPORTER_EMIT = {
+  motion_xposition: 'xPosition', motion_yposition: 'yPosition', motion_direction: 'direction',
+  looks_size: 'size', sound_volume: 'volume',
+  sensing_answer: 'answer', sensing_timer: 'timer', sensing_loudness: 'loudness',
+  sensing_mousex: 'mouseX', sensing_mousey: 'mouseY', sensing_mousedown: 'mouseDown',
+  sensing_username: 'username', sensing_dayssince2000: 'daysSince2000',
+};
+const FIELD_REPORTER_EMIT = {
+  looks_costumenumbername: ['NUMBER_NAME', { number: 'costumeNumber', name: 'costumeName' }],
+  looks_backdropnumbername: ['NUMBER_NAME', { number: 'backdropNumber', name: 'backdropName' }],
+  sensing_current: ['CURRENTMENU', { YEAR: 'currentYear', MONTH: 'currentMonth', DATE: 'currentDate', DAYOFWEEK: 'currentDayOfWeek', HOUR: 'currentHour', MINUTE: 'currentMinute', SECOND: 'currentSecond' }],
+};
+const REPORTER_MENU_EMIT = {
+  sensing_touchingobject: { base: 'touching', key: 'TOUCHINGOBJECTMENU', menu: 'sensing_touchingobjectmenu', sentinels: { _mouse_: 'touchingMouse', _edge_: 'touchingEdge' } },
+  sensing_distanceto: { base: 'distanceTo', key: 'DISTANCETOMENU', menu: 'sensing_distancetomenu', sentinels: { _mouse_: 'distanceToMouse' } },
+  sensing_keypressed: { base: 'keyPressed', key: 'KEY_OPTION', menu: 'sensing_keyoptions', sentinels: {} },
+};
+const REPORTER_FUNC_EMIT = {
+  sensing_touchingcolor: ['touchingColor', ['COLOR']],
+  sensing_coloristouchingcolor: ['colorTouchingColor', ['COLOR', 'COLOR2']],
+};
+
+function menuReporterText(block, subgraph, spec) {
+  const inputKeys = Object.keys(block.inputs || {});
+  if (inputKeys.length !== 1 || !(spec.key in block.inputs)) return null;
+  const arr = block.inputs[spec.key];
+  const childId = Array.isArray(arr) ? arr[1] : null;
+  const child = typeof childId === 'string' ? subgraph[childId] : null;
+  if (child && child.shadow) {
+    if (child.opcode !== spec.menu) return null;
+    const mf = child.fields || {};
+    const mk = Object.keys(mf);
+    if (Object.keys(child.inputs || {}).length || mk.length !== 1 || mk[0] !== spec.key) return null;
+    const val = mf[spec.key];
+    if (typeof val[0] !== 'string' || (val.length > 1 && val[1] != null)) return null;
+    const value = val[0];
+    if (spec.sentinels[value]) return `${spec.sentinels[value]}()`;
+    return `${spec.base}(${JSON.stringify(value)})`;
+  }
+  if (child && !child.shadow) return `${spec.base}(${inputValueText(arr, subgraph, spec.key)})`;
+  if (!child && Array.isArray(arr[1])) {
+    if (arr[1][0] === 10) return null;
+    return `${spec.base}(${inputValueText(arr, subgraph, spec.key)})`;
+  }
+  return null;
+}
+
+function tryReporterInfo(block, subgraph) {
+  const op = block?.opcode;
+  if (!op || block.mutation) return null;
+  const inputKeys = Object.keys(block.inputs || {});
+  const fieldKeys = Object.keys(block.fields || {});
+  if (NULLARY_REPORTER_EMIT[op] && !inputKeys.length && !fieldKeys.length) {
+    return { text: `${NULLARY_REPORTER_EMIT[op]}()`, prec: ATOM_PREC };
+  }
+  if (FIELD_REPORTER_EMIT[op] && !inputKeys.length && fieldKeys.length === 1) {
+    const [fk, map] = FIELD_REPORTER_EMIT[op];
+    if (fieldKeys[0] === fk) {
+      const name = map[String(block.fields[fk][0])];
+      if (name) return { text: `${name}()`, prec: ATOM_PREC };
+    }
+  }
+  if (REPORTER_FUNC_EMIT[op] && !fieldKeys.length) {
+    const [name, keys] = REPORTER_FUNC_EMIT[op];
+    if (inputKeys.length === keys.length && keys.every((k) => k in block.inputs)) {
+      const args = keys.map((k) => inputValueText(block.inputs[k], subgraph, k)).join(', ');
+      return { text: `${name}(${args})`, prec: ATOM_PREC };
+    }
+  }
+  if (REPORTER_MENU_EMIT[op] && !fieldKeys.length) {
+    const t = menuReporterText(block, subgraph, REPORTER_MENU_EMIT[op]);
+    if (t) return { text: t, prec: ATOM_PREC };
+  }
+  return null;
+}
 
 function trySpriteOf(block, subgraph) {
   if (block?.opcode !== 'sensing_of' || block.mutation) return null;
