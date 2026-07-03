@@ -1,8 +1,9 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
-import { emitMultiScriptFile } from './emit.js';
+import { emitMultiScriptFile, emitTargetPrelude } from './emit.js';
 import { groupTopLevelScripts, collectBlocksSubgraph } from './graph.js';
 import { decodeFileStemFromTopId } from './fileMarkers.js';
+import { STDLIB_MODULES, STDLIB_STEM_PREFIX } from './stdlib.js';
 
 export async function convertProject(projectJson, { outDir, fs: fsLike, config = {}, verbose = false } = {}) {
   const vfs = toPromiseFs(fsLike);
@@ -54,12 +55,25 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     }
   }
 
+  // Watchers route to the target that owns them (spriteName; null = Stage).
+  // Watchers of sprites that no longer exist ride along on the Stage with
+  // explicit `sprite`/`id` attributes so nothing is dropped.
+  const monitorsByTarget = routeMonitors(projectJson, targets);
+
   for (const target of targets) {
     const tDir = path.join(outDir, sanitize(target.name));
     await vfs.mkdirp(tDir);
 
     const varMap = new Map([...stageVarMap, ...nameIdMap(target.variables)]);
     const listMap = new Map([...stageListMap, ...nameIdMap(target.lists)]);
+
+    const { workspaceComments, blockComments } = routeComments(target);
+    const prelude = emitTargetPrelude({
+      projectJson,
+      target,
+      monitors: monitorsByTarget.get(target.name) || [],
+      workspaceComments,
+    });
 
     const scripts = groupTopLevelScripts(target);
     const subgraphs = new Map(); // topBlockId -> subgraph
@@ -96,10 +110,11 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     const groups = new Map();
     const filenameForGroup = new Map();
     const usedNames = new Set(['index.fractch']);
-    if ((target.costumes || []).length || (target.sounds || []).length) {
+    if (prelude || (target.costumes || []).length || (target.sounds || []).length) {
       groups.set('main', []);
       filenameForGroup.set('main', uniqueFilename('main.fractch', usedNames));
     }
+    const stdlibModules = new Set();
     for (const script of scripts) {
       const { topBlockId, hatOpcode } = script;
       const subgraph = subgraphs.get(topBlockId);
@@ -107,6 +122,16 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       const procLabel =
         hatOpcode === 'procedures_definition' ? procedureDefsByTarget.get(target.name)?.get(topBlockId) || null : null;
       const markerStem = decodeFileStemFromTopId(topBlockId);
+      // Stdlib defs (marked with the fractch_lib stem at pack time) fold back
+      // into a single `import "module"` line - their bodies are the bundled
+      // library source, re-injected on the next pack.
+      if (markerStem && markerStem.startsWith(STDLIB_STEM_PREFIX)) {
+        const moduleId = markerStem.slice(STDLIB_STEM_PREFIX.length);
+        if (STDLIB_MODULES[moduleId]) {
+          stdlibModules.add(moduleId);
+          continue;
+        }
+      }
       const groupKey = markerStem || 'main';
       if (!groups.has(groupKey)) groups.set(groupKey, []);
       if (!filenameForGroup.has(groupKey)) {
@@ -114,6 +139,16 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
         filenameForGroup.set(groupKey, uniqueFilename(preferred, usedNames));
       }
       groups.get(groupKey).push({ script, subgraph, procLabel });
+    }
+
+    let finalPrelude = prelude;
+    if (stdlibModules.size) {
+      const importLines = [...stdlibModules].map((m) => `import ${JSON.stringify(m)};`).join('\n');
+      finalPrelude = finalPrelude ? `${importLines}\n\n${finalPrelude}` : importLines;
+      if (!groups.has('main')) {
+        groups.set('main', []);
+        filenameForGroup.set('main', uniqueFilename('main.fractch', usedNames));
+      }
     }
 
     let idx = 0;
@@ -124,9 +159,10 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       const content = emitMultiScriptFile({
         target,
         entries,
-        context: { broadcastMap, proceduresMap, procByCode, varMap, listMap, broadcastNameToId },
+        context: { broadcastMap, proceduresMap, procByCode, varMap, listMap, broadcastNameToId, blockComments },
         cfg: config,
         includeAssets: groupKey === 'main',
+        prelude: groupKey === 'main' ? finalPrelude : '',
       });
       await vfs.writeFile(filePath, content);
       const rel = `./${sanitize(target.name)}/${filename}`;
@@ -144,13 +180,14 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
 
   }
 
-  const manifest = manifestWithoutBlocks(projectJson);
-  await vfs.writeFile(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  // No manifest.json: every piece of project state lives in the .fractch
+  // text (sprite/stage/var/watch/comment/use/platform declarations). The
+  // stripped manifest is still returned for callers that inspect it.
   if (verbose) console.log(`[convert] ${files.length} script files across ${targets.length} targets`);
 
   return {
     filesWritten: files.length,
-    manifest,
+    manifest: manifestWithoutBlocks(projectJson),
     indexContent: '',
   };
 }
@@ -163,6 +200,100 @@ function manifestWithoutBlocks(projectJson) {
       return rest;
     }),
   };
+}
+
+function routeMonitors(projectJson, targets) {
+  const stageTarget = targets.find((t) => t.isStage);
+  const byName = new Map(targets.map((t) => [t.name, t]));
+  const out = new Map();
+  const push = (targetName, info) => {
+    if (!out.has(targetName)) out.set(targetName, []);
+    out.get(targetName).push(info);
+  };
+  for (const m of projectJson.monitors || []) {
+    if (!m) continue;
+    const isList = m.opcode === 'data_listcontents';
+    if (m.opcode !== 'data_variable' && !isList) {
+      console.warn(`[convert] monitor with opcode ${m.opcode} is not representable as a watch declaration, dropped`);
+      continue;
+    }
+    const name = isList ? m.params?.LIST : m.params?.VARIABLE;
+    const owner = m.spriteName == null ? stageTarget : byName.get(m.spriteName);
+    let derivedId = null;
+    if (owner) {
+      derivedId =
+        nameIdMap(isList ? owner.lists : owner.variables).get(name) ??
+        (stageTarget && owner !== stageTarget ? nameIdMap(isList ? stageTarget.lists : stageTarget.variables).get(name) : null) ??
+        null;
+    }
+    push((owner || stageTarget)?.name, {
+      isList,
+      name,
+      mode: m.mode,
+      x: m.x,
+      y: m.y,
+      width: m.width,
+      height: m.height,
+      visible: m.visible,
+      sliderMin: m.sliderMin,
+      sliderMax: m.sliderMax,
+      isDiscrete: m.isDiscrete,
+      sprite: owner ? null : m.spriteName ?? null,
+      id: !owner || derivedId !== m.id ? m.id : null,
+    });
+  }
+  return out;
+}
+
+// Splits a target's comments into workspace declarations (blockId null, or
+// pointing at a block that no longer exists - kept as a dangling `for` ref)
+// and block-anchored ones, keyed by the statement-level block whose line the
+// comment prints after.
+function routeComments(target) {
+  const workspaceComments = [];
+  const blockComments = new Map();
+  const blocks = target.blocks || {};
+  for (const c of Object.values(target.comments || {})) {
+    if (!c || typeof c !== 'object') continue;
+    const decl = {
+      text: String(c.text ?? ''),
+      x: c.x ?? 0,
+      y: c.y ?? 0,
+      width: c.width ?? 200,
+      height: c.height ?? 200,
+      minimized: !!c.minimized,
+      forId: null,
+    };
+    const anchor = c.blockId && blocks[c.blockId] ? statementAnchor(blocks, c.blockId) : null;
+    if (anchor) {
+      if (!blockComments.has(anchor)) blockComments.set(anchor, []);
+      blockComments.get(anchor).push(decl);
+    } else {
+      if (c.blockId) decl.forId = c.blockId;
+      workspaceComments.push(decl);
+    }
+  }
+  return { workspaceComments, blockComments };
+}
+
+// Climb from any block (a nested reporter, a menu shadow, a prototype) to
+// the statement-level block whose emitted line the comment attaches after.
+function statementAnchor(blocks, id) {
+  let cur = id;
+  for (let guard = 0; guard < 10000; guard++) {
+    const b = blocks[cur];
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return null;
+    const p = b.parent;
+    if (!p || !blocks[p] || typeof blocks[p] !== 'object' || Array.isArray(blocks[p])) return cur;
+    const pb = blocks[p];
+    if (pb.next === cur) return cur;
+    for (const [key, tuple] of Object.entries(pb.inputs || {})) {
+      if (!Array.isArray(tuple)) continue;
+      if (key.startsWith('SUBSTACK') && tuple.slice(1).includes(cur)) return cur;
+    }
+    cur = p;
+  }
+  return null;
 }
 
 function sanitize(name) {

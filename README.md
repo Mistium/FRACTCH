@@ -5,8 +5,8 @@ This tool converts a Scratch 3 `.sb3` project into a lossless, human-readable DS
 - Input: `originv6.0.0.sb3` (in the repo root)
 - Output: `build/` directory with one `main.fractch` file per target (sprite/stage), unless a project was intentionally split into extra `.fractch` files or folders.
 - DSL: Each block becomes a call where the function name is the Scratch `opcode`, allowing all extensions to be represented.
-- Lossless: every block lives only in its `.fractch` script file, as DSL text — no other copy exists anywhere. There is no raw JSON snapshot in the file headers or in `manifest.json`: packing reparses the DSL body and rebuilds `blocks` from scratch. Target costume/sound metadata is written as `asset` declarations in code, with files kept beside the target under `assets/`.
-- Hand-written projects are supported: headers and `manifest.json` are optional when packing. Without a manifest, Fractch synthesizes a minimal Scratch project and default SVG asset from the target/script directory layout.
+- Lossless: the whole project lives in `.fractch` text — no other copy exists anywhere. There is no raw JSON snapshot in file headers and no `manifest.json` at all: blocks, sprite/stage properties, variable values, extensions, watchers, and comments are all declarations in code, and packing reparses the DSL and rebuilds `project.json` from scratch. Costume/sound metadata is written as asset declarations, with files kept beside the target under `assets/`.
+- Hand-written projects are supported: headers are optional when packing. Fractch synthesizes a minimal Scratch project and default SVG asset from the target/script directory layout, and any declarations fill in the rest. (A `manifest.json` from an older build dir still loads for back-compat.)
 
 ## Install
 
@@ -22,9 +22,8 @@ npm run build
 
 Outputs will be written to `./build` with:
 
-- `<Target>/main.fractch` containing that target's top-level scripts
+- `<Target>/main.fractch` containing that target's declarations (sprite/stage properties, variables, watchers, comments, extensions on the Stage) followed by its top-level scripts
 - `<Target>/assets/` containing that target's referenced costume/sound files
-- `manifest.json` capturing the Scratch `project.json` minus per-target `blocks`, `costumes`, and `sounds` (those live in the `.fractch` source)
 
 ## Documentation
 

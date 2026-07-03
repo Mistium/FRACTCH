@@ -4,6 +4,7 @@ import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode } from './buildBlocks.js';
 import { assertValidFractch } from './lint.js';
 import { cleanRelStem, idSafeSuffix, markerPrefixForFileStem } from './fileMarkers.js';
+import { STDLIB_MODULES, STDLIB_METHODS, STDLIB_STEM_PREFIX, resolveStdlibModules } from './stdlib.js';
 import { md5hex } from './md5.js';
 
 export const BLANK_SVG =
@@ -13,7 +14,7 @@ export const BLANK_SVG_ID = 'c3d7ff782edb43ba0e0a79849362613c';
 // Packing reconstructs every block purely by parsing the DSL text - there is
 // no raw JSON snapshot anywhere to fall back on, so the .fractch files
 // themselves are the single source of truth for the round trip.
-export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose = false }) {
+export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose = false, prune = true }) {
   const vfs = toPromiseFs(fsLike);
   const manifestPath = path.join(buildDir, 'manifest.json');
   const hasManifest = await vfs.exists(manifestPath);
@@ -31,6 +32,11 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   const identToProccode = new Map(); // targetName -> Map(ident -> proccode)
   const procMetaMaps = new Map(); // targetName -> Map(proccode -> { warp, customcolor })
   const cloudAliasMaps = new Map(); // targetName -> Map(bareName -> '\u2601 name')
+  const watchDecls = []; // { targetName, decl } - resolved to monitors at the end
+  const nameCollections = []; // { target, calls, cloudAliases } - resolved after every var decl has landed
+  const stdlibImports = new Map(); // targetName -> Set of imported stdlib module ids
+  const renamePlans = new Map(); // manifest target name (dir-derived) -> declared display name
+  let commentSeq = 0;
   let totalScripts = 0;
   let parsedScripts = 0;
 
@@ -57,6 +63,30 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       if (!cloudAliasMaps.has(manifestName)) cloudAliasMaps.set(manifestName, new Map());
       applyVarDecls(manifest, manifestTarget, parsed.varDecls, cloudAliasMaps.get(manifestName));
       applySpriteProps(manifestTarget, parsed.spriteProps);
+      // Sprite folder names are sanitized copies of the display name; the
+      // declaration carries the real one. The rename lands after merge so
+      // every in-flight lookup keeps using the folder-derived key.
+      if (parsed.spriteProps?.name && !hasManifest && parsed.spriteProps.name !== manifestName) {
+        renamePlans.set(manifestName, parsed.spriteProps.name);
+      }
+      for (const w of parsed.watches || []) watchDecls.push({ targetName: manifestName, decl: w });
+      for (const c of parsed.comments || []) {
+        if (!manifestTarget.comments) manifestTarget.comments = {};
+        const cid = uniqueCommentId(manifestTarget.comments, `~c${++commentSeq}`);
+        manifestTarget.comments[cid] = {
+          blockId: c.forId || null,
+          x: c.x ?? 0,
+          y: c.y ?? 0,
+          width: c.width ?? 200,
+          height: c.height ?? 200,
+          minimized: !!c.minimized,
+          text: String(c.text ?? ''),
+        };
+      }
+      if (parsed.platform) {
+        if (!manifest.meta || typeof manifest.meta !== 'object') manifest.meta = {};
+        manifest.meta.platform = { name: parsed.platform.name, url: parsed.platform.url ?? null };
+      }
       const inferredHat = hatDir && hatDir !== 'nohat' ? hatDir : null;
       const fileScripts = parsed.scripts?.length
         ? parsed.scripts
@@ -74,7 +104,12 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         });
         registerProcDefs(procArgMaps, identToProccode, procMetaMaps, manifestName, s.calls);
       });
-      if (!hasManifest) collectNamesIntoManifest(manifestTarget, parsed.calls, cloudAliasMaps.get(manifestName));
+      if (!hasManifest) nameCollections.push({ target: manifestTarget, calls: parsed.calls, cloudAliases: cloudAliasMaps.get(manifestName) });
+      for (const imp of parsed.imports || []) {
+        if (!STDLIB_MODULES[imp]) continue;
+        if (!stdlibImports.has(manifestName)) stdlibImports.set(manifestName, new Set());
+        stdlibImports.get(manifestName).add(imp);
+      }
       parsedScripts++;
     } catch (e) {
       if (verbose) console.warn(`Skip unparsable file: ${fPath}: ${e.message}`);
@@ -86,6 +121,23 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   // Stage's globals (Scratch scoping: sprite-local shadows global). Broadcasts
   // are project-wide regardless of which target defines them.
   const stageTarget = (manifest.targets || []).find((t) => t.isStage);
+
+  // Names referenced by code but never declared materialize now, after every
+  // file's var declarations have landed - a name the Stage declares must not
+  // spawn a shadowing sprite-local copy in the sprites that reference it.
+  nameCollections.sort((a, b) => (b.target.isStage ? 1 : 0) - (a.target.isStage ? 1 : 0));
+  for (const { target, calls, cloudAliases } of nameCollections) {
+    collectNamesIntoManifest(target, calls, cloudAliases, stageTarget);
+  }
+
+  // Stdlib: resolve `ident.method(...)` ambiguity now that every variable
+  // name is known (variable receiver -> method call; otherwise extension
+  // opcode), then inject imported/used modules' defs as marked stacks so
+  // convert can fold them back into `import` lines. A def the target already
+  // declares itself wins over the library copy.
+  resolveMethodAmbiguity(targets, manifest, stageTarget);
+  injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, identToProccode, procMetaMaps });
+
   const stageVarMap = buildNameIdMap(stageTarget?.variables);
   const stageListMap = buildNameIdMap(stageTarget?.lists);
   const broadcastNameToId = new Map();
@@ -119,6 +171,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
           localVars.set(n, mangled);
         }
       }
+      const commentsOut = [];
       const built = buildBlocksFromCalls(s.calls, {
         hatOpcode: s.hatOpcode,
         proceduresMapForTarget: procArgMaps.get(name),
@@ -129,12 +182,30 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         broadcastNameToId,
         localVars,
         idGen: sharedIdGen,
+        commentsOut,
       });
       let { blocks, topId } = built;
       if (topId && s.fileMarkerPrefix) {
         const markedTopId = uniqueBlockId(blocks, `${s.fileMarkerPrefix}${idSafeSuffix(topId)}`);
         renameBlockId(blocks, topId, markedTopId);
+        for (const c of commentsOut) if (c.blockId === topId) c.blockId = markedTopId;
         topId = markedTopId;
+      }
+      if (commentsOut.length && manifestTarget) {
+        if (!manifestTarget.comments) manifestTarget.comments = {};
+        for (const c of commentsOut) {
+          const cid = uniqueCommentId(manifestTarget.comments, `~c${++commentSeq}`);
+          manifestTarget.comments[cid] = {
+            blockId: c.blockId || null,
+            x: c.x ?? 0,
+            y: c.y ?? 0,
+            width: c.width ?? 200,
+            height: c.height ?? 200,
+            minimized: !!c.minimized,
+            text: String(c.text ?? ''),
+          };
+          if (c.blockId && blocks[c.blockId]) blocks[c.blockId].comment = cid;
+        }
       }
       // Canvas position from the header when present; a simple grid keeps
       // headerless hand-written scripts from stacking on top of each other.
@@ -150,8 +221,71 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
 
   const newManifest = mergeIntoManifest(manifest, builtTargets);
   autoRegisterExtensions(newManifest);
-  pruneUnusedAssets(newManifest, verbose);
+  applyWatchDecls(newManifest, watchDecls, renamePlans);
+  for (const [oldName, newName] of renamePlans) {
+    const t = (newManifest.targets || []).find((x) => x.name === oldName);
+    if (t && !(newManifest.targets || []).some((x) => x.name === newName)) t.name = newName;
+  }
+  // fmt-style rebuilds pass prune:false - a canonicalizing rewrite must keep
+  // every declared costume/sound, packing to an .sb3 prunes as usual.
+  if (prune) pruneUnusedAssets(newManifest, verbose);
   return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles };
+}
+
+// Watcher declarations become manifest monitors. A variable watcher's id IS
+// its variable's id (Scratch invariant), so ids resolve from the final
+// variable/list dicts - after every var decl, name collection, and local
+// mangling has landed.
+function applyWatchDecls(manifest, watchDecls, renamePlans) {
+  if (!watchDecls.length) return;
+  if (!Array.isArray(manifest.monitors)) manifest.monitors = [];
+  const stage = (manifest.targets || []).find((t) => t.isStage);
+  for (const { targetName, decl } of watchDecls) {
+    const target = (manifest.targets || []).find((t) => t.name === targetName);
+    if (!target) continue;
+    const dictKey = decl.isList ? 'lists' : 'variables';
+    let id = decl.id || null;
+    if (!id) {
+      id =
+        buildNameIdMap(target[dictKey]).get(decl.name) ||
+        (stage && stage !== target ? buildNameIdMap(stage[dictKey]).get(decl.name) : null) ||
+        null;
+    }
+    if (!id) {
+      console.warn(`[fractch] watch ${decl.isList ? 'list' : 'var'} ${JSON.stringify(decl.name)}: no such ${decl.isList ? 'list' : 'variable'}, skipped`);
+      continue;
+    }
+    const finalName = renamePlans.get(targetName) || targetName;
+    const ownedByStage = !decl.sprite && (target.isStage || (stage && buildNameIdMap(stage[dictKey]).get(decl.name) === id));
+    const monitor = {
+      id,
+      mode: decl.isList ? 'list' : decl.mode === 'large' ? 'large' : decl.mode === 'slider' ? 'slider' : 'default',
+      opcode: decl.isList ? 'data_listcontents' : 'data_variable',
+      params: decl.isList ? { LIST: decl.name } : { VARIABLE: decl.name },
+      spriteName: decl.sprite || (ownedByStage ? null : finalName),
+      value: decl.isList ? [] : 0,
+      width: decl.width ?? 0,
+      height: decl.height ?? 0,
+      x: decl.x ?? 0,
+      y: decl.y ?? 0,
+      visible: !!decl.visible,
+    };
+    if (!decl.isList) {
+      monitor.sliderMin = decl.sliderMin ?? 0;
+      monitor.sliderMax = decl.sliderMax ?? 100;
+      monitor.isDiscrete = decl.isDiscrete !== false;
+    }
+    const existing = manifest.monitors.findIndex((m) => m && m.id === id);
+    if (existing >= 0) manifest.monitors[existing] = monitor;
+    else manifest.monitors.push(monitor);
+  }
+}
+
+function uniqueCommentId(dict, preferred) {
+  let id = preferred;
+  let n = 1;
+  while (Object.prototype.hasOwnProperty.call(dict, id)) id = `${preferred}_${++n}`;
+  return id;
 }
 
 function applyUses(manifest, uses) {
@@ -198,12 +332,15 @@ function applyVarDecls(manifest, target, decls, cloudAliases) {
     const owner = d.cloud ? (manifest.targets || []).find((t) => t.isStage) || target : target;
     if (!owner) continue;
     if (d.isList) {
-      const id = ensureDictEntry(owner.lists, d.name, [d.name, d.value]);
+      // An explicit decl id bypasses name-keyed dedupe: several lists may
+      // legitimately share one display name (distinct ids), and blocks
+      // reference the extra ones by id.
+      const id = d.id || ensureDictEntry(owner.lists, d.name, [d.name, d.value]);
       if (id) owner.lists[id] = [d.name, d.value];
     } else {
       const name = d.cloud && !String(d.name).startsWith('\u2601 ') ? `\u2601 ${d.name}` : d.name;
       const entry = d.cloud ? [name, d.value, true] : [name, d.value];
-      const id = ensureDictEntry(owner.variables, name, entry);
+      const id = d.id || ensureDictEntry(owner.variables, name, entry);
       if (id) owner.variables[id] = entry;
       if (d.cloud && cloudAliases) cloudAliases.set(d.name, name);
     }
@@ -222,6 +359,10 @@ function applySpriteProps(target, props) {
   if (props.volume != null) target.volume = props.volume;
   if (props.tempo != null) target.tempo = props.tempo;
   if (props.layer != null) target.layerOrder = props.layer;
+  if (props.currentCostume != null) target.currentCostume = props.currentCostume;
+  if (props.videoState != null) target.videoState = props.videoState;
+  if (props.transparency != null) target.videoTransparency = props.transparency;
+  if (props.tts != null) target.textToSpeechLanguage = props.tts;
 }
 
 // Costumes/sounds the code never references are dropped from the packed
@@ -579,6 +720,7 @@ async function applyParsedAssets(vfs, buildDir, target, assets, targetDir, asset
       rotationCenterX: decl.centerX ?? 0,
       rotationCenterY: decl.centerY ?? 0,
     });
+    if (decl.current) target.currentCostume = target.costumes.length - 1;
     assetFiles.set(resolved.md5ext, resolved.sourceRel);
   }
   for (const decl of assets.sounds || []) {
@@ -628,16 +770,25 @@ function assetSourceRel(targetDir, file) {
   return path.join(targetDir, ...parts);
 }
 
-function collectNamesIntoManifest(target, calls, cloudAliases) {
+function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
   const vars = new Set();
   const lists = new Set();
   const broadcasts = new Set();
   collectNames(calls, { vars, lists, broadcasts });
   for (const local of collectLocalDeclNames(calls)) vars.delete(local);
   if (cloudAliases) for (const bare of cloudAliases.keys()) vars.delete(bare);
-  for (const name of vars) ensureDictEntry(target.variables, name, [name, 0]);
-  for (const name of lists) ensureDictEntry(target.lists, name, [name, []]);
-  for (const name of broadcasts) ensureDictEntry(target.broadcasts, name, name);
+  const globals = stage && stage !== target ? stage : null;
+  for (const name of vars) {
+    if (globals && buildNameIdMap(globals.variables).has(name)) continue;
+    ensureDictEntry(target.variables, name, [name, 0]);
+  }
+  for (const name of lists) {
+    if (globals && buildNameIdMap(globals.lists).has(name)) continue;
+    ensureDictEntry(target.lists, name, [name, []]);
+  }
+  // Broadcasts live on the Stage regardless of who references them.
+  const broadcastOwner = stage || target;
+  for (const name of broadcasts) ensureDictEntry(broadcastOwner.broadcasts, name, name);
 }
 
 function collectNames(nodes, out) {
@@ -647,7 +798,13 @@ function collectNames(nodes, out) {
 function collectNamesFromNode(node, out) {
   if (!node) return;
   if (node.type === 'procDef') {
-    collectNames(node.body, out);
+    // Bare identifiers inside a def body that name one of its parameters are
+    // argument reporters, not variable reads - they must not materialize as
+    // variables.
+    const bodyVars = new Set();
+    collectNames(node.body, { vars: bodyVars, lists: out.lists, broadcasts: out.broadcasts });
+    for (const p of node.params || []) bodyVars.delete(p.ident);
+    for (const v of bodyVars) out.vars.add(v);
     return;
   }
   if (node.type === 'localDecl') {
@@ -662,13 +819,22 @@ function collectNamesFromNode(node, out) {
       collectNames(arg.body, out);
       continue;
     }
+    if (arg.kind === 'positional') {
+      collectNamesFromValue(arg.value, out);
+      continue;
+    }
     if (arg.kind !== 'keyed') continue;
     if (arg.sep === 'field') {
+      // Field values are scalar refs; only the canonical keys create
+      // entries. Extension menu fields (e.g. skyhigh173JSON's get_list) can
+      // carry dead references that must round-trip verbatim without
+      // materializing a variable/list that never existed.
       if (arg.key === 'VARIABLE') collectFieldName(arg.value, out.vars);
       if (arg.key === 'LIST') collectFieldName(arg.value, out.lists);
       if (arg.key === 'BROADCAST_OPTION') collectFieldName(arg.value, out.broadcasts);
+      continue;
     }
-    if (arg.sep === 'input' && arg.key === 'BROADCAST_INPUT') collectBroadcastInputName(arg.value, out.broadcasts);
+    if (arg.key === 'BROADCAST_INPUT') collectBroadcastInputName(arg.value, out.broadcasts);
     collectNamesFromValue(arg.value, out);
   }
 }
@@ -687,6 +853,7 @@ function collectFieldName(value, set) {
   if (value.type === 'array' && typeof value.value?.[0] === 'string') set.add(value.value[0]);
   else if (value.type === 'string') set.add(value.value);
   else if (value.type === 'ident') set.add(value.name);
+  else if (value.type === 'var' || value.type === 'list' || value.type === 'broadcast') set.add(value.name);
 }
 
 function collectBroadcastInputName(value, set) {
@@ -757,6 +924,127 @@ function collectLocalDeclNames(calls, out = new Set()) {
 // param idents, or the original ids if a call site elsewhere in the same
 // build supplied them) - scan every parsed procDef up front so calls to it
 // (which may live in an entirely different file) get consistent argument ids.
+// Which stdlib def idents does this call tree reference? (method sugar
+// desugars to procedureCall nodes named after the stdlib defs)
+function collectStdlibIdentsUsed(calls, out) {
+  const identSet = collectStdlibIdentsUsed.identSet ||
+    (collectStdlibIdentsUsed.identSet = new Set(Object.values(STDLIB_METHODS).map((m) => m.ident)));
+  const visitValue = (v) => {
+    if (!v || typeof v !== 'object') return;
+    if (v.type === 'call') visitCall(v.value);
+    if (v.type === 'obscured') {
+      visitValue(v.active);
+      visitValue(v.shadow);
+    }
+  };
+  const visitCall = (call) => {
+    if (!call || typeof call !== 'object') return;
+    if (call.type === 'procDef') {
+      for (const st of call.body || []) visitCall(st);
+      return;
+    }
+    if (call.callee?.type === 'procedureCall' && identSet.has(call.callee.name)) out.add(call.callee.name);
+    for (const a of call.args || []) {
+      if (a.kind === 'branch') for (const st of a.body || []) visitCall(st);
+      else visitValue(a.value);
+    }
+  };
+  for (const c of calls || []) visitCall(c);
+  return out;
+}
+
+// Resolve every identOrMethod callee in place: a variable (target or Stage
+// scope), script-local, or enclosing def param named `ident` makes it a
+// stdlib method call on that receiver; anything else is the extension opcode
+// `ident_method`. Mirrors buildBlocks' resolveIdentOrMethod, but runs before
+// the stdlib-injection scan so method usage is visible to it.
+function resolveMethodAmbiguity(targets, manifest, stageTarget) {
+  for (const [name, data] of targets) {
+    const manifestTarget = (manifest.targets || []).find((t) => t.name === name);
+    const globalNames = new Set([
+      ...Object.values(manifestTarget?.variables || {}).map((e) => (Array.isArray(e) ? String(e[0]) : null)),
+      ...Object.values(stageTarget?.variables || {}).map((e) => (Array.isArray(e) ? String(e[0]) : null)),
+    ]);
+    for (const s of data.stacks) {
+      const scopeNames = new Set(globalNames);
+      for (const n of collectLocalDeclNames(s.calls)) scopeNames.add(n);
+      if (s.calls.length === 1 && s.calls[0].type === 'procDef') {
+        for (const p of s.calls[0].params || []) scopeNames.add(p.ident);
+      }
+      rewriteIdentOrMethod(s.calls, scopeNames);
+    }
+  }
+}
+
+function rewriteIdentOrMethod(calls, scopeNames) {
+  const visitValue = (v) => {
+    if (!v || typeof v !== 'object') return;
+    if (v.type === 'call') v.value = visitCall(v.value);
+    if (v.type === 'obscured') {
+      visitValue(v.active);
+      visitValue(v.shadow);
+    }
+  };
+  const visitCall = (call) => {
+    if (!call || typeof call !== 'object') return call;
+    if (call.type === 'procDef') {
+      call.body = (call.body || []).map(visitCall);
+      return call;
+    }
+    if (call.type === 'localDecl') {
+      visitValue(call.value);
+      return call;
+    }
+    for (const a of call.args || []) {
+      if (a.kind === 'branch') a.body = (a.body || []).map(visitCall);
+      else visitValue(a.value);
+    }
+    if (call.callee?.type === 'identOrMethod') {
+      const { ident, method } = call.callee;
+      if (scopeNames.has(ident) && STDLIB_METHODS[method]) {
+        call.callee = { type: 'procedureCall', name: STDLIB_METHODS[method].ident, line: call.callee.line };
+        call.args = [{ kind: 'positional', value: { type: 'ident', name: ident } }, ...call.args];
+      } else {
+        call.callee = { type: 'opcode', name: `${ident}_${method}` };
+      }
+    }
+    return call;
+  };
+  for (let i = 0; i < calls.length; i++) calls[i] = visitCall(calls[i]);
+}
+
+function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, identToProccode, procMetaMaps }) {
+  const identToModule = new Map(Object.values(STDLIB_METHODS).map((m) => [m.ident, m.module]));
+  for (const [name, data] of targets) {
+    const wanted = new Set(stdlibImports.get(name) || []);
+    const usedIdents = new Set();
+    for (const s of data.stacks) collectStdlibIdentsUsed(s.calls, usedIdents);
+    for (const ident of usedIdents) wanted.add(identToModule.get(ident));
+    const modules = resolveStdlibModules([...wanted]);
+    if (!modules.length) continue;
+    for (const moduleId of modules) {
+      const parsed = parseFractch(STDLIB_MODULES[moduleId].source);
+      for (const err of parsed.errors || []) {
+        console.warn(`[fractch] stdlib ${moduleId}: skipped unparsable statement: ${err.message}`);
+      }
+      const marker = markerPrefixForFileStem(STDLIB_STEM_PREFIX + moduleId);
+      for (const s of parsed.scripts || []) {
+        const defIdent = s.calls[0]?.type === 'procDef' ? s.calls[0].ident : null;
+        if (defIdent && identToProccode.get(name)?.has(defIdent)) continue; // target's own def wins
+        data.stacks.push({
+          hatOpcode: null,
+          calls: s.calls,
+          topBlockId: null,
+          x: s.x ?? null,
+          y: s.y ?? null,
+          fileMarkerPrefix: marker,
+        });
+        registerProcDefs(procArgMaps, identToProccode, procMetaMaps, name, s.calls);
+      }
+    }
+  }
+}
+
 function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName, calls) {
   if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
   const procDef = calls[0];

@@ -5,6 +5,7 @@ fractch new <dir>                       scaffold a fresh fractch project
 fractch from <project.sb3> [to <dir>]   unpack an .sb3 into .fractch text
 fractch [to] <project.sb3> from <dir>   pack a project dir into an .sb3
 fractch check <dir>                     parse + lint every .fractch file
+fractch fmt <dir>                       rewrite files in canonical (current) syntax
 fractch watch <dir> [to <sb3>]          repack automatically on change
 fractch run <dir>                       pack, open in the editor, repack on save
 fractch --input <sb3> --out <dir>       flag form (same as `from ... to ...`)
@@ -38,6 +39,10 @@ Parses and lints every `.fractch` file. Reports, with `file:line`:
 - calls to custom blocks with no `def`
 
 Exit code 1 when anything is wrong — usable in CI.
+
+### `fractch fmt <dir>`
+
+Canonicalizes every `.fractch` file in place: rebuilds the project in memory through the pack pipeline, then re-emits it in the current emission style. Legacy syntax parses forever but files never modernize on their own — `fmt` is the one-command upgrade. It refuses to run while `check` reports problems (a skipped statement would be silently dropped by the rewrite), keeps unused costumes/sounds (no pack-style pruning), and is idempotent: a second run changes nothing.
 
 ### `fractch watch <dir> [to <sb3>]`
 

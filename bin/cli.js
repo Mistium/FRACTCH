@@ -6,7 +6,7 @@ import http from 'http';
 import { spawn } from 'child_process';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { unpackSb3, packSb3, checkProject } from '../src/index.js';
+import { unpackSb3, packSb3, checkProject, buildProjectFromBuildDir, convertProject } from '../src/index.js';
 
 const USAGE =
   'Usage:\n' +
@@ -15,6 +15,7 @@ const USAGE =
   '  fractch [to] <project.sb3> from <dir>   pack a project dir into an .sb3\n' +
   '                                          (--origin <sb3> copies non-asset extras from it)\n' +
   '  fractch check <dir>                     parse + lint every .fractch file\n' +
+  '  fractch fmt <dir>                       rewrite files in canonical (current) syntax\n' +
   '  fractch watch <dir> [to <sb3>]          repack automatically on change\n' +
   '  fractch run <dir>                       pack, open in the editor, repack on save\n' +
   '                                          (--editor <url> to override, default MistWarp)\n' +
@@ -29,7 +30,7 @@ for (let i = 0; i < rawArgs.length; i++) {
   }
   if (!rawArgs[i].startsWith('-')) words.push(rawArgs[i]);
 }
-const command = ['new', 'check', 'watch', 'run'].includes(words[0]) ? words[0] : null;
+const command = ['new', 'check', 'fmt', 'watch', 'run'].includes(words[0]) ? words[0] : null;
 
 const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
 
@@ -78,6 +79,27 @@ async function runCheck(dir) {
   }
   console.log(`${files} file${files === 1 ? '' : 's'} checked, ${problems.length} problem${problems.length === 1 ? '' : 's'}`);
   process.exit(problems.length ? 1 : 0);
+}
+
+// Canonicalize every .fractch file: rebuild the project in memory through the
+// pack pipeline, then re-emit it over the same directory with the current
+// emission style. Legacy syntax parses forever, so this is the one-command way
+// to modernize a build dir. Refuses to run while check reports problems -
+// parse-skipped statements would be silently dropped by the rewrite.
+async function runFmt(dir, verbose) {
+  const buildDir = path.resolve(dir || '.');
+  const { problems } = await checkProject({ buildDir, fs });
+  if (problems.length) {
+    for (const p of problems) {
+      const loc = p.line ? `:${p.line}${p.col ? ':' + p.col : ''}` : '';
+      console.error(`${p.file}${loc}: ${p.message}`);
+    }
+    console.error(`[fractch] fmt refused: fix the ${problems.length} problem${problems.length === 1 ? '' : 's'} above first`);
+    process.exit(1);
+  }
+  const { manifest } = await buildProjectFromBuildDir({ buildDir, verbose, prune: false });
+  const result = await convertProject(manifest, { outDir: buildDir, verbose });
+  console.log(`[fractch] fmt: rewrote ${result.filesWritten} file${result.filesWritten === 1 ? '' : 's'} in ${buildDir}`);
 }
 
 async function runWatch(dir, outSb3, verbose, onPacked) {
@@ -202,6 +224,10 @@ function runNew(dir) {
     }
     if (command === 'check') {
       await runCheck(words[1]);
+      return;
+    }
+    if (command === 'fmt') {
+      await runFmt(words[1], rawArgs.includes('--verbose') || rawArgs.includes('-v'));
       return;
     }
     if (command === 'watch') {

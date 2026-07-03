@@ -41,8 +41,8 @@ function walk(dir) {
   return out;
 }
 
-test('build emits manifest and script files without indexes by default', () => {
-  assert.ok(fs.existsSync(path.join(outDir, 'manifest.json')));
+test('build emits script files without manifest or indexes', () => {
+  assert.ok(!fs.existsSync(path.join(outDir, 'manifest.json')));
   assert.ok(!fs.existsSync(path.join(outDir, 'index.fractch')));
   assert.ok(!walk(outDir).some((f) => path.basename(f) === 'index.fractch'));
   assert.ok(walk(outDir).some((f) => f.endsWith('.fractch')));
@@ -117,7 +117,7 @@ test('programmatic API: unpackSb3/packSb3 round-trip without touching cwd', asyn
 
   const result = await unpackSb3({ input: SB3, outDir: buildDir });
   assert.ok(result.filesWritten > 0);
-  assert.ok(fs.existsSync(path.join(buildDir, 'manifest.json')));
+  assert.ok(!fs.existsSync(path.join(buildDir, 'manifest.json')));
   assert.ok(!fs.existsSync(path.join(buildDir, 'index.fractch')));
 
   await packSb3({ buildDir, outSb3: sb3, originSb3: SB3 });
@@ -168,7 +168,6 @@ test('browser entry: convert + pack against an in-memory lightning-fs style fs',
 
   const result = await convertProject(projectJson, { outDir: '/build', fs: memfs });
   assert.ok(result.filesWritten > 0);
-  assert.ok((await memfs.promises.readFile('/build/manifest.json', 'utf8')).length > 0);
   const mainTarget = projectJson.targets.find((t) => Object.keys(t.blocks || {}).length > 0);
   const sanitized = mainTarget.name.replace(/[^a-zA-Z0-9-_]/g, '_');
   assert.ok((await memfs.promises.readFile(`/build/${sanitized}/main.fractch`, 'utf8')).includes('when '));
@@ -387,18 +386,24 @@ test('no trailing-comma noise in emitted calls', () => {
   }
 });
 
-test('emitted calls use readable colon inputs and explicit field arguments', () => {
-  const hasColonInput = walk(outDir).some((f) => {
+test('emitted calls use positional extension inputs and when sugar', () => {
+  // A-B-C-named extension inputs emit positionally (no `A:` labels) ...
+  const hasPositional = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;
     const text = fs.readFileSync(f, 'utf8');
-    return /mistsutils\.patchcommand2\(A:/.test(text);
+    return /mistsutils\.patchcommand2\((?!A:)\S/.test(text);
+  });
+  const hasLabeledABC = walk(outDir).some((f) => {
+    if (!f.endsWith('.fractch')) return false;
+    return /mistsutils\.patchcommand\(A:/.test(fs.readFileSync(f, 'utf8'));
   });
   const hasWhenSugar = walk(outDir).some((f) => {
     if (!f.endsWith('.fractch')) return false;
     const text = fs.readFileSync(f, 'utf8');
     return /^when broadcast .+ at -?\d+,-?\d+ \{/m.test(text);
   });
-  assert.ok(hasColonInput, 'no readable colon input syntax found');
+  assert.ok(hasPositional, 'no positional extension input syntax found');
+  assert.ok(!hasLabeledABC, 'A: labels still emitted for A-named statement inputs');
   assert.ok(hasWhenSugar, 'no when-broadcast sugar found in emitted output');
 
   const parsed = parseFractch('data_changevariableby(VALUE: 1, field VARIABLE: var("score", "id"));\n').calls[0];
@@ -854,4 +859,251 @@ test('lint accepts valid fractch and reports balanced-delimiter errors', () => {
 test('lint reports mismatched and unexpected delimiters', () => {
   assert.ok(checkFractch('@Foo(a= [1)]').some((e) => /mismatched/.test(e.message)));
   assert.ok(checkFractch('done)').some((e) => /unexpected/.test(e.message)));
+});
+
+test('positional extension args map back to A/B/C input names', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-positional-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'when flag {\n' +
+      '  mistsutils.patchcommand("origin.roturLink.queue = []");\n' +
+      '  mistsutils.patchcommand2("a", mistsutils.patchreporter2(1, 2));\n' +
+      '}\n'
+  );
+  const sb3 = path.join(dir, 'positional.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const stage = project.targets.find((t) => t.name === 'Stage');
+  const blocks = Object.values(stage.blocks);
+  const cmd = blocks.find((b) => b.opcode === 'mistsutils_patchcommand');
+  assert.deepStrictEqual(cmd.inputs.A[1], [10, 'origin.roturLink.queue = []']);
+  const cmd2 = blocks.find((b) => b.opcode === 'mistsutils_patchcommand2');
+  assert.deepStrictEqual(Object.keys(cmd2.inputs).sort(), ['A', 'B']);
+  const rep2 = blocks.find((b) => b.opcode === 'mistsutils_patchreporter2');
+  assert.deepStrictEqual(Object.keys(rep2.inputs).sort(), ['A', 'B']);
+  assert.notStrictEqual(rep2.shadow, true, 'positional reporter must not become a menu shadow');
+  assert.ok(project.extensions.includes('mistsutils'), 'namespace not auto-registered');
+});
+
+test('single-string inline extension call stays a menu shadow, keyed form a reporter', async () => {
+  const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
+  const parsed = parseFractch('looks.switchcostumeto(COSTUME: looks.costume("walk"));\nmistsutils.patchcommand(mistsutils.patchreporter(A: "x"));\n');
+  assert.strictEqual(parsed.errors.length, 0);
+  const { blocks } = buildBlocksFromCalls(parsed.calls, {});
+  const menu = Object.values(blocks).find((b) => b.opcode === 'looks_costume');
+  assert.strictEqual(menu.shadow, true);
+  assert.deepStrictEqual(menu.fields.COSTUME, ['walk']);
+  const reporter = Object.values(blocks).find((b) => b.opcode === 'mistsutils_patchreporter');
+  assert.notStrictEqual(reporter.shadow, true);
+  assert.ok(reporter.inputs.A, 'keyed A input missing');
+});
+
+test('else-if chains desugar to nested if_else and re-sugar on stringify', async () => {
+  const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
+  const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
+  const sugared = 'if a > 1 {\n  say 1;\n} else if a > 2 {\n  say 2;\n} else {\n  say 3;\n}\n';
+  const nested = 'if a > 1 {\n  say 1;\n} else {\n  if a > 2 {\n    say 2;\n  } else {\n    say 3;\n  }\n}\n';
+  const shape = (text) => {
+    const parsed = parseFractch(text);
+    assert.strictEqual(parsed.errors.length, 0);
+    const { blocks } = buildBlocksFromCalls(parsed.calls, {});
+    return Object.values(blocks)
+      .map((b) => b.opcode)
+      .sort();
+  };
+  assert.deepStrictEqual(shape(sugared), shape(nested));
+
+  const parsed = parseFractch(sugared);
+  const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
+  setContext({});
+  const text = stringifyBlockCall(blocks[topId], blocks, topId, false);
+  assert.ok(text.includes('} else if '), `expected re-sugared else-if, got:\n${text}`);
+  assert.strictEqual((text.match(/} else \{/g) || []).length, 1, 'final plain else must stay braced');
+});
+
+test('triple-quoted raw strings parse, emit, and round-trip', async () => {
+  const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
+  const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
+  const { checkFractch } = await import('../src/lint.js');
+
+  const text = 'mistsutils.patchcommand("""const a = 1;\nconst b = "two";\nrun(a, b);""");\n';
+  assert.strictEqual(checkFractch(text).length, 0, 'lint must accept triple-quoted strings');
+  const parsed = parseFractch(text);
+  assert.strictEqual(parsed.errors.length, 0);
+  const arg = parsed.calls[0].args[0];
+  assert.strictEqual(arg.value.value, 'const a = 1;\nconst b = "two";\nrun(a, b);');
+
+  // Emission: a newline-bearing string input comes back out as a raw block
+  // whose interior lines survive indentation untouched.
+  const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
+  setContext({});
+  const out = stringifyBlockCall(blocks[topId], blocks, topId, false);
+  assert.ok(out.includes('"""const a = 1;\nconst b = "two";\nrun(a, b);"""'), `raw form missing:\n${out}`);
+  const reparsed = parseFractch(`${out}\n`);
+  assert.strictEqual(reparsed.errors.length, 0);
+  assert.strictEqual(reparsed.calls[0].args[0].value.value, arg.value.value);
+
+  // Values that cannot be raw (contain """ or edge quotes) stay escaped.
+  const { stringToken } = await import('../src/stringify.js');
+  assert.strictEqual(stringToken('a"""b\nc'), JSON.stringify('a"""b\nc'));
+  assert.strictEqual(stringToken('ends with quote\n"'), JSON.stringify('ends with quote\n"'));
+});
+
+test('orphan argument reporters round-trip via arg("name") statement sugar', async () => {
+  const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
+  const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
+  const parsed = parseFractch('arg("Max-Scroll-Y");\n');
+  assert.strictEqual(parsed.errors.length, 0);
+  const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
+  const node = blocks[topId];
+  assert.strictEqual(node.opcode, 'argument_reporter_string_number');
+  assert.strictEqual(node.fields.VALUE[0], 'Max-Scroll-Y');
+  setContext({});
+  assert.strictEqual(stringifyBlockCall(node, blocks, topId, false), 'arg("Max-Scroll-Y");');
+});
+
+test('duplicate-named variables and lists survive pack via id declarations', async () => {
+  const { buildProjectFromBuildDir } = await import('../src/index.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-dupvars-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'var temp = "a" id "id_one";\n' +
+      'var temp = "b" id "id_two";\n' +
+      'var "Split Text" = ["x"] id "list_one";\n' +
+      'var "Split Text" = [] id "list_two";\n'
+  );
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir });
+  const stage = manifest.targets.find((t) => t.isStage);
+  assert.deepStrictEqual(stage.variables.id_one, ['temp', 'a']);
+  assert.deepStrictEqual(stage.variables.id_two, ['temp', 'b']);
+  assert.deepStrictEqual(stage.lists.list_one, ['Split Text', ['x']]);
+  assert.deepStrictEqual(stage.lists.list_two, ['Split Text', []]);
+});
+
+test('array literals pack as JSON strings and re-sugar on emission', async () => {
+  const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
+  const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
+  const parsed = parseFractch('mistsutils.patchreporter([1,2,"three"]);\n');
+  assert.strictEqual(parsed.errors.length, 0);
+  const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
+  assert.deepStrictEqual(blocks[topId].inputs.A, [1, [10, '[1,2,"three"]']]);
+  setContext({});
+  const out = stringifyBlockCall(blocks[topId], blocks, topId, false);
+  assert.strictEqual(out, 'mistsutils.patchreporter([1,2,"three"]);');
+
+  // Legacy raw primitive tuples keep passing through verbatim.
+  const tuple = parseFractch('mistsutils.patchreporter(A: [10, "hello"]);\n');
+  const built = buildBlocksFromCalls(tuple.calls, {});
+  assert.deepStrictEqual(built.blocks[built.topId].inputs.A, [1, [10, 'hello']]);
+  // ...and a string that happens to look like a tuple stays quoted on emit.
+  const lookalike = { ...built.blocks[built.topId], inputs: { A: [1, [10, '[10,"x"]']] } };
+  assert.ok(stringifyBlockCall(lookalike, {}, 'x', false).includes('"[10,\\"x\\"]"'));
+});
+
+test('stdlib: method sugar injects defs at pack and folds to import on convert', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-stdlib-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'import "fractch/strings";\n\n' +
+      'when flag {\n' +
+      '  parts = "a,b,c".split(",");\n' +
+      '  say parts.item(2);\n' +
+      '  say mistsutils.item(C: 1, A: "x.y", B: ".");\n' + // keyed args stay an extension call
+      '}\n'
+  );
+  const sb3 = path.join(dir, 'stdlib.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const stage = project.targets.find((t) => t.isStage);
+  const blocks = Object.values(stage.blocks);
+  const defs = blocks.filter((b) => b.opcode === 'procedures_definition');
+  assert.ok(defs.length >= 4, `expected stdlib defs injected, got ${defs.length}`);
+  const calls = blocks.filter((b) => b.opcode === 'procedures_call').map((b) => b.mutation?.proccode);
+  assert.ok(calls.includes('fractch_strings_split %s %s'), 'split call missing');
+  assert.ok(calls.includes('fractch_json_item %s %s'), 'item call missing');
+  assert.ok(blocks.some((b) => b.opcode === 'mistsutils_item'), 'keyed extension call was hijacked by method sugar');
+  assert.ok(Object.keys(stage.blocks).some((k) => k.startsWith('fractch_h')), 'stdlib defs missing file markers');
+
+  const outDir = path.join(dir, 'back');
+  run(`node ./bin/cli.js from "${sb3}" to "${outDir}"`);
+  const text = fs.readFileSync(path.join(outDir, 'Stage', 'main.fractch'), 'utf8');
+  assert.ok(text.includes('import "fractch/strings";'), 'import line missing after convert');
+  assert.ok(!text.includes('def @fractch_strings_split'), 'stdlib def bodies must fold into the import');
+  assert.ok(text.includes('parts = "a,b,c".split(",");'), 'method sugar not re-emitted');
+  assert.ok(text.includes('say parts.item(2);'), 'variable-receiver method not re-emitted');
+  assert.ok(/mistsutils\.item\(/.test(text), 'extension call must stay an opcode call');
+});
+
+test('manifest-less declarations round-trip project state', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-decls-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Cat_'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'stage video off transparency 0;\n' +
+      'platform "Mistwarp" from "https://warp.mistium.com/";\n' +
+      'use "mistsutils" from "https://example.com/mist.js";\n' +
+      'var "Weird // Name" = "hello";\n' +
+      'var plain = 5;\n' +
+      'var mylist = [1, "two"];\n' +
+      'watch var "plain" at 10,20 range 0,50 hidden;\n' +
+      'watch list "mylist" size 200x150;\n' +
+      'comment "workspace note" at 50,60 size 350x170;\n' +
+      'when flag {\n  say "hi";\n  comment "attached" at 1,2 size 30x40;\n}\n'
+  );
+  fs.writeFileSync(
+    path.join(dir, 'Cat_', 'main.fractch'),
+    'sprite "Cat!" at 12,-7 size 150 hidden layer 1;\n' +
+      'when flag {\n  plain += 1;\n}\n'
+  );
+  const sb3 = path.join(dir, 'decls.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const stage = project.targets.find((t) => t.isStage);
+  assert.strictEqual(stage.videoState, 'off');
+  assert.strictEqual(stage.videoTransparency, 0);
+  assert.deepStrictEqual(project.meta.platform, { name: 'Mistwarp', url: 'https://warp.mistium.com/' });
+  assert.strictEqual(project.extensionURLs.mistsutils, 'https://example.com/mist.js');
+
+  const varNames = Object.values(stage.variables).map((v) => v[0]);
+  assert.ok(varNames.includes('Weird // Name'));
+  const plainEntry = Object.values(stage.variables).find((v) => v[0] === 'plain');
+  assert.strictEqual(plainEntry[1], 5);
+  const listEntry = Object.values(stage.lists).find((v) => v[0] === 'mylist');
+  assert.deepStrictEqual(listEntry[1], [1, 'two']);
+
+  const varMonitor = project.monitors.find((m) => m.opcode === 'data_variable');
+  assert.strictEqual(varMonitor.params.VARIABLE, 'plain');
+  assert.strictEqual(varMonitor.x, 10);
+  assert.strictEqual(varMonitor.sliderMax, 50);
+  assert.strictEqual(varMonitor.visible, false);
+  assert.strictEqual(varMonitor.spriteName, null);
+  const listMonitor = project.monitors.find((m) => m.opcode === 'data_listcontents');
+  assert.strictEqual(listMonitor.width, 200);
+
+  const comments = Object.values(stage.comments);
+  const workspace = comments.find((c) => c.blockId === null);
+  assert.strictEqual(workspace.text, 'workspace note');
+  assert.strictEqual(workspace.width, 350);
+  const attached = comments.find((c) => c.blockId !== null);
+  assert.strictEqual(attached.text, 'attached');
+  const anchor = stage.blocks[attached.blockId];
+  assert.strictEqual(anchor.opcode, 'looks_say');
+  assert.strictEqual(anchor.comment, Object.keys(stage.comments).find((k) => stage.comments[k] === attached));
+
+  const cat = project.targets.find((t) => !t.isStage);
+  assert.strictEqual(cat.name, 'Cat!');
+  assert.strictEqual(cat.x, 12);
+  assert.strictEqual(cat.y, -7);
+  assert.strictEqual(cat.size, 150);
+  assert.strictEqual(cat.visible, false);
+  assert.strictEqual(cat.layerOrder, 1);
+  // sprite references the stage global instead of spawning a local copy
+  assert.ok(!Object.values(cat.variables).some((v) => v[0] === 'plain'), 'stage global duplicated into sprite');
 });

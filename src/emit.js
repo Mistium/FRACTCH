@@ -1,4 +1,4 @@
-import { stringifyBlockCall, stringifyFields, stringifyInputs, setContext, renderBody } from './stringify.js';
+import { stringifyBlockCall, stringifyFields, stringifyInputs, setContext, renderBody, commentDeclLine } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
 export function emitScriptFile({ target, script, subgraph, index, context, cfg = {} }) {
@@ -10,7 +10,7 @@ export function emitScriptFile({ target, script, subgraph, index, context, cfg =
   return `${header}\n${imports}${imports ? '\n' : ''}${body}\n`;
 }
 
-export function emitMultiScriptFile({ target, entries, context, cfg = {}, includeAssets = false }) {
+export function emitMultiScriptFile({ target, entries, context, cfg = {}, includeAssets = false, prelude = '' }) {
   const header =
     `/**\n` +
     ` * target: ${escapeHeader(target.name)}\n` +
@@ -19,7 +19,7 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
     ` */\n`;
   const assets = includeAssets ? emitAssetDecls(target) : '';
   const bodies = entries.map(({ script, subgraph }) => emitScriptBody({ script, subgraph, context, cfg }));
-  return `${header}\n${[assets, bodies.join('\n\n')].filter(Boolean).join('\n\n')}\n`;
+  return `${header}\n${[prelude, assets, bodies.join('\n\n')].filter(Boolean).join('\n\n')}\n`;
 }
 
 // One human-named file per distinct asset: md5ext -> "assets/<name>.<ext>".
@@ -49,12 +49,14 @@ function emitAssetDecls(target) {
     return fileMap.get(md5ext) || `assets/${md5ext || 'missing'}`;
   };
   const lines = [];
-  for (const c of target.costumes || []) {
+  const currentIndex = Number(target.currentCostume) || 0;
+  (target.costumes || []).forEach((c, i) => {
     const parts = [`costume ${JSON.stringify(String(c.name ?? ''))}`, `file ${JSON.stringify(fileFor(c))}`];
     parts.push(`center ${numText(c.rotationCenterX)},${numText(c.rotationCenterY)}`);
     if (c.bitmapResolution != null && c.bitmapResolution !== 1) parts.push(`bitmap ${numText(c.bitmapResolution)}`);
+    if (i === currentIndex && currentIndex !== 0) parts.push('current');
     lines.push(parts.join(' ') + ';');
-  }
+  });
   for (const s of target.sounds || []) {
     const parts = [`sound ${JSON.stringify(String(s.name ?? ''))}`, `file ${JSON.stringify(fileFor(s))}`];
     if (s.rate != null) parts.push(`rate ${numText(s.rate)}`);
@@ -68,6 +70,129 @@ function emitAssetDecls(target) {
 function numText(n) {
   const v = Number(n);
   return Number.isFinite(v) ? String(v) : '0';
+}
+
+// Everything manifest.json used to carry, as declarations at the top of the
+// target's main.fractch: sprite/stage properties, extension `use` lines,
+// platform meta, variable/list initial values, watchers, and workspace
+// comments. The DSL text is the only copy - there is no manifest fallback.
+export function emitTargetPrelude({ projectJson, target, monitors = [], workspaceComments = [] }) {
+  const lines = [];
+
+  if (target.isStage) {
+    const attrs = [];
+    if (numOr(target.volume, 100) !== 100) attrs.push(`volume ${numText(target.volume)}`);
+    if (numOr(target.tempo, 60) !== 60) attrs.push(`tempo ${numText(target.tempo)}`);
+    const video = target.videoState ?? 'on';
+    if (video !== 'on') attrs.push(`video ${/^[a-z]+$/.test(video) ? video : JSON.stringify(String(video))}`);
+    if (numOr(target.videoTransparency, 50) !== 50) attrs.push(`transparency ${numText(target.videoTransparency)}`);
+    if (target.textToSpeechLanguage) attrs.push(`tts ${JSON.stringify(String(target.textToSpeechLanguage))}`);
+    if (attrs.length) lines.push(`stage ${attrs.join(' ')};`);
+
+    const plat = projectJson?.meta?.platform;
+    if (plat?.name) {
+      lines.push(`platform ${JSON.stringify(String(plat.name))}${plat.url ? ` from ${JSON.stringify(String(plat.url))}` : ''};`);
+    }
+    const urls = projectJson?.extensionURLs || {};
+    for (const id of projectJson?.extensions || []) {
+      lines.push(urls[id] ? `use ${JSON.stringify(id)} from ${JSON.stringify(String(urls[id]))};` : `use ${JSON.stringify(id)};`);
+    }
+  } else {
+    const attrs = [JSON.stringify(String(target.name ?? ''))];
+    if (numOr(target.x, 0) !== 0 || numOr(target.y, 0) !== 0) attrs.push(`at ${numText(target.x)},${numText(target.y)}`);
+    if (numOr(target.size, 100) !== 100) attrs.push(`size ${numText(target.size)}`);
+    if (numOr(target.direction, 90) !== 90) attrs.push(`direction ${numText(target.direction)}`);
+    if (target.visible === false) attrs.push('hidden');
+    if (target.draggable === true) attrs.push('draggable');
+    if (target.rotationStyle && target.rotationStyle !== 'all around') attrs.push(`rotation ${JSON.stringify(String(target.rotationStyle))}`);
+    if (numOr(target.volume, 100) !== 100) attrs.push(`volume ${numText(target.volume)}`);
+    if (target.layerOrder != null) attrs.push(`layer ${numText(target.layerOrder)}`);
+    lines.push(`sprite ${attrs.join(' ')};`);
+  }
+
+  // Scratch tolerates duplicate display names across distinct ids, and blocks
+  // reference the extras by id. Every member of a name-collision group keeps
+  // its id in the declaration so pack recreates each one under the id the
+  // block references actually use; unique names stay clean.
+  const nameCounts = (dict) => {
+    const counts = new Map();
+    for (const entry of Object.values(dict || {})) {
+      if (!Array.isArray(entry)) continue;
+      const n = String(entry[0]);
+      counts.set(n, (counts.get(n) || 0) + 1);
+    }
+    return counts;
+  };
+  const varCounts = nameCounts(target.variables);
+  for (const [id, entry] of Object.entries(target.variables || {})) {
+    if (!Array.isArray(entry)) continue;
+    const [name, value, isCloud] = entry;
+    // `local x = ...` script-locals pack to mangled local_N_x variables;
+    // pack regenerates them (same deterministic names) from the `local`
+    // statements, so declaring them here would only leak noise.
+    if (/^local_\d+_/.test(String(name))) continue;
+    const idSuffix = varCounts.get(String(name)) > 1 ? ` id ${JSON.stringify(String(id))}` : '';
+    if (isCloud === true && String(name).startsWith('☁ ')) {
+      lines.push(`cloud ${varNameToken(String(name).slice(2))} = ${varValueText(value)}${idSuffix};`);
+    } else {
+      lines.push(`var ${varNameToken(name)} = ${varValueText(value)}${idSuffix};`);
+    }
+  }
+  const listCounts = nameCounts(target.lists);
+  for (const [id, entry] of Object.entries(target.lists || {})) {
+    if (!Array.isArray(entry)) continue;
+    const [name, value] = entry;
+    const idSuffix = listCounts.get(String(name)) > 1 ? ` id ${JSON.stringify(String(id))}` : '';
+    lines.push(`var ${varNameToken(name)} = ${JSON.stringify(Array.isArray(value) ? value : [])}${idSuffix};`);
+  }
+
+  for (const w of monitors) {
+    const line = watchDeclLine(w);
+    if (line) lines.push(line);
+  }
+
+  for (const c of workspaceComments) {
+    lines.push(commentDeclLine(c));
+  }
+
+  return lines.join('\n');
+}
+
+function numOr(v, dflt) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : dflt;
+}
+
+const BARE_VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function varNameToken(name) {
+  const s = String(name ?? '');
+  return BARE_VAR_NAME.test(s) ? s : JSON.stringify(s);
+}
+
+function varValueText(v) {
+  if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  if (Array.isArray(v)) return JSON.stringify(v);
+  return JSON.stringify(String(v ?? ''));
+}
+
+// w: { isList, name, mode, x, y, width, height, visible, sliderMin,
+//      sliderMax, isDiscrete, sprite, id } - sprite/id only for watchers
+// whose owner target no longer exists (preserved verbatim).
+function watchDeclLine(w) {
+  const parts = [`watch ${w.isList ? 'list' : 'var'} ${JSON.stringify(String(w.name ?? ''))}`];
+  if (w.mode === 'large' || w.mode === 'slider') parts.push(w.mode);
+  if (numOr(w.x, 0) !== 0 || numOr(w.y, 0) !== 0) parts.push(`at ${numText(w.x)},${numText(w.y)}`);
+  if (numOr(w.width, 0) !== 0 || numOr(w.height, 0) !== 0) parts.push(`size ${numText(w.width)}x${numText(w.height)}`);
+  if (!w.isList) {
+    if (numOr(w.sliderMin, 0) !== 0 || numOr(w.sliderMax, 100) !== 100) parts.push(`range ${numText(w.sliderMin)},${numText(w.sliderMax)}`);
+    if (w.isDiscrete === false) parts.push('continuous');
+  }
+  if (w.visible === false) parts.push('hidden');
+  if (w.sprite) parts.push(`sprite ${JSON.stringify(String(w.sprite))}`);
+  if (w.id) parts.push(`id ${JSON.stringify(String(w.id))}`);
+  return parts.join(' ') + ';';
 }
 
 function emitScriptBody({ script, subgraph, context, cfg = {} }) {
@@ -89,17 +214,19 @@ function emitScriptBody({ script, subgraph, context, cfg = {} }) {
       const scopeParamNames = new Map(info.params.map((p) => [p.name, p.ident]));
       setContext({ ...context, scopeParamNames });
     }
-    const inner = subgraph[topBlockId]?.next ? renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
+    let inner = subgraph[topBlockId]?.next ? renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
+    inner = prependOwnComments(context, topBlockId, inner);
     const at = atText(subgraph[topBlockId]);
     body = inner ? `${sig}${at} {\n${indentBlock(inner)}\n}` : `${sig}${at} {}`;
   } else {
     const top = subgraph[topBlockId];
     const sugar = top ? whenSugarFor(top, context) : null;
     if (sugar) {
-      const rest = top.next ? renderBody(subgraph, top.next, cfg) : '';
+      let rest = top.next ? renderBody(subgraph, top.next, cfg) : '';
+      rest = prependOwnComments(context, topBlockId, rest);
       body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
-      const inner = renderFallbackBody(subgraph, topBlockId, cfg);
+      const inner = renderFallbackBody(subgraph, topBlockId, cfg, context);
       body = `script${atText(top)} {\n${indentBlock(inner)}\n}`;
     }
   }
@@ -166,15 +293,27 @@ function linearize(subgraph, topId) {
   return arr;
 }
 
-function renderFallbackBody(subgraph, topId, cfg) {
+function renderFallbackBody(subgraph, topId, cfg, context) {
   const ids = linearizeIds(subgraph, topId);
   const lines = ids.map((id, index) => {
     const block = subgraph[id];
-    return index === 0 && needsExplicitTopOpcode(block)
+    let line = index === 0 && needsExplicitTopOpcode(block)
       ? stringifyRawBlockCall(block, subgraph)
       : stringifyBlockCall(block, subgraph, id, false, cfg);
+    const attached = context?.blockComments?.get(id);
+    if (attached?.length) line += '\n' + attached.map((c) => commentDeclLine(c)).join('\n');
+    return line;
   });
   return lines.join('\n');
+}
+
+// A comment anchored on the hat/def block itself prints as the first body
+// line; the parser re-attaches a leading comment to the enclosing hat.
+function prependOwnComments(context, topBlockId, bodyText) {
+  const own = context?.blockComments?.get(topBlockId);
+  if (!own?.length) return bodyText;
+  const lines = own.map((c) => commentDeclLine(c)).join('\n');
+  return bodyText ? `${lines}\n${bodyText}` : lines;
 }
 
 function linearizeIds(subgraph, topId) {
@@ -190,7 +329,9 @@ function linearizeIds(subgraph, topId) {
 }
 
 function needsExplicitTopOpcode(block) {
-  return block && ['argument_reporter_string_number', 'argument_reporter_boolean', 'data_variable'].includes(block.opcode);
+  // argument_reporter_string_number is absent: its orphans round-trip via
+  // the arg("name") statement sugar instead of the raw opcode form.
+  return block && ['argument_reporter_boolean', 'data_variable'].includes(block.opcode);
 }
 
 function stringifyRawBlockCall(block, subgraph) {
@@ -320,7 +461,16 @@ function whenSugarFor(block, context) {
 
 function indentBlock(str, spaces = 2) {
   if (!str) return '';
-  return str.split('\n').map((l) => (l ? ' '.repeat(spaces) + l : l)).join('\n');
+  const pad = ' '.repeat(spaces);
+  let inRaw = false; // lines inside an open """ raw string stay verbatim
+  return str
+    .split('\n')
+    .map((l) => {
+      const out = l && !inRaw ? pad + l : l;
+      if (((l.match(/"""/g) || []).length) % 2) inRaw = !inRaw;
+      return out;
+    })
+    .join('\n');
 }
 
 function escapeLabel(s) {

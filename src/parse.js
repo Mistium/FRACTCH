@@ -1,10 +1,12 @@
+import { STDLIB_METHODS } from './stdlib.js';
+
 // Statement keywords that introduce a control construct instead of a plain
 // expression-statement.
 const STATEMENT_KEYWORDS = new Set([
   'def', 'if', 'forever', 'switch', 'case', 'default', 'repeat', 'until',
   'while', 'wait', 'wait_until', 'stop', 'return', 'broadcast', 'broadcast_wait', 'vars',
   'dangling_next', 'when', 'script', 'lists', 'local', 'sound',
-  'use', 'var', 'cloud', 'sprite', 'stage',
+  'use', 'var', 'cloud', 'sprite', 'stage', 'watch', 'comment', 'platform',
   'say', 'think', 'ask', 'show', 'hide', 'move', 'turn', 'turn_left', 'goto',
   'point', 'set_x', 'set_y', 'change_x', 'change_y', 'set_size', 'change_size',
   'set_effect', 'change_effect', 'clear_effects',
@@ -128,13 +130,28 @@ export function parseFractch(content) {
     cur = null;
   };
   const uses = [];
+  const imports = [];
   const varDecls = [];
+  const watches = [];
+  const comments = [];
+  let platform = null;
   let spriteProps = null;
   for (const st of stmts) {
     if (st.type === 'useDecl') {
       uses.push(st);
+    } else if (st.type === 'importDecl') {
+      imports.push(st.id);
     } else if (st.type === 'varDecl') {
       varDecls.push(st);
+    } else if (st.type === 'watchDecl') {
+      watches.push(st);
+    } else if (st.type === 'commentDecl') {
+      // Top-level comment declarations are workspace comments (or orphan
+      // block comments via `for "id"`); comments inside script bodies stay
+      // in the body and attach to the preceding statement's block.
+      comments.push(st);
+    } else if (st.type === 'platformDecl') {
+      platform = st;
     } else if (st.type === 'spriteDecl') {
       spriteProps = { ...(spriteProps || {}), ...st.props };
     } else if (st.type === 'assetDecl') {
@@ -157,7 +174,7 @@ export function parseFractch(content) {
   flush();
 
   const calls = scripts.length === 1 ? scripts[0].calls : scripts.flatMap((s) => s.calls);
-  return { calls, scripts, assets, uses, varDecls, spriteProps, errors: parser.errors };
+  return { calls, scripts, assets, uses, imports, varDecls, watches, comments, platform, spriteProps, errors: parser.errors };
 }
 
 export function preprocess(text) {
@@ -339,6 +356,19 @@ class Parser {
       }
       const word = this.peekWord();
       if (word === 'import') {
+        // `import "fractch/strings";` in a target file records a stdlib (or
+        // future package) import; index.fractch imports are read separately
+        // by pack's allow-list scan, so any other import line is inert here.
+        const save = this.snapshot();
+        this.tryIdentifier();
+        this.skipWS();
+        if (this.peek() === '"') {
+          const id = this.parseStringLiteral();
+          this.tryChar(';');
+          stmts.push({ type: 'importDecl', id });
+          continue;
+        }
+        this.restore(save);
         this.skipToEOL();
         continue;
       }
@@ -383,15 +413,46 @@ class Parser {
     } else if (word === 'var' || word === 'cloud') {
       const save = this.snapshot();
       this.tryIdentifier();
-      const name = this.tryIdentifier();
       this.skipWS();
-      isKeyword = name != null && this.peek() === '=' && this.peek(1) !== '=';
+      let named = false;
+      if (this.peek() === '"') {
+        try {
+          this.parseStringLiteral();
+          named = true;
+        } catch { named = false; }
+      } else {
+        named = this.tryIdentifier() != null;
+      }
+      this.skipWS();
+      isKeyword = named && this.peek() === '=' && this.peek(1) !== '=';
       this.restore(save);
     } else if (word === 'sprite' || word === 'stage') {
       const save = this.snapshot();
       this.tryIdentifier();
+      this.skipWS();
       const attr = this.peekWord();
-      isKeyword = ['at', 'size', 'direction', 'visible', 'hidden', 'draggable', 'rotation', 'volume', 'tempo', 'layer'].includes(attr);
+      isKeyword = this.peek() === '"' ||
+        ['at', 'size', 'direction', 'visible', 'hidden', 'draggable', 'rotation', 'volume', 'tempo', 'layer', 'costume', 'video', 'transparency', 'tts'].includes(attr);
+      this.restore(save);
+    } else if (word === 'watch') {
+      const save = this.snapshot();
+      this.tryIdentifier();
+      this.skipWS();
+      const kind = this.peekWord();
+      isKeyword = kind === 'var' || kind === 'list';
+      this.restore(save);
+    } else if (word === 'comment') {
+      const save = this.snapshot();
+      this.tryIdentifier();
+      this.skipWS();
+      const next = this.peekWord();
+      isKeyword = this.peek() === '"' || ['at', 'size', 'minimized', 'for'].includes(next);
+      this.restore(save);
+    } else if (word === 'platform') {
+      const save = this.snapshot();
+      this.tryIdentifier();
+      this.skipWS();
+      isKeyword = this.peek() === '"';
       this.restore(save);
     }
     if (isKeyword) {
@@ -412,6 +473,21 @@ class Parser {
         return makeCall('data_changevariableby', [
           keyedField('VARIABLE', { type: 'ident', name: word }),
           keyedInput('VALUE', v),
+        ]);
+      }
+      // `x -= v` is change-by with the value negated: a literal number
+      // negates in place, anything else wraps in `0 - v`.
+      if (this.peek() === '-' && this.peek(1) === '=') {
+        this.i += 2;
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        const negated =
+          v.type === 'number'
+            ? { type: 'number', value: -v.value, raw: String(-v.value) }
+            : { type: 'call', value: makeCall('operator_subtract', [keyedInput('NUM1', { type: 'number', value: 0, raw: '0' }), keyedInput('NUM2', v)]) };
+        return makeCall('data_changevariableby', [
+          keyedField('VARIABLE', { type: 'ident', name: word }),
+          keyedInput('VALUE', negated),
         ]);
       }
       if (this.peek() === '=' && this.peek(1) !== '=') {
@@ -462,6 +538,10 @@ class Parser {
         this.tryIdentifier();
         this.skipWS();
         value.format = this.parseStringLiteral();
+      } else if (w === 'current') {
+        // Marks the target's current costume (currentCostume index).
+        this.tryIdentifier();
+        value.current = true;
       } else {
         break;
       }
@@ -817,7 +897,10 @@ class Parser {
       }
       case 'var':
       case 'cloud': {
-        const name = this.expectIdentifier(`after '${word}'`);
+        this.skipWS();
+        // Quoted names carry declarations for variables whose real names
+        // aren't identifier-safe: var "Frame // Interactable" = 0;
+        const name = this.peek() === '"' ? this.parseStringLiteral() : this.expectIdentifier(`after '${word}'`);
         this.skipWS();
         this.expectChar('=', `in '${word} ${name} = ...'`);
         this.skipWS();
@@ -836,12 +919,26 @@ class Parser {
         if (word === 'cloud' && isList) {
           this.fail('cloud lists do not exist in Scratch - only cloud variables', 'use: cloud name = 0;');
         }
+        // Optional explicit id: Scratch tolerates several variables/lists
+        // sharing one display name (distinct ids). Converted projects carry
+        // the id on all but the first same-named declaration so none of them
+        // collapse into each other on pack.
+        this.skipWS();
+        let id = null;
+        if (this.peekWord() === 'id') {
+          this.tryIdentifier();
+          id = this.parseStringLiteral();
+        }
         this.tryChar(';');
-        return { type: 'varDecl', name, value, isList, cloud: word === 'cloud' };
+        return { type: 'varDecl', name, value, isList, cloud: word === 'cloud', id };
       }
       case 'sprite':
       case 'stage': {
         const props = { kind: word };
+        this.skipWS();
+        // Optional quoted display name (the folder name is a sanitized copy):
+        // sprite "My Sprite!" at 0,0 ...
+        if (this.peek() === '"') props.name = this.parseStringLiteral();
         for (;;) {
           this.skipWS();
           const attr = this.peekWord();
@@ -849,10 +946,22 @@ class Parser {
             const pos = this.tryAt();
             props.x = pos.x;
             props.y = pos.y;
-          } else if (attr === 'size' || attr === 'direction' || attr === 'volume' || attr === 'tempo' || attr === 'layer') {
+          } else if (attr === 'size' || attr === 'direction' || attr === 'volume' || attr === 'tempo' || attr === 'layer' || attr === 'transparency') {
             this.tryIdentifier();
             this.skipWS();
             props[attr] = this.parseNumberLiteral().value;
+          } else if (attr === 'costume') {
+            this.tryIdentifier();
+            this.skipWS();
+            props.currentCostume = this.parseNumberLiteral().value;
+          } else if (attr === 'video') {
+            this.tryIdentifier();
+            this.skipWS();
+            props.videoState = this.peek() === '"' ? this.parseStringLiteral() : this.expectIdentifier(`after 'video'`);
+          } else if (attr === 'tts') {
+            this.tryIdentifier();
+            this.skipWS();
+            props.tts = this.parseStringLiteral();
           } else if (attr === 'visible' || attr === 'hidden') {
             this.tryIdentifier();
             props.visible = attr === 'visible';
@@ -868,6 +977,111 @@ class Parser {
         }
         this.tryChar(';');
         return { type: 'spriteDecl', props };
+      }
+      case 'watch': {
+        this.skipWS();
+        const kindWord = this.expectIdentifier(`after 'watch'`);
+        if (kindWord !== 'var' && kindWord !== 'list') {
+          this.fail(`'watch' expects 'var' or 'list' but found '${kindWord}'`, 'example: watch var "score" at 10,10;');
+        }
+        this.skipWS();
+        const name = this.parseStringLiteral();
+        const decl = {
+          type: 'watchDecl', isList: kindWord === 'list', name, mode: null,
+          x: null, y: null, width: null, height: null, visible: true,
+          sliderMin: null, sliderMax: null, isDiscrete: true, sprite: null, id: null,
+        };
+        for (;;) {
+          this.skipWS();
+          const w = this.peekWord();
+          if (w === 'at') {
+            const pos = this.tryAt();
+            decl.x = pos.x;
+            decl.y = pos.y;
+          } else if (w === 'size') {
+            this.tryIdentifier();
+            this.skipWS();
+            decl.width = this.parseNumberLiteral().value;
+            this.expectChar('x');
+            decl.height = this.parseNumberLiteral().value;
+          } else if (w === 'large' || w === 'slider') {
+            this.tryIdentifier();
+            decl.mode = w;
+          } else if (w === 'range') {
+            this.tryIdentifier();
+            this.skipWS();
+            decl.sliderMin = this.parseNumberLiteral().value;
+            this.tryChar(',');
+            this.skipWS();
+            decl.sliderMax = this.parseNumberLiteral().value;
+          } else if (w === 'continuous') {
+            this.tryIdentifier();
+            decl.isDiscrete = false;
+          } else if (w === 'hidden' || w === 'visible') {
+            this.tryIdentifier();
+            decl.visible = w === 'visible';
+          } else if (w === 'sprite') {
+            // Watcher owned by a sprite that has no folder in this build
+            // (deleted sprite, monitor left behind) - preserved verbatim.
+            this.tryIdentifier();
+            this.skipWS();
+            decl.sprite = this.parseStringLiteral();
+          } else if (w === 'id') {
+            this.tryIdentifier();
+            this.skipWS();
+            decl.id = this.parseStringLiteral();
+          } else {
+            break;
+          }
+        }
+        this.tryChar(';');
+        return decl;
+      }
+      case 'comment': {
+        const decl = { type: 'commentDecl', text: '', x: 0, y: 0, width: 200, height: 200, minimized: false, forId: null };
+        this.skipWS();
+        if (this.peek() === '"') decl.text = this.parseStringLiteral();
+        for (;;) {
+          this.skipWS();
+          const w = this.peekWord();
+          if (w === 'at') {
+            const pos = this.tryAt();
+            decl.x = pos.x;
+            decl.y = pos.y;
+          } else if (w === 'size') {
+            this.tryIdentifier();
+            this.skipWS();
+            decl.width = this.parseNumberLiteral().value;
+            this.expectChar('x');
+            decl.height = this.parseNumberLiteral().value;
+          } else if (w === 'minimized') {
+            this.tryIdentifier();
+            decl.minimized = true;
+          } else if (w === 'for') {
+            // Explicit block-id anchor - only used for orphan comments whose
+            // block no longer exists (reproduces the dangling reference).
+            this.tryIdentifier();
+            this.skipWS();
+            decl.forId = this.parseStringLiteral();
+          } else {
+            break;
+          }
+        }
+        this.skipWS();
+        if (!decl.text && this.peek() === '"') decl.text = this.parseStringLiteral();
+        this.tryChar(';');
+        return decl;
+      }
+      case 'platform': {
+        const name = this.parseStringLiteral();
+        let url = null;
+        this.skipWS();
+        if (this.peekWord() === 'from') {
+          this.tryIdentifier();
+          url = this.parseStringLiteral();
+        }
+        this.tryChar(';');
+        return { type: 'platformDecl', name, url };
       }
       case 'dangling_next': {
         // Preserves a forward reference to a block id that doesn't actually
@@ -994,7 +1208,16 @@ class Parser {
     const save = this.snapshot();
     if (this.peekWord() === 'else') {
       this.tryIdentifier();
-      const elseBody = this.parseBraceBody();
+      this.skipWS();
+      // `else if cond { ... }` chains sugar an else body holding exactly one
+      // nested if statement — identical blocks to the braced nesting.
+      let elseBody;
+      if (this.peekWord() === 'if') {
+        this.tryIdentifier();
+        elseBody = [this.parseIf()];
+      } else {
+        elseBody = this.parseBraceBody();
+      }
       return makeCall('control_if_else', [
         keyedInput('CONDITION', cond),
         branchArg('then', thenBody, 'SUBSTACK'),
@@ -1047,6 +1270,13 @@ class Parser {
       }
       return call;
     }
+    // `arg("Name");` at statement position: an orphan argument reporter
+    // (detached from any definition). Only the string/number kind uses this
+    // sugar - a boolean orphan keeps the raw opcode form since the kind
+    // isn't recoverable from the name.
+    if (e.type === 'arg') {
+      return makeCall('argument_reporter_string_number', [keyedField('VALUE', { type: 'array', value: [e.name] })]);
+    }
     return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(e))]);
   }
 
@@ -1085,7 +1315,49 @@ class Parser {
       const operand = this.parseUnaryExpr();
       return { type: 'call', value: makeCall('operator_not', [keyedInput('OPERAND', operand)]) };
     }
-    return this.parsePrimary();
+    return this.parsePostfixMethods(this.parsePrimary());
+  }
+
+  // Stdlib method sugar: `value.split(",")` desugars to a call of the
+  // stdlib def (`@fractch_strings_split(value, ",")`); chains fine
+  // (`v.split(",").item(1)`). Only names in the stdlib registry parse this
+  // way - anything else after a '.' stays an opcode/property read, and the
+  // raw opcode form (`ns_split(...)`) remains the escape hatch for an
+  // extension whose block name collides with a method.
+  parsePostfixMethods(expr) {
+    for (;;) {
+      this.skipWS();
+      if (this.peek() !== '.' || this.peek(1) === '.') return expr;
+      const save = this.snapshot();
+      this.i++;
+      const name = this.tryIdentifier();
+      const m = name && STDLIB_METHODS[name];
+      this.skipWS();
+      if (!m || this.peek() !== '(') {
+        this.restore(save);
+        return expr;
+      }
+      this.i++;
+      const args = [{ kind: 'positional', value: expr }];
+      this.skipWS();
+      if (this.peek() !== ')') {
+        for (;;) {
+          args.push({ kind: 'positional', value: this.parseInputValue() });
+          this.skipWS();
+          if (this.tryChar(',')) continue;
+          break;
+        }
+      }
+      this.expectChar(')');
+      if (args.length !== m.argc) {
+        this.fail(`.${name}(...) takes ${m.argc - 1} argument${m.argc === 2 ? '' : 's'} after the receiver`,
+          `stdlib method from import "${m.module}"`);
+      }
+      expr = {
+        type: 'call',
+        value: { type: 'call', callee: { type: 'procedureCall', name: m.ident, line: this.lineAt(save) }, args },
+      };
+    }
   }
 
   parseInputValue() {
@@ -1212,8 +1484,29 @@ class Parser {
 
     let callee = word;
     while (this.peek() === '.' && this.peek(1) !== '.') {
+      const dotSave = this.snapshot();
       this.i++;
       const part = this.expectIdentifier();
+      // `value.split(...)`: a registry method name after a single bare
+      // identifier is ambiguous - method sugar on a variable, or an
+      // extension block (`mistsutils.item(...)`). Keyed args settle it as an
+      // opcode call immediately; all-positional args defer to pack time,
+      // which resolves by whether a variable of that name exists.
+      if (callee === word && STDLIB_METHODS[part]) {
+        this.skipWS();
+        if (this.peek() === '(') {
+          this.i++;
+          const args = this.parseKeyedArgs();
+          this.expectChar(')');
+          if (args.some((a) => a.kind !== 'positional')) {
+            return { type: 'call', value: makeCall(`${word}_${part}`, args) };
+          }
+          return {
+            type: 'call',
+            value: { type: 'call', callee: { type: 'identOrMethod', ident: word, method: part, line: this.lineAt(dotSave) }, args },
+          };
+        }
+      }
       callee += `_${part}`;
       this.skipWS();
     }
@@ -1331,6 +1624,19 @@ class Parser {
   parseStringLiteral() {
     this.skipWS();
     if (this.peek() !== '"') this.fail(`expected a "quoted string" but found ${this.describeHere()}`);
+    // Triple-quoted raw string: content runs verbatim (real newlines, no
+    // escape processing) to the next """.
+    if (this.s.startsWith('"""', this.i)) {
+      this.i += 3;
+      const end = this.s.indexOf('"""', this.i);
+      if (end < 0) {
+        this.fail('this """ string never closes - missing the ending \'"""\'',
+          'triple-quoted strings are raw: no escapes, closed by """');
+      }
+      const result = this.s.slice(this.i, end);
+      this.i = end + 3;
+      return result;
+    }
     this.i++;
     let result = '';
     while (!this.eof() && this.peek() !== '"') {

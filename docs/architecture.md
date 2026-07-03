@@ -9,7 +9,7 @@ pack    (text -> sb3):  pack.js -> parse.js -> buildBlocks.js -> packSb3.js
 
 ## The core invariant
 
-**The DSL text is the only copy of the blocks.** No raw JSON snapshot exists anywhere — not in headers, not in the manifest. Packing reconstructs every block by reparsing the text. Any change to emission (`emit.js` / `stringify.js`) needs a matching change in parsing (`parse.js` / `buildBlocks.js`) or the round trip silently degrades.
+**The DSL text is the only copy of the project.** No raw JSON snapshot exists anywhere — no headers with block data and no `manifest.json` at all. Blocks, sprite/stage properties, variable and list values, extension registrations, watchers, comments, and platform meta are all reconstructed by reparsing the text (a `manifest.json`, if one exists in an old build dir, still loads for back-compat). Any change to emission (`emit.js` / `stringify.js`) needs a matching change in parsing (`parse.js` / `buildBlocks.js`) or the round trip silently degrades.
 
 The check for this is `scripts/check-roundtrip.mjs`: it parses every generated file, rebuilds its blocks, and walks the rebuilt tree against the original subgraph (paired by position, not id). It must pass 100% after touching either side. `npm test` and `npm run selftest` only bound against wholesale loss.
 

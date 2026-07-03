@@ -1,3 +1,5 @@
+import { STDLIB_METHODS } from './stdlib.js';
+
 // Opcodes that are only ever legitimately used as shadow-only blocks
 // (literal input defaults / custom-block parameter reporters). Used to
 // restore the `shadow` flag for orphan top-level blocks reconstructed from
@@ -28,8 +30,21 @@ export function buildBlocksFromCalls(calls, opts = {}) {
   let lastId = null;
   let topId = null;
 
+  const pendingTopComments = [];
   for (let idx = 0; idx < calls.length; idx++) {
     const call = calls[idx];
+    if (call.type === 'commentDecl') {
+      // Comments are not blocks: attach to the preceding statement's block
+      // (or the chain's top block when written first). Collected via
+      // ctx.commentsOut so nested branch bodies bubble up to the caller.
+      if (ctx.commentsOut) {
+        const entry = { ...call, blockId: call.forId || lastId };
+        ctx.commentsOut.push(entry);
+        if (!entry.blockId) pendingTopComments.push(entry);
+      }
+      continue;
+    }
+    if (call.type === 'importDecl') continue; // file-level directive, not a block
     if (call.type === 'danglingNext') {
       // Trailing sentinel: real content preceded it, this just restores the
       // broken forward reference at the end of the chain rather than a
@@ -43,9 +58,10 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     // object before this statement's own entry lands, so object key
     // insertion order can't be trusted to recover the top id afterward.
     const id = ids.next();
-    if (idx === 0) topId = id;
+    const isFirst = topId == null;
+    if (isFirst) topId = id;
     const node = buildNode(call, ids, blocks, { ...ctx, asExpression: false }, id);
-    if (idx === 0 && !nested) {
+    if (isFirst && !nested) {
       node.topLevel = true;
       node.parent = null;
       node.x = 0;
@@ -71,7 +87,32 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     lastId = id;
   }
 
+  for (const entry of pendingTopComments) entry.blockId = topId;
+
   return { topId, blocks };
+}
+
+// `ident.method(positional...)` is syntactically ambiguous between stdlib
+// method sugar on a variable and an extension block call. Resolve here, where
+// scope is known: a variable/local/param named ident wins as the method
+// receiver; otherwise it's the opcode `ident_method`. (pack.js pre-resolves
+// these the same way before its stdlib-injection scan; this covers direct
+// parse+build API users.)
+export function resolveIdentOrMethod(call, ctx) {
+  if (call?.callee?.type !== 'identOrMethod') return call;
+  const { ident, method } = call.callee;
+  const isVar =
+    (ctx?.localVars && ctx.localVars.has(ident)) ||
+    (ctx?.scopeParams && ctx.scopeParams.has(ident)) ||
+    (ctx?.varMap && ctx.varMap.has(ident));
+  if (isVar && STDLIB_METHODS[method]) {
+    return {
+      ...call,
+      callee: { type: 'procedureCall', name: STDLIB_METHODS[method].ident, line: call.callee.line },
+      args: [{ kind: 'positional', value: { type: 'ident', name: ident } }, ...call.args],
+    };
+  }
+  return { ...call, callee: { type: 'opcode', name: `${ident}_${method}` } };
 }
 
 function buildNode(call, ids, blocks, ctx, nodeId) {
@@ -87,6 +128,7 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       mutation: undefined,
     };
   }
+  call = resolveIdentOrMethod(call, ctx);
   const opcode = call.callee.type === 'procedureCall' ? 'procedures_call' : call.callee.name;
   const node = {
     id: nodeId,
@@ -135,8 +177,15 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
     return node;
   }
 
+  let posIndex = 0;
   for (const a of call.args) {
-    if (a.kind === 'keyed') {
+    if (a.kind === 'positional') {
+      // Positional arguments map to input names by order: A, B, C, ...
+      // (the near-universal extension-block convention). Blocks whose real
+      // input names differ are always emitted in keyed form.
+      const keyName = String.fromCharCode(65 + posIndex++);
+      node.inputs[keyName] = valueToInput(a.value, ids, blocks, ctx, nodeId, keyName);
+    } else if (a.kind === 'keyed') {
       const keyName = a.key;
       if (a.sep === 'field' && keyName === 'mutation' && a.value?.type === 'json') {
         node.mutation = a.value.value;
@@ -229,15 +278,32 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
     }
     case 'json': {
       const v = val.value;
-      if (Array.isArray(v) && v.length >= 2 && typeof v[0] === 'number') return [1, v];
+      // Legacy raw primitive tuples ([10, "x"], [12, "name", "id"]) pass
+      // through verbatim - but only shapes that really are tuples: 2-3
+      // entries, a known type code, string payload. Anything else is an
+      // array literal and packs as its JSON text ([1, 2] -> "[1,2]"), the
+      // shape the JSON helper blocks consume.
+      const isRawTuple =
+        Array.isArray(v) &&
+        (v.length === 2 || v.length === 3) &&
+        Number.isInteger(v[0]) && v[0] >= 4 && v[0] <= 13 &&
+        typeof v[1] === 'string';
+      if (isRawTuple) return [1, v];
       return [1, [10, JSON.stringify(v)]];
     }
     case 'call': {
       const callNode = val.value;
+      // `ns.op("literal")` in a value slot is a visible menu shadow (the
+      // dropdown block with the parent input's key as its single field).
+      // Only plain string payloads take this path: a single positional
+      // non-string (number, variable, nested call) is a real reporter whose
+      // first input is named A - see the positional-argument convention in
+      // buildNode.
       const positional =
         callNode.callee.type === 'opcode' &&
         callNode.args.length === 1 &&
         callNode.args[0].kind === 'positional' &&
+        callNode.args[0].value?.type === 'string' &&
         inputKey;
       if (positional) {
         const childId = ids.next();
@@ -436,7 +502,18 @@ function buildProcDefScript(procDef, ids, ctx) {
     procDef.params.map((p, i) => [p.ident, { kind: typeTokens[i], displayName: p.name ?? p.ident }])
   );
   const bodyCtx = { ...ctx, scopeParams };
+  // Comments written before the first body statement belong to the def hat
+  // itself, not to the first statement the nested chain resolves them to.
+  const commentsBefore = ctx.commentsOut ? ctx.commentsOut.length : 0;
+  let leadingComments = 0;
+  while (procDef.body[leadingComments]?.type === 'commentDecl') leadingComments++;
   const { blocks: bodyBlocks, topId: bodyTopId } = buildBlocksFromCalls(procDef.body, { ...bodyCtx, idGen: ids, nested: true });
+  if (ctx.commentsOut) {
+    for (let i = 0; i < leadingComments; i++) {
+      const entry = ctx.commentsOut[commentsBefore + i];
+      if (entry && !entry.forId) entry.blockId = defId;
+    }
+  }
   Object.assign(blocks, bodyBlocks);
   blocks[defId].next = bodyTopId || null;
   if (bodyTopId && blocks[bodyTopId]) blocks[bodyTopId].parent = defId;

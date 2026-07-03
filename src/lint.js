@@ -47,6 +47,23 @@ export function checkFractch(text) {
       continue;
     }
 
+    if (ch === '"' && src[i + 1] === '"' && src[i + 2] === '"') {
+      // Triple-quoted raw string: runs (newlines included) to the next """.
+      const start = at();
+      adv(); adv(); adv();
+      let closed = false;
+      while (i < src.length) {
+        if (src[i] === '"' && src[i + 1] === '"' && src[i + 2] === '"') {
+          adv(); adv(); adv();
+          closed = true;
+          break;
+        }
+        adv();
+      }
+      if (!closed) errors.push(new FractchSyntaxError('unterminated """ string', start.line, start.col));
+      continue;
+    }
+
     if (ch === '"' || ch === "'") {
       const quote = ch;
       const start = at();

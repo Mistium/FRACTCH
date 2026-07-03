@@ -1,4 +1,5 @@
 import { LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS } from './parse.js';
+import { STDLIB_PROCCODE_TO_METHOD } from './stdlib.js';
 
 let CTX = {};
 export function setContext(c) { CTX = c || {}; }
@@ -71,6 +72,15 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
         const inp = block.inputs?.[p.id];
         return Array.isArray(inp) ? inputValueText(inp, subgraph, p.id) : 'null';
       });
+      // Stdlib defs re-sugar to method form: first arg is the receiver.
+      const method = STDLIB_PROCCODE_TO_METHOD.get(code);
+      if (method && info.params.length >= 1) {
+        const recvArr = block.inputs?.[info.params[0].id];
+        const recvInfo = Array.isArray(recvArr) ? getInputExprInfo(recvArr, subgraph) : { text: 'null', prec: 0 };
+        const recv = recvInfo.prec === ATOM_PREC ? recvInfo.text : `(${recvInfo.text})`;
+        const call = `${recv}.${method}(${args.slice(1).join(', ')})`;
+        return inline ? call : call + ';';
+      }
       const call = `@${info.ident}(${args.join(', ')})`;
       return inline ? call : call + ';';
     }
@@ -88,6 +98,10 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
   if (opcode === 'argument_reporter_string_number' || opcode === 'argument_reporter_boolean') {
     const name = String(block.fields?.VALUE?.[0] ?? '');
+    // Statement position = orphan reporter. The string/number kind sugars to
+    // arg("name"); booleans keep the legacy bare-string form (only reachable
+    // via hatOpcode folder layouts, where the folder names the opcode).
+    if (!inline && opcode === 'argument_reporter_string_number') return `arg(${JSON.stringify(name)});`;
     if (!inline) return `${JSON.stringify(name)};`;
     // Inline (referenced from inside a procedure body): must match the
     // identifier the enclosing def signature declared for this param (see
@@ -113,6 +127,19 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const header = `if ${condStr}`;
     const thenBody = thenId ? renderBody(subgraph, thenId) : '';
     if (opcode === 'control_if_else') {
+      // Re-sugar `else { if ... }` to `else if ...` when the else body is
+      // exactly that one if statement. An attached comment or a next link
+      // (including a dangling forward reference) keeps the braced form so
+      // comment anchoring and dangling_next sentinels stay untouched.
+      const elseBlock = elseId ? subgraph[elseId] : null;
+      if (
+        elseBlock &&
+        !elseBlock.next &&
+        (elseBlock.opcode === 'control_if' || elseBlock.opcode === 'control_if_else') &&
+        !CTX.blockComments?.get(elseId)?.length
+      ) {
+        return `${header} {\n${indent(thenBody)}\n} else ${stringifyBlockCall(elseBlock, subgraph, elseId, false, cfg)}`;
+      }
       const elseBody = elseId ? renderBody(subgraph, elseId) : '';
       return `${header} {\n${indent(thenBody)}\n} else {\n${indent(elseBody)}\n}`;
     }
@@ -204,7 +231,8 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     return inline ? listExpr.text : listExpr.text + ';';
   }
 
-  const inputsStr = stringifyInputs(block, subgraph, /*cLike*/ true);
+  const positionalArgs = tryPositionalArgs(block, subgraph, inline);
+  const inputsStr = positionalArgs != null ? positionalArgs : stringifyInputs(block, subgraph, /*cLike*/ true);
   const fieldsStr = stringifyFields(block);
   const argParts = [];
   if (inputsStr) argParts.push(inputsStr);
@@ -229,6 +257,41 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     return `${call} ${branches}`;
   }
   return inline ? call : call + ';';
+}
+
+// Inputs named exactly A, B, C, ... (the common extension-block convention)
+// emit positionally - `mistsutils.patchcommand("...")` - and pack maps the
+// order back to A, B, C in buildNode. Two exclusions keep the round trip
+// lossless: fields or a mutation force the keyed form (positional order
+// can't carry them), and an inline single plain-string argument stays keyed
+// because `ns.op("text")` in a value slot already means a visible menu shadow.
+function tryPositionalArgs(block, subgraph, inline) {
+  if (block.mutation) return null;
+  if (block.fields && Object.keys(block.fields).length) return null;
+  const keys = Object.keys(block.inputs || {}).filter((k) => !k.startsWith('SUBSTACK'));
+  if (!keys.length || keys.length > 26) return null;
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i] !== String.fromCharCode(65 + i)) return null;
+  }
+  for (const k of keys) {
+    const arr = block.inputs[k];
+    if (!Array.isArray(arr) || arr.length < 2) return null;
+  }
+  if (inline && keys.length === 1) {
+    const arr = block.inputs.A;
+    const childId = arr[1];
+    const child = typeof childId === 'string' ? subgraph[childId] : null;
+    if (!child && Array.isArray(childId) && childId[0] === 10) {
+      // Only a QUOTED single string collides with the menu-shadow form.
+      // Number-shaped strings ([10,"0"]) print bare and reparse as a plain
+      // positional input, so they can drop the A: label.
+      const printed = formatLiteral(arr);
+      if (printed.startsWith('"')) return null;
+    }
+    // A visible shadow child would also print as `menuop("text")` - keep keyed.
+    if (child && child.shadow) return null;
+  }
+  return keys.map((k) => inputValueText(block.inputs[k], subgraph, k)).join(', ');
 }
 
 function getInputExpr(arr, subgraph) {
@@ -525,16 +588,81 @@ function linearizeWithIds(subgraph, topId) {
 // forward reference instead of silently dropping it (see linearizeWithIds).
 export function renderBody(subgraph, topId, cfg) {
   const { ids, danglingId } = linearizeWithIds(subgraph, topId);
-  const lines = ids.map((cid) => stringifyBlockCall(subgraph[cid], subgraph, cid, false, cfg));
+  const lines = ids.map((cid) => {
+    let line = stringifyBlockCall(subgraph[cid], subgraph, cid, false, cfg);
+    const attached = CTX.blockComments?.get(cid);
+    if (attached?.length) line += '\n' + attached.map((c) => commentDeclLine(c)).join('\n');
+    return line;
+  });
   if (danglingId) lines.push(`dangling_next(${JSON.stringify(danglingId)});`);
   return lines.join('\n');
 }
 
+// Canonical text form of a comment declaration. `forId` (orphan comments
+// whose anchor block no longer exists) reproduces the dangling reference.
+export function commentDeclLine(c) {
+  const parts = [`comment ${JSON.stringify(String(c.text ?? ''))}`];
+  if ((c.x ?? 0) !== 0 || (c.y ?? 0) !== 0) parts.push(`at ${numToken(c.x)},${numToken(c.y)}`);
+  parts.push(`size ${numToken(c.width ?? 200)}x${numToken(c.height ?? 200)}`);
+  if (c.minimized) parts.push('minimized');
+  if (c.forId) parts.push(`for ${JSON.stringify(String(c.forId))}`);
+  return parts.join(' ') + ';';
+}
+
+function numToken(n) {
+  const v = Number(n);
+  return Number.isFinite(v) ? String(v) : '0';
+}
+
+// A string whose content is canonical JSON array/object text re-emits bare -
+// `["a","b"]` instead of "[\"a\",\"b\"]" - matching the array-literal parse
+// sugar (both pack to the identical [10, json-text] primitive). Guards: the
+// text must round-trip JSON.parse -> JSON.stringify byte-for-byte, must not
+// use escapes the fractch string reader lacks (\b \f \uXXXX), and must not
+// look like a legacy raw primitive tuple ([10, "x"]), which parses as one.
+function tryJsonLiteralText(raw) {
+  if (raw.length < 2) return null;
+  const first = raw[0];
+  if ((first !== '[' && first !== '{') || raw.includes('\\b') || raw.includes('\\f') || raw.includes('\\u')) return null;
+  let v;
+  try {
+    v = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (typeof v !== 'object' || v === null) return null;
+  if (JSON.stringify(v) !== raw) return null;
+  const isRawTupleShape =
+    Array.isArray(v) &&
+    (v.length === 2 || v.length === 3) &&
+    Number.isInteger(v[0]) && v[0] >= 4 && v[0] <= 13 &&
+    typeof v[1] === 'string';
+  if (isRawTupleShape) return null;
+  return raw;
+}
+
+// Multiline string literals: emitted as raw """...""" blocks when the value
+// has real newlines. The content between the quotes must survive every
+// re-indent byte-for-byte, so both indenters skip lines inside an open """.
+export function stringToken(raw) {
+  const s = String(raw);
+  if (s.includes('\n') && !s.includes('"""') && !s.includes('\r') && !s.startsWith('"') && !s.endsWith('"')) {
+    return `"""${s}"""`;
+  }
+  return JSON.stringify(s);
+}
+
 function indent(str, spaces = 2) {
   if (!str) return '';
+  const pad = ' '.repeat(spaces);
+  let inRaw = false;
   return str
     .split('\n')
-    .map((l) => (l ? ' '.repeat(spaces) + l : l))
+    .map((l) => {
+      const out = l && !inRaw ? pad + l : l;
+      if (((l.match(/"""/g) || []).length) % 2) inRaw = !inRaw;
+      return out;
+    })
     .join('\n');
 }
 
@@ -582,11 +710,15 @@ function formatLiteral(arr) {
           // string/text
           const raw = String(value ?? '');
           if (raw !== '' && REPARSABLE_NUMBER.test(raw)) return raw;
-          return `${JSON.stringify(raw)}`;
+          const arrText = tryJsonLiteralText(raw);
+          if (arrText) return arrText;
+          return stringToken(raw);
         }
         case 4: // number (as string)
-        case 6: // angle/number
-        case 7: {
+        case 5: // positive number
+        case 6: // positive integer
+        case 7: // integer
+        case 8: {
           // list index / numeric - Scratch stores these as free-form text
           // (".25", "007", "", ...), so print the original text verbatim
           // whenever our number grammar can re-parse it exactly, rather
