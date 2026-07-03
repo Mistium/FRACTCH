@@ -25,27 +25,38 @@ function bareNameOk(name) {
 
 const SIMPLE_ALIAS_EMIT = {
   looks_show: 'show', looks_hide: 'hide',
-  looks_nextcostume: 'next_costume', looks_nextbackdrop: 'next_backdrop',
-  looks_cleargraphiceffects: 'clear_effects',
-  control_delete_this_clone: 'delete_clone', sensing_resettimer: 'reset_timer',
-  pen_penUp: 'pen_up', pen_penDown: 'pen_down', pen_clear: 'pen_clear', pen_stamp: 'stamp',
+  looks_nextcostume: 'nextCostume', looks_nextbackdrop: 'nextBackdrop',
+  looks_cleargraphiceffects: 'clearEffects',
+  control_delete_this_clone: 'deleteClone', sensing_resettimer: 'resetTimer',
+  motion_ifonedgebounce: 'ifOnEdgeBounce',
+  sound_stopallsounds: 'stopAllSounds', sound_cleareffects: 'clearSoundEffects',
+  pen_penUp: 'penUp', pen_penDown: 'penDown', pen_clear: 'penClear', pen_stamp: 'stamp',
 };
 
 const UNARY_ALIAS_EMIT = {
   looks_say: ['say', 'MESSAGE'], looks_think: ['think', 'MESSAGE'],
   sensing_askandwait: ['ask', 'QUESTION'],
   motion_movesteps: ['move', 'STEPS'],
-  motion_turnright: ['turn', 'DEGREES'], motion_turnleft: ['turn_left', 'DEGREES'],
+  motion_turnright: ['turn', 'DEGREES'], motion_turnleft: ['turnLeft', 'DEGREES'],
   motion_pointindirection: ['point', 'DIRECTION'],
-  motion_setx: ['set_x', 'X'], motion_sety: ['set_y', 'Y'],
-  motion_changexby: ['change_x', 'DX'], motion_changeyby: ['change_y', 'DY'],
-  looks_setsizeto: ['set_size', 'SIZE'], looks_changesizeby: ['change_size', 'CHANGE'],
+  motion_setx: ['setX', 'X'], motion_sety: ['setY', 'Y'],
+  motion_changexby: ['changeX', 'DX'], motion_changeyby: ['changeY', 'DY'],
+  looks_setsizeto: ['setSize', 'SIZE'], looks_changesizeby: ['changeSize', 'CHANGE'],
+  sound_changevolumeby: ['changeVolume', 'VOLUME'], sound_setvolumeto: ['setVolume', 'VOLUME'],
 };
 
-const MENU_ALIAS_EMIT = {
-  looks_switchcostumeto: ['costume', 'COSTUME', 'looks_costume'],
-  looks_switchbackdropto: ['backdrop', 'BACKDROP', 'looks_backdrops'],
-  control_create_clone_of: ['clone', 'CLONE_OPTION', 'control_create_clone_of_menu'],
+// Menu-shadow command blocks. Fixed sentinel values bake into the name
+// (base + suffix, nullary); dynamic values emit `base "value"`; a plugged
+// reporter emits `base expr`. Extra leading inputs (glide's SECS) are prefixed.
+const MENU_CMD_EMIT = {
+  looks_switchcostumeto: { base: 'costume', key: 'COSTUME', menu: 'looks_costume', sentinels: {}, lead: [] },
+  looks_switchbackdropto: { base: 'backdrop', key: 'BACKDROP', menu: 'looks_backdrops', sentinels: {}, lead: [] },
+  control_create_clone_of: { base: 'clone', key: 'CLONE_OPTION', menu: 'control_create_clone_of_menu', sentinels: { _myself_: 'cloneMyself' }, lead: [] },
+  motion_goto: { base: 'goto', key: 'TO', menu: 'motion_goto_menu', sentinels: { _mouse_: 'gotoMouse', _random_: 'gotoRandom' }, lead: [] },
+  motion_pointtowards: { base: 'pointTowards', key: 'TOWARDS', menu: 'motion_pointtowards_menu', sentinels: { _mouse_: 'pointTowardsMouse', _random_: 'pointTowardsRandom' }, lead: [] },
+  motion_glideto: { base: 'glideTo', key: 'TO', menu: 'motion_glideto_menu', sentinels: { _mouse_: 'glideToMouse', _random_: 'glideToRandom' }, lead: ['SECS'] },
+  sound_play: { base: 'playSound', key: 'SOUND_MENU', menu: 'sound_sounds_menu', sentinels: {}, lead: [] },
+  sound_playuntildone: { base: 'playSoundUntilDone', key: 'SOUND_MENU', menu: 'sound_sounds_menu', sentinels: {}, lead: [] },
 };
 
 const LIST_STMT_EMIT = {
@@ -396,6 +407,37 @@ function tryListExpr(block, subgraph) {
   return null;
 }
 
+function menuCmdText(block, subgraph, spec) {
+  const want = [...spec.lead, spec.key];
+  const inputKeys = Object.keys(block.inputs || {});
+  if (inputKeys.length !== want.length || !want.every((k) => k in block.inputs)) return null;
+  const leadText = spec.lead.map((k) => inputValueText(block.inputs[k], subgraph, k));
+  const prefix = (rest) => `${spec.base} ${[...leadText, rest].join(', ')};`;
+  const arr = block.inputs[spec.key];
+  const childId = Array.isArray(arr) ? arr[1] : null;
+  const child = typeof childId === 'string' ? subgraph[childId] : null;
+  if (child && child.shadow) {
+    if (child.opcode !== spec.menu) return null;
+    const mf = child.fields || {};
+    const mk = Object.keys(mf);
+    if (Object.keys(child.inputs || {}).length || mk.length !== 1 || mk[0] !== spec.key) return null;
+    const val = mf[spec.key];
+    if (typeof val[0] !== 'string' || (val.length > 1 && val[1] != null)) return null;
+    const value = val[0];
+    if (spec.sentinels[value]) {
+      const name = spec.sentinels[value];
+      return leadText.length ? `${name} ${leadText.join(', ')};` : `${name};`;
+    }
+    return prefix(JSON.stringify(value));
+  }
+  if (child && !child.shadow) return prefix(inputValueText(arr, subgraph, spec.key));
+  if (!child && Array.isArray(arr[1])) {
+    if (arr[1][0] === 10) return null;
+    return prefix(inputValueText(arr, subgraph, spec.key));
+  }
+  return null;
+}
+
 function tryStatementAlias(block, subgraph) {
   const op = String(block.opcode || '');
   if (block.mutation) return null;
@@ -423,51 +465,46 @@ function tryStatementAlias(block, subgraph) {
     if (effect == null) return null;
     const inputKey = op === 'looks_changeeffectby' ? 'CHANGE' : 'VALUE';
     if (!exactInputs(inputKey)) return null;
-    const kw = op === 'looks_changeeffectby' ? 'change_effect' : 'set_effect';
+    const kw = op === 'looks_changeeffectby' ? 'changeEffect' : 'setEffect';
     const connector = op === 'looks_changeeffectby' ? 'by' : 'to';
     return `${kw} ${effectNameToken(effect)} ${connector} ${inputValueText(inputs[inputKey], subgraph, inputKey)};`;
   }
+  if (op === 'sound_changeeffectby' || op === 'sound_seteffectto') {
+    const effect = effectFieldName(block);
+    if (effect == null || !exactInputs('VALUE')) return null;
+    const kw = op === 'sound_changeeffectby' ? 'changeSoundEffect' : 'setSoundEffect';
+    const connector = op === 'sound_changeeffectby' ? 'by' : 'to';
+    return `${kw} ${effectNameToken(effect)} ${connector} ${inputValueText(inputs.VALUE, subgraph, 'VALUE')};`;
+  }
   if (op === 'motion_gotoxy' && !fieldKeys.length && exactInputs('X', 'Y')) {
-    return `goto ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+    return `gotoXY ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+  }
+  if (op === 'motion_glidesecstoxy' && !fieldKeys.length && exactInputs('SECS', 'X', 'Y')) {
+    return `glideXY ${inputValueText(inputs.SECS, subgraph, 'SECS')}, ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+  }
+  if (op === 'motion_setrotationstyle' && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'STYLE') {
+    return `setRotationStyle ${JSON.stringify(String(fields.STYLE[0] ?? ''))};`;
+  }
+  if (op === 'sensing_setdragmode' && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'DRAG_MODE') {
+    return `setDragMode ${JSON.stringify(String(fields.DRAG_MODE[0] ?? ''))};`;
+  }
+  if ((op === 'data_showvariable' || op === 'data_hidevariable') && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'VARIABLE') {
+    const name = String(fields.VARIABLE[0] ?? '');
+    const kw = op === 'data_showvariable' ? 'showVariable' : 'hideVariable';
+    return `${kw} ${bareNameOk(name) ? name : JSON.stringify(name)};`;
   }
   if (op === 'looks_gotofrontback' && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'FRONT_BACK') {
     const v = fields.FRONT_BACK[0];
-    if (v === 'front') return 'go_front;';
-    if (v === 'back') return 'go_back;';
+    if (v === 'front') return 'goFront;';
+    if (v === 'back') return 'goBack;';
   }
   if (op === 'looks_goforwardbackwardlayers' && exactInputs('NUM') && fieldKeys.length === 1 && fieldKeys[0] === 'FORWARD_BACKWARD') {
     const v = fields.FORWARD_BACKWARD[0];
-    if (v === 'forward' || v === 'backward') {
-      return `go_${v} ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
-    }
+    if (v === 'forward') return `goForward ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
+    if (v === 'backward') return `goBackward ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
   }
-  if (MENU_ALIAS_EMIT[op] && !fieldKeys.length) {
-    const [kw, key, menuOpcode] = MENU_ALIAS_EMIT[op];
-    if (exactInputs(key)) {
-      const arr = inputs[key];
-      const childId = Array.isArray(arr) ? arr[1] : null;
-      const child = typeof childId === 'string' ? subgraph[childId] : null;
-      if (child && child.shadow && child.opcode === menuOpcode) {
-        const mf = child.fields || {};
-        const mk = Object.keys(mf);
-        if (!Object.keys(child.inputs || {}).length && mk.length === 1 && mk[0] === key && typeof mf[key][0] === 'string' && (mf[key].length === 1 || mf[key][1] == null)) {
-          const value = mf[key][0];
-          if (kw === 'clone' && value === '_myself_') return 'clone;';
-          return `${kw} ${JSON.stringify(value)};`;
-        }
-        return null;
-      }
-      if (child && !child.shadow) {
-        return `${kw} ${inputValueText(arr, subgraph, key)};`;
-      }
-      if (!child && Array.isArray(arr[1])) {
-        // Literal payloads: variable reads etc. use the alias; plain text
-        // literals stay generic so they aren't rebuilt as menu shadows.
-        if (arr[1][0] === 10) return null;
-        return `${kw} ${inputValueText(arr, subgraph, key)};`;
-      }
-    }
-    return null;
+  if (MENU_CMD_EMIT[op] && !fieldKeys.length) {
+    return menuCmdText(block, subgraph, MENU_CMD_EMIT[op]);
   }
   if (LIST_STMT_EMIT[op]) {
     const name = listFieldName(block);

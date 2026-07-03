@@ -2,16 +2,28 @@ import { STDLIB_METHODS } from './stdlib.js';
 
 // Statement keywords that introduce a control construct instead of a plain
 // expression-statement.
-const STATEMENT_KEYWORDS = new Set([
+function snakeToCamel(s) { return s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase()); }
+function camelToSnake(s) { return s.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase(); }
+function setWithCamel(list) {
+  const out = new Set();
+  for (const k of list) { out.add(k); const c = snakeToCamel(k); if (c !== k) out.add(c); }
+  return out;
+}
+
+const STATEMENT_KEYWORDS = setWithCamel([
   'def', 'if', 'forever', 'switch', 'case', 'default', 'repeat', 'until',
   'while', 'wait', 'wait_until', 'stop', 'return', 'broadcast', 'broadcast_wait', 'vars',
   'dangling_next', 'when', 'script', 'lists', 'local', 'sound',
   'use', 'var', 'cloud', 'sprite', 'stage', 'watch', 'comment', 'platform',
-  'say', 'think', 'ask', 'show', 'hide', 'move', 'turn', 'turn_left', 'goto',
-  'point', 'set_x', 'set_y', 'change_x', 'change_y', 'set_size', 'change_size',
-  'set_effect', 'change_effect', 'clear_effects',
-  'costume', 'next_costume', 'backdrop', 'next_backdrop', 'clone', 'delete_clone',
+  'say', 'think', 'ask', 'show', 'hide', 'move', 'turn', 'turn_left', 'goto', 'glide',
+  'gotoXY', 'glideXY', 'glide_to', 'goto_mouse', 'goto_random', 'glide_to_mouse', 'glide_to_random',
+  'point', 'point_towards', 'point_towards_mouse', 'point_towards_random', 'set_x', 'set_y', 'change_x', 'change_y', 'set_size', 'change_size',
+  'set_effect', 'change_effect', 'clear_effects', 'if_on_edge_bounce', 'set_rotation_style',
+  'costume', 'next_costume', 'backdrop', 'next_backdrop', 'clone', 'clone_myself', 'delete_clone',
   'go_front', 'go_back', 'go_forward', 'go_backward',
+  'play_sound', 'play_sound_until_done', 'stop_all_sounds', 'clear_sound_effects',
+  'change_sound_effect', 'set_sound_effect', 'change_volume', 'set_volume',
+  'set_drag_mode', 'show_variable', 'hide_variable',
   'reset_timer', 'pen_up', 'pen_down', 'pen_clear', 'stamp',
 ]);
 
@@ -21,6 +33,8 @@ const SIMPLE_ALIASES = {
   next_costume: 'looks_nextcostume', next_backdrop: 'looks_nextbackdrop',
   clear_effects: 'looks_cleargraphiceffects',
   delete_clone: 'control_delete_this_clone', reset_timer: 'sensing_resettimer',
+  if_on_edge_bounce: 'motion_ifonedgebounce',
+  stop_all_sounds: 'sound_stopallsounds', clear_sound_effects: 'sound_cleareffects',
   pen_up: 'pen_penUp', pen_down: 'pen_penDown', pen_clear: 'pen_clear', stamp: 'pen_stamp',
 };
 
@@ -34,6 +48,7 @@ const UNARY_ALIASES = {
   set_x: ['motion_setx', 'X'], set_y: ['motion_sety', 'Y'],
   change_x: ['motion_changexby', 'DX'], change_y: ['motion_changeyby', 'DY'],
   set_size: ['looks_setsizeto', 'SIZE'], change_size: ['looks_changesizeby', 'CHANGE'],
+  change_volume: ['sound_changevolumeby', 'VOLUME'], set_volume: ['sound_setvolumeto', 'VOLUME'],
 };
 
 // Zero-argument aliases that set a fixed dropdown field:
@@ -56,6 +71,9 @@ const MENU_ALIASES = {
   costume: ['looks_switchcostumeto', 'COSTUME', 'looks_costume'],
   backdrop: ['looks_switchbackdropto', 'BACKDROP', 'looks_backdrops'],
   clone: ['control_create_clone_of', 'CLONE_OPTION', 'control_create_clone_of_menu'],
+  point_towards: ['motion_pointtowards', 'TOWARDS', 'motion_pointtowards_menu'],
+  play_sound: ['sound_play', 'SOUND_MENU', 'sound_sounds_menu'],
+  play_sound_until_done: ['sound_playuntildone', 'SOUND_MENU', 'sound_sounds_menu'],
 };
 
 // `sprites["name"].x` reads another sprite's property via sensing_of.
@@ -622,6 +640,7 @@ class Parser {
   }
 
   parseKeywordStatement(word) {
+    word = camelToSnake(word);
     switch (word) {
       case 'def':
         return this.parseDef();
@@ -833,12 +852,63 @@ class Parser {
         this.tryChar(';');
         return makeCall(word === 'say' ? 'looks_say' : 'looks_think', [keyedInput('MESSAGE', v)]);
       }
-      case 'goto': {
+      case 'goto_mouse':
+      case 'goto_random': {
+        this.tryChar(';');
+        const sentinel = word === 'goto_mouse' ? '_mouse_' : '_random_';
+        return makeCall('motion_goto', [keyedInput('TO', menuValueNode('motion_goto_menu', sentinel))]);
+      }
+      case 'goto_xy': {
         const x = this.parseInputValue();
         this.tryChar(',');
         const y = this.parseInputValue();
         this.tryChar(';');
         return makeCall('motion_gotoxy', [keyedInput('X', x), keyedInput('Y', y)]);
+      }
+      case 'goto': {
+        const first = this.parseInputValue();
+        this.skipWS();
+        if (this.peek() === ',') {
+          this.tryChar(',');
+          const y = this.parseInputValue();
+          this.tryChar(';');
+          return makeCall('motion_gotoxy', [keyedInput('X', first), keyedInput('Y', y)]);
+        }
+        this.tryChar(';');
+        return makeCall('motion_goto', [keyedInput('TO', menuInputNode('motion_goto_menu', first))]);
+      }
+      case 'glide_to_mouse':
+      case 'glide_to_random': {
+        const secs = this.parseInputValue();
+        this.tryChar(';');
+        const sentinel = word === 'glide_to_mouse' ? '_mouse_' : '_random_';
+        return makeCall('motion_glideto', [keyedInput('SECS', secs), keyedInput('TO', menuValueNode('motion_glideto_menu', sentinel))]);
+      }
+      case 'glide_xy': {
+        const secs = this.parseInputValue();
+        this.tryChar(',');
+        const x = this.parseInputValue();
+        this.tryChar(',');
+        const y = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall('motion_glidesecstoxy', [keyedInput('SECS', secs), keyedInput('X', x), keyedInput('Y', y)]);
+      }
+      case 'glide_to':
+      case 'glide': {
+        const secs = this.parseInputValue();
+        this.skipWS();
+        if (word === 'glide_to') this.tryChar(',');
+        else if (this.peekWord() === 'to') this.tryIdentifier();
+        const first = this.parseInputValue();
+        this.skipWS();
+        if (this.peek() === ',') {
+          this.tryChar(',');
+          const y = this.parseInputValue();
+          this.tryChar(';');
+          return makeCall('motion_glidesecstoxy', [keyedInput('SECS', secs), keyedInput('X', first), keyedInput('Y', y)]);
+        }
+        this.tryChar(';');
+        return makeCall('motion_glideto', [keyedInput('SECS', secs), keyedInput('TO', menuInputNode('motion_glideto_menu', first))]);
       }
       case 'change_effect':
       case 'set_effect': {
@@ -856,10 +926,13 @@ class Parser {
       }
       case 'costume':
       case 'backdrop':
-      case 'clone': {
+      case 'clone':
+      case 'point_towards':
+      case 'play_sound':
+      case 'play_sound_until_done': {
         // `costume "name" file "..."` declares an asset; `costume "name";`
         // is the switch-costume statement. The `file` attribute decides.
-        if (word !== 'clone') {
+        if (word === 'costume' || word === 'backdrop') {
           const save = this.snapshot();
           this.skipWS();
           if (this.peek() === '"') {
@@ -883,6 +956,50 @@ class Parser {
           v = { type: 'call', value: makeCall(menuOpcode, [{ kind: 'positional', value: v }]) };
         }
         return makeCall(opcode, [keyedInput(inputKey, v)]);
+      }
+      case 'point_towards_mouse':
+      case 'point_towards_random': {
+        this.tryChar(';');
+        const sentinel = word === 'point_towards_mouse' ? '_mouse_' : '_random_';
+        return makeCall('motion_pointtowards', [keyedInput('TOWARDS', menuValueNode('motion_pointtowards_menu', sentinel))]);
+      }
+      case 'clone_myself': {
+        this.tryChar(';');
+        return makeCall('control_create_clone_of', [keyedInput('CLONE_OPTION', menuValueNode('control_create_clone_of_menu', '_myself_'))]);
+      }
+      case 'change_sound_effect':
+      case 'set_sound_effect': {
+        const effect = this.parseEffectNameToken();
+        this.skipWS();
+        const expected = word === 'change_sound_effect' ? 'by' : 'to';
+        if (this.peekWord() === expected) this.tryIdentifier();
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall(word === 'change_sound_effect' ? 'sound_changeeffectby' : 'sound_seteffectto', [
+          keyedInput('VALUE', v),
+          keyedField('EFFECT', { type: 'array', value: [effect] }),
+        ]);
+      }
+      case 'set_rotation_style': {
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        const style = v.type === 'string' ? v.value : String(v.value ?? '');
+        return makeCall('motion_setrotationstyle', [keyedField('STYLE', { type: 'array', value: [style] })]);
+      }
+      case 'set_drag_mode': {
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        const mode = v.type === 'string' ? v.value : String(v.value ?? '');
+        return makeCall('sensing_setdragmode', [keyedField('DRAG_MODE', { type: 'array', value: [mode] })]);
+      }
+      case 'show_variable':
+      case 'hide_variable': {
+        this.skipWS();
+        const name = this.peek() === '"' ? this.parseStringLiteral() : this.expectIdentifier(`after '${word}'`);
+        this.tryChar(';');
+        return makeCall(word === 'show_variable' ? 'data_showvariable' : 'data_hidevariable', [
+          keyedField('VARIABLE', { type: 'array', value: [name] }),
+        ]);
       }
       case 'use': {
         const id = this.parseStringLiteral();
@@ -1818,6 +1935,13 @@ function parseEffectName(name) {
 
 function makeCall(opcode, args) {
   return { type: 'call', callee: { type: 'opcode', name: opcode }, args };
+}
+function menuValueNode(menuOpcode, value) {
+  return { type: 'call', value: makeCall(menuOpcode, [{ kind: 'positional', value: { type: 'string', value } }]) };
+}
+function menuInputNode(menuOpcode, node) {
+  if (node && node.type === 'string') return menuValueNode(menuOpcode, node.value);
+  return node;
 }
 function keyedInput(key, value) {
   return { kind: 'keyed', sep: 'input', key, value };

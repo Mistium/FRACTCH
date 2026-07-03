@@ -15,7 +15,6 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
     `/**\n` +
     ` * target: ${escapeHeader(target.name)}\n` +
     ` * targetId: ${escapeHeader(target.id ?? '')}\n` +
-    ` * scripts: ${entries.length}\n` +
     ` */\n`;
   const assets = includeAssets ? emitAssetDecls(target) : '';
   const bodies = entries.map(({ script, subgraph }) => emitScriptBody({ script, subgraph, context, cfg }));
@@ -95,7 +94,12 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
     }
     const urls = projectJson?.extensionURLs || {};
     for (const id of projectJson?.extensions || []) {
-      lines.push(urls[id] ? `use ${JSON.stringify(id)} from ${JSON.stringify(String(urls[id]))};` : `use ${JSON.stringify(id)};`);
+      const url = urls[id];
+      if (url && String(url).startsWith('data:')) {
+        lines.push(`use ${JSON.stringify(id)} from ${JSON.stringify(`extensions/${sanitize(id)}.js`)};`);
+      } else {
+        lines.push(url ? `use ${JSON.stringify(id)} from ${JSON.stringify(String(url))};` : `use ${JSON.stringify(id)};`);
+      }
     }
   } else {
     const attrs = [JSON.stringify(String(target.name ?? ''))];

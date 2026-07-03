@@ -59,7 +59,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       }
       if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
       await applyParsedAssets(vfs, buildDir, manifestTarget, parsed.assets, targetDir, assetFiles, assetSeenForTarget);
-      applyUses(manifest, parsed.uses);
+      await applyUses(manifest, parsed.uses, vfs, buildDir);
       if (!cloudAliasMaps.has(manifestName)) cloudAliasMaps.set(manifestName, new Map());
       applyVarDecls(manifest, manifestTarget, parsed.varDecls, cloudAliasMaps.get(manifestName));
       applySpriteProps(manifestTarget, parsed.spriteProps);
@@ -288,14 +288,34 @@ function uniqueCommentId(dict, preferred) {
   return id;
 }
 
-function applyUses(manifest, uses) {
+async function applyUses(manifest, uses, vfs, buildDir) {
   for (const u of uses || []) {
     if (!Array.isArray(manifest.extensions)) manifest.extensions = [];
     if (!manifest.extensions.includes(u.id)) manifest.extensions.push(u.id);
     if (u.url) {
       if (!manifest.extensionURLs) manifest.extensionURLs = {};
-      manifest.extensionURLs[u.id] = u.url;
+      manifest.extensionURLs[u.id] = await resolveExtensionUrl(u.url, vfs, buildDir);
     }
+  }
+}
+
+function encodeBase64(text) {
+  if (typeof Buffer !== 'undefined') return Buffer.from(text, 'utf8').toString('base64');
+  const bytes = new TextEncoder().encode(text);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+async function resolveExtensionUrl(url, vfs, buildDir) {
+  const s = String(url);
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) return s;
+  if (!vfs || !buildDir) return s;
+  try {
+    const src = await vfs.readFile(path.join(buildDir, s), 'utf8');
+    return `data:application/javascript;base64,${encodeBase64(src)}`;
+  } catch {
+    return s;
   }
 }
 

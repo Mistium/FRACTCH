@@ -733,11 +733,11 @@ test('looks effect blocks render as effect statement sugar', async () => {
   const { calls } = parseFractch('change_effect brightness by 25;\nset_effect ghost to 50;\nclear_effects;\n');
   const { blocks, topId } = buildBlocksFromCalls(calls, { idGen: new IdGen() });
 
-  assert.strictEqual(stringifyBlockCall(blocks[topId], blocks, topId), 'change_effect brightness by 25;');
+  assert.strictEqual(stringifyBlockCall(blocks[topId], blocks, topId), 'changeEffect brightness by 25;');
   const secondId = blocks[topId].next;
-  assert.strictEqual(stringifyBlockCall(blocks[secondId], blocks, secondId), 'set_effect ghost to 50;');
+  assert.strictEqual(stringifyBlockCall(blocks[secondId], blocks, secondId), 'setEffect ghost to 50;');
   const thirdId = blocks[secondId].next;
-  assert.strictEqual(stringifyBlockCall(blocks[thirdId], blocks, thirdId), 'clear_effects;');
+  assert.strictEqual(stringifyBlockCall(blocks[thirdId], blocks, thirdId), 'clearEffects;');
 });
 
 test('nested non-main fractch files are preserved across pack then convert', async () => {
@@ -816,7 +816,7 @@ test('script files carry no raw JSON block snapshot - DSL text is the only sourc
   }
 });
 
-test('extensions: http url -> .url file, data url -> decoded source', async () => {
+test('extensions: only data URIs are extracted to extensions/<id>.js; http/builtin stay inline', async () => {
   const edir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-ext-'));
   const project = {
     extensions: ['httpExt', 'dataExt', 'pen'],
@@ -825,17 +825,32 @@ test('extensions: http url -> .url file, data url -> decoded source', async () =
       dataExt: 'data:application/javascript;base64,' + Buffer.from('const x = 1;').toString('base64'),
     },
   };
-  await writeExtensions(project, edir);
-  assert.strictEqual(fs.readFileSync(path.join(edir, 'extensions', 'httpExt.url'), 'utf8'), 'https://example.com/ext.js');
+  const res = await writeExtensions(project, edir);
+  assert.strictEqual(res.count, 1, 'only the data-URI extension is extracted');
   assert.strictEqual(fs.readFileSync(path.join(edir, 'extensions', 'dataExt.js'), 'utf8'), 'const x = 1;');
-  const index = JSON.parse(fs.readFileSync(path.join(edir, 'extensions', 'index.json'), 'utf8'));
-  assert.strictEqual(index.find((e) => e.id === 'pen').kind, 'builtin');
-  assert.strictEqual(index.find((e) => e.id === 'httpExt').kind, 'url');
-  assert.strictEqual(index.find((e) => e.id === 'dataExt').kind, 'data');
+  assert.ok(!fs.existsSync(path.join(edir, 'extensions', 'httpExt.url')), 'no .url sidecar for http extensions');
+  assert.ok(!fs.existsSync(path.join(edir, 'extensions', 'index.json')), 'no sidecar index.json');
 });
 
-test('extensions folder is generated during build', () => {
-  assert.ok(fs.existsSync(path.join(outDir, 'extensions', 'index.json')));
+test('data-URI extension round-trips through extensions/<id>.js', async () => {
+  const edir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-extrt-'));
+  const src = "Scratch.extensions.register(new Ext());\n";
+  const project = {
+    targets: [{ isStage: true, name: 'Stage', variables: {}, lists: {}, blocks: {}, costumes: [], sounds: [], currentCostume: 0 }],
+    extensions: ['myext'],
+    extensionURLs: { myext: 'data:application/javascript;base64,' + Buffer.from(src).toString('base64') },
+    monitors: [], meta: {},
+  };
+  const { convertProject, buildProjectFromBuildDir } = await import('../src/index.js');
+  await convertProject(project, { outDir: edir });
+  await writeExtensions(project, edir);
+  const main = fs.readFileSync(path.join(edir, 'Stage', 'main.fractch'), 'utf8');
+  assert.match(main, /use "myext" from "extensions\/myext\.js";/);
+  assert.strictEqual(fs.readFileSync(path.join(edir, 'extensions', 'myext.js'), 'utf8'), src);
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: edir });
+  const back = manifest.extensionURLs.myext;
+  assert.ok(back.startsWith('data:application/javascript;base64,'), 'repacked to a data URI');
+  assert.strictEqual(Buffer.from(back.split(',')[1], 'base64').toString('utf8'), src, 'source survives round-trip');
 });
 
 test('costumes/sounds are emitted as target-local assets and code declarations', () => {
