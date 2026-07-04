@@ -141,7 +141,7 @@ Control flow:
 
 ```txt
 if c { } else if c2 { } else { }              // else-if chains nest if_else blocks
-forever { }              repeat n { }
+forever { }              repeat n { }         for i in n { }        break;
 until c { }              while c { }          wait n;          wait_until c;
 switch v { case x { } case y fallthrough { } default { } }
 stop all;   stop other_scripts_in_sprite;
@@ -155,6 +155,7 @@ Aliases (each is exactly one Scratch block):
 ```txt
 say e;          say e for n;      think e;      think e for n;    ask e;
 move n;         turn n;           turn_left n;  point n;          goto x, y;
+pointTowardsXY x, y;              pointTowardsXYFrom x, y, fromX, fromY;
 set_x n;  set_y n;  change_x n;  change_y n;  set_size n;  change_size n;
 set_effect ghost to 50;   change_effect brightness by 25;   clear_effects;
 costume "name";  next_costume;   backdrop "name";  next_backdrop;

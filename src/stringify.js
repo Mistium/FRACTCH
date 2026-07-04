@@ -27,6 +27,7 @@ const SIMPLE_ALIAS_EMIT = {
   looks_show: 'show', looks_hide: 'hide',
   looks_nextcostume: 'nextCostume', looks_nextbackdrop: 'nextBackdrop',
   looks_cleargraphiceffects: 'clearEffects',
+  control_break: 'break',
   control_delete_this_clone: 'deleteClone', sensing_resettimer: 'resetTimer',
   motion_ifonedgebounce: 'ifOnEdgeBounce',
   sound_stopallsounds: 'stopAllSounds', sound_cleareffects: 'clearSoundEffects',
@@ -167,6 +168,10 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 
   if (opcode === 'control_forever') {
     return `forever ${branch(block, 'SUBSTACK', subgraph)}`;
+  }
+  if (opcode === 'control_for_each') {
+    const forLoop = tryForLoop(block, subgraph);
+    if (forLoop) return forLoop;
   }
   if (opcode === 'control_switch') {
     const v = Array.isArray(block.inputs?.VALUE) ? getInputExpr(block.inputs.VALUE, subgraph) : 'null';
@@ -342,7 +347,7 @@ const SPRITE_PROP_EMIT = {
 
 const NULLARY_REPORTER_EMIT = {
   motion_xposition: 'xPosition', motion_yposition: 'yPosition', motion_direction: 'direction',
-  looks_size: 'size', sound_volume: 'volume',
+  looks_size: 'size', looks_costumes: 'costumes', sound_volume: 'volume',
   sensing_answer: 'answer', sensing_timer: 'timer', sensing_loudness: 'loudness',
   sensing_mousex: 'mouseX', sensing_mousey: 'mouseY', sensing_mousedown: 'mouseDown',
   sensing_username: 'username', sensing_dayssince2000: 'daysSince2000',
@@ -519,6 +524,22 @@ function menuCmdText(block, subgraph, spec) {
   return null;
 }
 
+function tryForLoop(block, subgraph) {
+  if (block.mutation) return null;
+  const fieldKeys = Object.keys(block.fields || {});
+  if (fieldKeys.length !== 1 || fieldKeys[0] !== 'VARIABLE') return null;
+  const inputKeys = Object.keys(block.inputs || {});
+  if (!inputKeys.includes('VALUE')) return null;
+  if (inputKeys.some((k) => k !== 'VALUE' && k !== 'SUBSTACK')) return null;
+  const v = block.fields.VARIABLE;
+  const name = String(v?.[0] ?? '');
+  const id = v.length > 1 ? v[1] : undefined;
+  if (!bareNameOk(name)) return null;
+  if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) return null;
+  const count = getInputExpr(block.inputs.VALUE, subgraph);
+  return `for ${name} in ${count} ${branch(block, 'SUBSTACK', subgraph)}`;
+}
+
 function tryStatementAlias(block, subgraph) {
   const op = String(block.opcode || '');
   if (block.mutation) return null;
@@ -562,6 +583,12 @@ function tryStatementAlias(block, subgraph) {
   }
   if (op === 'motion_glidesecstoxy' && !fieldKeys.length && exactInputs('SECS', 'X', 'Y')) {
     return `glideXY ${inputValueText(inputs.SECS, subgraph, 'SECS')}, ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+  }
+  if (op === 'motion_pointtowards_xy' && !fieldKeys.length && exactInputs('X', 'Y')) {
+    return `pointTowardsXY ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+  }
+  if (op === 'motion_pointtowards_xyfrom' && !fieldKeys.length && exactInputs('X', 'Y', 'FROMX', 'FROMY')) {
+    return `pointTowardsXYFrom ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')}, ${inputValueText(inputs.FROMX, subgraph, 'FROMX')}, ${inputValueText(inputs.FROMY, subgraph, 'FROMY')};`;
   }
   if (op === 'motion_setrotationstyle' && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'STYLE') {
     return `setRotationStyle ${JSON.stringify(String(fields.STYLE[0] ?? ''))};`;

@@ -17,7 +17,10 @@ const STATEMENT_KEYWORDS = setWithCamel([
   'use', 'var', 'cloud', 'sprite', 'stage', 'watch', 'comment', 'platform',
   'say', 'think', 'ask', 'show', 'hide', 'move', 'turn', 'turn_left', 'goto', 'glide',
   'gotoXY', 'glideXY', 'changeXY', 'glide_to', 'goto_mouse', 'goto_random', 'glide_to_mouse', 'glide_to_random',
-  'point', 'point_towards', 'point_towards_mouse', 'point_towards_random', 'set_x', 'set_y', 'change_x', 'change_y', 'set_size', 'change_size',
+  'point', 'point_towards', 'point_towards_mouse', 'point_towards_random',
+  'point_towards_xy', 'point_towards_xyfrom', 'pointTowardsXY', 'pointTowardsXYFrom',
+  'set_x', 'set_y', 'change_x', 'change_y', 'set_size', 'change_size',
+  'break', 'for',
   'set_effect', 'change_effect', 'clear_effects', 'if_on_edge_bounce', 'set_rotation_style',
   'costume', 'next_costume', 'backdrop', 'next_backdrop', 'clone', 'clone_myself', 'delete_clone',
   'go_front', 'go_back', 'go_forward', 'go_backward',
@@ -31,7 +34,7 @@ const STATEMENT_KEYWORDS = setWithCamel([
 const SIMPLE_ALIASES = {
   show: 'looks_show', hide: 'looks_hide',
   next_costume: 'looks_nextcostume', next_backdrop: 'looks_nextbackdrop',
-  clear_effects: 'looks_cleargraphiceffects',
+  clear_effects: 'looks_cleargraphiceffects', break: 'control_break',
   delete_clone: 'control_delete_this_clone', reset_timer: 'sensing_resettimer',
   if_on_edge_bounce: 'motion_ifonedgebounce',
   stop_all_sounds: 'sound_stopallsounds', clear_sound_effects: 'sound_cleareffects',
@@ -104,6 +107,7 @@ const MATHOP_NAME = { exp: 'e ^', exp10: '10 ^' };
 const REPORTER_NULLARY = {
   xPosition: 'motion_xposition', yPosition: 'motion_yposition', direction: 'motion_direction',
   size: 'looks_size', volume: 'sound_volume',
+  costumes: 'looks_costumes',
   answer: 'sensing_answer', timer: 'sensing_timer', loudness: 'sensing_loudness',
   mouseX: 'sensing_mousex', mouseY: 'sensing_mousey', mouseDown: 'sensing_mousedown',
   username: 'sensing_username', daysSince2000: 'sensing_dayssince2000',
@@ -724,6 +728,18 @@ class Parser {
         const body = this.parseBraceBody();
         return makeCall('control_repeat', [keyedInput('TIMES', times), branchArg('substack', body)]);
       }
+      case 'for': {
+        const name = this.expectIdentifier(`after 'for'`);
+        this.skipWS();
+        if (this.peekWord() === 'in') this.tryIdentifier();
+        const count = this.parseInputValue();
+        const body = this.parseBraceBody();
+        return makeCall('control_for_each', [
+          keyedInput('VALUE', count),
+          keyedField('VARIABLE', { type: 'ident', name }),
+          branchArg('substack', body),
+        ]);
+      }
       case 'until': {
         const cond = this.parseExpr();
         const body = this.parseBraceBody();
@@ -1027,6 +1043,27 @@ class Parser {
         this.tryChar(';');
         const sentinel = word === 'point_towards_mouse' ? '_mouse_' : '_random_';
         return makeCall('motion_pointtowards', [keyedInput('TOWARDS', menuValueNode('motion_pointtowards_menu', sentinel))]);
+      }
+      case 'point_towards_xy': {
+        const x = this.parseInputValue();
+        this.tryChar(',');
+        const y = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall('motion_pointtowards_xy', [keyedInput('X', x), keyedInput('Y', y)]);
+      }
+      case 'point_towards_xyfrom': {
+        const x = this.parseInputValue();
+        this.tryChar(',');
+        const y = this.parseInputValue();
+        this.tryChar(',');
+        const fromx = this.parseInputValue();
+        this.tryChar(',');
+        const fromy = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall('motion_pointtowards_xyfrom', [
+          keyedInput('X', x), keyedInput('Y', y),
+          keyedInput('FROMX', fromx), keyedInput('FROMY', fromy),
+        ]);
       }
       case 'clone_myself': {
         this.tryChar(';');
