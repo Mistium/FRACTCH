@@ -15,8 +15,15 @@ export function buildBlocksFromCalls(calls, opts = {}) {
   const { hatOpcode, idGen, nested = false, ...ctx } = opts;
   const ids = idGen || new IdGen();
 
-  if (calls.length === 1 && calls[0].type === 'procDef') {
-    return buildProcDefScript(calls[0], ids, ctx);
+  const procDefs = calls.filter((c) => c.type === 'procDef');
+  if (procDefs.length === 1 && calls.every((c) => c.type === 'procDef' || c.type === 'commentDecl')) {
+    const result = buildProcDefScript(procDefs[0], ids, ctx);
+    if (ctx.commentsOut) {
+      for (const c of calls) {
+        if (c.type === 'commentDecl') ctx.commentsOut.push({ ...c, blockId: c.forId || result.topId });
+      }
+    }
+    return result;
   }
 
   // The whole chain/branch is nothing but a preserved dangling reference
@@ -31,6 +38,7 @@ export function buildBlocksFromCalls(calls, opts = {}) {
   let topId = null;
 
   const pendingTopComments = [];
+  const pendingNextComments = [];
   for (let idx = 0; idx < calls.length; idx++) {
     const call = calls[idx];
     if (call.type === 'commentDecl') {
@@ -38,9 +46,13 @@ export function buildBlocksFromCalls(calls, opts = {}) {
       // (or the chain's top block when written first). Collected via
       // ctx.commentsOut so nested branch bodies bubble up to the caller.
       if (ctx.commentsOut) {
-        const entry = { ...call, blockId: call.forId || lastId };
-        ctx.commentsOut.push(entry);
-        if (!entry.blockId) pendingTopComments.push(entry);
+        if (call.anchor === 'next' && !call.forId) {
+          pendingNextComments.push({ ...call, blockId: null });
+        } else {
+          const entry = { ...call, blockId: call.forId || lastId };
+          ctx.commentsOut.push(entry);
+          if (!entry.blockId) pendingTopComments.push(entry);
+        }
       }
       continue;
     }
@@ -85,9 +97,22 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     if (lastId) blocks[lastId].next = id;
     blocks[id] = { id, ...node };
     lastId = id;
+    if (pendingNextComments.length && ctx.commentsOut) {
+      for (const entry of pendingNextComments) {
+        entry.blockId = id;
+        ctx.commentsOut.push(entry);
+      }
+      pendingNextComments.length = 0;
+    }
   }
 
   for (const entry of pendingTopComments) entry.blockId = topId;
+  for (const entry of pendingNextComments) {
+    if (ctx.commentsOut) {
+      entry.blockId = lastId || topId || null;
+      ctx.commentsOut.push(entry);
+    }
+  }
 
   return { topId, blocks };
 }
@@ -504,16 +529,14 @@ function buildProcDefScript(procDef, ids, ctx) {
   const bodyCtx = { ...ctx, scopeParams };
   // Comments written before the first body statement belong to the def hat
   // itself, not to the first statement the nested chain resolves them to.
-  const commentsBefore = ctx.commentsOut ? ctx.commentsOut.length : 0;
   let leadingComments = 0;
   while (procDef.body[leadingComments]?.type === 'commentDecl') leadingComments++;
-  const { blocks: bodyBlocks, topId: bodyTopId } = buildBlocksFromCalls(procDef.body, { ...bodyCtx, idGen: ids, nested: true });
+  const hatComments = procDef.body.slice(0, leadingComments);
+  const bodyCalls = procDef.body.slice(leadingComments);
   if (ctx.commentsOut) {
-    for (let i = 0; i < leadingComments; i++) {
-      const entry = ctx.commentsOut[commentsBefore + i];
-      if (entry && !entry.forId) entry.blockId = defId;
-    }
+    for (const c of hatComments) ctx.commentsOut.push({ ...c, blockId: c.forId || defId });
   }
+  const { blocks: bodyBlocks, topId: bodyTopId } = buildBlocksFromCalls(bodyCalls, { ...bodyCtx, idGen: ids, nested: true });
   Object.assign(blocks, bodyBlocks);
   blocks[defId].next = bodyTopId || null;
   if (bodyTopId && blocks[bodyTopId]) blocks[bodyTopId].parent = defId;

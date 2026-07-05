@@ -500,15 +500,43 @@ test('bare broadcast names and stop options parse to the right blocks', () => {
   assert.strictEqual(quoted[1].args[0].value.value, 'Load Files');
 });
 
-test('comments are skipped everywhere and never reach the project', () => {
-  const src = '// header note\nwhen flag { // trailing\n  say "hi"; /* block { ( */\n  move 10;\n}\n';
+test('/* */ is stripped; // attaches to the neighbouring block', () => {
+  const src = '// header note\nwhen flag {\n  say "hi"; /* block { ( */ // greet\n  move 10;\n}\n';
   const { scripts, errors } = parseFractch(src);
   assert.deepStrictEqual(errors, []);
+  const real = scripts[0].calls.filter((c) => c.type !== 'commentDecl');
   assert.deepStrictEqual(
-    scripts[0].calls.map((c) => c.callee.name),
+    real.map((c) => c.callee.name),
     ['event_whenflagclicked', 'looks_say', 'motion_movesteps']
   );
-  assert.strictEqual(checkFractch(src).length, 0, 'lint should ignore comment contents');
+  const comments = scripts[0].calls.filter((c) => c.type === 'commentDecl');
+  assert.deepStrictEqual(comments.map((c) => c.text), ['header note', 'greet']);
+  assert.deepStrictEqual(comments.map((c) => c.anchor), ['next', 'prev']);
+  assert.strictEqual(checkFractch(src).length, 0, 'lint should ignore // and /* */ contents');
+});
+
+test('// comments pack as attached block comments and re-emit as //', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-linecomment-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'when flag {\n  // reset the score\n  score = 0;\n  say "hi"; // greeting\n}\n'
+  );
+  const sb3 = path.join(dir, 'c.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const stage = project.targets.find((t) => t.isStage);
+  const byText = Object.fromEntries(Object.values(stage.comments).map((c) => [c.text, c]));
+  assert.strictEqual(stage.blocks[byText['reset the score'].blockId].opcode, 'data_setvariableto');
+  assert.strictEqual(stage.blocks[byText['greeting'].blockId].opcode, 'looks_say');
+
+  const back = path.join(dir, 'back');
+  run(`node ./bin/cli.js from "${sb3}" to "${back}"`);
+  const text = fs.readFileSync(path.join(back, 'Stage', 'main.fractch'), 'utf8');
+  assert.match(text, /\/\/ reset the score/);
+  assert.match(text, /\/\/ greeting/);
+  assert.ok(!/comment\s+"/.test(text), 'default-geometry comments should not use comment "..."');
 });
 
 test('sprites[] property sugar round-trips through sensing_of', async () => {

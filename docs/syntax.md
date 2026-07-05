@@ -1,6 +1,6 @@
 # Syntax Reference
 
-A `.fractch` file holds any number of scripts plus asset declarations. Comments are `// line` and `/* block */`. Semicolons are optional. Generated files may start with a `/** ... */` header comment carrying routing metadata — it is optional and never contains block data.
+A `.fractch` file holds any number of scripts plus asset declarations. Two comment styles: `// line` **attaches** to the block on the line directly below it (or, when it trails code, to that line's block) and round-trips as a Scratch block comment; `/* block */` is pure formatting and never attaches. Use `//` for notes you want in the project, `/* */` for notes you don't. Semicolons are optional. Generated files may start with a `/** ... */` header comment carrying routing metadata — it is optional and never contains block data.
 
 Strings are `"double-quoted"` with `\" \\ \n \t \r` escapes, or `"""raw triple-quoted"""` — raw strings run to the next `"""` with real newlines and no escape processing (emitted automatically for values containing newlines).
 
@@ -62,7 +62,7 @@ comment "hello" at 50,50 size 350x170;            // workspace comment
 - `sprite` takes an optional quoted display name (folder names are sanitized copies) and attributes: `at x,y`, `size`, `direction`, `visible`/`hidden`, `draggable`, `rotation "all around"|"left-right"|"don't rotate"`, `volume`, `layer`, `costume n` (current costume index). `stage` takes `tempo`, `volume`, `video on|off|"on-flipped"`, `transparency`, `tts "lang"`, `costume n`. A costume declaration can carry `current` instead of the index form.
 - `var` in a sprite's file makes a for-this-sprite-only variable; in the Stage's file it's global. Variables also spring into existence on first assignment (value 0) — `var` is for initial values and lists.
 - `watch` declares a stage-monitor for a variable or list of this target: `at x,y`, `size WxH`, `large`/`slider`, `range min,max`, `continuous` (non-discrete slider), `hidden`/`visible`. Converted projects may carry `sprite "name"`/`id "..."` attributes to preserve watchers of since-deleted sprites verbatim.
-- `comment` at the top level of a file is a workspace comment; inside a script body it attaches to the preceding statement's block (or to the hat when it's the first line). Attributes: `at x,y`, `size WxH`, `minimized`, and `for "blockId"` (converted projects only: reproduces a comment whose anchor block no longer exists).
+- `comment` at the top level of a file is a workspace comment; inside a script body it attaches to the preceding statement's block (or to the hat when it's the first line). Attributes: `at x,y`, `size WxH`, `minimized`, and `for "blockId"` (converted projects only: reproduces a comment whose anchor block no longer exists). A `//` comment is the sugar for the common case: it emits `comment` under the hood, and a block comment with default position/size (no `at`/`size`/`minimized`/`for`) re-emits as a `//` line above its block. Positioned or minimized comments keep the explicit `comment "..."` form.
 - `platform` sets `meta.platform` in the packed project (MistWarp writes this).
 
 ## Variables

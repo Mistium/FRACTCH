@@ -1043,7 +1043,7 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
     const modules = resolveStdlibModules([...wanted]);
     if (!modules.length) continue;
     for (const moduleId of modules) {
-      const parsed = parseFractch(STDLIB_MODULES[moduleId].source);
+      const parsed = parseFractch(STDLIB_MODULES[moduleId].source, { attachLineComments: false });
       for (const err of parsed.errors || []) {
         console.warn(`[fractch] stdlib ${moduleId}: skipped unparsable statement: ${err.message}`);
       }

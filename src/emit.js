@@ -1,4 +1,4 @@
-import { stringifyBlockCall, stringifyFields, stringifyInputs, setContext, renderBody, commentDeclLine, inputValueText } from './stringify.js';
+import { stringifyBlockCall, stringifyFields, stringifyInputs, setContext, renderBody, commentDeclLine, withAttachedComments, isSimpleAttachedComment, lineCommentText, inputValueText } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
 export function emitScriptFile({ target, script, subgraph, index, context, cfg = {} }) {
@@ -301,12 +301,10 @@ function renderFallbackBody(subgraph, topId, cfg, context) {
   const ids = linearizeIds(subgraph, topId);
   const lines = ids.map((id, index) => {
     const block = subgraph[id];
-    let line = index === 0 && needsExplicitTopOpcode(block)
+    const line = index === 0 && needsExplicitTopOpcode(block)
       ? stringifyRawBlockCall(block, subgraph)
       : stringifyBlockCall(block, subgraph, id, false, cfg);
-    const attached = context?.blockComments?.get(id);
-    if (attached?.length) line += '\n' + attached.map((c) => commentDeclLine(c)).join('\n');
-    return line;
+    return withAttachedComments(line, context?.blockComments?.get(id));
   });
   return lines.join('\n');
 }
@@ -316,7 +314,7 @@ function renderFallbackBody(subgraph, topId, cfg, context) {
 function prependOwnComments(context, topBlockId, bodyText) {
   const own = context?.blockComments?.get(topBlockId);
   if (!own?.length) return bodyText;
-  const lines = own.map((c) => commentDeclLine(c)).join('\n');
+  const lines = own.map((c) => (isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c))).join('\n');
   return bodyText ? `${lines}\n${bodyText}` : lines;
 }
 

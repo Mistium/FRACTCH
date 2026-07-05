@@ -170,10 +170,47 @@ const LEGACY_FIELD_KEYS = new Set([
   'mutation',
 ]);
 
-export function parseFractch(content) {
+const NON_ATTACHABLE_TOP = new Set([
+  'useDecl', 'importDecl', 'varDecl', 'watchDecl', 'commentDecl',
+  'platformDecl', 'spriteDecl', 'assetDecl',
+]);
+
+function mergeLeadingComments(stmts) {
+  const out = [];
+  for (let i = 0; i < stmts.length; i++) {
+    const st = stmts[i];
+    if (st.type === 'commentDecl' && st.fromLineComment) {
+      if (st.anchor === 'next') {
+        let j = i + 1;
+        while (j < stmts.length && stmts[j].type === 'commentDecl') j++;
+        const target = stmts[j];
+        if (target && !NON_ATTACHABLE_TOP.has(target.type)) {
+          (target.leadingComments || (target.leadingComments = [])).push(st);
+          continue;
+        }
+      } else {
+        let k = out.length - 1;
+        while (k >= 0 && out[k].type === 'commentDecl') k--;
+        const target = out[k];
+        if (target && !NON_ATTACHABLE_TOP.has(target.type)) {
+          (target.trailingComments || (target.trailingComments = [])).push(st);
+          continue;
+        }
+      }
+    }
+    out.push(st);
+  }
+  return out;
+}
+
+function withComments(st, ...calls) {
+  return [...(st.leadingComments || []), ...calls, ...(st.trailingComments || [])];
+}
+
+export function parseFractch(content, { attachLineComments = true } = {}) {
   const text = stripHeader(content);
-  const parser = new Parser(text);
-  const stmts = parser.parseStatementList(/* stopAtBrace */ false);
+  const parser = new Parser(text, { attachLineComments });
+  const stmts = mergeLeadingComments(parser.parseStatementList(/* stopAtBrace */ false));
   const assets = { costumes: [], sounds: [] };
 
   // Split the file into scripts: `when ... {}` / `script {}` / `def` each
@@ -215,16 +252,16 @@ export function parseFractch(content) {
       else if (st.kind === 'sound') assets.sounds.push(st.value);
     } else if (st.type === 'procDef') {
       flush();
-      scripts.push({ kind: 'def', calls: [st], x: st.x ?? null, y: st.y ?? null });
+      scripts.push({ kind: 'def', calls: withComments(st, st), x: st.x ?? null, y: st.y ?? null });
     } else if (st.type === 'whenScript') {
       flush();
-      scripts.push({ kind: 'explicit', calls: [st.hat, ...st.body], x: st.x, y: st.y });
+      scripts.push({ kind: 'explicit', calls: withComments(st, st.hat, ...st.body), x: st.x, y: st.y });
     } else if (st.type === 'chainScript') {
       flush();
-      scripts.push({ kind: 'explicit', calls: st.body, x: st.x, y: st.y });
+      scripts.push({ kind: 'explicit', calls: withComments(st, ...st.body), x: st.x, y: st.y });
     } else {
       if (!cur) cur = { kind: 'implicit', calls: [], x: null, y: null };
-      cur.calls.push(st);
+      cur.calls.push(...withComments(st, st));
     }
   }
   flush();
@@ -285,11 +322,14 @@ export function closestMatch(word, candidates, maxDistance = 2) {
 }
 
 class Parser {
-  constructor(text) {
+  constructor(text, { attachLineComments = true } = {}) {
     this.s = text;
     this.i = 0;
     this.len = text.length;
     this.errors = [];
+    this.attachLineComments = attachLineComments;
+    this.pendingLineComments = [];
+    this.seenComments = new Set();
   }
 
   fail(message, hint = null) {
@@ -315,6 +355,32 @@ class Parser {
     return line;
   }
 
+  lineIsBlankBefore(pos) {
+    for (let j = pos - 1; j >= 0 && this.s[j] !== '\n'; j--) {
+      if (this.s[j] !== ' ' && this.s[j] !== '\t' && this.s[j] !== '\r') return false;
+    }
+    return true;
+  }
+
+  drainLineComments(out, { havePrev }) {
+    if (!this.pendingLineComments.length) return;
+    for (const c of this.pendingLineComments) {
+      out.push({
+        type: 'commentDecl',
+        text: c.text,
+        x: 0,
+        y: 0,
+        width: 200,
+        height: 200,
+        minimized: false,
+        forId: null,
+        fromLineComment: true,
+        anchor: c.anchor === 'prev' && havePrev ? 'prev' : 'next',
+      });
+    }
+    this.pendingLineComments = [];
+  }
+
   eof() {
     return this.i >= this.len;
   }
@@ -337,7 +403,18 @@ class Parser {
       if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
         this.i++;
       } else if (ch === '/' && this.peek(1) === '/') {
+        const start = this.i;
+        this.i += 2;
+        const textStart = this.i;
         while (!this.eof() && this.peek() !== '\n') this.i++;
+        if (this.attachLineComments && !this.seenComments.has(start)) {
+          this.seenComments.add(start);
+          this.pendingLineComments.push({
+            start,
+            text: this.s.slice(textStart, this.i).trim(),
+            anchor: this.lineIsBlankBefore(start) ? 'next' : 'prev',
+          });
+        }
       } else if (ch === '/' && this.peek(1) === '*') {
         this.i += 2;
         while (!this.eof() && !(this.peek() === '*' && this.peek(1) === '/')) this.i++;
@@ -396,8 +473,10 @@ class Parser {
 
   parseStatementList(stopAtBrace) {
     const stmts = [];
+    let haveRealPrev = false;
     for (;;) {
       this.skipWS();
+      this.drainLineComments(stmts, { havePrev: haveRealPrev });
       if (this.eof()) break;
       if (this.peek() === '}') {
         if (stopAtBrace) break;
@@ -422,6 +501,7 @@ class Parser {
           const id = this.parseStringLiteral();
           this.tryChar(';');
           stmts.push({ type: 'importDecl', id });
+          haveRealPrev = true;
           continue;
         }
         this.restore(save);
@@ -433,6 +513,7 @@ class Parser {
         const stmt = this.parseStatement();
         if (stmt) {
           stmts.push(stmt);
+          haveRealPrev = true;
           continue;
         }
       } catch (e) {
@@ -1257,7 +1338,7 @@ class Parser {
         return decl;
       }
       case 'comment': {
-        const decl = { type: 'commentDecl', text: '', x: 0, y: 0, width: 200, height: 200, minimized: false, forId: null };
+        const decl = { type: 'commentDecl', text: '', x: 0, y: 0, width: 200, height: 200, minimized: false, forId: null, anchor: 'prev' };
         this.skipWS();
         if (this.peek() === '"') decl.text = this.parseStringLiteral();
         for (;;) {

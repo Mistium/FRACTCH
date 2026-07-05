@@ -733,14 +733,42 @@ function linearizeWithIds(subgraph, topId) {
 // forward reference instead of silently dropping it (see linearizeWithIds).
 export function renderBody(subgraph, topId, cfg) {
   const { ids, danglingId } = linearizeWithIds(subgraph, topId);
-  const lines = ids.map((cid) => {
-    let line = stringifyBlockCall(subgraph[cid], subgraph, cid, false, cfg);
-    const attached = CTX.blockComments?.get(cid);
-    if (attached?.length) line += '\n' + attached.map((c) => commentDeclLine(c)).join('\n');
-    return line;
-  });
+  const lines = ids.map((cid) =>
+    withAttachedComments(stringifyBlockCall(subgraph[cid], subgraph, cid, false, cfg), CTX.blockComments?.get(cid))
+  );
   if (danglingId) lines.push(`dangling_next(${JSON.stringify(danglingId)});`);
   return lines.join('\n');
+}
+
+export function isSimpleAttachedComment(c) {
+  const text = String(c.text ?? '');
+  return (
+    (c.x ?? 0) === 0 &&
+    (c.y ?? 0) === 0 &&
+    (c.width ?? 200) === 200 &&
+    (c.height ?? 200) === 200 &&
+    !c.minimized &&
+    !c.forId &&
+    !text.includes('\n') &&
+    text === text.trim()
+  );
+}
+
+export function lineCommentText(c) {
+  const text = String(c.text ?? '');
+  return text ? `// ${text}` : '//';
+}
+
+export function withAttachedComments(line, attached) {
+  if (!attached?.length) return line;
+  const before = [];
+  const after = [];
+  for (const c of attached) (isSimpleAttachedComment(c) ? before : after).push(c);
+  let out = '';
+  if (before.length) out += before.map(lineCommentText).join('\n') + '\n';
+  out += line;
+  if (after.length) out += '\n' + after.map(commentDeclLine).join('\n');
+  return out;
 }
 
 // Canonical text form of a comment declaration. `forId` (orphan comments
