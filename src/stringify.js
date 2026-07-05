@@ -1,8 +1,17 @@
 import { LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS } from './parse.js';
-import { STDLIB_PROCCODE_TO_METHOD } from './stdlib.js';
+import { STDLIB_PROCCODE_TO_METHOD, STDLIB_DEF_TO_PACKAGE } from './stdlib/index.js';
 
 let CTX = {};
 export function setContext(c) { CTX = c || {}; }
+
+// `!local_<scriptTag>_<name>` real variables reverse to the `local <name>`
+// script-local sugar. The tag is alphanumeric so the original name (which may
+// contain underscores) is everything after it.
+const LOCAL_VAR_RE = /^!local_[A-Za-z0-9]+_(.+)$/;
+export function localBareName(name) {
+  const m = LOCAL_VAR_RE.exec(String(name));
+  return m ? m[1] : null;
+}
 
 const PREC = {
   '||': 1, '&&': 2,
@@ -61,7 +70,7 @@ const MENU_CMD_EMIT = {
 };
 
 const LIST_STMT_EMIT = {
-  data_addtolist: ['add', ['ITEM']],
+  data_addtolist: ['append', ['ITEM']],
   data_deleteoflist: ['delete', ['INDEX']],
   data_deletealloflist: ['clear', []],
   data_insertatlist: ['insert', ['INDEX', 'ITEM']],
@@ -84,7 +93,14 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
         const inp = block.inputs?.[p.id];
         return Array.isArray(inp) ? inputValueText(inp, subgraph, p.id) : 'null';
       });
-      // Stdlib defs re-sugar to method form: first arg is the receiver.
+      // A package def re-sugars to its `namespace.method(...)` call form.
+      const pkg = STDLIB_DEF_TO_PACKAGE.get(info.ident);
+      if (pkg && !STDLIB_PROCCODE_TO_METHOD.has(code)) {
+        const call = `${pkg.namespace}.${pkg.method}(${args.join(', ')})`;
+        return inline ? call : call + ';';
+      }
+      // Legacy value-method re-sugar (split/join/item/count/push): receiver is
+      // the first arg.
       const method = STDLIB_PROCCODE_TO_METHOD.get(code);
       if (method && info.params.length >= 1) {
         const recvArr = block.inputs?.[info.params[0].id];
@@ -100,6 +116,8 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 
   if (opcode === 'data_variable') {
     const name = block.fields?.VARIABLE?.[0] ?? '';
+    const local = localBareName(name);
+    if (local && inline) return local;
     // A standalone top-level statement is a dangling orphan reporter with no
     // enclosing script to resolve an identifier against - print the exact
     // original name as a string literal so it round-trips byte-for-byte
@@ -162,6 +180,16 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const varName = String(block.fields?.VARIABLE?.[0] ?? '');
     const value = inputValueText(block.inputs?.VALUE, subgraph, 'VALUE');
     const op = opcode === 'data_changevariableby' ? '+=' : '=';
+    const local = localBareName(varName);
+    if (local) {
+      // First `=` set of a script-local restores the `local` keyword so pack
+      // re-registers it; later sets/changes are plain assignments.
+      if (op === '=' && !CTX.declaredLocals?.has(local)) {
+        CTX.declaredLocals?.add(local);
+        return `local ${local} = ${value};`;
+      }
+      return `${local} ${op} ${value};`;
+    }
     if (bareNameOk(varName)) return `${varName} ${op} ${value};`;
     return `vars[${JSON.stringify(varName)}] ${op} ${value};`;
   }
@@ -455,6 +483,10 @@ function listRefText(name) {
   return `lists[${JSON.stringify(name)}]`;
 }
 
+function listArgText(name) {
+  return bareNameOk(name) ? name : listRefText(name);
+}
+
 function effectFieldName(block) {
   const fields = block.fields || {};
   const keys = Object.keys(fields);
@@ -479,16 +511,16 @@ function tryListExpr(block, subgraph) {
   const inputKeys = Object.keys(block.inputs || {});
   const one = (k) => inputKeys.length === 1 && inputKeys[0] === k;
   if (op === 'data_itemoflist' && one('INDEX')) {
-    return { text: `${listRefText(name)}[${inputValueText(block.inputs.INDEX, subgraph, 'INDEX')}]`, prec: ATOM_PREC };
+    return { text: `item(${listArgText(name)}, ${inputValueText(block.inputs.INDEX, subgraph, 'INDEX')})`, prec: ATOM_PREC };
   }
   if (op === 'data_lengthoflist' && inputKeys.length === 0) {
-    return { text: `${listRefText(name)}.length`, prec: ATOM_PREC };
+    return { text: `length(${listRefText(name)})`, prec: ATOM_PREC };
   }
   if (op === 'data_listcontainsitem' && one('ITEM')) {
-    return { text: `${listRefText(name)}.contains(${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
+    return { text: `contains(${listRefText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
   }
   if (op === 'data_itemnumoflist' && one('ITEM')) {
-    return { text: `${listRefText(name)}.indexof(${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
+    return { text: `indexof(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
   }
   return null;
 }
@@ -617,10 +649,10 @@ function tryStatementAlias(block, subgraph) {
   if (LIST_STMT_EMIT[op]) {
     const name = listFieldName(block);
     if (name == null) return null;
-    const [method, keys] = LIST_STMT_EMIT[op];
+    const [fn, keys] = LIST_STMT_EMIT[op];
     if (!exactInputs(...keys)) return null;
-    const args = keys.map((k) => inputValueText(inputs[k], subgraph, k)).join(', ');
-    return `${listRefText(name)}.${method}(${args});`;
+    const args = keys.map((k) => inputValueText(inputs[k], subgraph, k));
+    return `${fn}(${[listArgText(name), ...args].join(', ')});`;
   }
   return null;
 }
@@ -913,6 +945,8 @@ function formatLiteral(arr) {
         case 12: {
           // variable/parameter reference label -> print as bare identifier when safe
           const name = String(value ?? '');
+          const local = localBareName(name);
+          if (local) return local;
           if (bareNameOk(name)) return name;
           return `vars[${JSON.stringify(name)}]`;
         }
@@ -972,8 +1006,11 @@ function tryOperatorInfo(block, subgraph) {
     }
     case 'operator_length':
       return { text: `length(${getInputExpr(input('STRING'), subgraph)})`, prec: ATOM_PREC };
-    case 'operator_letter_of':
-      return { text: `letter(${getInputExpr(input('LETTER'), subgraph)}, ${getInputExpr(input('STRING'), subgraph)})`, prec: ATOM_PREC };
+    case 'operator_letter_of': {
+      const recv = getInputExprInfo(input('STRING'), subgraph);
+      const recvText = recv.prec === ATOM_PREC ? recv.text : `(${recv.text})`;
+      return { text: `${recvText}.letter(${getInputExpr(input('LETTER'), subgraph)})`, prec: ATOM_PREC };
+    }
     case 'operator_random':
       return { text: `random(${getInputExpr(input('FROM'), subgraph)}, ${getInputExpr(input('TO'), subgraph)})`, prec: ATOM_PREC };
     case 'operator_contains':

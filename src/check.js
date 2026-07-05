@@ -2,6 +2,8 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch, closestMatch } from './parse.js';
 import { checkFractch } from './lint.js';
+import { LIST_METHOD_OPS } from './buildBlocks.js';
+import { STDLIB_METHODS, STDLIB_MODULE_META } from './stdlib/index.js';
 
 export async function checkProject({ buildDir, fs: fsLike }) {
   const vfs = toPromiseFs(fsLike);
@@ -11,7 +13,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
 
   const perTarget = new Map();
   const targetState = (name) => {
-    if (!perTarget.has(name)) perTarget.set(name, { defs: new Map(), calls: [] });
+    if (!perTarget.has(name)) perTarget.set(name, { defs: new Map(), calls: [], vars: new Set(), lists: new Set(), methodUses: [], packages: {} });
     return perTarget.get(name);
   };
 
@@ -45,6 +47,8 @@ export async function checkProject({ buildDir, fs: fsLike }) {
     }
 
     const st = targetState(target);
+    for (const d of parsed.varDecls || []) (d.isList ? st.lists : st.vars).add(d.name);
+    Object.assign(st.packages, parsed.importNamespaces || {});
     for (const script of parsed.scripts || []) {
       const locals = new Set();
       collectScriptFacts(script.calls, rel, st, locals, push);
@@ -62,7 +66,32 @@ export async function checkProject({ buildDir, fs: fsLike }) {
     checkDuplicateAssets(parsed.assets, rel, push);
   }
 
+  const stage = perTarget.get('Stage');
   for (const [, st] of perTarget) {
+    for (const u of st.methodUses) {
+      const pkgId = st.packages[u.ident];
+      const pkgMeta = pkgId && STDLIB_MODULE_META[pkgId];
+      if (pkgMeta) {
+        if (!pkgMeta.defs.has(`${pkgMeta.defPrefix}${u.method}`)) {
+          const methods = [...pkgMeta.defs].map((d) => d.slice(pkgMeta.defPrefix.length));
+          const near = closestMatch(u.method, methods, 3);
+          push(u.file, u.line, 0, `package '${u.ident}' has no function '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
+            `${pkgId} exports: ${methods.map((m) => `.${m}`).join(' ')}`);
+        }
+        continue;
+      }
+      const isList = st.lists.has(u.ident) || stage?.lists.has(u.ident);
+      const isVar = st.vars.has(u.ident) || stage?.vars.has(u.ident);
+      if (isList && !LIST_METHOD_OPS[u.method]) {
+        const near = closestMatch(u.method, Object.keys(LIST_METHOD_OPS), 3);
+        push(u.file, u.line, 0, `list '${u.ident}' has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
+          'list methods: .add(v) .delete(i) .insert(i, v) .replace(i, v) .clear() .show() .hide() .item(i) .length() .contains(v) .indexof(v)');
+      } else if (isVar && !isList && !STDLIB_METHODS[u.method]) {
+        const near = closestMatch(u.method, Object.keys(STDLIB_METHODS), 3);
+        push(u.file, u.line, 0, `'${u.ident}' is a variable and has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
+          'variable methods come from the stdlib: .split(d) .join(d) .item(i) .count() .push(v)');
+      }
+    }
     for (const c of st.calls) {
       const def = st.defs.get(c.ident);
       if (!def) {
@@ -108,6 +137,9 @@ function collectScriptFacts(nodes, file, st, locals, push) {
     if (node.type !== 'call') continue;
     if (node.callee?.type === 'procedureCall') {
       st.calls.push({ ident: node.callee.name, line: node.callee.line ?? 0, argCount: node.args.length, file });
+    }
+    if (node.callee?.type === 'identOrMethod') {
+      st.methodUses.push({ ident: node.callee.ident, method: node.callee.method, line: node.callee.line ?? 0, file });
     }
     for (const a of node.args || []) {
       if (a.kind === 'branch') collectScriptFacts(a.body, file, st, locals, push);

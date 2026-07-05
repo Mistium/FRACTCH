@@ -3,7 +3,7 @@ import { toPromiseFs } from './fsAdapter.js';
 import { emitMultiScriptFile, emitTargetPrelude } from './emit.js';
 import { groupTopLevelScripts, collectBlocksSubgraph } from './graph.js';
 import { decodeFileStemFromTopId } from './fileMarkers.js';
-import { STDLIB_MODULES, STDLIB_STEM_PREFIX } from './stdlib.js';
+import { STDLIB_MODULES, STDLIB_STEM_PREFIX } from './stdlib/index.js';
 
 export async function convertProject(projectJson, { outDir, fs: fsLike, config = {}, verbose = false } = {}) {
   const vfs = toPromiseFs(fsLike);

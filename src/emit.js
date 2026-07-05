@@ -131,10 +131,12 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
   for (const [id, entry] of Object.entries(target.variables || {})) {
     if (!Array.isArray(entry)) continue;
     const [name, value, isCloud] = entry;
-    // `local x = ...` script-locals pack to mangled local_N_x variables;
-    // pack regenerates them (same deterministic names) from the `local`
-    // statements, so declaring them here would only leak noise.
-    if (/^local_\d+_/.test(String(name))) continue;
+    // `local x = ...` script-locals pack to mangled variables; pack
+    // regenerates them (same deterministic names) from the `local` statements,
+    // so declaring them here would only leak noise. `!local_<tag>_x` is the
+    // current scheme; `local_N_x` is the legacy one (still skipped so old
+    // projects stay clean).
+    if (/^!local_[A-Za-z0-9]+_/.test(String(name)) || /^local_\d+_/.test(String(name))) continue;
     const idSuffix = varCounts.get(String(name)) > 1 ? ` id ${JSON.stringify(String(id))}` : '';
     if (isCloud === true && String(name).startsWith('☁ ')) {
       lines.push(`cloud ${varNameToken(String(name).slice(2))} = ${varValueText(value)}${idSuffix};`);
@@ -202,7 +204,11 @@ function watchDeclLine(w) {
 function emitScriptBody({ script, subgraph, context, cfg = {} }) {
   const { topBlockId, hatOpcode } = script;
 
-  setContext(context);
+  // Fresh per script: tracks which `!local_` variables have had their `local`
+  // keyword restored, so only the first `=` set in this script gets it.
+  const scriptContext = { ...context, declaredLocals: new Set() };
+  setContext(scriptContext);
+  context = scriptContext;
 
   let body;
   if (hatOpcode === 'procedures_definition' && context?.procByCode) {

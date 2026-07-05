@@ -1,4 +1,4 @@
-import { STDLIB_METHODS } from './stdlib.js';
+import { STDLIB_METHODS } from './stdlib/index.js';
 
 // Opcodes that are only ever legitimately used as shadow-only blocks
 // (literal input defaults / custom-block parameter reporters). Used to
@@ -123,9 +123,40 @@ export function buildBlocksFromCalls(calls, opts = {}) {
 // receiver; otherwise it's the opcode `ident_method`. (pack.js pre-resolves
 // these the same way before its stdlib-injection scan; this covers direct
 // parse+build API users.)
+// method name -> [opcode, positional input keys]. Commands and reporters
+// alike; the receiver list is passed as a LIST field.
+export const LIST_METHOD_OPS = {
+  add: ['data_addtolist', ['ITEM']],
+  push: ['data_addtolist', ['ITEM']],
+  delete: ['data_deleteoflist', ['INDEX']],
+  clear: ['data_deletealloflist', []],
+  insert: ['data_insertatlist', ['INDEX', 'ITEM']],
+  replace: ['data_replaceitemoflist', ['INDEX', 'ITEM']],
+  show: ['data_showlist', []],
+  hide: ['data_hidelist', []],
+  item: ['data_itemoflist', ['INDEX']],
+  length: ['data_lengthoflist', []],
+  contains: ['data_listcontainsitem', ['ITEM']],
+  indexof: ['data_itemnumoflist', ['ITEM']],
+};
+
+export function listMethodCall(name, method, args) {
+  const spec = LIST_METHOD_OPS[method];
+  if (!spec) return null;
+  const [opcode, keys] = spec;
+  const inputs = keys.map((k, i) => ({ kind: 'keyed', sep: 'input', key: k, value: args[i]?.value }));
+  inputs.push({ kind: 'keyed', sep: 'field', key: 'LIST', value: { type: 'list', name, id: null } });
+  return { type: 'call', callee: { type: 'opcode', name: opcode }, args: inputs };
+}
+
 export function resolveIdentOrMethod(call, ctx) {
   if (call?.callee?.type !== 'identOrMethod') return call;
   const { ident, method } = call.callee;
+  if (ctx?.listMap && ctx.listMap.has(ident)) {
+    const lm = listMethodCall(ident, method, call.args);
+    if (lm) return lm;
+    return { ...call, callee: { type: 'opcode', name: `${ident}_${method}` } };
+  }
   const isVar =
     (ctx?.localVars && ctx.localVars.has(ident)) ||
     (ctx?.scopeParams && ctx.scopeParams.has(ident)) ||
@@ -317,7 +348,7 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       return [1, [10, JSON.stringify(v)]];
     }
     case 'call': {
-      const callNode = val.value;
+      const callNode = resolveIdentOrMethod(val.value, ctx);
       // `ns.op("literal")` in a value slot is a visible menu shadow (the
       // dropdown block with the parent input's key as its single field).
       // Only plain string payloads take this path: a single positional

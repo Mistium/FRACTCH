@@ -101,7 +101,7 @@ if score >= 10 && !sensing.mousedown() {
 }
 ```
 
-Functions: `length(s)`, `letter(i, s)`, `contains(a, b)`, `random(from, to)`, `round(n)`, and the math ops `abs floor ceiling sqrt sin cos tan asin acos atan ln log exp exp10`. `not(x)` parses too, but `!x` / `!=` / `<=` / `>=` are preferred.
+Functions: `length(s)`, `contains(a, b)`, `random(from, to)`, `round(n)`, and the math ops `abs floor ceiling sqrt sin cos tan asin acos atan ln log exp exp10`. `not(x)` parses too, but `!x` / `!=` / `<=` / `>=` are preferred. The letter-of-string reporter is a method: `s.letter(i)` (1-based); the legacy `letter(i, s)` function form still parses but re-emits as `s.letter(i)`.
 
 Another sprite's state reads like the list syntax (this is `sensing_of` under the hood):
 

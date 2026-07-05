@@ -460,7 +460,11 @@ test('negated comparisons desugar to not() wrapping the opposite operator', () =
   }
   const bang = parseFractch('if !sensing.mousedown() { }\n').calls[0].args[0].value.value;
   assert.strictEqual(bang.callee.name, 'operator_not');
-  assert.strictEqual(bang.args[0].value.value.callee.name, 'sensing_mousedown');
+  // `sensing.mousedown()` parses as a deferred method call; it resolves to the
+  // opcode sensing_mousedown at build (sensing is not a var/list).
+  const inner = bang.args[0].value.value.callee;
+  assert.strictEqual(inner.type, 'identOrMethod');
+  assert.strictEqual(`${inner.ident}_${inner.method}`, 'sensing_mousedown');
 });
 
 test('boolean literals use Scratch equality blocks and empty not renders true', async () => {
@@ -816,10 +820,13 @@ test('local declarations become namespaced variables at pack time', () => {
   const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
   const stage = project.targets.find((t) => t.name === 'Stage');
   const varNames = Object.values(stage.variables).map((v) => v[0]);
-  assert.ok(varNames.includes('local_1_temp'), 'first local missing');
-  assert.ok(varNames.includes('local_2_temp'), 'second local missing: ' + varNames.join(','));
+  // Local reals encode the enclosing script (both hats -> `flagclicked`,
+  // deduped to `flagclicked2`) instead of a bare counter, so they are
+  // deterministic and reversible.
+  assert.ok(varNames.includes('!local_flagclicked_temp'), 'first local missing: ' + varNames.join(','));
+  assert.ok(varNames.includes('!local_flagclicked2_temp'), 'second local missing: ' + varNames.join(','));
   const sets = Object.values(stage.blocks).filter((b) => b.opcode === 'data_setvariableto');
-  assert.ok(sets.every((b) => b.fields.VARIABLE[0].startsWith('local_')));
+  assert.ok(sets.every((b) => b.fields.VARIABLE[0].startsWith('!local_')));
   assert.ok(sets.every((b) => b.fields.VARIABLE[1]), 'local variable field ids resolved');
 });
 
@@ -1046,39 +1053,73 @@ test('array literals pack as JSON strings and re-sugar on emission', async () =>
   assert.ok(stringifyBlockCall(lookalike, {}, 'x', false).includes('"[10,\\"x\\"]"'));
 });
 
-test('stdlib: method sugar injects defs at pack and folds to import on convert', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-stdlib-'));
+test('package namespace calls resolve to defs (not phantom extensions) and round-trip', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-pkg-'));
   fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
   fs.writeFileSync(
     path.join(dir, 'Stage', 'main.fractch'),
-    'import "fractch/strings";\n\n' +
+    'import "fractch/strings";\nimport "fractch/json" as j;\n' +
+      'when flag {\n  say strings.replace("pay", "p", "g");\n  say j.valid(x);\n}\n'
+  );
+  const sb3 = path.join(dir, 'pkg.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const stage = project.targets.find((t) => t.isStage);
+  const opcodes = Object.values(stage.blocks).map((b) => b.opcode);
+  assert.ok(!opcodes.includes('strings_replace'), 'strings.replace must not become a phantom extension opcode');
+  assert.ok(!opcodes.includes('j_valid'), 'aliased j.valid must not become a phantom extension opcode');
+  assert.deepStrictEqual(project.extensions, [], 'no phantom extension registered');
+  const calls = Object.values(stage.blocks).filter((b) => b.opcode === 'procedures_call').map((b) => b.mutation.proccode);
+  assert.ok(calls.some((c) => c.startsWith('fractch_strings_replace')), 'strings.replace -> its def call');
+  assert.ok(calls.some((c) => c.startsWith('fractch_json_valid')), 'aliased j.valid -> the json def call');
+
+  const back = path.join(dir, 'back');
+  run(`node ./bin/cli.js from "${sb3}" to "${back}"`);
+  const text = fs.readFileSync(path.join(back, 'Stage', 'main.fractch'), 'utf8');
+  assert.match(text, /strings\.replace\("pay", "p", "g"\)/, 'package calls re-sugar to namespace form');
+});
+
+test('list-based json package injects a shared return-stack and folds to import', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-json-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'import "fractch/json";\n\n' +
       'when flag {\n' +
-      '  parts = "a,b,c".split(",");\n' +
-      '  say parts.item(2);\n' +
+      '  say json.get_from("user", msg);\n' +
       '  say mistsutils.item(C: 1, A: "x.y", B: ".");\n' + // keyed args stay an extension call
       '}\n'
   );
-  const sb3 = path.join(dir, 'stdlib.sb3');
+  const sb3 = path.join(dir, 'json.sb3');
   run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
 
   const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
   const stage = project.targets.find((t) => t.isStage);
   const blocks = Object.values(stage.blocks);
+  // The shared parse state is a collision-proof package-owned return stack.
+  assert.ok(Object.values(stage.lists).some((l) => l[0] === '!json:stack'), 'return-stack list missing');
+  assert.ok(Object.values(stage.variables).some((v) => v[0] === '!json:return'), 'return register var missing');
+  // Every variable/list reference resolves to a real id (no null-id refs).
+  for (const b of blocks) {
+    for (const v of Object.values(b.inputs || {})) {
+      const inner = v[1];
+      if (Array.isArray(inner) && (inner[0] === 12 || inner[0] === 13)) {
+        assert.strictEqual(typeof inner[2], 'string', `unresolved ${inner[0] === 13 ? 'list' : 'var'} ref ${inner[1]}`);
+      }
+    }
+  }
+  // Tree-shaken: get_from pulls in only get_data + slice (5 defs), not all 11.
   const defs = blocks.filter((b) => b.opcode === 'procedures_definition');
-  assert.ok(defs.length >= 4, `expected stdlib defs injected, got ${defs.length}`);
-  const calls = blocks.filter((b) => b.opcode === 'procedures_call').map((b) => b.mutation?.proccode);
-  assert.ok(calls.includes('fractch_strings_split %s %s'), 'split call missing');
-  assert.ok(calls.includes('fractch_json_item %s %s'), 'item call missing');
-  assert.ok(blocks.some((b) => b.opcode === 'mistsutils_item'), 'keyed extension call was hijacked by method sugar');
-  assert.ok(Object.keys(stage.blocks).some((k) => k.startsWith('fractch_h')), 'stdlib defs missing file markers');
+  assert.strictEqual(defs.length, 3, `expected only get_from's transitive closure, got ${defs.length}`);
+  assert.ok(blocks.some((b) => b.opcode === 'mistsutils_item'), 'keyed extension call was hijacked');
+  assert.ok(Object.keys(stage.blocks).some((k) => k.startsWith('fractch_h')), 'package defs missing file markers');
 
   const outDir = path.join(dir, 'back');
   run(`node ./bin/cli.js from "${sb3}" to "${outDir}"`);
   const text = fs.readFileSync(path.join(outDir, 'Stage', 'main.fractch'), 'utf8');
-  assert.ok(text.includes('import "fractch/strings";'), 'import line missing after convert');
-  assert.ok(!text.includes('def @fractch_strings_split'), 'stdlib def bodies must fold into the import');
-  assert.ok(text.includes('parts = "a,b,c".split(",");'), 'method sugar not re-emitted');
-  assert.ok(text.includes('say parts.item(2);'), 'variable-receiver method not re-emitted');
+  assert.ok(text.includes('import "fractch/json";'), 'import line missing after convert');
+  assert.ok(!text.includes('def @fractch_json_get_data'), 'package def bodies must fold into the import');
+  assert.match(text, /json\.get_from\("user", msg\)/, 'package call must re-sugar to namespace form');
   assert.ok(/mistsutils\.item\(/.test(text), 'extension call must stay an opcode call');
 });
 

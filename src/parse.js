@@ -1,4 +1,4 @@
-import { STDLIB_METHODS } from './stdlib.js';
+import { STDLIB_METHODS } from './stdlib/index.js';
 
 // Statement keywords that introduce a control construct instead of a plain
 // expression-statement.
@@ -224,6 +224,7 @@ export function parseFractch(content, { attachLineComments = true } = {}) {
   };
   const uses = [];
   const imports = [];
+  const importNamespaces = {};
   const varDecls = [];
   const watches = [];
   const comments = [];
@@ -234,6 +235,7 @@ export function parseFractch(content, { attachLineComments = true } = {}) {
       uses.push(st);
     } else if (st.type === 'importDecl') {
       imports.push(st.id);
+      importNamespaces[st.alias || String(st.id).split('/').pop()] = st.id;
     } else if (st.type === 'varDecl') {
       varDecls.push(st);
     } else if (st.type === 'watchDecl') {
@@ -267,7 +269,7 @@ export function parseFractch(content, { attachLineComments = true } = {}) {
   flush();
 
   const calls = scripts.length === 1 ? scripts[0].calls : scripts.flatMap((s) => s.calls);
-  return { calls, scripts, assets, uses, imports, varDecls, watches, comments, platform, spriteProps, errors: parser.errors };
+  return { calls, scripts, assets, uses, imports, importNamespaces, varDecls, watches, comments, platform, spriteProps, errors: parser.errors };
 }
 
 export function preprocess(text) {
@@ -499,8 +501,16 @@ class Parser {
         this.skipWS();
         if (this.peek() === '"') {
           const id = this.parseStringLiteral();
+          this.skipWS();
+          // `import "pkg" as name` binds the package under a chosen namespace,
+          // dodging collisions with an extension of the same last-segment name.
+          let alias = null;
+          if (this.peekWord() === 'as') {
+            this.tryIdentifier();
+            alias = this.expectIdentifier('for the import namespace');
+          }
           this.tryChar(';');
-          stmts.push({ type: 'importDecl', id });
+          stmts.push({ type: 'importDecl', id, alias });
           haveRealPrev = true;
           continue;
         }
@@ -1557,7 +1567,7 @@ class Parser {
       // condition/argument elsewhere), so this only fires here, not in the
       // general parseExpr() value grammar - otherwise it'd eat the body of
       // an enclosing `if genericCall(...) { ... }`.
-      if (call.callee.type === 'opcode') {
+      if (call.callee.type === 'opcode' || call.callee.type === 'identOrMethod') {
         const substackKeys = ['SUBSTACK', 'SUBSTACK2'];
         let si = 0;
         while (si < substackKeys.length) {
@@ -1631,8 +1641,16 @@ class Parser {
       const save = this.snapshot();
       this.i++;
       const name = this.tryIdentifier();
-      const m = name && STDLIB_METHODS[name];
       this.skipWS();
+      if (name === 'letter' && this.peek() === '(') {
+        this.i++;
+        const index = this.parseExpr();
+        this.skipWS();
+        this.expectChar(')');
+        expr = { type: 'call', value: makeCall('operator_letter_of', [keyedInput('LETTER', index), keyedInput('STRING', expr)]) };
+        continue;
+      }
+      const m = name && STDLIB_METHODS[name];
       if (!m || this.peek() !== '(') {
         this.restore(save);
         return expr;
@@ -1826,12 +1844,11 @@ class Parser {
       const dotSave = this.snapshot();
       this.i++;
       const part = this.expectIdentifier();
-      // `value.split(...)`: a registry method name after a single bare
-      // identifier is ambiguous - method sugar on a variable, or an
+      // `receiver.method(...)` is ambiguous between a var/list method and an
       // extension block (`mistsutils.item(...)`). Keyed args settle it as an
-      // opcode call immediately; all-positional args defer to pack time,
-      // which resolves by whether a variable of that name exists.
-      if (callee === word && STDLIB_METHODS[part]) {
+      // opcode call immediately; all-positional args defer to resolution time,
+      // which resolves by whether a variable/list of that name exists.
+      if (callee === word) {
         this.skipWS();
         if (this.peek() === '(') {
           this.i++;
