@@ -81,15 +81,25 @@ temp += 1;                  // variable (local_1_temp), invisible to other scrip
 
 ## Lists
 
-```txt
-lists["inv"].add(v);        lists["inv"].delete(i);    lists["inv"].insert(i, v);
-lists["inv"][i] = v;        lists["inv"].clear();
-lists["inv"].show();        lists["inv"].hide();
+Lists are referred to by bare name — the function/`.length` syntax is what makes
+it a list operation, so no `lists["name"]` is needed (that form stays available
+for names that aren't identifiers):
 
-lists["inv"][i]             // item (expression)
-lists["inv"].length         lists["inv"].contains(v)   lists["inv"].indexof(v)
-lists["inv"]                // the list-contents reporter
+```txt
+append(inv, v);       delete(inv, i);      insert(inv, i, v);
+replace(inv, i, v);   clear(inv);          showList(inv);   hideList(inv);
+
+item(inv, i)          // the i-th item (1-based)
+inv.length            hasItem(inv, v)      indexOf(inv, v)
+lists["inv"]          // the whole-list contents reporter
 ```
+
+Because the syntax carries the type, a variable and a list may share a name with
+no ambiguity: `inv` is the variable, `append(inv, x)` / `inv.length` are the
+list. `length(x)` and `contains(a, b)` stay the *string* operators — list length
+is `inv.length` and membership is `hasItem(inv, v)`. The legacy
+`lists["inv"].add(v)` / `.length` / `[i]` method forms still parse but re-emit as
+the function forms. Packages and their namespaces are in [packages.md](packages.md).
 
 ## Expressions
 

@@ -973,6 +973,20 @@ test('else-if chains desugar to nested if_else and re-sugar on stringify', async
   assert.strictEqual((text.match(/} else \{/g) || []).length, 1, 'final plain else must stay braced');
 });
 
+test('else-if packs as Scratch-compatible nested if in else branch', async () => {
+  const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
+  const parsed = parseFractch('if cur == "+" {\n  say "plus";\n} else if cur == "-" {\n  say "minus";\n}\n');
+  assert.strictEqual(parsed.errors.length, 0);
+  const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
+  const outer = blocks[topId];
+  assert.strictEqual(outer.opcode, 'control_if_else');
+  const elseId = outer.inputs.SUBSTACK2[1];
+  const inner = blocks[elseId];
+  assert.strictEqual(inner.opcode, 'control_if');
+  assert.strictEqual(inner.parent, outer.id);
+  assert.ok(!Object.values(blocks).some((b) => b.opcode === 'control_else_if' || b.opcode === 'else_if'));
+});
+
 test('triple-quoted raw strings parse, emit, and round-trip', async () => {
   const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
   const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
@@ -1048,6 +1062,9 @@ test('array literals pack as JSON strings and re-sugar on emission', async () =>
   const tuple = parseFractch('mistsutils.patchreporter(A: [10, "hello"]);\n');
   const built = buildBlocksFromCalls(tuple.calls, {});
   assert.deepStrictEqual(built.blocks[built.topId].inputs.A, [1, [10, 'hello']]);
+  const badTupleLookalike = parseFractch('mistsutils.patchreporter(A: [10, "hello", "extra"]);\n');
+  const badTupleBuilt = buildBlocksFromCalls(badTupleLookalike.calls, {});
+  assert.deepStrictEqual(badTupleBuilt.blocks[badTupleBuilt.topId].inputs.A, [1, [10, '[10,"hello","extra"]']]);
   // ...and a string that happens to look like a tuple stays quoted on emit.
   const lookalike = { ...built.blocks[built.topId], inputs: { A: [1, [10, '[10,"x"]']] } };
   assert.ok(stringifyBlockCall(lookalike, {}, 'x', false).includes('"[10,\\"x\\"]"'));
@@ -1077,6 +1094,55 @@ test('package namespace calls resolve to defs (not phantom extensions) and round
   run(`node ./bin/cli.js from "${sb3}" to "${back}"`);
   const text = fs.readFileSync(path.join(back, 'Stage', 'main.fractch'), 'utf8');
   assert.match(text, /strings\.replace\("pay", "p", "g"\)/, 'package calls re-sugar to namespace form');
+});
+
+test('list functions map to list blocks; string ops stay string blocks', () => {
+  const src =
+    'var inv = [];\n' +
+    'when flag {\n' +
+    '  append(inv, "a");\n' +
+    '  set(inv, 1, "c");\n' +
+    '  say get(inv, 1);\n' +
+    '  replace(inv, 1, "b");\n' +
+    '  say item(inv, 1);\n' +
+    '  say inv.length;\n' +
+    '  say indexOf(inv, "b");\n' +
+    '  if hasItem(inv, "b") { clear(inv); }\n' +
+    '  say length("hi");\n' +
+    '  if contains("hi", "h") { say "s"; }\n' +
+    '}\n';
+  const { scripts, errors } = parseFractch(src);
+  assert.deepStrictEqual(errors, []);
+  const opcodes = JSON.stringify(scripts[0].calls);
+  // list ops
+  for (const op of ['data_addtolist', 'data_replaceitemoflist', 'data_itemoflist', 'data_lengthoflist', 'data_itemnumoflist', 'data_listcontainsitem', 'data_deletealloflist']) {
+    assert.ok(opcodes.includes(op), `expected ${op} from a list function`);
+  }
+  // string ops stay string ops
+  assert.ok(opcodes.includes('operator_length'), 'length("hi") must stay operator_length');
+  assert.ok(opcodes.includes('operator_contains'), 'contains(...) must stay operator_contains');
+});
+
+test('get/set list functions pack declared lists as valid SB3 list inputs', async () => {
+  const { buildProjectFromBuildDir } = await import('../src/index.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-list-getset-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'var data = [];\n' +
+      'when flag {\n' +
+      '  local pointer = 1;\n' +
+      '  set(data, pointer, get(data, pointer) + 1);\n' +
+      '}\n'
+  );
+
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir });
+  const stage = manifest.targets.find((t) => t.isStage);
+  assert.deepStrictEqual(stage.lists.data, ['data', []]);
+  const blocks = Object.values(stage.blocks);
+  assert.ok(blocks.some((b) => b.opcode === 'data_replaceitemoflist'), 'set(...) did not pack as a list replace block');
+  assert.ok(blocks.some((b) => b.opcode === 'data_itemoflist'), 'get(...) did not pack as an item-of-list block');
+  assert.ok(!JSON.stringify(stage.blocks).includes('[12,"data",null]'), 'list name leaked as an invalid variable primitive');
 });
 
 test('list-based json package injects a shared return-stack and folds to import', async () => {

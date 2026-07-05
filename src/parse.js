@@ -96,6 +96,23 @@ const FUNC_SUGAR = {
   contains: ['operator_contains', ['STRING1', 'STRING2']],
 };
 
+const LIST_CMD_FN = {
+  append: ['data_addtolist', ['ITEM']],
+  delete: ['data_deleteoflist', ['INDEX']],
+  insert: ['data_insertatlist', ['INDEX', 'ITEM']],
+  replace: ['data_replaceitemoflist', ['INDEX', 'ITEM']],
+  set: ['data_replaceitemoflist', ['INDEX', 'ITEM']],
+  clear: ['data_deletealloflist', []],
+  showList: ['data_showlist', []],
+  hideList: ['data_hidelist', []],
+};
+const LIST_RPT_FN = {
+  get: ['data_itemoflist', ['INDEX']],
+  item: ['data_itemoflist', ['INDEX']],
+  indexOf: ['data_itemnumoflist', ['ITEM']],
+  hasItem: ['data_listcontainsitem', ['ITEM']],
+};
+
 // Unary math/logic sugar: `name(x)` desugars to a single-arg operator block.
 const UNARY_SUGAR = new Set([
   'round', 'not', 'abs', 'floor', 'ceiling', 'sqrt', 'sin', 'cos', 'tan',
@@ -987,7 +1004,7 @@ class Parser {
           default: {
             const near = closestMatch(method, ['add', 'push', 'delete', 'clear', 'insert', 'replace', 'show', 'hide']);
             this.fail(`lists have no '.${method}(...)' statement${near ? ` - did you mean '.${near}'?` : ''}`,
-              'statements: .add(v) .delete(i) .insert(i, v) .replace(i, v) .clear() .show() .hide(); or lists["x"][i] = v;');
+              'use function calls instead: append(list, v), delete(list, i), insert(list, i, v), replace(list, i, v), set(list, i, v), clear(list), showList(list), hideList(list); or lists["x"][i] = v;');
           }
         }
       }
@@ -1443,6 +1460,16 @@ class Parser {
     if (this.peek() !== ')') {
       for (;;) {
         this.skipWS();
+        // `list src` marks a compile-time list-reference parameter: the def is
+        // monomorphized per distinct list argument at pack time.
+        let isListRef = false;
+        const beforeList = this.snapshot();
+        if (this.peekWord() === 'list') {
+          this.tryIdentifier();
+          this.skipWS();
+          if (/[A-Za-z_]/.test(this.peek() || '')) isListRef = true;
+          else this.restore(beforeList);
+        }
         const paramIdent = this.expectIdentifier();
         this.skipWS();
         // `ident("Original Name")` when the display name isn't itself a
@@ -1455,7 +1482,7 @@ class Parser {
           this.skipWS();
           this.expectChar(')');
         }
-        params.push({ ident: paramIdent, name });
+        params.push({ ident: paramIdent, name, isListRef });
         this.skipWS();
         if (this.tryChar(',')) continue;
         break;
@@ -1472,6 +1499,7 @@ class Parser {
     let warp = false;
     let customcolor = null;
     let returns = null;
+    let returnsListRef = false;
     let x = null;
     let y = null;
     for (;;) {
@@ -1495,9 +1523,14 @@ class Parser {
       } else if (word === 'returns') {
         this.tryIdentifier();
         this.skipWS();
-        if (this.peek() === '=') this.i++;
-        this.skipWS();
-        returns = this.peek() === '"' ? this.parseStringLiteral() : String(this.parseNumberLiteral().value);
+        if (this.peekWord() === 'list') {
+          this.tryIdentifier();
+          returnsListRef = true;
+        } else {
+          if (this.peek() === '=') this.i++;
+          this.skipWS();
+          returns = this.peek() === '"' ? this.parseStringLiteral() : String(this.parseNumberLiteral().value);
+        }
       } else if (word === 'at') {
         const pos = this.tryAt();
         x = pos.x;
@@ -1508,7 +1541,7 @@ class Parser {
     }
 
     const body = this.parseBraceBody();
-    return { type: 'procDef', ident, proccode, warp, customcolor, returns, x, y, params, body };
+    return { type: 'procDef', ident, proccode, warp, customcolor, returns, returnsListRef, x, y, params, body };
   }
 
   parseIf() {
@@ -1772,6 +1805,22 @@ class Parser {
     }
 
     this.skipWS();
+    if ((LIST_CMD_FN[word] || LIST_RPT_FN[word]) && this.peek() === '(') {
+      const [opcode, keys] = LIST_CMD_FN[word] || LIST_RPT_FN[word];
+      this.i++;
+      const listRef = this.parseExpr();
+      if (listRef.type !== 'ident' && listRef.type !== 'list') {
+        this.fail(`${word}(...) needs a list as its first argument (a name or lists["..."])`);
+      }
+      const inputs = [];
+      for (const k of keys) {
+        this.expectChar(',');
+        inputs.push(keyedInput(k, this.parseExpr()));
+      }
+      this.skipWS();
+      this.expectChar(')');
+      return { type: 'call', value: makeCall(opcode, [...inputs, keyedField('LIST', { type: 'list', name: listRef.name, id: null })]) };
+    }
     if (FUNC_SUGAR[word] && this.peek() === '(') {
       const [opcode, keys] = FUNC_SUGAR[word];
       this.i++;
@@ -1837,6 +1886,20 @@ class Parser {
       this.skipWS();
       this.expectChar(')');
       return { type: 'call', value: makeCall(opcode, args) };
+    }
+
+    // `name.length` (no call) is a list's length - unambiguously the list op,
+    // so no name-type knowledge is needed. String length stays `length(x)`.
+    if (this.peek() === '.' && this.peek(1) !== '.') {
+      const dotSave = this.snapshot();
+      this.i++;
+      if (this.tryIdentifier() === 'length') {
+        this.skipWS();
+        if (this.peek() !== '(') {
+          return { type: 'call', value: makeCall('data_lengthoflist', [keyedField('LIST', { type: 'list', name: word, id: null })]) };
+        }
+      }
+      this.restore(dotSave);
     }
 
     let callee = word;
@@ -1917,7 +1980,7 @@ class Parser {
       {
         const near = closestMatch(method, ['length', 'contains', 'indexof', 'item']);
         this.fail(`lists have no '.${method}(...)' reporter${near ? ` - did you mean '.${near}'?` : ''}`,
-          'reporters: lists["x"][i], .length, .contains(v), .indexof(v)');
+          'use function calls instead: get(list, i), item(list, i), hasItem(list, v), indexOf(list, v); lists["x"][i] also reads an item');
       }
     }
     return { type: 'list', name, id: null };

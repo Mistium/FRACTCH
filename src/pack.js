@@ -231,6 +231,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   }
 
   const newManifest = mergeIntoManifest(manifest, builtTargets);
+  validateSb3InputPrimitives(newManifest);
   autoRegisterExtensions(newManifest);
   applyWatchDecls(newManifest, watchDecls, renamePlans);
   for (const [oldName, newName] of renamePlans) {
@@ -241,6 +242,45 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   // every declared costume/sound, packing to an .sb3 prunes as usual.
   if (prune) pruneUnusedAssets(newManifest, verbose);
   return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles };
+}
+
+function validateSb3InputPrimitives(manifest) {
+  for (const target of manifest.targets || []) {
+    for (const [blockId, block] of Object.entries(target.blocks || {})) {
+      if (!block || Array.isArray(block) || typeof block !== 'object') continue;
+      for (const [inputKey, tuple] of Object.entries(block.inputs || {})) {
+        validateInputTuple(tuple, target.name, blockId, block.opcode, inputKey);
+      }
+    }
+  }
+}
+
+function validateInputTuple(tuple, targetName, blockId, opcode, inputKey) {
+  if (!Array.isArray(tuple)) return;
+  for (let i = 1; i < tuple.length; i++) {
+    const value = tuple[i];
+    if (!Array.isArray(value)) continue;
+    const code = value[0];
+    const fail = (message) => {
+      throw new Error(
+        `[fractch] invalid Scratch input primitive at target "${targetName}", block "${blockId}" (${opcode}), input "${inputKey}": ${message}. ` +
+          'Use a declared variable/list/broadcast name, or a valid raw primitive tuple.'
+      );
+    };
+    if (!Number.isInteger(code) || code < 4 || code > 13) {
+      fail(`unknown primitive type ${JSON.stringify(code)} in ${JSON.stringify(value)}`);
+    }
+    const expectedLength = code >= 11 ? 3 : 2;
+    if (value.length !== expectedLength) {
+      fail(`type ${code} tuple must have ${expectedLength} items, got ${value.length}: ${JSON.stringify(value)}`);
+    }
+    if (typeof value[1] !== 'string') {
+      fail(`type ${code} tuple value must be a string: ${JSON.stringify(value)}`);
+    }
+    if (code >= 11 && typeof value[2] !== 'string') {
+      fail(`type ${code} tuple id must be a string, got ${JSON.stringify(value[2])}: ${JSON.stringify(value)}`);
+    }
+  }
 }
 
 // Watcher declarations become manifest monitors. A variable watcher's id IS
@@ -809,7 +849,15 @@ function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
   for (const local of collectLocalDeclNames(calls)) vars.delete(local);
   if (cloudAliases) for (const bare of cloudAliases.keys()) vars.delete(bare);
   const globals = stage && stage !== target ? stage : null;
+  // A name used or declared as a list is a list, never also a bare variable -
+  // so `length(inv)`/`append(inv, x)` don't spuriously materialize a variable.
+  const listNames = new Set([
+    ...lists,
+    ...Object.values(target.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)),
+    ...(stage ? Object.values(stage.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)) : []),
+  ]);
   for (const name of vars) {
+    if (listNames.has(name)) continue;
     if (globals && buildNameIdMap(globals.variables).has(name)) continue;
     ensureDictEntry(target.variables, name, [name, 0]);
   }

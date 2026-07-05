@@ -75,8 +75,8 @@ const LIST_STMT_EMIT = {
   data_deletealloflist: ['clear', []],
   data_insertatlist: ['insert', ['INDEX', 'ITEM']],
   data_replaceitemoflist: ['replace', ['INDEX', 'ITEM']],
-  data_showlist: ['show', []],
-  data_hidelist: ['hide', []],
+  data_showlist: ['showList', []],
+  data_hidelist: ['hideList', []],
 };
 
 export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}) {
@@ -514,13 +514,13 @@ function tryListExpr(block, subgraph) {
     return { text: `item(${listArgText(name)}, ${inputValueText(block.inputs.INDEX, subgraph, 'INDEX')})`, prec: ATOM_PREC };
   }
   if (op === 'data_lengthoflist' && inputKeys.length === 0) {
-    return { text: `length(${listRefText(name)})`, prec: ATOM_PREC };
+    return { text: `${listArgText(name)}.length`, prec: ATOM_PREC };
   }
   if (op === 'data_listcontainsitem' && one('ITEM')) {
-    return { text: `contains(${listRefText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
+    return { text: `hasItem(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
   }
   if (op === 'data_itemnumoflist' && one('ITEM')) {
-    return { text: `indexof(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
+    return { text: `indexOf(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
   }
   return null;
 }

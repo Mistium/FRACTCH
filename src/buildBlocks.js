@@ -96,6 +96,7 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     }
     if (lastId) blocks[lastId].next = id;
     blocks[id] = { id, ...node };
+    if (lastId) blocks[id].parent = lastId;
     lastId = id;
     if (pendingNextComments.length && ctx.commentsOut) {
       for (const entry of pendingNextComments) {
@@ -279,12 +280,7 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       if (topId) {
         const wireKey = a.wireKey || a.key.toUpperCase();
         node.inputs[wireKey] = [2, topId];
-        let cursor = topId;
-        while (cursor) {
-          if (!blocks[cursor]) break;
-          blocks[cursor].parent = node.id;
-          cursor = blocks[cursor].next;
-        }
+        if (blocks[topId]) blocks[topId].parent = node.id;
       }
     }
   }
@@ -298,6 +294,10 @@ function buildShadowRef(sh, ids, blocks, ctx, parentId, inputKey) {
   }
   const tuple = valueToInput(sh, ids, blocks, ctx, parentId, inputKey);
   return tuple[1];
+}
+
+function varInput(primitive) {
+  return [3, primitive, [10, '']];
 }
 
 function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
@@ -322,11 +322,11 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       return booleanLiteralInput(Boolean(val.value), ids, blocks, parentId);
     case 'var': {
       const id = val.id || (ctx?.varMap && ctx.varMap.get(val.name)) || null;
-      return [1, [12, val.name, id]];
+      return varInput([12, val.name, id]);
     }
     case 'list': {
       const id = val.id || (ctx?.listMap && ctx.listMap.get(val.name)) || null;
-      return [1, [13, val.name, id]];
+      return varInput([13, val.name, id]);
     }
     case 'broadcast': {
       const id = val.id || (ctx?.broadcastNameToId && ctx.broadcastNameToId.get(val.name)) || null;
@@ -341,8 +341,8 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       // shape the JSON helper blocks consume.
       const isRawTuple =
         Array.isArray(v) &&
-        (v.length === 2 || v.length === 3) &&
         Number.isInteger(v[0]) && v[0] >= 4 && v[0] <= 13 &&
+        (v[0] >= 11 ? v.length === 3 : v.length === 2) &&
         typeof v[1] === 'string';
       if (isRawTuple) return [1, v];
       return [1, [10, JSON.stringify(v)]];
@@ -391,9 +391,12 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       // it anywhere in a real project.json. Only custom-block parameters
       // (scopeParams) are genuinely their own block (argument_reporter_*).
       if (!(ctx?.scopeParams && ctx.scopeParams.has(val.name))) {
+        if (!(ctx?.localVars && ctx.localVars.has(val.name)) && ctx?.listMap && ctx.listMap.has(val.name)) {
+          return varInput([13, val.name, ctx.listMap.get(val.name)]);
+        }
         const name = (ctx?.localVars && ctx.localVars.get(val.name)) || val.name;
         const id = (ctx?.varMap && ctx.varMap.get(name)) || null;
-        return [1, [12, name, id]];
+        return varInput([12, name, id]);
       }
       const childId = ids.next();
       const node = buildIdentReporterNode(val.name, ctx, childId);

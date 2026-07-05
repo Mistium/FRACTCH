@@ -85,7 +85,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       if (isList && !LIST_METHOD_OPS[u.method]) {
         const near = closestMatch(u.method, Object.keys(LIST_METHOD_OPS), 3);
         push(u.file, u.line, 0, `list '${u.ident}' has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
-          'list methods: .add(v) .delete(i) .insert(i, v) .replace(i, v) .clear() .show() .hide() .item(i) .length() .contains(v) .indexof(v)');
+          'use list functions: append(list, v), delete(list, i), insert(list, i, v), replace(list, i, v), set(list, i, v), clear(list), get(list, i), item(list, i), hasItem(list, v), indexOf(list, v)');
       } else if (isVar && !isList && !STDLIB_METHODS[u.method]) {
         const near = closestMatch(u.method, Object.keys(STDLIB_METHODS), 3);
         push(u.file, u.line, 0, `'${u.ident}' is a variable and has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
