@@ -94,7 +94,10 @@ export function buildBlocksFromCalls(calls, opts = {}) {
       const opt = node.fields?.STOP_OPTION?.[0];
       node.mutation = { tagName: 'mutation', children: [], hasnext: String(opt === 'other scripts in sprite') };
     }
-    if (lastId) blocks[lastId].next = id;
+    if (lastId) {
+      blocks[lastId].next = id;
+      if (blocks[lastId].opcode === 'control_stop') blocks[lastId].mutation.hasnext = 'true';
+    }
     blocks[id] = { id, ...node };
     if (lastId) blocks[id].parent = lastId;
     lastId = id;

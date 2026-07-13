@@ -114,20 +114,13 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
     lines.push(`sprite ${attrs.join(' ')};`);
   }
 
-  // Scratch tolerates duplicate display names across distinct ids, and blocks
-  // reference the extras by id. Every member of a name-collision group keeps
-  // its id in the declaration so pack recreates each one under the id the
-  // block references actually use; unique names stay clean.
-  const nameCounts = (dict) => {
-    const counts = new Map();
-    for (const entry of Object.values(dict || {})) {
-      if (!Array.isArray(entry)) continue;
-      const n = String(entry[0]);
-      counts.set(n, (counts.get(n) || 0) + 1);
-    }
-    return counts;
-  };
-  const varCounts = nameCounts(target.variables);
+  // Every variable/list declaration keeps its real Scratch id so pack recreates
+  // it under the exact id the project.json used. This is required for any project
+  // whose code addresses a variable/list by raw id (e.g. `target.variables["id"]`
+  // in a compiled-JS extension block, or an extension menu whose field value is a
+  // list id) - a regenerated/sanitized id would leave those references dangling.
+  // It also makes duplicate display names (several distinct ids sharing one name)
+  // survive, since blocks reference the extras by id.
   for (const [id, entry] of Object.entries(target.variables || {})) {
     if (!Array.isArray(entry)) continue;
     const [name, value, isCloud] = entry;
@@ -137,18 +130,17 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
     // current scheme; `local_N_x` is the legacy one (still skipped so old
     // projects stay clean).
     if (/^!local_[A-Za-z0-9]+_/.test(String(name)) || /^local_\d+_/.test(String(name))) continue;
-    const idSuffix = varCounts.get(String(name)) > 1 ? ` id ${JSON.stringify(String(id))}` : '';
+    const idSuffix = ` id ${JSON.stringify(String(id))}`;
     if (isCloud === true && String(name).startsWith('☁ ')) {
       lines.push(`cloud ${varNameToken(String(name).slice(2))} = ${varValueText(value)}${idSuffix};`);
     } else {
       lines.push(`var ${varNameToken(name)} = ${varValueText(value)}${idSuffix};`);
     }
   }
-  const listCounts = nameCounts(target.lists);
   for (const [id, entry] of Object.entries(target.lists || {})) {
     if (!Array.isArray(entry)) continue;
     const [name, value] = entry;
-    const idSuffix = listCounts.get(String(name)) > 1 ? ` id ${JSON.stringify(String(id))}` : '';
+    const idSuffix = ` id ${JSON.stringify(String(id))}`;
     lines.push(`var ${varNameToken(name)} = ${JSON.stringify(Array.isArray(value) ? value : [])}${idSuffix};`);
   }
 

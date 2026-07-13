@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import http from 'http';
+import crypto from 'crypto';
 import { spawn } from 'child_process';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -17,7 +18,7 @@ const USAGE =
   '  fractch check <dir>                     parse + lint every .fractch file\n' +
   '  fractch fmt <dir>                       rewrite files in canonical (current) syntax\n' +
   '  fractch watch <dir> [to <sb3>]          repack automatically on change\n' +
-  '  fractch run <dir>                       pack, open in the editor, repack on save\n' +
+  '  fractch run <dir>                       pack, open in the editor, hot reload on save\n' +
   '                                          (--editor <url> to override, default MistWarp)\n' +
   '  fractch --input <sb3> --out <dir>       flag form (same as `from ... to ...`)';
 
@@ -33,6 +34,8 @@ for (let i = 0; i < rawArgs.length; i++) {
 const command = ['new', 'check', 'fmt', 'watch', 'run'].includes(words[0]) ? words[0] : null;
 
 const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
+
+const WATCHED_FILE_RE = /\.(fractch|json|svg|png|jpg|jpeg|gif|wav|mp3)$/i;
 
 function translateWordSyntax(args) {
   const flags = [];
@@ -132,7 +135,7 @@ async function runWatch(dir, outSb3, verbose, onPacked) {
   await repack('initial');
   let timer = null;
   fs.watch(buildDir, { recursive: true }, (event, file) => {
-    if (!file || (!file.endsWith('.fractch') && !file.endsWith('manifest.json'))) return;
+    if (!file || !WATCHED_FILE_RE.test(file)) return;
     clearTimeout(timer);
     timer = setTimeout(() => repack('change'), 200);
   });
@@ -144,30 +147,202 @@ async function runRun(dir, editorFlagValue) {
   const buildDir = path.resolve(dir || '.');
   const tmpSb3 = path.join(os.tmpdir(), `fractch-run-${Date.now()}.sb3`);
   const editor = editorFlagValue || DEFAULT_EDITOR;
+  const socketClients = new Set();
+  let version = 0;
+  let sb3Version = -1;
+  let latestProjectJson = null;
+  let latestAssetFiles = new Map();
+  let origin = null;
+  let socketOrigin = null;
 
-  await runWatch(buildDir, tmpSb3, false);
+  const frameWebSocketMessage = (data) => {
+    const payload = Buffer.from(JSON.stringify(data));
+    if (payload.length < 126) {
+      return Buffer.concat([Buffer.from([0x81, payload.length]), payload]);
+    }
+    if (payload.length < 65536) {
+      const header = Buffer.alloc(4);
+      header[0] = 0x81;
+      header[1] = 126;
+      header.writeUInt16BE(payload.length, 2);
+      return Buffer.concat([header, payload]);
+    }
+    const header = Buffer.alloc(10);
+    header[0] = 0x81;
+    header[1] = 127;
+    header.writeBigUInt64BE(BigInt(payload.length), 2);
+    return Buffer.concat([header, payload]);
+  };
+
+  const sendSocketMessage = (socket, data) => {
+    try {
+      socket.write(frameWebSocketMessage(data));
+    } catch {
+      socketClients.delete(socket);
+    }
+  };
+
+  const broadcastPacked = () => {
+    if (!origin) return;
+    const data = {
+      type: 'packed',
+      version,
+      manifestUrl: `${origin}/project.json?v=${version}`,
+      projectUrl: `${origin}/project.sb3?v=${version}`,
+    };
+    for (const socket of socketClients) sendSocketMessage(socket, data);
+  };
+
+  const rebuildManifest = async (reason) => {
+    const started = Date.now();
+    const { manifest, assetFiles } = await buildProjectFromBuildDir({ buildDir });
+    latestProjectJson = JSON.stringify(manifest);
+    latestAssetFiles = assetFiles || new Map();
+    version++;
+    console.log(`[fractch] ${reason}: rebuilt project.json in ${Date.now() - started}ms`);
+    broadcastPacked();
+  };
+
+  const ensurePackedSb3 = async () => {
+    if (sb3Version === version && fs.existsSync(tmpSb3)) return;
+    const started = Date.now();
+    await packSb3({ buildDir, outSb3: tmpSb3 });
+    sb3Version = version;
+    console.log(`[fractch] packed fallback sb3 in ${Date.now() - started}ms`);
+  };
 
   const server = http.createServer((req, res) => {
-    if (req.url.split('?')[0] !== '/project.sb3' || !fs.existsSync(tmpSb3)) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const pathname = req.url.split('?')[0];
+
+    if (pathname === '/project.json') {
+      if (!latestProjectJson) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+      });
+      res.end(latestProjectJson);
+      return;
+    }
+
+    if (pathname.startsWith('/assets/')) {
+      const name = decodeURIComponent(pathname.slice('/assets/'.length));
+      const rel = latestAssetFiles.get(name);
+      if (!rel) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      const assetPath = path.join(buildDir, rel);
+      if (!fs.existsSync(assetPath)) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Cache-Control': 'no-store',
+      });
+      fs.createReadStream(assetPath).pipe(res);
+      return;
+    }
+
+    if (pathname !== '/project.sb3') {
       res.writeHead(404);
       res.end();
       return;
     }
-    res.writeHead(200, {
-      'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/octet-stream',
-      'Cache-Control': 'no-store',
+    ensurePackedSb3()
+      .then(() => {
+        res.writeHead(200, {
+          'Content-Type': 'application/octet-stream',
+          'Cache-Control': 'no-store',
+        });
+        fs.createReadStream(tmpSb3).pipe(res);
+      })
+      .catch((e) => {
+        res.writeHead(500);
+        res.end(e.message);
+      });
+  });
+  server.on('upgrade', (req, socket) => {
+    const pathname = req.url.split('?')[0];
+    const key = req.headers['sec-websocket-key'];
+    if (pathname !== '/live' || !key) {
+      socket.destroy();
+      return;
+    }
+    const accept = crypto
+      .createHash('sha1')
+      .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+      .digest('base64');
+    socket.write(
+      'HTTP/1.1 101 Switching Protocols\r\n' +
+      'Upgrade: websocket\r\n' +
+      'Connection: Upgrade\r\n' +
+      `Sec-WebSocket-Accept: ${accept}\r\n` +
+      '\r\n'
+    );
+    socketClients.add(socket);
+    socket.on('close', () => socketClients.delete(socket));
+    socket.on('error', () => socketClients.delete(socket));
+    sendSocketMessage(socket, { type: 'hello', version });
+  });
+  await new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      const port = server.address().port;
+      origin = `http://127.0.0.1:${port}`;
+      socketOrigin = `ws://127.0.0.1:${port}`;
+      resolve();
     });
-    res.end(fs.readFileSync(tmpSb3));
   });
-  server.listen(0, '127.0.0.1', () => {
-    const port = server.address().port;
-    const url = `${editor}?project_url=${encodeURIComponent(`http://127.0.0.1:${port}/project.sb3`)}`;
-    console.log(`[fractch] serving project at http://127.0.0.1:${port}/project.sb3`);
-    console.log(`[fractch] opening ${url}`);
-    console.log('[fractch] edit .fractch files and refresh the editor tab to reload');
-    openInBrowser(url);
+
+  await rebuildManifest('initial');
+  await ensurePackedSb3();
+
+  let timer = null;
+  let building = false;
+  let queued = false;
+  const scheduleRebuild = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      if (building) {
+        queued = true;
+        return;
+      }
+      building = true;
+      try {
+        await rebuildManifest('change');
+      } catch (e) {
+        console.error(`[fractch] pack failed: ${e.message}`);
+      } finally {
+        building = false;
+        if (queued) {
+          queued = false;
+          scheduleRebuild();
+        }
+      }
+    }, 200);
+  };
+  fs.watch(buildDir, { recursive: true }, (event, file) => {
+    if (!file || !WATCHED_FILE_RE.test(file)) return;
+    scheduleRebuild();
   });
+  console.log(`[fractch] watching ${buildDir} (ctrl-c to stop)`);
+
+  const urlObj = new URL(editor);
+  urlObj.searchParams.set('project_url', `${origin}/project.sb3?v=${version}`);
+  urlObj.searchParams.set('fractch_live', `${socketOrigin}/live`);
+  const url = urlObj.toString();
+  console.log(`[fractch] serving project at ${origin}/project.sb3`);
+  console.log(`[fractch] live reload socket at ${socketOrigin}/live`);
+  console.log(`[fractch] opening ${url}`);
+  console.log('[fractch] edit .fractch files; compatible MistWarp editors hot reload automatically');
+  openInBrowser(url);
 }
 
 function openInBrowser(url) {
