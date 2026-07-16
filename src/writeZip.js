@@ -28,10 +28,6 @@ function assertZip32(value, description) {
   }
 }
 
-// AdmZip uses zlib's default level (6). project.json is by far the largest
-// file in most SB3s, so level 9 saves a meaningful amount without adding a
-// dependency or changing any project data. Already-compressed media is stored
-// when deflate would make it larger.
 export function writeCompressedZip(outPath, entries) {
   if (entries.length > 0xffff) throw new Error('[fractch] too many files for an .sb3 archive');
 
@@ -57,7 +53,7 @@ export function writeCompressedZip(outPath, entries) {
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
     local.writeUInt16LE(20, 4);
-    local.writeUInt16LE(0x0800, 6); // UTF-8 filenames
+    local.writeUInt16LE(0x0800, 6);
     local.writeUInt16LE(method, 8);
     local.writeUInt16LE(now.time, 10);
     local.writeUInt16LE(now.date, 12);

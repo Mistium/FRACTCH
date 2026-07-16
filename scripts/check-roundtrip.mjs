@@ -12,7 +12,11 @@ import AdmZip from 'adm-zip';
 import { verifyRoundtrip } from '../src/roundtripDiff.js';
 
 const defaultOrigin = () => {
-  for (const c of [process.env.FRACTCH_ORIGIN, path.join(process.env.HOME || '', 'origin-fractch', 'originv619.sb3'), './originv6.0.0.sb3']) {
+  for (const c of [
+    process.env.FRACTCH_ORIGIN,
+    path.join(process.env.HOME || '', 'origin-fractch', 'originv619.sb3'),
+    './originv6.0.0.sb3',
+  ]) {
     if (c && fs.existsSync(c)) return path.resolve(c);
   }
   return path.resolve('./originv6.0.0.sb3');

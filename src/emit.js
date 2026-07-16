@@ -1,4 +1,15 @@
-import { stringifyBlockCall, stringifyFields, stringifyInputs, setContext, renderBody, commentDeclLine, withAttachedComments, isSimpleAttachedComment, lineCommentText, inputValueText } from './stringify.js';
+import {
+  stringifyBlockCall,
+  stringifyFields,
+  stringifyInputs,
+  setContext,
+  renderBody,
+  commentDeclLine,
+  withAttachedComments,
+  isSimpleAttachedComment,
+  lineCommentText,
+  inputValueText,
+} from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
 export function emitScriptFile({ target, script, subgraph, index, context, cfg = {} }) {
@@ -12,18 +23,12 @@ export function emitScriptFile({ target, script, subgraph, index, context, cfg =
 
 export function emitMultiScriptFile({ target, entries, context, cfg = {}, includeAssets = false, prelude = '' }) {
   const header =
-    `/**\n` +
-    ` * target: ${escapeHeader(target.name)}\n` +
-    ` * targetId: ${escapeHeader(target.id ?? '')}\n` +
-    ` */\n`;
+    `/**\n` + ` * target: ${escapeHeader(target.name)}\n` + ` * targetId: ${escapeHeader(target.id ?? '')}\n` + ` */\n`;
   const assets = includeAssets ? emitAssetDecls(target) : '';
   const bodies = entries.map(({ script, subgraph }) => emitScriptBody({ script, subgraph, context, cfg }));
   return `${header}\n${[prelude, assets, bodies.join('\n\n')].filter(Boolean).join('\n\n')}\n`;
 }
 
-// One human-named file per distinct asset: md5ext -> "assets/<name>.<ext>".
-// Shared by the asset extractor (assets.js) and the declaration emitter so
-// the file on disk and the `file` attribute always agree.
 export function targetAssetFiles(target) {
   const used = new Set();
   const map = new Map();
@@ -71,10 +76,6 @@ function numText(n) {
   return Number.isFinite(v) ? String(v) : '0';
 }
 
-// Everything manifest.json used to carry, as declarations at the top of the
-// target's main.fractch: sprite/stage properties, extension `use` lines,
-// platform meta, variable/list initial values, watchers, and workspace
-// comments. The DSL text is the only copy - there is no manifest fallback.
 export function emitTargetPrelude({ projectJson, target, monitors = [], workspaceComments = [] }) {
   const lines = [];
 
@@ -90,7 +91,9 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
 
     const plat = projectJson?.meta?.platform;
     if (plat?.name) {
-      lines.push(`platform ${JSON.stringify(String(plat.name))}${plat.url ? ` from ${JSON.stringify(String(plat.url))}` : ''};`);
+      lines.push(
+        `platform ${JSON.stringify(String(plat.name))}${plat.url ? ` from ${JSON.stringify(String(plat.url))}` : ''};`
+      );
     }
     const urls = projectJson?.extensionURLs || {};
     for (const id of projectJson?.extensions || []) {
@@ -98,37 +101,30 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
       if (url && String(url).startsWith('data:')) {
         lines.push(`use ${JSON.stringify(id)} from ${JSON.stringify(`extensions/${sanitize(id)}.js`)};`);
       } else {
-        lines.push(url ? `use ${JSON.stringify(id)} from ${JSON.stringify(String(url))};` : `use ${JSON.stringify(id)};`);
+        lines.push(
+          url ? `use ${JSON.stringify(id)} from ${JSON.stringify(String(url))};` : `use ${JSON.stringify(id)};`
+        );
       }
     }
   } else {
     const attrs = [JSON.stringify(String(target.name ?? ''))];
-    if (numOr(target.x, 0) !== 0 || numOr(target.y, 0) !== 0) attrs.push(`at ${numText(target.x)},${numText(target.y)}`);
+    if (numOr(target.x, 0) !== 0 || numOr(target.y, 0) !== 0)
+      attrs.push(`at ${numText(target.x)},${numText(target.y)}`);
     if (numOr(target.size, 100) !== 100) attrs.push(`size ${numText(target.size)}`);
     if (numOr(target.direction, 90) !== 90) attrs.push(`direction ${numText(target.direction)}`);
     if (target.visible === false) attrs.push('hidden');
     if (target.draggable === true) attrs.push('draggable');
-    if (target.rotationStyle && target.rotationStyle !== 'all around') attrs.push(`rotation ${JSON.stringify(String(target.rotationStyle))}`);
+    if (target.rotationStyle && target.rotationStyle !== 'all around')
+      attrs.push(`rotation ${JSON.stringify(String(target.rotationStyle))}`);
     if (numOr(target.volume, 100) !== 100) attrs.push(`volume ${numText(target.volume)}`);
     if (target.layerOrder != null) attrs.push(`layer ${numText(target.layerOrder)}`);
     lines.push(`sprite ${attrs.join(' ')};`);
   }
 
-  // Every variable/list declaration keeps its real Scratch id so pack recreates
-  // it under the exact id the project.json used. This is required for any project
-  // whose code addresses a variable/list by raw id (e.g. `target.variables["id"]`
-  // in a compiled-JS extension block, or an extension menu whose field value is a
-  // list id) - a regenerated/sanitized id would leave those references dangling.
-  // It also makes duplicate display names (several distinct ids sharing one name)
-  // survive, since blocks reference the extras by id.
   for (const [id, entry] of Object.entries(target.variables || {})) {
     if (!Array.isArray(entry)) continue;
     const [name, value, isCloud] = entry;
-    // `local x = ...` script-locals pack to mangled variables; pack
-    // regenerates them (same deterministic names) from the `local` statements,
-    // so declaring them here would only leak noise. `!local_<tag>_x` is the
-    // current scheme; `local_N_x` is the legacy one (still skipped so old
-    // projects stay clean).
+
     if (/^!local_[A-Za-z0-9]+_/.test(String(name)) || /^local_\d+_/.test(String(name))) continue;
     const idSuffix = ` id ${JSON.stringify(String(id))}`;
     if (isCloud === true && String(name).startsWith('☁ ')) {
@@ -175,16 +171,14 @@ function varValueText(v) {
   return JSON.stringify(String(v ?? ''));
 }
 
-// w: { isList, name, mode, x, y, width, height, visible, sliderMin,
-//      sliderMax, isDiscrete, sprite, id } - sprite/id only for watchers
-// whose owner target no longer exists (preserved verbatim).
 function watchDeclLine(w) {
   const parts = [`watch ${w.isList ? 'list' : 'var'} ${JSON.stringify(String(w.name ?? ''))}`];
   if (w.mode === 'large' || w.mode === 'slider') parts.push(w.mode);
   if (numOr(w.x, 0) !== 0 || numOr(w.y, 0) !== 0) parts.push(`at ${numText(w.x)},${numText(w.y)}`);
   if (numOr(w.width, 0) !== 0 || numOr(w.height, 0) !== 0) parts.push(`size ${numText(w.width)}x${numText(w.height)}`);
   if (!w.isList) {
-    if (numOr(w.sliderMin, 0) !== 0 || numOr(w.sliderMax, 100) !== 100) parts.push(`range ${numText(w.sliderMin)},${numText(w.sliderMax)}`);
+    if (numOr(w.sliderMin, 0) !== 0 || numOr(w.sliderMax, 100) !== 100)
+      parts.push(`range ${numText(w.sliderMin)},${numText(w.sliderMax)}`);
     if (w.isDiscrete === false) parts.push('continuous');
   }
   if (w.visible === false) parts.push('hidden');
@@ -196,8 +190,6 @@ function watchDeclLine(w) {
 function emitScriptBody({ script, subgraph, context, cfg = {} }) {
   const { topBlockId, hatOpcode } = script;
 
-  // Fresh per script: tracks which `!local_` variables have had their `local`
-  // keyword restored, so only the first `=` set in this script gets it.
   const scriptContext = { ...context, declaredLocals: new Set() };
   setContext(scriptContext);
   context = scriptContext;
@@ -205,12 +197,7 @@ function emitScriptBody({ script, subgraph, context, cfg = {} }) {
   let body;
   if (hatOpcode === 'procedures_definition' && context?.procByCode) {
     const sig = defSignature(subgraph[topBlockId], subgraph, context);
-    // Two params can share a display name that only collides after
-    // cleanIdent strips punctuation (e.g. "X" and "+X" both -> "X") -
-    // buildProcByCode already disambiguates them for the signature
-    // (X, X_2); body references must resolve to the SAME per-param ident
-    // (matched by exact original display name), or the second param's
-    // reporter blocks render as the first param's identifier instead.
+
     const info = procInfoFor(subgraph[topBlockId], subgraph, context);
     if (info) {
       const scopeParamNames = new Map(info.params.map((p) => [p.name, p.ident]));
@@ -269,11 +256,7 @@ export function emitTargetIndex(targetFiles) {
   const header = `/**\n * fractch index for target\n * scripts: ${targetFiles.length}\n */\n`;
   const imports = targetFiles
     .map((f) => {
-      const shortRel = (f.targetRel || f.rel
-        .split('/')
-        .slice(-2)
-        .join('/'))
-        .replace(/\\.js$/i, '.fractch');
+      const shortRel = (f.targetRel || f.rel.split('/').slice(-2).join('/')).replace(/\\.js$/i, '.fractch');
       const base = `import "${shortRel}";`;
       if (f.hatOpcode === 'procedures_definition' && f.label) {
         return `${base} // ${escapeLabel(f.label)}`;
@@ -300,16 +283,15 @@ function renderFallbackBody(subgraph, topId, cfg, context) {
   const ids = linearizeIds(subgraph, topId);
   const lines = ids.map((id, index) => {
     const block = subgraph[id];
-    const line = index === 0 && needsExplicitTopOpcode(block)
-      ? stringifyRawBlockCall(block, subgraph)
-      : stringifyBlockCall(block, subgraph, id, false, cfg);
+    const line =
+      index === 0 && needsExplicitTopOpcode(block)
+        ? stringifyRawBlockCall(block, subgraph)
+        : stringifyBlockCall(block, subgraph, id, false, cfg);
     return withAttachedComments(line, context?.blockComments?.get(id));
   });
   return lines.join('\n');
 }
 
-// A comment anchored on the hat/def block itself prints as the first body
-// line; the parser re-attaches a leading comment to the enclosing hat.
 function prependOwnComments(context, topBlockId, bodyText) {
   const own = context?.blockComments?.get(topBlockId);
   if (!own?.length) return bodyText;
@@ -330,8 +312,6 @@ function linearizeIds(subgraph, topId) {
 }
 
 function needsExplicitTopOpcode(block) {
-  // argument_reporter_string_number is absent: its orphans round-trip via
-  // the arg("name") statement sugar instead of the raw opcode form.
   return block && ['argument_reporter_boolean', 'data_variable'].includes(block.opcode);
 }
 
@@ -412,8 +392,7 @@ function defSignature(defBlock, subgraph, context) {
   const codeLit = code != null && !derivable ? ` ${JSON.stringify(code)}` : '';
   const color = proto?.mutation?.customcolor;
   const colorLit = color ? ` color=${JSON.stringify(String(color))}` : '';
-  // returns=1 (round reporter) is derived from expression position at pack
-  // time; only the boolean shape needs to be spelled out.
+
   const returnsLit = info.returns === '2' ? ' returns=2' : '';
   return `def @${info.ident}(${params})${codeLit}${warpLit}${returnsLit}${colorLit}`;
 }
@@ -429,9 +408,6 @@ function nameToken(name) {
   return BARE_NAME_RE.test(name) && name !== 'at' ? name : JSON.stringify(name);
 }
 
-// Hat blocks with a `when` sugar spelling. Anything not here (extension
-// hats, orphan chains) keeps the plain call-chain format, which the parser
-// still accepts - and hand-written files can use `when <any.call()> { }`.
 function whenSugarFor(block, context, subgraph) {
   const op = block.opcode;
   const fields = block.fields || {};
@@ -469,12 +445,12 @@ function whenSugarFor(block, context, subgraph) {
 function indentBlock(str, spaces = 2) {
   if (!str) return '';
   const pad = ' '.repeat(spaces);
-  let inRaw = false; // lines inside an open """ raw string stay verbatim
+  let inRaw = false;
   return str
     .split('\n')
     .map((l) => {
       const out = l && !inRaw ? pad + l : l;
-      if (((l.match(/"""/g) || []).length) % 2) inRaw = !inRaw;
+      if ((l.match(/"""/g) || []).length % 2) inRaw = !inRaw;
       return out;
     })
     .join('\n');

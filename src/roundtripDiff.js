@@ -5,7 +5,6 @@ import { buildBlocksFromCalls, IdGen } from './buildBlocks.js';
 import { buildProcByCode } from './convert.js';
 import { groupTopLevelScripts } from './graph.js';
 
-
 export function nameIdMap(dict) {
   const m = new Map();
   for (const [id, entry] of Object.entries(dict || {})) {
@@ -127,7 +126,11 @@ export function buildRoundtripContext(project) {
       const proccode = b.mutation?.proccode;
       if (!proccode) continue;
       let ids = [];
-      try { ids = JSON.parse(b.mutation?.argumentids || '[]'); } catch {}
+      try {
+        ids = JSON.parse(b.mutation?.argumentids || '[]');
+      } catch {
+        ids = [];
+      }
       pMap.set(proccode, ids);
       const info = procByCode.get(proccode);
       if (info) iMap.set(info.ident, proccode);
@@ -201,7 +204,9 @@ export async function verifyRoundtrip({ project, buildDir, fs: fsLike }) {
     let scripts;
     try {
       const parsed = parseFractch(text);
-      scripts = h.topBlockId ? [{ calls: parsed.calls, topBlockId: h.topBlockId, hatOpcode: h.hatOpcode }] : parsed.scripts;
+      scripts = h.topBlockId
+        ? [{ calls: parsed.calls, topBlockId: h.topBlockId, hatOpcode: h.hatOpcode }]
+        : parsed.scripts;
     } catch (e) {
       failures.push({ file: f, err: `parse: ${e.message}` });
       continue;

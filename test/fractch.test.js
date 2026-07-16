@@ -19,12 +19,12 @@ const outDir = path.join(tmp, 'build');
 const outSb3 = path.join(tmp, 'repacked.sb3');
 const run = (cmd) => execSync(cmd, { cwd: root, stdio: 'pipe' });
 
-// Build the integration fixture from test-owned text rather than relying on a
-// developer's personal SB3. This exercises the real CLI in both directions
-// while remaining deterministic and fully self-contained.
 fs.mkdirSync(path.join(fixtureDir, 'Stage', 'assets'), { recursive: true });
 fs.mkdirSync(path.join(fixtureDir, 'Player'), { recursive: true });
-fs.writeFileSync(path.join(fixtureDir, 'Stage', 'assets', 'backdrop.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#46a"/></svg>');
+fs.writeFileSync(
+  path.join(fixtureDir, 'Stage', 'assets', 'backdrop.svg'),
+  '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#46a"/></svg>'
+);
 fs.writeFileSync(
   path.join(fixtureDir, 'Stage', 'main.fractch'),
   'costume "backdrop" file "assets/backdrop.svg" center 4,4;\n' +
@@ -37,7 +37,10 @@ fs.writeFileSync(
     '  switch score { case 1 { say "one"; } default { say "other"; } }\n' +
     '}\n'
 );
-fs.writeFileSync(path.join(fixtureDir, 'Player', 'main.fractch'), 'sprite "Player" at 12,-4;\nwhen flag { move 10; }\n');
+fs.writeFileSync(
+  path.join(fixtureDir, 'Player', 'main.fractch'),
+  'sprite "Player" at 12,-4;\nwhen flag { move 10; }\n'
+);
 run(`node ./bin/cli.js "${SB3}" from "${fixtureDir}"`);
 run(`node ./bin/cli.js --input "${SB3}" --out "${outDir}"`);
 
@@ -77,10 +80,7 @@ test('pack reconstructs every target purely from parsed DSL text', () => {
     assert.ok(rt, `target ${ot.name} missing from repack`);
     const origCount = Object.keys(ot.blocks || {}).length;
     const repackCount = Object.keys(rt.blocks || {}).length;
-    // Parsing pure text can't always distinguish every representational
-    // nuance (e.g. Scratch can encode "read variable X" as either a real
-    // data_variable block or an inline literal - both execute identically).
-    // This bounds against wholesale data loss, not byte-exact reconstruction.
+
     if (origCount > 0) assert.ok(repackCount / origCount > 0.95, `${ot.name}: ${origCount} -> ${repackCount} blocks`);
   }
 });
@@ -89,10 +89,7 @@ test('pack accepts headerless handwritten projects without a manifest', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-hand-'));
   const scriptDir = path.join(dir, 'Stage');
   fs.mkdirSync(scriptDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(scriptDir, 'main.fractch'),
-    'when flag {\n  say "hello from fractch";\n}\n'
-  );
+  fs.writeFileSync(path.join(scriptDir, 'main.fractch'), 'when flag {\n  say "hello from fractch";\n}\n');
   const sb3 = path.join(dir, 'hand.sb3');
 
   run(`node ./bin/cli.js --pack --out "${dir}" --outSb3 "${sb3}"`);
@@ -257,7 +254,8 @@ test('human asset declarations derive ids/formats from file bytes', () => {
 test('unused costumes/sounds are pruned; dynamic references keep everything', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-prune-'));
   fs.mkdirSync(path.join(dir, 'Stage', 'assets'), { recursive: true });
-  const mk = (n) => fs.writeFileSync(path.join(dir, 'Stage', 'assets', n), `<svg xmlns="http://www.w3.org/2000/svg"><!--${n}--></svg>`);
+  const mk = (n) =>
+    fs.writeFileSync(path.join(dir, 'Stage', 'assets', n), `<svg xmlns="http://www.w3.org/2000/svg"><!--${n}--></svg>`);
   mk('a.svg');
   mk('b.svg');
   mk('c.svg');
@@ -274,17 +272,25 @@ test('unused costumes/sounds are pruned; dynamic references keep everything', ()
   const sb3 = path.join(dir, 'pruned.sb3');
   run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
   const stage = JSON.parse(new AdmZip(sb3).readAsText('project.json')).targets.find((t) => t.name === 'Stage');
-  assert.deepStrictEqual(stage.costumes.map((c) => c.name), ['a', 'b'], 'current + referenced costumes kept');
-  assert.strictEqual(stage.currentCostume, 0);
-  assert.deepStrictEqual(stage.sounds.map((s) => s.name), ['used']);
-
-  fs.writeFileSync(
-    path.join(dir, 'Stage', 'main.fractch'),
-    decls + 'when flag {\n  costume sensing.answer();\n}\n'
+  assert.deepStrictEqual(
+    stage.costumes.map((c) => c.name),
+    ['a', 'b'],
+    'current + referenced costumes kept'
   );
+  assert.strictEqual(stage.currentCostume, 0);
+  assert.deepStrictEqual(
+    stage.sounds.map((s) => s.name),
+    ['used']
+  );
+
+  fs.writeFileSync(path.join(dir, 'Stage', 'main.fractch'), decls + 'when flag {\n  costume sensing.answer();\n}\n');
   run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
   const stage2 = JSON.parse(new AdmZip(sb3).readAsText('project.json')).targets.find((t) => t.name === 'Stage');
-  assert.deepStrictEqual(stage2.costumes.map((c) => c.name), ['a', 'b', 'c'], 'dynamic costume keeps all');
+  assert.deepStrictEqual(
+    stage2.costumes.map((c) => c.name),
+    ['a', 'b', 'c'],
+    'dynamic costume keeps all'
+  );
 });
 
 test('index imports prune unimported target assets from packed sb3', () => {
@@ -302,8 +308,14 @@ test('index imports prune unimported target assets from packed sb3', () => {
     path.join(dir, 'Sprite', 'main.fractch'),
     'costume "costume" file "assets/sprite.svg";\n' + 'when flag {\n  say "sprite";\n}\n'
   );
-  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 'stage.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><!--stage--></svg>');
-  fs.writeFileSync(path.join(dir, 'Sprite', 'assets', 'sprite.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><!--sprite--></svg>');
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'assets', 'stage.svg'),
+    '<svg xmlns="http://www.w3.org/2000/svg"><!--stage--></svg>'
+  );
+  fs.writeFileSync(
+    path.join(dir, 'Sprite', 'assets', 'sprite.svg'),
+    '<svg xmlns="http://www.w3.org/2000/svg"><!--sprite--></svg>'
+  );
   fs.writeFileSync(
     path.join(dir, 'manifest.json'),
     JSON.stringify({
@@ -363,14 +375,14 @@ test('index imports prune unimported target assets from packed sb3', () => {
   assert.ok(!project.targets.some((t) => t.name === 'Sprite'));
   const stageCostume = project.targets.find((t) => t.name === 'Stage').costumes[0];
   assert.match(stageCostume.md5ext, /^[0-9a-f]{32}\.svg$/, 'md5ext not derived from file contents');
-  const svgEntries = zip.getEntries().filter((e) => e.entryName.endsWith('.svg')).map((e) => e.entryName);
+  const svgEntries = zip
+    .getEntries()
+    .filter((e) => e.entryName.endsWith('.svg'))
+    .map((e) => e.entryName);
   assert.deepStrictEqual(svgEntries, [stageCostume.md5ext], 'unimported target asset was packed');
 });
 
 test('every repacked asset is byte-identical to its original', () => {
-  // Unused assets may be pruned and non-asset extras need --origin, so the
-  // repack's asset set is a subset of the origin's - but every asset that IS
-  // packed must be byte-for-byte the original.
   const a = new AdmZip(SB3);
   const b = new AdmZip(outSb3);
   const assetShaped = /^[0-9a-f]{32}\.[A-Za-z0-9]+$/;
@@ -408,7 +420,9 @@ test('input and field separators parse in current and legacy forms', () => {
 });
 
 test('variable changes render as vars assignment sugar', () => {
-  const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /vars\[[^\]]+\] \+= /.test(fs.readFileSync(f, 'utf8')));
+  const hit = walk(outDir).some(
+    (f) => f.endsWith('.fractch') && /vars\[[^\]]+\] \+= /.test(fs.readFileSync(f, 'utf8'))
+  );
   assert.ok(hit, 'no vars += sugar found');
 
   const parsed = parseFractch('vars["score"] += 1;\n').calls[0];
@@ -423,7 +437,9 @@ test('generic opcodes can use dotted namespace aliases', () => {
   assert.strictEqual(parsed.args[0].key, 'DX');
   assert.strictEqual(parsed.args[0].sep, 'input');
 
-  const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /\b[a-zA-Z][A-Za-z0-9]*\.[A-Za-z_][A-Za-z0-9_]*\(/.test(fs.readFileSync(f, 'utf8')));
+  const hit = walk(outDir).some(
+    (f) => f.endsWith('.fractch') && /\b[a-zA-Z][A-Za-z0-9]*\.[A-Za-z_][A-Za-z0-9_]*\(/.test(fs.readFileSync(f, 'utf8'))
+  );
   assert.ok(hit, 'no dotted opcode alias found in generated DSL');
 });
 
@@ -452,8 +468,7 @@ test('negated comparisons desugar to not() wrapping the opposite operator', () =
   }
   const bang = parseFractch('if !sensing.mousedown() { }\n').calls[0].args[0].value.value;
   assert.strictEqual(bang.callee.name, 'operator_not');
-  // `sensing.mousedown()` parses as a deferred method call; it resolves to the
-  // opcode sensing_mousedown at build (sensing is not a var/list).
+
   const inner = bang.args[0].value.value.callee;
   assert.strictEqual(inner.type, 'identOrMethod');
   assert.strictEqual(`${inner.ident}_${inner.method}`, 'sensing_mousedown');
@@ -506,8 +521,14 @@ test('/* */ is stripped; // attaches to the neighbouring block', () => {
     ['event_whenflagclicked', 'looks_say', 'motion_movesteps']
   );
   const comments = scripts[0].calls.filter((c) => c.type === 'commentDecl');
-  assert.deepStrictEqual(comments.map((c) => c.text), ['header note', 'greet']);
-  assert.deepStrictEqual(comments.map((c) => c.anchor), ['next', 'prev']);
+  assert.deepStrictEqual(
+    comments.map((c) => c.text),
+    ['header note', 'greet']
+  );
+  assert.deepStrictEqual(
+    comments.map((c) => c.anchor),
+    ['next', 'prev']
+  );
   assert.strictEqual(checkFractch(src).length, 0, 'lint should ignore // and /* */ contents');
 });
 
@@ -542,7 +563,10 @@ test('sprites[] property sugar round-trips through sensing_of', async () => {
   assert.deepStrictEqual(errors, []);
   const { blocks } = buildBlocksFromCalls(scripts[0].calls, { idGen: new IdGen() });
   const ofs = Object.values(blocks).filter((b) => b.opcode === 'sensing_of');
-  assert.deepStrictEqual(ofs.map((b) => b.fields.PROPERTY[0]), ['x position', 'y position', 'hp']);
+  assert.deepStrictEqual(
+    ofs.map((b) => b.fields.PROPERTY[0]),
+    ['x position', 'y position', 'hp']
+  );
   const menus = Object.values(blocks).filter((b) => b.opcode === 'sensing_of_object_menu');
   assert.strictEqual(menus.length, 3);
   assert.ok(menus.every((m) => m.shadow === true));
@@ -585,7 +609,10 @@ test('project declarations: use/var/cloud/sprite/stage make hand-written project
   assert.strictEqual(st.volume, 80);
   const vars = Object.values(st.variables);
   assert.ok(vars.some((v) => v[0] === 'score' && v[1] === 5));
-  assert.ok(vars.some((v) => v[0] === '\u2601 plays' && v[2] === true), 'cloud var created');
+  assert.ok(
+    vars.some((v) => v[0] === '\u2601 plays' && v[2] === true),
+    'cloud var created'
+  );
   assert.ok(!vars.some((v) => v[0] === 'plays'), 'no spurious plain var for cloud alias');
   assert.ok(Object.values(st.lists).some((l) => l[0] === 'names' && l[1].length === 2));
   const change = Object.values(st.blocks).find((b) => b.opcode === 'data_changevariableby');
@@ -623,14 +650,23 @@ test('error suite: clear messages with hints and did-you-mean', async () => {
   assert.match(all, /lists have no '\.append/);
   assert.match(all, /sprites have no '\.xpos'/);
   assert.match(all, /expected ',' or '\)' after an argument/);
-  assert.ok(problems.some((p) => p.hint), 'problems carry hints');
-  assert.ok(problems.some((p) => p.line > 0 && p.col > 0), 'problems carry positions');
+  assert.ok(
+    problems.some((p) => p.hint),
+    'problems carry hints'
+  );
+  assert.ok(
+    problems.some((p) => p.line > 0 && p.col > 0),
+    'problems carry positions'
+  );
 });
 
 test('unterminated strings fail at the line break instead of eating the file', () => {
   const { errors, scripts } = parseFractch('when flag {\n  say "oops;\n  move 10;\n}\n');
   assert.ok(errors.some((e) => /never closes/.test(e.message)));
-  assert.ok(scripts[0].calls.some((c) => c.callee.name === 'motion_movesteps'), 'statements after the bad string still parse');
+  assert.ok(
+    scripts[0].calls.some((c) => c.callee.name === 'motion_movesteps'),
+    'statements after the bad string still parse'
+  );
 });
 
 test('parse errors carry file line numbers', () => {
@@ -663,7 +699,9 @@ test('menu shadows round-trip: positional arg form and ?? obscured form', async 
   assert.strictEqual(vMenu.parent, v.topId);
   assert.deepStrictEqual(vMenu.fields.KEY_OPTION[0], 'space');
 
-  const obscured = parseFractch('sensing.keypressed(KEY_OPTION: sensing.answer() ?? sensing.keyoptions("any"));\n').calls;
+  const obscured = parseFractch(
+    'sensing.keypressed(KEY_OPTION: sensing.answer() ?? sensing.keyoptions("any"));\n'
+  ).calls;
   const o = buildBlocksFromCalls(obscured, { idGen: new IdGen() });
   const oTop = o.blocks[o.topId];
   const tuple = oTop.inputs.KEY_OPTION;
@@ -681,9 +719,6 @@ test('menu shadows round-trip: positional arg form and ?? obscured form', async 
 });
 
 test('repack preserves every visible shadow menu block', () => {
-  // Obscured menu shadows (hidden behind a plugged-in reporter) are
-  // intentionally dropped - the editor regenerates them on load. Visible
-  // menus carry the block's actual argument and must all survive.
   const a = JSON.parse(new AdmZip(SB3).readAsText('project.json'));
   const b = JSON.parse(new AdmZip(outSb3).readAsText('project.json'));
   const hist = (p) => {
@@ -704,7 +739,8 @@ test('repack preserves every visible shadow menu block', () => {
     }
     return m;
   };
-  const ha = hist(a), hb = hist(b);
+  const ha = hist(a),
+    hb = hist(b);
   for (const [op, n] of ha) {
     assert.ok((hb.get(op) || 0) >= n, `${op}: ${n} -> ${hb.get(op) || 0}`);
   }
@@ -728,7 +764,8 @@ test('multiple scripts per file: when/def/script split into separate stacks', ()
 });
 
 test('statement aliases and bare assignment desugar to real opcodes', () => {
-  const src = 'score = 1;\nscore += 2;\nsay score for 2;\ncostume "walk";\nclone;\nshow;\nchange_effect brightness by 25;\nset_effect ghost to 50;\nclear_effects;\n';
+  const src =
+    'score = 1;\nscore += 2;\nsay score for 2;\ncostume "walk";\nclone;\nshow;\nchange_effect brightness by 25;\nset_effect ghost to 50;\nclear_effects;\n';
   const { calls, errors } = parseFractch(src);
   assert.deepStrictEqual(errors, []);
   assert.deepStrictEqual(
@@ -788,10 +825,11 @@ test('list sugar desugars to data_* blocks and round-trips through build', async
     'if lists["inv"].contains("bow") {\n  say lists["inv"].indexof("bow");\n}\n';
   const { calls, errors } = parseFractch(src);
   assert.deepStrictEqual(errors, []);
-  assert.deepStrictEqual(
-    calls.map((c) => c.callee.name).slice(0, 3),
-    ['data_addtolist', 'data_replaceitemoflist', 'data_deleteoflist']
-  );
+  assert.deepStrictEqual(calls.map((c) => c.callee.name).slice(0, 3), [
+    'data_addtolist',
+    'data_replaceitemoflist',
+    'data_deleteoflist',
+  ]);
   const { blocks } = buildBlocksFromCalls(calls, { idGen: new IdGen() });
   const ops = Object.values(blocks).map((b) => b.opcode);
   for (const op of ['data_lengthoflist', 'data_itemoflist', 'data_listcontainsitem', 'data_itemnumoflist']) {
@@ -812,14 +850,15 @@ test('local declarations become namespaced variables at pack time', () => {
   const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
   const stage = project.targets.find((t) => t.name === 'Stage');
   const varNames = Object.values(stage.variables).map((v) => v[0]);
-  // Local reals encode the enclosing script (both hats -> `flagclicked`,
-  // deduped to `flagclicked2`) instead of a bare counter, so they are
-  // deterministic and reversible.
+
   assert.ok(varNames.includes('!local_flagclicked_temp'), 'first local missing: ' + varNames.join(','));
   assert.ok(varNames.includes('!local_flagclicked2_temp'), 'second local missing: ' + varNames.join(','));
   const sets = Object.values(stage.blocks).filter((b) => b.opcode === 'data_setvariableto');
   assert.ok(sets.every((b) => b.fields.VARIABLE[0].startsWith('!local_')));
-  assert.ok(sets.every((b) => b.fields.VARIABLE[1]), 'local variable field ids resolved');
+  assert.ok(
+    sets.every((b) => b.fields.VARIABLE[1]),
+    'local variable field ids resolved'
+  );
 });
 
 test('switch/case blocks render as readable switch statements', () => {
@@ -864,12 +903,24 @@ test('extensions: only data URIs are extracted to extensions/<id>.js; http/built
 
 test('data-URI extension round-trips through extensions/<id>.js', async () => {
   const edir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-extrt-'));
-  const src = "Scratch.extensions.register(new Ext());\n";
+  const src = 'Scratch.extensions.register(new Ext());\n';
   const project = {
-    targets: [{ isStage: true, name: 'Stage', variables: {}, lists: {}, blocks: {}, costumes: [], sounds: [], currentCostume: 0 }],
+    targets: [
+      {
+        isStage: true,
+        name: 'Stage',
+        variables: {},
+        lists: {},
+        blocks: {},
+        costumes: [],
+        sounds: [],
+        currentCostume: 0,
+      },
+    ],
     extensions: ['myext'],
     extensionURLs: { myext: 'data:application/javascript;base64,' + Buffer.from(src).toString('base64') },
-    monitors: [], meta: {},
+    monitors: [],
+    meta: {},
   };
   const { convertProject, buildProjectFromBuildDir } = await import('../src/index.js');
   await convertProject(project, { outDir: edir });
@@ -934,7 +985,9 @@ test('positional extension args map back to A/B/C input names', () => {
 
 test('single-string inline extension call stays a menu shadow, keyed form a reporter', async () => {
   const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
-  const parsed = parseFractch('looks.switchcostumeto(COSTUME: looks.costume("walk"));\nmistsutils.patchcommand(mistsutils.patchreporter(A: "x"));\n');
+  const parsed = parseFractch(
+    'looks.switchcostumeto(COSTUME: looks.costume("walk"));\nmistsutils.patchcommand(mistsutils.patchreporter(A: "x"));\n'
+  );
   assert.strictEqual(parsed.errors.length, 0);
   const { blocks } = buildBlocksFromCalls(parsed.calls, {});
   const menu = Object.values(blocks).find((b) => b.opcode === 'looks_costume');
@@ -994,8 +1047,6 @@ test('triple-quoted raw strings parse, emit, and round-trip', async () => {
   const arg = parsed.calls[0].args[0];
   assert.strictEqual(arg.value.value, 'const a = 1;\nconst b = "two";\nrun(a, b);');
 
-  // Emission: a newline-bearing string input comes back out as a raw block
-  // whose interior lines survive indentation untouched.
   const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
   setContext({});
   const out = stringifyBlockCall(blocks[topId], blocks, topId, false);
@@ -1004,7 +1055,6 @@ test('triple-quoted raw strings parse, emit, and round-trip', async () => {
   assert.strictEqual(reparsed.errors.length, 0);
   assert.strictEqual(reparsed.calls[0].args[0].value.value, arg.value.value);
 
-  // Values that cannot be raw (contain """ or edge quotes) stay escaped.
   const { stringToken } = await import('../src/stringify.js');
   assert.strictEqual(stringToken('a"""b\nc'), JSON.stringify('a"""b\nc'));
   assert.strictEqual(stringToken('ends with quote\n"'), JSON.stringify('ends with quote\n"'));
@@ -1053,14 +1103,13 @@ test('array literals pack as JSON strings and re-sugar on emission', async () =>
   const out = stringifyBlockCall(blocks[topId], blocks, topId, false);
   assert.strictEqual(out, 'mistsutils.patchreporter([1,2,"three"]);');
 
-  // Legacy raw primitive tuples keep passing through verbatim.
   const tuple = parseFractch('mistsutils.patchreporter(A: [10, "hello"]);\n');
   const built = buildBlocksFromCalls(tuple.calls, {});
   assert.deepStrictEqual(built.blocks[built.topId].inputs.A, [1, [10, 'hello']]);
   const badTupleLookalike = parseFractch('mistsutils.patchreporter(A: [10, "hello", "extra"]);\n');
   const badTupleBuilt = buildBlocksFromCalls(badTupleLookalike.calls, {});
   assert.deepStrictEqual(badTupleBuilt.blocks[badTupleBuilt.topId].inputs.A, [1, [10, '[10,"hello","extra"]']]);
-  // ...and a string that happens to look like a tuple stays quoted on emit.
+
   const lookalike = { ...built.blocks[built.topId], inputs: { A: [1, [10, '[10,"x"]']] } };
   assert.ok(stringifyBlockCall(lookalike, {}, 'x', false).includes('"[10,\\"x\\"]"'));
 });
@@ -1081,9 +1130,17 @@ test('package namespace calls resolve to defs (not phantom extensions) and round
   assert.ok(!opcodes.includes('strings_replace'), 'strings.replace must not become a phantom extension opcode');
   assert.ok(!opcodes.includes('j_valid'), 'aliased j.valid must not become a phantom extension opcode');
   assert.deepStrictEqual(project.extensions, [], 'no phantom extension registered');
-  const calls = Object.values(stage.blocks).filter((b) => b.opcode === 'procedures_call').map((b) => b.mutation.proccode);
-  assert.ok(calls.some((c) => c.startsWith('fractch_strings_replace')), 'strings.replace -> its def call');
-  assert.ok(calls.some((c) => c.startsWith('fractch_json_valid')), 'aliased j.valid -> the json def call');
+  const calls = Object.values(stage.blocks)
+    .filter((b) => b.opcode === 'procedures_call')
+    .map((b) => b.mutation.proccode);
+  assert.ok(
+    calls.some((c) => c.startsWith('fractch_strings_replace')),
+    'strings.replace -> its def call'
+  );
+  assert.ok(
+    calls.some((c) => c.startsWith('fractch_json_valid')),
+    'aliased j.valid -> the json def call'
+  );
 
   const back = path.join(dir, 'back');
   run(`node ./bin/cli.js from "${sb3}" to "${back}"`);
@@ -1109,11 +1166,19 @@ test('list functions map to list blocks; string ops stay string blocks', () => {
   const { scripts, errors } = parseFractch(src);
   assert.deepStrictEqual(errors, []);
   const opcodes = JSON.stringify(scripts[0].calls);
-  // list ops
-  for (const op of ['data_addtolist', 'data_replaceitemoflist', 'data_itemoflist', 'data_lengthoflist', 'data_itemnumoflist', 'data_listcontainsitem', 'data_deletealloflist']) {
+
+  for (const op of [
+    'data_addtolist',
+    'data_replaceitemoflist',
+    'data_itemoflist',
+    'data_lengthoflist',
+    'data_itemnumoflist',
+    'data_listcontainsitem',
+    'data_deletealloflist',
+  ]) {
     assert.ok(opcodes.includes(op), `expected ${op} from a list function`);
   }
-  // string ops stay string ops
+
   assert.ok(opcodes.includes('operator_length'), 'length("hi") must stay operator_length');
   assert.ok(opcodes.includes('operator_contains'), 'contains(...) must stay operator_contains');
 });
@@ -1135,9 +1200,18 @@ test('get/set list functions pack declared lists as valid SB3 list inputs', asyn
   const stage = manifest.targets.find((t) => t.isStage);
   assert.deepStrictEqual(stage.lists.data, ['data', []]);
   const blocks = Object.values(stage.blocks);
-  assert.ok(blocks.some((b) => b.opcode === 'data_replaceitemoflist'), 'set(...) did not pack as a list replace block');
-  assert.ok(blocks.some((b) => b.opcode === 'data_itemoflist'), 'get(...) did not pack as an item-of-list block');
-  assert.ok(!JSON.stringify(stage.blocks).includes('[12,"data",null]'), 'list name leaked as an invalid variable primitive');
+  assert.ok(
+    blocks.some((b) => b.opcode === 'data_replaceitemoflist'),
+    'set(...) did not pack as a list replace block'
+  );
+  assert.ok(
+    blocks.some((b) => b.opcode === 'data_itemoflist'),
+    'get(...) did not pack as an item-of-list block'
+  );
+  assert.ok(
+    !JSON.stringify(stage.blocks).includes('[12,"data",null]'),
+    'list name leaked as an invalid variable primitive'
+  );
 });
 
 test('list-based json package injects a shared return-stack and folds to import', async () => {
@@ -1148,7 +1222,7 @@ test('list-based json package injects a shared return-stack and folds to import'
     'import "fractch/json";\n\n' +
       'when flag {\n' +
       '  say json.get_from("user", msg);\n' +
-      '  say mistsutils.item(C: 1, A: "x.y", B: ".");\n' + // keyed args stay an extension call
+      '  say mistsutils.item(C: 1, A: "x.y", B: ".");\n' +
       '}\n'
   );
   const sb3 = path.join(dir, 'json.sb3');
@@ -1157,10 +1231,16 @@ test('list-based json package injects a shared return-stack and folds to import'
   const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
   const stage = project.targets.find((t) => t.isStage);
   const blocks = Object.values(stage.blocks);
-  // The shared parse state is a collision-proof package-owned return stack.
-  assert.ok(Object.values(stage.lists).some((l) => l[0] === '!json:stack'), 'return-stack list missing');
-  assert.ok(Object.values(stage.variables).some((v) => v[0] === '!json:return'), 'return register var missing');
-  // Every variable/list reference resolves to a real id (no null-id refs).
+
+  assert.ok(
+    Object.values(stage.lists).some((l) => l[0] === '!json:stack'),
+    'return-stack list missing'
+  );
+  assert.ok(
+    Object.values(stage.variables).some((v) => v[0] === '!json:return'),
+    'return register var missing'
+  );
+
   for (const b of blocks) {
     for (const v of Object.values(b.inputs || {})) {
       const inner = v[1];
@@ -1169,11 +1249,17 @@ test('list-based json package injects a shared return-stack and folds to import'
       }
     }
   }
-  // Tree-shaken: get_from pulls in only get_data + slice (5 defs), not all 11.
+
   const defs = blocks.filter((b) => b.opcode === 'procedures_definition');
   assert.strictEqual(defs.length, 3, `expected only get_from's transitive closure, got ${defs.length}`);
-  assert.ok(blocks.some((b) => b.opcode === 'mistsutils_item'), 'keyed extension call was hijacked');
-  assert.ok(Object.keys(stage.blocks).some((k) => k.startsWith('fractch_h')), 'package defs missing file markers');
+  assert.ok(
+    blocks.some((b) => b.opcode === 'mistsutils_item'),
+    'keyed extension call was hijacked'
+  );
+  assert.ok(
+    Object.keys(stage.blocks).some((k) => k.startsWith('fractch_h')),
+    'package defs missing file markers'
+  );
 
   const outDir = path.join(dir, 'back');
   run(`node ./bin/cli.js from "${sb3}" to "${outDir}"`);
@@ -1203,8 +1289,7 @@ test('manifest-less declarations round-trip project state', () => {
   );
   fs.writeFileSync(
     path.join(dir, 'Cat_', 'main.fractch'),
-    'sprite "Cat!" at 12,-7 size 150 hidden layer 1;\n' +
-      'when flag {\n  plain += 1;\n}\n'
+    'sprite "Cat!" at 12,-7 size 150 hidden layer 1;\n' + 'when flag {\n  plain += 1;\n}\n'
   );
   const sb3 = path.join(dir, 'decls.sb3');
   run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
@@ -1240,7 +1325,10 @@ test('manifest-less declarations round-trip project state', () => {
   assert.strictEqual(attached.text, 'attached');
   const anchor = stage.blocks[attached.blockId];
   assert.strictEqual(anchor.opcode, 'looks_say');
-  assert.strictEqual(anchor.comment, Object.keys(stage.comments).find((k) => stage.comments[k] === attached));
+  assert.strictEqual(
+    anchor.comment,
+    Object.keys(stage.comments).find((k) => stage.comments[k] === attached)
+  );
 
   const cat = project.targets.find((t) => !t.isStage);
   assert.strictEqual(cat.name, 'Cat!');
@@ -1249,6 +1337,6 @@ test('manifest-less declarations round-trip project state', () => {
   assert.strictEqual(cat.size, 150);
   assert.strictEqual(cat.visible, false);
   assert.strictEqual(cat.layerOrder, 1);
-  // sprite references the stage global instead of spawning a local copy
+
   assert.ok(!Object.values(cat.variables).some((v) => v[0] === 'plain'), 'stage global duplicated into sprite');
 });

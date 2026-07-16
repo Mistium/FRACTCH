@@ -26,7 +26,7 @@ const rawArgs = hideBin(process.argv);
 const words = [];
 for (let i = 0; i < rawArgs.length; i++) {
   if (rawArgs[i] === '--editor' || rawArgs[i] === '--origin') {
-    i++; // skip its value
+    i++;
     continue;
   }
   if (!rawArgs[i].startsWith('-')) words.push(rawArgs[i]);
@@ -46,9 +46,7 @@ function translateWordSyntax(args) {
   if (words[0] === 'from' && words[1]) {
     const input = words[1];
     const out =
-      words[2] === 'to' && words[3]
-        ? words[3]
-        : path.join('.', path.basename(input).replace(/\.sb3$/i, '') || 'build');
+      words[2] === 'to' && words[3] ? words[3] : path.join('.', path.basename(input).replace(/\.sb3$/i, '') || 'build');
     return ['--input', input, '--out', out, ...flags];
   }
 
@@ -80,15 +78,12 @@ async function runCheck(dir) {
     }
     if (p.hint) console.log(`    hint: ${p.hint}`);
   }
-  console.log(`${files} file${files === 1 ? '' : 's'} checked, ${problems.length} problem${problems.length === 1 ? '' : 's'}`);
+  console.log(
+    `${files} file${files === 1 ? '' : 's'} checked, ${problems.length} problem${problems.length === 1 ? '' : 's'}`
+  );
   process.exit(problems.length ? 1 : 0);
 }
 
-// Canonicalize every .fractch file: rebuild the project in memory through the
-// pack pipeline, then re-emit it over the same directory with the current
-// emission style. Legacy syntax parses forever, so this is the one-command way
-// to modernize a build dir. Refuses to run while check reports problems -
-// parse-skipped statements would be silently dropped by the rewrite.
 async function runFmt(dir, verbose) {
   const buildDir = path.resolve(dir || '.');
   const { problems } = await checkProject({ buildDir, fs });
@@ -97,12 +92,16 @@ async function runFmt(dir, verbose) {
       const loc = p.line ? `:${p.line}${p.col ? ':' + p.col : ''}` : '';
       console.error(`${p.file}${loc}: ${p.message}`);
     }
-    console.error(`[fractch] fmt refused: fix the ${problems.length} problem${problems.length === 1 ? '' : 's'} above first`);
+    console.error(
+      `[fractch] fmt refused: fix the ${problems.length} problem${problems.length === 1 ? '' : 's'} above first`
+    );
     process.exit(1);
   }
   const { manifest } = await buildProjectFromBuildDir({ buildDir, verbose, prune: false });
   const result = await convertProject(manifest, { outDir: buildDir, verbose });
-  console.log(`[fractch] fmt: rewrote ${result.filesWritten} file${result.filesWritten === 1 ? '' : 's'} in ${buildDir}`);
+  console.log(
+    `[fractch] fmt: rewrote ${result.filesWritten} file${result.filesWritten === 1 ? '' : 's'} in ${buildDir}`
+  );
 }
 
 async function runWatch(dir, outSb3, verbose, onPacked) {
@@ -276,16 +275,13 @@ async function runRun(dir, editorFlagValue) {
       socket.destroy();
       return;
     }
-    const accept = crypto
-      .createHash('sha1')
-      .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
-      .digest('base64');
+    const accept = crypto.createHash('sha1').update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
     socket.write(
       'HTTP/1.1 101 Switching Protocols\r\n' +
-      'Upgrade: websocket\r\n' +
-      'Connection: Upgrade\r\n' +
-      `Sec-WebSocket-Accept: ${accept}\r\n` +
-      '\r\n'
+        'Upgrade: websocket\r\n' +
+        'Connection: Upgrade\r\n' +
+        `Sec-WebSocket-Accept: ${accept}\r\n` +
+        '\r\n'
     );
     socketClients.add(socket);
     socket.on('close', () => socketClients.delete(socket));
@@ -408,12 +404,12 @@ function runNew(dir) {
     if (command === 'watch') {
       const out = words[2] === 'to' ? words[3] : words[2];
       await runWatch(words[1], out, rawArgs.includes('--verbose') || rawArgs.includes('-v'));
-      return; // keeps the process alive via fs.watch
+      return;
     }
     if (command === 'run') {
       const editorIdx = rawArgs.indexOf('--editor');
       await runRun(words[1], editorIdx >= 0 ? rawArgs[editorIdx + 1] : null);
-      return; // keeps the process alive via the http server
+      return;
     }
 
     const argv = yargs(translateWordSyntax(rawArgs))
@@ -422,7 +418,11 @@ function runNew(dir) {
       .option('input', { alias: 'i', type: 'string', describe: 'Path to .sb3 file' })
       .option('out', { alias: 'o', type: 'string', describe: 'Output directory' })
       .option('verbose', { alias: 'v', type: 'boolean', default: false, describe: 'Verbose logging' })
-      .option('pack', { type: 'boolean', default: false, describe: 'Pack build directory into an .sb3 (reverse conversion)' })
+      .option('pack', {
+        type: 'boolean',
+        default: false,
+        describe: 'Pack build directory into an .sb3 (reverse conversion)',
+      })
       .option('outSb3', { type: 'string', describe: 'Output .sb3 path when using --pack' })
       .check((argv) => {
         if (argv.pack) {

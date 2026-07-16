@@ -64,8 +64,12 @@ export function resolveFrom(base, p) {
 }
 
 export function relative(from, to) {
-  const f = normalizePath(from).split('/').filter((x) => x && x !== '.');
-  const t = normalizePath(to).split('/').filter((x) => x && x !== '.');
+  const f = normalizePath(from)
+    .split('/')
+    .filter((x) => x && x !== '.');
+  const t = normalizePath(to)
+    .split('/')
+    .filter((x) => x && x !== '.');
   let i = 0;
   while (i < f.length && i < t.length && f[i] === t[i]) i++;
   return [...Array(f.length - i).fill('..'), ...t.slice(i)].join('/');

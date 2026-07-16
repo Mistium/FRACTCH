@@ -26,37 +26,80 @@ const target = (name, blocks, extra = {}) => ({
 });
 
 const hat = (next) => ({
-  opcode: 'event_whenflagclicked', next, parent: null, inputs: {}, fields: {},
-  topLevel: true, shadow: false, x: 10, y: 20,
+  opcode: 'event_whenflagclicked',
+  next,
+  parent: null,
+  inputs: {},
+  fields: {},
+  topLevel: true,
+  shadow: false,
+  x: 10,
+  y: 20,
 });
 
 const projects = [
   {
     name: 'variables, comments, monitors, and unicode',
     project: {
-      targets: [target('Stage', {
-        hat: hat('change'),
-        change: {
-          opcode: 'data_changevariableby', next: 'say', parent: 'hat',
-          inputs: { VALUE: [1, [4, '1']] }, fields: { VARIABLE: ['☁ score', 'score-id'] },
-          topLevel: false, shadow: false,
+      targets: [
+        target(
+          'Stage',
+          {
+            hat: hat('change'),
+            change: {
+              opcode: 'data_changevariableby',
+              next: 'say',
+              parent: 'hat',
+              inputs: { VALUE: [1, [4, '1']] },
+              fields: { VARIABLE: ['☁ score', 'score-id'] },
+              topLevel: false,
+              shadow: false,
+            },
+            say: {
+              opcode: 'looks_say',
+              next: null,
+              parent: 'change',
+              inputs: { MESSAGE: [1, [10, 'hello 🌍']] },
+              fields: {},
+              topLevel: false,
+              shadow: false,
+              comment: 'comment-id',
+            },
+          },
+          {
+            variables: { 'score-id': ['☁ score', 0, true] },
+            comments: {
+              'comment-id': {
+                blockId: 'say',
+                x: 250,
+                y: 20,
+                width: 200,
+                height: 100,
+                minimized: false,
+                text: 'visible note',
+              },
+            },
+          }
+        ),
+      ],
+      monitors: [
+        {
+          id: 'score-id',
+          mode: 'slider',
+          opcode: 'data_variable',
+          params: { VARIABLE: '☁ score' },
+          spriteName: null,
+          value: 0,
+          width: 0,
+          height: 0,
+          x: 5,
+          y: 6,
+          visible: true,
+          sliderMin: 0,
+          sliderMax: 10,
+          isDiscrete: true,
         },
-        say: {
-          opcode: 'looks_say', next: null, parent: 'change',
-          inputs: { MESSAGE: [1, [10, 'hello 🌍']] }, fields: {}, topLevel: false, shadow: false,
-          comment: 'comment-id',
-        },
-      }, {
-        variables: { 'score-id': ['☁ score', 0, true] },
-        comments: {
-          'comment-id': { blockId: 'say', x: 250, y: 20, width: 200, height: 100, minimized: false, text: 'visible note' },
-        },
-      })],
-      monitors: [{
-        id: 'score-id', mode: 'slider', opcode: 'data_variable', params: { VARIABLE: '☁ score' },
-        spriteName: null, value: 0, width: 0, height: 0, x: 5, y: 6, visible: true,
-        sliderMin: 0, sliderMax: 10, isDiscrete: true,
-      }],
+      ],
       extensions: [],
       meta: { semver: '3.0.0' },
     },
@@ -66,26 +109,49 @@ const projects = [
     project: {
       targets: [
         target('Stage', {}),
-        target('Player', {
-          hat: hat('if'),
-          if: {
-            opcode: 'control_if', next: null, parent: 'hat',
-            inputs: { CONDITION: [2, 'pressed'], SUBSTACK: [2, 'say'] }, fields: {}, topLevel: false, shadow: false,
+        target(
+          'Player',
+          {
+            hat: hat('if'),
+            if: {
+              opcode: 'control_if',
+              next: null,
+              parent: 'hat',
+              inputs: { CONDITION: [2, 'pressed'], SUBSTACK: [2, 'say'] },
+              fields: {},
+              topLevel: false,
+              shadow: false,
+            },
+            pressed: {
+              opcode: 'sensing_keypressed',
+              next: null,
+              parent: 'if',
+              inputs: { KEY_OPTION: [1, 'menu'] },
+              fields: {},
+              topLevel: false,
+              shadow: false,
+            },
+            menu: {
+              opcode: 'sensing_keyoptions',
+              next: null,
+              parent: 'pressed',
+              inputs: {},
+              fields: { KEY_OPTION: ['space', null] },
+              topLevel: false,
+              shadow: true,
+            },
+            say: {
+              opcode: 'looks_sayforsecs',
+              next: null,
+              parent: 'if',
+              inputs: { MESSAGE: [1, [10, 'pressed']], SECS: [1, [4, '2']] },
+              fields: {},
+              topLevel: false,
+              shadow: false,
+            },
           },
-          pressed: {
-            opcode: 'sensing_keypressed', next: null, parent: 'if',
-            inputs: { KEY_OPTION: [1, 'menu'] }, fields: {}, topLevel: false, shadow: false,
-          },
-          menu: {
-            opcode: 'sensing_keyoptions', next: null, parent: 'pressed', inputs: {},
-            fields: { KEY_OPTION: ['space', null] }, topLevel: false, shadow: true,
-          },
-          say: {
-            opcode: 'looks_sayforsecs', next: null, parent: 'if',
-            inputs: { MESSAGE: [1, [10, 'pressed']], SECS: [1, [4, '2']] },
-            fields: {}, topLevel: false, shadow: false,
-          },
-        }, { visible: true, x: 0, y: 0, size: 100, direction: 90, draggable: false, rotationStyle: 'all around' }),
+          { visible: true, x: 0, y: 0, size: 100, direction: 90, draggable: false, rotationStyle: 'all around' }
+        ),
       ],
       monitors: [],
       extensions: [],
@@ -133,9 +199,7 @@ for (const { name, project } of projects) {
 
     const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
     await convertProject(manifest, { outDir: stable, fs });
-    // convertProject handles project text only; materialize the synthetic
-    // costumes it declared so the second text-only build has no missing-asset
-    // warnings. These files are test-owned and remain inside the temp dir.
+
     for (const file of fractchFiles(stable)) {
       const source = fs.readFileSync(file, 'utf8');
       for (const match of source.matchAll(/\bfile\s+"([^"]+\.svg)"/g)) {

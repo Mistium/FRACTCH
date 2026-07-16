@@ -11,10 +11,10 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
   const targets = projectJson.targets || [];
   const files = [];
 
-  const broadcastMap = new Map(); // name -> [{ targetName, topBlockId }]
-  const proceduresMap = new Map(); // targetName -> Map(proccode -> defTopBlockId)
-  const procedureDefsByTarget = new Map(); // targetName -> Map(defTopBlockId -> proccode)
-  const procByCode = buildProcByCode(targets); // proccode -> { ident, params: [{id, ident}] }
+  const broadcastMap = new Map();
+  const proceduresMap = new Map();
+  const procedureDefsByTarget = new Map();
+  const procByCode = buildProcByCode(targets);
 
   for (const target of targets) {
     const pMap = new Map();
@@ -55,9 +55,6 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     }
   }
 
-  // Watchers route to the target that owns them (spriteName; null = Stage).
-  // Watchers of sprites that no longer exist ride along on the Stage with
-  // explicit `sprite`/`id` attributes so nothing is dropped.
   const monitorsByTarget = routeMonitors(projectJson, targets);
 
   for (const target of targets) {
@@ -76,7 +73,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     });
 
     const scripts = groupTopLevelScripts(target);
-    const subgraphs = new Map(); // topBlockId -> subgraph
+    const subgraphs = new Map();
     const coveredIds = new Set();
     for (const script of scripts) {
       const subgraph = collectBlocksSubgraph(target.blocks, script.topBlockId);
@@ -84,11 +81,6 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       for (const id of Object.keys(subgraph)) coveredIds.add(id);
     }
 
-    // Some sb3 projects contain block chains detached from any reachable
-    // script (e.g. left over from editor operations, with a parent id that
-    // no longer exists). They aren't executable, but they're still present
-    // in project.json, so sweep them into their own script files too -
-    // otherwise they'd have nowhere to live once manifest.json drops blocks.
     const allBlocks = target.blocks || {};
     let degenerateTuples = 0;
     for (const b of Object.values(allBlocks)) {
@@ -101,16 +93,14 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       }
     }
     if (degenerateTuples) {
-      console.warn(`[convert] ${target.name}: normalized ${degenerateTuples} empty obscured input(s) to their visible shadow`);
+      console.warn(
+        `[convert] ${target.name}: normalized ${degenerateTuples} empty obscured input(s) to their visible shadow`
+      );
     }
     let droppedShadows = 0;
     for (const id of Object.keys(allBlocks)) {
       if (coveredIds.has(id)) continue;
-      // Some corrupted/edited project.json files carry stray dict entries
-      // under `blocks` that are actually raw compact-literal tuples (e.g.
-      // `[12, "name", "id"]`, the same shape used for inline variable
-      // reads) rather than real block objects - skip those, they aren't
-      // executable content and have no `opcode` to sweep.
+
       const entry = allBlocks[id];
       if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.opcode !== 'string') continue;
       if (entry.shadow) {
@@ -125,7 +115,9 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       subgraphs.set(id, subgraph);
     }
     if (droppedShadows) {
-      console.warn(`[convert] ${target.name}: dropped ${droppedShadows} floating shadow block(s) left behind by editor corruption; they were never visible and are not emitted`);
+      console.warn(
+        `[convert] ${target.name}: dropped ${droppedShadows} floating shadow block(s) left behind by editor corruption; they were never visible and are not emitted`
+      );
     }
 
     const groups = new Map();
@@ -143,9 +135,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       const procLabel =
         hatOpcode === 'procedures_definition' ? procedureDefsByTarget.get(target.name)?.get(topBlockId) || null : null;
       const markerStem = fileMarkers.get(topBlockId) || decodeFileStemFromTopId(topBlockId);
-      // Stdlib defs (marked with the fractch_lib stem at pack time) fold back
-      // into a single `import "module"` line - their bodies are the bundled
-      // library source, re-injected on the next pack.
+
       if (markerStem && markerStem.startsWith(STDLIB_STEM_PREFIX)) {
         const moduleId = markerStem.slice(STDLIB_STEM_PREFIX.length);
         if (STDLIB_MODULES[moduleId]) {
@@ -172,7 +162,6 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       }
     }
 
-    let idx = 0;
     for (const [groupKey, entries] of groups) {
       const filename = filenameForGroup.get(groupKey);
       const filePath = path.join(tDir, filename);
@@ -196,14 +185,9 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
         targetRel: `./${filename}`,
         label: procLabels.length === 1 ? procLabels[0] : null,
       });
-      idx += entries.length;
     }
-
   }
 
-  // No manifest.json: every piece of project state lives in the .fractch
-  // text (sprite/stage/var/watch/comment/use/platform declarations). The
-  // stripped manifest is still returned for callers that inspect it.
   if (verbose) console.log(`[convert] ${files.length} script files across ${targets.length} targets`);
 
   return {
@@ -217,7 +201,10 @@ function manifestWithoutBlocks(projectJson) {
   return {
     ...projectJson,
     targets: (projectJson.targets || []).map((t) => {
-      const { blocks, costumes, sounds, ...rest } = t;
+      const rest = { ...t };
+      delete rest.blocks;
+      delete rest.costumes;
+      delete rest.sounds;
       return rest;
     }),
   };
@@ -244,7 +231,9 @@ function routeMonitors(projectJson, targets) {
     if (owner) {
       derivedId =
         nameIdMap(isList ? owner.lists : owner.variables).get(name) ??
-        (stageTarget && owner !== stageTarget ? nameIdMap(isList ? stageTarget.lists : stageTarget.variables).get(name) : null) ??
+        (stageTarget && owner !== stageTarget
+          ? nameIdMap(isList ? stageTarget.lists : stageTarget.variables).get(name)
+          : null) ??
         null;
     }
     push((owner || stageTarget)?.name, {
@@ -259,17 +248,13 @@ function routeMonitors(projectJson, targets) {
       sliderMin: m.sliderMin,
       sliderMax: m.sliderMax,
       isDiscrete: m.isDiscrete,
-      sprite: owner ? null : m.spriteName ?? null,
+      sprite: owner ? null : (m.spriteName ?? null),
       id: !owner || derivedId !== m.id ? m.id : null,
     });
   }
   return out;
 }
 
-// Splits a target's comments into workspace declarations (blockId null, or
-// pointing at a block that no longer exists - kept as a dangling `for` ref)
-// and block-anchored ones, keyed by the statement-level block whose line the
-// comment prints after.
 function routeComments(target) {
   const workspaceComments = [];
   const blockComments = new Map();
@@ -304,8 +289,6 @@ function routeComments(target) {
   return { workspaceComments, blockComments, fileMarkers };
 }
 
-// Climb from any block (a nested reporter, a menu shadow, a prototype) to
-// the statement-level block whose emitted line the comment attaches after.
 function statementAnchor(blocks, id) {
   let cur = id;
   for (let guard = 0; guard < 10000; guard++) {
@@ -348,20 +331,18 @@ function nameIdMap(dict) {
 }
 
 export function cleanIdent(label) {
-  const stripped = String(label).replace(/%[snb]/g, ' ').replace(/\s+/g, ' ').trim();
+  const stripped = String(label)
+    .replace(/%[snb]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   let id = stripped.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-  if (/^[0-9]/.test(id)) id = `_${id}`; // must be a valid bare identifier (e.g. `def @Ident(...)`)
+  if (/^[0-9]/.test(id)) id = `_${id}`;
   return id || 'proc';
 }
 
 export function buildProcByCode(targets) {
   const map = new Map();
-  // Two unrelated custom blocks can have proccodes that clean to the same
-  // identifier (e.g. "OSL // %s .( %s ) %s = %s" and "OSL //  %s . %s  =  %s"
-  // both -> "OSL"). Call sites are written as `@ident(...)` and resolved
-  // back to a proccode purely by that identifier, so collisions must be
-  // disambiguated here or the second proc's calls silently resolve to the
-  // first proc's argument shape.
+
   const usedProcIdents = new Set();
   const prototypes = [];
   const seenCodes = new Set();
@@ -375,18 +356,25 @@ export function buildProcByCode(targets) {
       prototypes.push(b);
     }
   }
-  prototypes.sort((a, b) => (a.mutation.proccode < b.mutation.proccode ? -1 : a.mutation.proccode > b.mutation.proccode ? 1 : 0));
+  prototypes.sort((a, b) =>
+    a.mutation.proccode < b.mutation.proccode ? -1 : a.mutation.proccode > b.mutation.proccode ? 1 : 0
+  );
   {
     for (const b of prototypes) {
       const proccode = b.mutation.proccode;
       let ids = [];
       let names = [];
-      try { ids = JSON.parse(b.mutation?.argumentids || '[]'); } catch {}
-      try { names = JSON.parse(b.mutation?.argumentnames || '[]'); } catch {}
-      // Two params can have different display names that clean to the same
-      // identifier (e.g. "X" and "+X" both -> "X") - body references are
-      // resolved by bare identifier, so collisions must be disambiguated
-      // here or the second param becomes unreachable/misresolved in the DSL.
+      try {
+        ids = JSON.parse(b.mutation?.argumentids || '[]');
+      } catch {
+        ids = [];
+      }
+      try {
+        names = JSON.parse(b.mutation?.argumentnames || '[]');
+      } catch {
+        names = [];
+      }
+
       const seenIdents = new Map();
       const kinds = (proccode.match(/%[snb]/g) || []).map((t) => t[1]);
       const params = ids.map((id, i) => {
@@ -407,8 +395,7 @@ export function buildProcByCode(targets) {
       map.set(proccode, { ident, params, label: proccode });
     }
   }
-  // Return-type (MistWarp/TurboWarp reporter custom blocks) lives only on
-  // call mutations, not prototypes - scan calls to attach it to the def info.
+
   for (const target of targets) {
     for (const b of Object.values(target.blocks || {})) {
       if (!b || b.opcode !== 'procedures_call' || !b.mutation?.return) continue;

@@ -57,7 +57,10 @@ test('check reports exact lines for duplicate declarations and both custom-block
   assert.equal(find(/local 'value'/).line, 7);
 
   const arity = problems.filter((problem) => /@work takes 2 arguments/.test(problem.message));
-  assert.deepEqual(arity.map((problem) => problem.line), [8, 9]);
+  assert.deepEqual(
+    arity.map((problem) => problem.line),
+    [8, 9]
+  );
   assert.match(arity[0].message, /passes 1/);
   assert.match(arity[1].message, /passes 3/);
   assert.match(arity[0].hint, /main\.fractch:3/);

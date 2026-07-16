@@ -15,9 +15,6 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     return result;
   }
 
-  // The whole chain/branch is nothing but a preserved dangling reference
-  // (e.g. a control_if's SUBSTACK that itself points at a nonexistent
-  // block) - reproduce the exact same id, not a real block.
   if (calls.length === 1 && calls[0].type === 'danglingNext') {
     return { topId: calls[0].id, blocks: {} };
   }
@@ -31,9 +28,6 @@ export function buildBlocksFromCalls(calls, opts = {}) {
   for (let idx = 0; idx < calls.length; idx++) {
     const call = calls[idx];
     if (call.type === 'commentDecl') {
-      // Comments are not blocks: attach to the preceding statement's block
-      // (or the chain's top block when written first). Collected via
-      // ctx.commentsOut so nested branch bodies bubble up to the caller.
       if (ctx.commentsOut) {
         if (call.anchor === 'next' && !call.forId) {
           pendingNextComments.push({ ...call, blockId: null });
@@ -45,19 +39,13 @@ export function buildBlocksFromCalls(calls, opts = {}) {
       }
       continue;
     }
-    if (call.type === 'importDecl') continue; // file-level directive, not a block
+    if (call.type === 'importDecl') continue;
     if (call.type === 'danglingNext') {
-      // Trailing sentinel: real content preceded it, this just restores the
-      // broken forward reference at the end of the chain rather than a
-      // real block continuing it.
       if (lastId) blocks[lastId].next = call.id;
       else topId = call.id;
       break;
     }
-    // Reserve this statement's own id before recursing into its nested
-    // values - buildNode may insert child blocks into the shared `blocks`
-    // object before this statement's own entry lands, so object key
-    // insertion order can't be trusted to recover the top id afterward.
+
     const id = ids.next();
     const isFirst = topId == null;
     if (isFirst) topId = id;
@@ -68,14 +56,11 @@ export function buildBlocksFromCalls(calls, opts = {}) {
       node.x = 0;
       node.y = 0;
       if (hatOpcode) {
-        // A dangling orphan reporter (`"name";` from a bare `__bare_value`
-        // statement) always carries its name under fields.VALUE; data_variable
-        // is the one opcode that expects it under a differently-named key.
         if (hatOpcode === 'data_variable' && node.fields && 'VALUE' in node.fields) {
           const [name] = node.fields.VALUE;
           node.fields = { VARIABLE: [name, (ctx?.varMap && ctx.varMap.get(name)) || null] };
         }
-        node.opcode = hatOpcode; // trust directory-derived opcode when provided
+        node.opcode = hatOpcode;
       }
     }
     if (node.opcode === 'control_stop' && !node.mutation) {
@@ -109,14 +94,6 @@ export function buildBlocksFromCalls(calls, opts = {}) {
   return { topId, blocks };
 }
 
-// `ident.method(positional...)` is syntactically ambiguous between stdlib
-// method sugar on a variable and an extension block call. Resolve here, where
-// scope is known: a variable/local/param named ident wins as the method
-// receiver; otherwise it's the opcode `ident_method`. (pack.js pre-resolves
-// these the same way before its stdlib-injection scan; this covers direct
-// parse+build API users.)
-// method name -> [opcode, positional input keys]. Commands and reporters
-// alike; the receiver list is passed as a LIST field.
 export const LIST_METHOD_OPS = {
   add: ['data_addtolist', ['ITEM']],
   push: ['data_addtolist', ['ITEM']],
@@ -215,19 +192,14 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       warp: String(!!meta.warp),
     };
     if (meta.customcolor) node.mutation.customcolor = meta.customcolor;
-    // A call used as an expression is a reporter-style custom block; the
-    // editor needs the mutation to say so or the block is statement-shaped
-    // and refuses to connect into a value slot.
+
     if (ctx.asExpression) node.mutation.return = meta.returns === '2' ? '2' : '1';
 
     const inputs = {};
     for (let i = 0; i < idsList.length; i++) {
       const idName = idsList[i];
       const arg = call.args[i]?.value;
-      // A param that was never filled in the original call renders as a bare
-      // `null` literal (stringify has no original input to read); Scratch
-      // itself omits the key entirely in that case rather than storing an
-      // empty default, so mirror that instead of fabricating one.
+
       if (!arg || arg.type === 'null') continue;
       inputs[idName] = valueToInput(arg, ids, blocks, ctx, nodeId, idName);
     }
@@ -238,9 +210,6 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
   let posIndex = 0;
   for (const a of call.args) {
     if (a.kind === 'positional') {
-      // Positional arguments map to input names by order: A, B, C, ...
-      // (the near-universal extension-block convention). Blocks whose real
-      // input names differ are always emitted in keyed form.
       const keyName = String.fromCharCode(65 + posIndex++);
       node.inputs[keyName] = valueToInput(a.value, ids, blocks, ctx, nodeId, keyName);
     } else if (a.kind === 'keyed') {
@@ -260,7 +229,13 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
         const fv = fieldValueFromNode(fieldNode, ctx);
         if (typeof fv[0] === 'string' && (fv.length < 2 || fv[1] == null)) {
           const idMap =
-            keyName === 'VARIABLE' ? ctx.varMap : keyName === 'LIST' ? ctx.listMap : keyName === 'BROADCAST_OPTION' ? ctx.broadcastNameToId : null;
+            keyName === 'VARIABLE'
+              ? ctx.varMap
+              : keyName === 'LIST'
+                ? ctx.listMap
+                : keyName === 'BROADCAST_OPTION'
+                  ? ctx.broadcastNameToId
+                  : null;
           const rid = idMap && idMap.get(fv[0]);
           if (rid) node.fields[keyName] = [fv[0], rid];
           else node.fields[keyName] = fv;
@@ -276,7 +251,12 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
         node.inputs[keyName] = valueToInput(value, ids, blocks, ctx, nodeId, keyName);
       }
     } else if (a.kind === 'branch') {
-      const { blocks: sub, topId } = buildBlocksFromCalls(a.body, { ...ctx, idGen: ids, nested: true, asExpression: false });
+      const { blocks: sub, topId } = buildBlocksFromCalls(a.body, {
+        ...ctx,
+        idGen: ids,
+        nested: true,
+        asExpression: false,
+      });
       Object.assign(blocks, sub);
       if (topId) {
         const wireKey = a.wireKey || a.key.toUpperCase();
@@ -312,10 +292,6 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       return [3, active[1], shadowRef];
     }
     case 'number':
-      // Prefer the literal source text (`raw`) over re-stringifying the
-      // parsed Number - Scratch stores numeric inputs as free-form text
-      // (".25", "007", "1e3", ...) and re-formatting via Number->String
-      // silently rewrites it (".25" -> "0.25").
       return [1, [4, val.raw ?? String(val.value)]];
     case 'string':
       return [1, [10, String(val.value)]];
@@ -335,14 +311,12 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
     }
     case 'json': {
       const v = val.value;
-      // Legacy raw primitive tuples ([10, "x"], [12, "name", "id"]) pass
-      // through verbatim - but only shapes that really are tuples: 2-3
-      // entries, a known type code, string payload. Anything else is an
-      // array literal and packs as its JSON text ([1, 2] -> "[1,2]"), the
-      // shape the JSON helper blocks consume.
+
       const isRawTuple =
         Array.isArray(v) &&
-        Number.isInteger(v[0]) && v[0] >= 4 && v[0] <= 13 &&
+        Number.isInteger(v[0]) &&
+        v[0] >= 4 &&
+        v[0] <= 13 &&
         (v[0] >= 11 ? v.length === 3 : v.length === 2) &&
         typeof v[1] === 'string';
       if (isRawTuple) return [1, v];
@@ -350,12 +324,7 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
     }
     case 'call': {
       const callNode = resolveIdentOrMethod(val.value, ctx);
-      // `ns.op("literal")` in a value slot is a visible menu shadow (the
-      // dropdown block with the parent input's key as its single field).
-      // Only plain string payloads take this path: a single positional
-      // non-string (number, variable, nested call) is a real reporter whose
-      // first input is named A - see the positional-argument convention in
-      // buildNode.
+
       const positional =
         callNode.callee.type === 'opcode' &&
         callNode.args.length === 1 &&
@@ -387,10 +356,6 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       return [2, childId];
     }
     case 'ident': {
-      // A plain variable read plugs in as Scratch's compact inline literal
-      // ([1, [12, name, id]]) - there is no separate data_variable block for
-      // it anywhere in a real project.json. Only custom-block parameters
-      // (scopeParams) are genuinely their own block (argument_reporter_*).
       if (!(ctx?.scopeParams && ctx.scopeParams.has(val.name))) {
         if (!(ctx?.localVars && ctx.localVars.has(val.name)) && ctx?.listMap && ctx.listMap.has(val.name)) {
           return varInput([13, val.name, ctx.listMap.get(val.name)]);
@@ -405,12 +370,6 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       return [2, childId];
     }
     case 'arg': {
-      // Explicit `arg("Name")` - an argument-reporter reference written out
-      // by name because it can't safely use bare-identifier sugar (either
-      // its display name collides with another param after cleanIdent, or
-      // it's orphaned: the body still refers to a param that's since been
-      // removed from the definition). Build the real reporter block by
-      // display name directly, independent of whether it's still declared.
       const childId = ids.next();
       const kind = val.bool ? 'b' : (ctx?.scopeParams && ctx.scopeParams.get(val.name)?.kind) || 's';
       const opcode = kind === 'b' ? 'argument_reporter_boolean' : 'argument_reporter_string_number';
@@ -477,12 +436,29 @@ function buildIdentReporterNode(name, ctx, id) {
   if (ctx?.scopeParams && ctx.scopeParams.has(name)) {
     const { kind, displayName } = ctx.scopeParams.get(name);
     const opcode = kind === 'b' ? 'argument_reporter_boolean' : 'argument_reporter_string_number';
-    // Body references to custom-block params are real blocks (shadow: false);
-    // only the copies inside the procedures_prototype are shadows.
-    return { id, opcode, next: null, parent: null, inputs: {}, fields: { VALUE: [displayName ?? name, null] }, shadow: false, topLevel: false };
+
+    return {
+      id,
+      opcode,
+      next: null,
+      parent: null,
+      inputs: {},
+      fields: { VALUE: [displayName ?? name, null] },
+      shadow: false,
+      topLevel: false,
+    };
   }
   const varId = (ctx?.varMap && ctx.varMap.get(name)) || null;
-  return { id, opcode: 'data_variable', next: null, parent: null, inputs: {}, fields: { VARIABLE: [name, varId] }, shadow: false, topLevel: false };
+  return {
+    id,
+    opcode: 'data_variable',
+    next: null,
+    parent: null,
+    inputs: {},
+    fields: { VARIABLE: [name, varId] },
+    shadow: false,
+    topLevel: false,
+  };
 }
 
 export function synthesizeProccode(ident, paramCount) {
@@ -505,7 +481,8 @@ function buildProcDefScript(procDef, ids, ctx) {
   const paramNames = procDef.params.map((p) => p.name);
   const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
   const typeTokens = extractPlaceholderTypes(proccode, procDef.params.length);
-  const argIds = (ctx.proceduresMapForTarget && ctx.proceduresMapForTarget.get(proccode)) || procDef.params.map((p) => p.ident);
+  const argIds =
+    (ctx.proceduresMapForTarget && ctx.proceduresMapForTarget.get(proccode)) || procDef.params.map((p) => p.ident);
   const argDefaults = typeTokens.map((t) => (t === 'b' ? 'false' : ''));
 
   const protoInputs = {};
@@ -562,8 +539,7 @@ function buildProcDefScript(procDef, ids, ctx) {
     procDef.params.map((p, i) => [p.ident, { kind: typeTokens[i], displayName: p.name ?? p.ident }])
   );
   const bodyCtx = { ...ctx, scopeParams };
-  // Comments written before the first body statement belong to the def hat
-  // itself, not to the first statement the nested chain resolves them to.
+
   let leadingComments = 0;
   while (procDef.body[leadingComments]?.type === 'commentDecl') leadingComments++;
   const hatComments = procDef.body.slice(0, leadingComments);
@@ -571,7 +547,11 @@ function buildProcDefScript(procDef, ids, ctx) {
   if (ctx.commentsOut) {
     for (const c of hatComments) ctx.commentsOut.push({ ...c, blockId: c.forId || defId });
   }
-  const { blocks: bodyBlocks, topId: bodyTopId } = buildBlocksFromCalls(bodyCalls, { ...bodyCtx, idGen: ids, nested: true });
+  const { blocks: bodyBlocks, topId: bodyTopId } = buildBlocksFromCalls(bodyCalls, {
+    ...bodyCtx,
+    idGen: ids,
+    nested: true,
+  });
   Object.assign(blocks, bodyBlocks);
   blocks[defId].next = bodyTopId || null;
   if (bodyTopId && blocks[bodyTopId]) blocks[bodyTopId].parent = defId;
@@ -579,11 +559,6 @@ function buildProcDefScript(procDef, ids, ctx) {
   return { topId: defId, blocks };
 }
 
-// Generated ids carry a '~' prefix: scratch-gui's toolbox XML assigns fixed
-// readable ids to palette blocks (e.g. the Sensing "of" block gets id "of"),
-// and its block init code looks those ids up in the editing target's blocks.
-// Bare sequential base62 ids collide with them ("of" = the 3141st block) and
-// crash the editor's flyout; the prefix keeps the id space disjoint.
 export class IdGen {
   constructor() {
     this.n = 0;
@@ -619,11 +594,6 @@ export function mergeIntoManifest(manifest, builtTargets) {
     const originalBlocks = t.blocks || {};
 
     if (bt.scripts && Array.isArray(bt.scripts)) {
-      // Two phases: run every deletion against the original blocks before any
-      // rebuilt subgraph is inserted. Rebuilt ids are freshly generated and
-      // can coincide with another script's original topBlockId - interleaving
-      // insertions would make that later script's delete pass wipe
-      // just-inserted rebuilt blocks instead of the origin ones.
       const inserts = [];
       for (const script of bt.scripts) {
         const { oldTopId, blocks: newSubgraph } = script;

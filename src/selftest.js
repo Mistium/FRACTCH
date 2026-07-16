@@ -14,7 +14,11 @@ import os from 'os';
 import fs from 'fs';
 import path from 'path';
 
-const origin = [process.env.FRACTCH_ORIGIN, path.join(os.homedir(), 'origin-fractch', 'originv619.sb3'), 'originv6.0.0.sb3']
+const origin = [
+  process.env.FRACTCH_ORIGIN,
+  path.join(os.homedir(), 'origin-fractch', 'originv619.sb3'),
+  'originv6.0.0.sb3',
+]
   .filter(Boolean)
   .map((c) => path.resolve(c))
   .find((c) => fs.existsSync(c));
@@ -26,7 +30,9 @@ const work = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-selftest-'));
 const buildDir = path.join(work, 'build');
 const repacked = path.join(work, 'repacked.sb3');
 execSync(`node ./bin/cli.js --input "${origin}" --out "${buildDir}"`, { stdio: 'inherit' });
-execSync(`node ./bin/cli.js --pack --out "${buildDir}" --outSb3 "${repacked}" --origin "${origin}"`, { stdio: 'inherit' });
+execSync(`node ./bin/cli.js --pack --out "${buildDir}" --outSb3 "${repacked}" --origin "${origin}"`, {
+  stdio: 'inherit',
+});
 const originProject = JSON.parse(new AdmZip(origin).readAsText('project.json'));
 const repackedProject = JSON.parse(new AdmZip(repacked).readAsText('project.json'));
 
@@ -47,17 +53,9 @@ for (let i = 0; i < originProject.targets.length; i++) {
   assert(rt, `Target ${ot.name} missing from repack`);
   const origCount = Object.keys(ot.blocks || {}).length;
   const repackCount = Object.keys(rt.blocks || {}).length;
-  // Parsing from pure text can't always distinguish every representational
-  // nuance (e.g. Scratch itself can encode "read variable X" as either a
-  // real data_variable block or an inline literal - both execute
-  // identically). This bounds against wholesale data loss, not byte-exact
-  // reconstruction; see scripts/_verify_dsl_roundtrip style deep checks for
-  // full structural comparison.
+
   const ratio = origCount === 0 ? 1 : repackCount / origCount;
-  assert(
-    ratio > 0.95,
-    `Target ${ot.name}: block count dropped too far (${origCount} -> ${repackCount})`
-  );
+  assert(ratio > 0.95, `Target ${ot.name}: block count dropped too far (${origCount} -> ${repackCount})`);
   console.log(`  ${ot.name}: ${origCount} -> ${repackCount} blocks`);
 }
 

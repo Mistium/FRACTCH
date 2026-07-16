@@ -17,16 +17,46 @@ const build = (source) => {
 test('MistWarp JavaScript patching syntax builds each block shape', () => {
   const command = build('js "console.log(1)";');
   assert.strictEqual(command.blocks[command.topId].opcode, 'patching_jscommand');
-  assert.strictEqual(command.blocks[command.topId].mutation.itemcount, '1');
-  assert.strictEqual(stringifyBlockCall(command.blocks[command.topId], command.blocks, command.topId), 'js "console.log(1)";');
+  assert.strictEqual(command.blocks[command.topId].mutation, undefined);
+  assert.strictEqual(
+    stringifyBlockCall(command.blocks[command.topId], command.blocks, command.topId),
+    'js "console.log(1)";'
+  );
+
+  const params = Array.from({ length: 40 }, (_, i) => String(i + 1));
+  const variadicSource = `js "console.log(inputs)" ${params.join(' ')};`;
+  const variadic = build(variadicSource);
+  const variadicBlock = variadic.blocks[variadic.topId];
+  assert.strictEqual(variadicBlock.opcode, 'patching_jscommand');
+  assert.strictEqual(variadicBlock.mutation, undefined);
+  assert.deepStrictEqual(
+    Object.keys(variadicBlock.inputs),
+    Array.from({ length: 41 }, (_, i) => `ARG${i + 1}`)
+  );
+  assert.strictEqual(stringifyBlockCall(variadicBlock, variadic.blocks, variadic.topId), variadicSource);
+
+  const emptyParsed = parseFractch('js;');
+  assert.deepStrictEqual(emptyParsed.errors, []);
+  assert.deepStrictEqual(emptyParsed.calls, []);
+  assert.strictEqual(stringifyBlockCall({ opcode: 'patching_jscommand', inputs: {} }, {}, 'empty'), '');
 
   const reporter = build('looks.say(MESSAGE: js("return 1"));');
-  assert.ok(Object.values(reporter.blocks).some((block) => block.opcode === 'patching_jsreporter'));
-  assert.strictEqual(stringifyBlockCall(reporter.blocks[reporter.topId], reporter.blocks, reporter.topId), 'say js("return 1");');
+  const reporterBlock = Object.values(reporter.blocks).find((block) => block.opcode === 'patching_jsreporter');
+  assert.ok(reporterBlock);
+  assert.strictEqual(reporterBlock.mutation, undefined);
+  assert.strictEqual(
+    stringifyBlockCall(reporter.blocks[reporter.topId], reporter.blocks, reporter.topId),
+    'say js("return 1");'
+  );
 
   const boolean = build('if js.bool("return true") { show; }');
-  assert.ok(Object.values(boolean.blocks).some((block) => block.opcode === 'patching_jsboolean'));
-  assert.match(stringifyBlockCall(boolean.blocks[boolean.topId], boolean.blocks, boolean.topId), /^if js\.bool\("return true"\)/);
+  const booleanBlock = Object.values(boolean.blocks).find((block) => block.opcode === 'patching_jsboolean');
+  assert.ok(booleanBlock);
+  assert.strictEqual(booleanBlock.mutation, undefined);
+  assert.match(
+    stringifyBlockCall(boolean.blocks[boolean.topId], boolean.blocks, boolean.topId),
+    /^if js\.bool\("return true"\)/
+  );
 });
 
 test('MistWarp operator additions and variadic mutations round-trip', () => {
@@ -56,16 +86,18 @@ test('file structure survives editor block ID regeneration', async () => {
     assert.strictEqual(marker.y, markerHat.y);
     const ids = Object.keys(target.blocks);
     const renamed = new Map(ids.map((id, i) => [id, `editor-${i}`]));
-    target.blocks = Object.fromEntries(ids.map((id) => {
-      const block = structuredClone(target.blocks[id]);
-      if (renamed.has(block.next)) block.next = renamed.get(block.next);
-      if (renamed.has(block.parent)) block.parent = renamed.get(block.parent);
-      for (const tuple of Object.values(block.inputs || {})) {
-        if (!Array.isArray(tuple)) continue;
-        for (let i = 1; i < tuple.length; i++) if (renamed.has(tuple[i])) tuple[i] = renamed.get(tuple[i]);
-      }
-      return [renamed.get(id), block];
-    }));
+    target.blocks = Object.fromEntries(
+      ids.map((id) => {
+        const block = structuredClone(target.blocks[id]);
+        if (renamed.has(block.next)) block.next = renamed.get(block.next);
+        if (renamed.has(block.parent)) block.parent = renamed.get(block.parent);
+        for (const tuple of Object.values(block.inputs || {})) {
+          if (!Array.isArray(tuple)) continue;
+          for (let i = 1; i < tuple.length; i++) if (renamed.has(tuple[i])) tuple[i] = renamed.get(tuple[i]);
+        }
+        return [renamed.get(id), block];
+      })
+    );
     for (const comment of Object.values(target.comments || {})) {
       if (renamed.has(comment.blockId)) comment.blockId = renamed.get(comment.blockId);
     }

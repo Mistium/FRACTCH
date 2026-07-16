@@ -28,33 +28,50 @@ export function checkFractch(text) {
   const at = () => ({ line, col });
   const adv = () => {
     const ch = src[i++];
-    if (ch === '\n') { line++; col = 0; } else { col++; }
+    if (ch === '\n') {
+      line++;
+      col = 0;
+    } else {
+      col++;
+    }
     return ch;
   };
 
   while (i < src.length) {
     const ch = src[i];
 
-    if (ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t') { adv(); continue; }
+    if (ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t') {
+      adv();
+      continue;
+    }
 
-    if (ch === '/' && src[i + 1] === '/') { while (i < src.length && src[i] !== '\n') adv(); continue; }
+    if (ch === '/' && src[i + 1] === '/') {
+      while (i < src.length && src[i] !== '\n') adv();
+      continue;
+    }
 
     if (ch === '/' && src[i + 1] === '*') {
       adv();
       adv();
       while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) adv();
-      if (i < src.length) { adv(); adv(); }
+      if (i < src.length) {
+        adv();
+        adv();
+      }
       continue;
     }
 
     if (ch === '"' && src[i + 1] === '"' && src[i + 2] === '"') {
-      // Triple-quoted raw string: runs (newlines included) to the next """.
       const start = at();
-      adv(); adv(); adv();
+      adv();
+      adv();
+      adv();
       let closed = false;
       while (i < src.length) {
         if (src[i] === '"' && src[i + 1] === '"' && src[i + 2] === '"') {
-          adv(); adv(); adv();
+          adv();
+          adv();
+          adv();
           closed = true;
           break;
         }
@@ -71,22 +88,38 @@ export function checkFractch(text) {
       let closed = false;
       while (i < src.length) {
         const c = adv();
-        if (c === '\\') { adv(); continue; }
-        if (c === quote) { closed = true; break; }
+        if (c === '\\') {
+          adv();
+          continue;
+        }
+        if (c === quote) {
+          closed = true;
+          break;
+        }
         if (c === '\n') break;
       }
       if (!closed) errors.push(new FractchSyntaxError('unterminated string', start.line, start.col));
       continue;
     }
 
-    if (ch === '(' || ch === '[' || ch === '{') { stack.push({ ch, ...at() }); adv(); continue; }
+    if (ch === '(' || ch === '[' || ch === '{') {
+      stack.push({ ch, ...at() });
+      adv();
+      continue;
+    }
 
     if (ch === ')' || ch === ']' || ch === '}') {
       const pos = at();
       const top = stack.pop();
       if (!top) errors.push(new FractchSyntaxError(`unexpected '${ch}'`, pos.line, pos.col));
       else if (top.ch !== pairs[ch])
-        errors.push(new FractchSyntaxError(`mismatched '${ch}' — expected close of '${top.ch}' from line ${top.line}`, pos.line, pos.col));
+        errors.push(
+          new FractchSyntaxError(
+            `mismatched '${ch}' — expected close of '${top.ch}' from line ${top.line}`,
+            pos.line,
+            pos.col
+          )
+        );
       adv();
       continue;
     }

@@ -2,11 +2,10 @@ import { LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS } from './parse.js';
 import { STDLIB_PROCCODE_TO_METHOD, STDLIB_DEF_TO_PACKAGE } from './stdlib/index.js';
 
 let CTX = {};
-export function setContext(c) { CTX = c || {}; }
+export function setContext(c) {
+  CTX = c || {};
+}
 
-// `!local_<scriptTag>_<name>` real variables reverse to the `local <name>`
-// script-local sugar. The tag is alphanumeric so the original name (which may
-// contain underscores) is everything after it.
 const LOCAL_VAR_RE = /^!local_[A-Za-z0-9]+_(.+)$/;
 export function localBareName(name) {
   const m = LOCAL_VAR_RE.exec(String(name));
@@ -14,11 +13,20 @@ export function localBareName(name) {
 }
 
 const PREC = {
-  '||': 1, '&&': 2,
-  '==': 3, '!=': 3, '<': 3, '>': 3, '<=': 3, '>=': 3,
+  '||': 1,
+  '&&': 2,
+  '==': 3,
+  '!=': 3,
+  '<': 3,
+  '>': 3,
+  '<=': 3,
+  '>=': 3,
   '++': 4,
-  '+': 5, '-': 5,
-  '*': 6, '/': 6, '%': 6,
+  '+': 5,
+  '-': 5,
+  '*': 6,
+  '/': 6,
+  '%': 6,
 };
 const UNARY_PREC = 7;
 const ATOM_PREC = 100;
@@ -26,47 +34,110 @@ const ATOM_PREC = 100;
 const REPARSABLE_NUMBER = /^-?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/;
 
 const BARE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const RESERVED_WORDS = new Set(['true', 'false', 'null', 'shadow', 'var', 'list', 'broadcast', 'arg', 'vars', 'menu', 'at', 'for', 'fallthrough', 'else', 'import', 'field', 'warp', 'color', 'returns', 'not', 'round', 'raw']);
+const RESERVED_WORDS = new Set([
+  'true',
+  'false',
+  'null',
+  'shadow',
+  'var',
+  'list',
+  'broadcast',
+  'arg',
+  'vars',
+  'menu',
+  'at',
+  'for',
+  'fallthrough',
+  'else',
+  'import',
+  'field',
+  'warp',
+  'color',
+  'returns',
+  'not',
+  'round',
+  'raw',
+]);
 
 function bareNameOk(name) {
   return BARE_NAME.test(name) && !RESERVED_WORDS.has(name) && !STATEMENT_KEYWORDS.has(name);
 }
 
 const SIMPLE_ALIAS_EMIT = {
-  looks_show: 'show', looks_hide: 'hide',
-  looks_nextcostume: 'nextCostume', looks_nextbackdrop: 'nextBackdrop',
+  looks_show: 'show',
+  looks_hide: 'hide',
+  looks_nextcostume: 'nextCostume',
+  looks_nextbackdrop: 'nextBackdrop',
   looks_cleargraphiceffects: 'clearEffects',
   control_break: 'break',
-  control_delete_this_clone: 'deleteClone', sensing_resettimer: 'resetTimer',
+  control_delete_this_clone: 'deleteClone',
+  sensing_resettimer: 'resetTimer',
   motion_ifonedgebounce: 'ifOnEdgeBounce',
-  sound_stopallsounds: 'stopAllSounds', sound_cleareffects: 'clearSoundEffects',
-  pen_penUp: 'penUp', pen_penDown: 'penDown', pen_clear: 'penClear', pen_stamp: 'stamp',
+  sound_stopallsounds: 'stopAllSounds',
+  sound_cleareffects: 'clearSoundEffects',
+  pen_penUp: 'penUp',
+  pen_penDown: 'penDown',
+  pen_clear: 'penClear',
+  pen_stamp: 'stamp',
 };
 
 const UNARY_ALIAS_EMIT = {
-  looks_say: ['say', 'MESSAGE'], looks_think: ['think', 'MESSAGE'],
+  looks_say: ['say', 'MESSAGE'],
+  looks_think: ['think', 'MESSAGE'],
   sensing_askandwait: ['ask', 'QUESTION'],
   motion_movesteps: ['move', 'STEPS'],
-  motion_turnright: ['turn', 'DEGREES'], motion_turnleft: ['turnLeft', 'DEGREES'],
+  motion_turnright: ['turn', 'DEGREES'],
+  motion_turnleft: ['turnLeft', 'DEGREES'],
   motion_pointindirection: ['point', 'DIRECTION'],
-  motion_setx: ['setX', 'X'], motion_sety: ['setY', 'Y'],
-  motion_changexby: ['changeX', 'DX'], motion_changeyby: ['changeY', 'DY'],
-  looks_setsizeto: ['setSize', 'SIZE'], looks_changesizeby: ['changeSize', 'CHANGE'],
-  sound_changevolumeby: ['changeVolume', 'VOLUME'], sound_setvolumeto: ['setVolume', 'VOLUME'],
+  motion_setx: ['setX', 'X'],
+  motion_sety: ['setY', 'Y'],
+  motion_changexby: ['changeX', 'DX'],
+  motion_changeyby: ['changeY', 'DY'],
+  looks_setsizeto: ['setSize', 'SIZE'],
+  looks_changesizeby: ['changeSize', 'CHANGE'],
+  sound_changevolumeby: ['changeVolume', 'VOLUME'],
+  sound_setvolumeto: ['setVolume', 'VOLUME'],
 };
 
-// Menu-shadow command blocks. Fixed sentinel values bake into the name
-// (base + suffix, nullary); dynamic values emit `base "value"`; a plugged
-// reporter emits `base expr`. Extra leading inputs (glide's SECS) are prefixed.
 const MENU_CMD_EMIT = {
   looks_switchcostumeto: { base: 'costume', key: 'COSTUME', menu: 'looks_costume', sentinels: {}, lead: [] },
   looks_switchbackdropto: { base: 'backdrop', key: 'BACKDROP', menu: 'looks_backdrops', sentinels: {}, lead: [] },
-  control_create_clone_of: { base: 'clone', key: 'CLONE_OPTION', menu: 'control_create_clone_of_menu', sentinels: { _myself_: 'cloneMyself' }, lead: [] },
-  motion_goto: { base: 'goto', key: 'TO', menu: 'motion_goto_menu', sentinels: { _mouse_: 'gotoMouse', _random_: 'gotoRandom' }, lead: [] },
-  motion_pointtowards: { base: 'pointTowards', key: 'TOWARDS', menu: 'motion_pointtowards_menu', sentinels: { _mouse_: 'pointTowardsMouse', _random_: 'pointTowardsRandom' }, lead: [] },
-  motion_glideto: { base: 'glideTo', key: 'TO', menu: 'motion_glideto_menu', sentinels: { _mouse_: 'glideToMouse', _random_: 'glideToRandom' }, lead: ['SECS'] },
+  control_create_clone_of: {
+    base: 'clone',
+    key: 'CLONE_OPTION',
+    menu: 'control_create_clone_of_menu',
+    sentinels: { _myself_: 'cloneMyself' },
+    lead: [],
+  },
+  motion_goto: {
+    base: 'goto',
+    key: 'TO',
+    menu: 'motion_goto_menu',
+    sentinels: { _mouse_: 'gotoMouse', _random_: 'gotoRandom' },
+    lead: [],
+  },
+  motion_pointtowards: {
+    base: 'pointTowards',
+    key: 'TOWARDS',
+    menu: 'motion_pointtowards_menu',
+    sentinels: { _mouse_: 'pointTowardsMouse', _random_: 'pointTowardsRandom' },
+    lead: [],
+  },
+  motion_glideto: {
+    base: 'glideTo',
+    key: 'TO',
+    menu: 'motion_glideto_menu',
+    sentinels: { _mouse_: 'glideToMouse', _random_: 'glideToRandom' },
+    lead: ['SECS'],
+  },
   sound_play: { base: 'playSound', key: 'SOUND_MENU', menu: 'sound_sounds_menu', sentinels: {}, lead: [] },
-  sound_playuntildone: { base: 'playSoundUntilDone', key: 'SOUND_MENU', menu: 'sound_sounds_menu', sentinels: {}, lead: [] },
+  sound_playuntildone: {
+    base: 'playSoundUntilDone',
+    key: 'SOUND_MENU',
+    menu: 'sound_sounds_menu',
+    sentinels: {},
+    lead: [],
+  },
 };
 
 const LIST_STMT_EMIT = {
@@ -81,7 +152,6 @@ const LIST_STMT_EMIT = {
 
 export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}) {
   const opcode = block.opcode;
-  const jsonMode = cfg?.dsl?.json ?? 'minimal'; // 'none' | 'minimal' | 'full'
 
   if (opcode === 'patching_jscommand' || opcode === 'patching_jsreporter' || opcode === 'patching_jsboolean') {
     const values = Object.keys(block.inputs || {})
@@ -89,7 +159,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
       .sort((a, b) => Number(a.slice(3)) - Number(b.slice(3)))
       .map((key) => inputValueText(block.inputs[key], subgraph, key));
     const args = values.join(', ');
-    if (opcode === 'patching_jscommand' && values.length === 1) return `js ${values[0]};`;
+    if (opcode === 'patching_jscommand') return values.length ? `js ${values.join(' ')};` : '';
     if (opcode === 'patching_jsboolean') return `js.bool(${args})`;
     if (opcode === 'patching_jsreporter') return `js(${args})`;
   }
@@ -98,26 +168,26 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const code = block.mutation?.proccode;
     const info = code && CTX.procByCode?.get(code);
     if (info) {
-      // Positional: argument order is the def's parameter order. Named form
-      // (`@Name(param: v)`) still parses.
       let callArgIds = null;
       try {
         const parsed = JSON.parse(block.mutation?.argumentids || 'null');
         if (Array.isArray(parsed) && parsed.length === info.params.length) callArgIds = parsed;
-      } catch {}
+      } catch {
+        callArgIds = null;
+      }
       const args = info.params.map((p, i) => {
-        const key = callArgIds && Object.prototype.hasOwnProperty.call(block.inputs || {}, callArgIds[i]) ? callArgIds[i] : p.id;
+        const key =
+          callArgIds && Object.prototype.hasOwnProperty.call(block.inputs || {}, callArgIds[i]) ? callArgIds[i] : p.id;
         const inp = block.inputs?.[key];
         return Array.isArray(inp) ? inputValueText(inp, subgraph, key) : 'null';
       });
-      // A package def re-sugars to its `namespace.method(...)` call form.
+
       const pkg = STDLIB_DEF_TO_PACKAGE.get(info.ident);
       if (pkg && !STDLIB_PROCCODE_TO_METHOD.has(code)) {
         const call = `${pkg.namespace}.${pkg.method}(${args.join(', ')})`;
         return inline ? call : call + ';';
       }
-      // Legacy value-method re-sugar (split/join/item/count/push): receiver is
-      // the first arg.
+
       const method = STDLIB_PROCCODE_TO_METHOD.get(code);
       if (method && info.params.length >= 1) {
         const recvArr = block.inputs?.[info.params[0].id];
@@ -135,10 +205,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const name = block.fields?.VARIABLE?.[0] ?? '';
     const local = localBareName(name);
     if (local && inline) return local;
-    // A standalone top-level statement is a dangling orphan reporter with no
-    // enclosing script to resolve an identifier against - print the exact
-    // original name as a string literal so it round-trips byte-for-byte
-    // instead of going through the (lossy, space-stripping) identifier form.
+
     if (!inline) return `${JSON.stringify(String(name))};`;
     const out = /^[A-Za-z_][A-Za-z0-9_]*$/.test(String(name)) ? String(name) : JSON.stringify(String(name));
     return out;
@@ -147,21 +214,12 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const name = String(block.fields?.VALUE?.[0] ?? '');
     if (!inline && opcode === 'argument_reporter_string_number') return `arg(${JSON.stringify(name)});`;
     if (!inline) return `arg(${JSON.stringify(name)}, "boolean");`;
-    // Inline (referenced from inside a procedure body): must match the
-    // identifier the enclosing def signature declared for this param (see
-    // emit.js defSignature/procInfoFor and convert.js's dedup in
-    // buildProcByCode) so the parser resolves it back to the same scope
-    // param instead of a literal, or - when two params' names collide only
-    // after cleanIdent (e.g. "X" and "+X") - the wrong param entirely.
+
     const mapped = CTX.scopeParamNames?.get(name);
     const declaredKind = CTX.scopeParamKinds?.get(name) || 's';
     const blockKind = opcode === 'argument_reporter_boolean' ? 'b' : 's';
     if (mapped && declaredKind === blockKind && bareNameOk(mapped)) return mapped;
-    // No declared param has this exact display name - Scratch allows a
-    // custom block's body to keep referencing a param after it's been
-    // removed from the definition (an orphaned/unbound reporter). Bare
-    // identifier sugar can't distinguish that from a plain variable read,
-    // so spell it out explicitly instead of guessing.
+
     if (opcode === 'argument_reporter_boolean') return `arg(${JSON.stringify(name)}, "boolean")`;
     return `arg(${JSON.stringify(name)})`;
   }
@@ -174,10 +232,6 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const header = `if ${condStr}`;
     const thenBody = thenId ? renderBody(subgraph, thenId) : '';
     if (opcode === 'control_if_else') {
-      // Re-sugar `else { if ... }` to `else if ...` when the else body is
-      // exactly that one if statement. An attached comment or a next link
-      // (including a dangling forward reference) keeps the braced form so
-      // comment anchoring and dangling_next sentinels stay untouched.
       const elseBlock = elseId ? subgraph[elseId] : null;
       if (
         elseBlock &&
@@ -199,8 +253,6 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const op = opcode === 'data_changevariableby' ? '+=' : '=';
     const local = localBareName(varName);
     if (local) {
-      // First `=` set of a script-local restores the `local` keyword so pack
-      // re-registers it; later sets/changes are plain assignments.
       if (op === '=' && !CTX.declaredLocals?.has(local)) {
         CTX.declaredLocals?.add(local);
         return `local ${local} = ${value};`;
@@ -264,8 +316,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   if (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') {
     const tuple = block.inputs?.BROADCAST_INPUT;
     const childId = Array.isArray(tuple) ? tuple[1] : null;
-    // A literal broadcast name reference doesn't need the broadcast() wrapper
-    // here - the statement keyword already says "this is a broadcast".
+
     let name;
     if (typeof childId === 'string' && subgraph[childId]) {
       name = inputValueText(tuple, subgraph, 'BROADCAST_INPUT');
@@ -298,26 +349,20 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
 
   const positionalArgs = tryPositionalArgs(block, subgraph, inline);
-  const inputsStr = positionalArgs != null ? positionalArgs : stringifyInputs(block, subgraph, /*cLike*/ true);
+  const inputsStr = positionalArgs != null ? positionalArgs : stringifyInputs(block, subgraph, true);
   const fieldsStr = stringifyFields(block);
   const argParts = [];
   if (inputsStr) argParts.push(inputsStr);
   if (fieldsStr) argParts.push(fieldsStr);
-  // Any block reaching this generic fallback that carries a mutation (custom
-  // extension quirks, or a procedures_call whose prototype couldn't be
-  // resolved to a friendly @name) needs it captured or the mutation is lost
-  // outright - dump it as a JSON field, decoded back in buildNode.
+
   if (block.mutation) {
     argParts.push(`mutation: ${JSON.stringify(block.mutation)}`);
   }
   const opName = formatOpcodeName(opcode);
-  const call = opName ?
-    `${opName}(${argParts.join(', ')})` :
-    `raw(${JSON.stringify(String(opcode))}${argParts.length ? `, ${argParts.join(', ')}` : ''})`;
+  const call = opName
+    ? `${opName}(${argParts.join(', ')})`
+    : `raw(${JSON.stringify(String(opcode))}${argParts.length ? `, ${argParts.join(', ')}` : ''})`;
 
-  // Extension "C-block" opcodes (custom blocks with a body slot) that aren't
-  // one of the hardcoded control-flow keywords above still need their
-  // SUBSTACK/SUBSTACK2 bodies represented, or the branch is silently lost.
   const substackKeys = Object.keys(block.inputs || {})
     .filter((k) => k.startsWith('SUBSTACK'))
     .sort();
@@ -328,12 +373,6 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   return inline ? call : call + ';';
 }
 
-// Inputs named exactly A, B, C, ... (the common extension-block convention)
-// emit positionally - `mistsutils.patchcommand("...")` - and pack maps the
-// order back to A, B, C in buildNode. Two exclusions keep the round trip
-// lossless: fields or a mutation force the keyed form (positional order
-// can't carry them), and an inline single plain-string argument stays keyed
-// because `ns.op("text")` in a value slot already means a visible menu shadow.
 function tryPositionalArgs(block, subgraph, inline) {
   if (block.mutation) return null;
   if (block.fields && Object.keys(block.fields).length) return null;
@@ -351,13 +390,10 @@ function tryPositionalArgs(block, subgraph, inline) {
     const childId = arr[1];
     const child = typeof childId === 'string' ? subgraph[childId] : null;
     if (!child && Array.isArray(childId) && childId[0] === 10) {
-      // Only a QUOTED single string collides with the menu-shadow form.
-      // Number-shaped strings ([10,"0"]) print bare and reparse as a plain
-      // positional input, so they can drop the A: label.
       const printed = formatLiteral(arr);
       if (printed.startsWith('"')) return null;
     }
-    // A visible shadow child would also print as `menuop("text")` - keep keyed.
+
     if (child && child.shadow) return null;
   }
   return keys.map((k) => inputValueText(block.inputs[k], subgraph, k)).join(', ');
@@ -383,31 +419,66 @@ function blockExprInfo(block, subgraph, id) {
   if (le) return le;
   const so = trySpriteOf(block, subgraph);
   if (so) return so;
-  return { text: stringifyBlockCall(block, subgraph, id, /*inline*/ true), prec: ATOM_PREC };
+  return { text: stringifyBlockCall(block, subgraph, id, true), prec: ATOM_PREC };
 }
 
 const SPRITE_PROP_EMIT = {
-  'x position': 'x', 'y position': 'y', direction: 'direction',
-  size: 'size', volume: 'volume',
-  'costume #': 'costume_number', 'costume name': 'costume_name',
-  'backdrop #': 'backdrop_number', 'backdrop name': 'backdrop_name',
+  'x position': 'x',
+  'y position': 'y',
+  direction: 'direction',
+  size: 'size',
+  volume: 'volume',
+  'costume #': 'costume_number',
+  'costume name': 'costume_name',
+  'backdrop #': 'backdrop_number',
+  'backdrop name': 'backdrop_name',
 };
 
 const NULLARY_REPORTER_EMIT = {
-  motion_xposition: 'xPosition', motion_yposition: 'yPosition', motion_direction: 'direction',
-  looks_size: 'size', looks_costumes: 'costumes', sound_volume: 'volume',
-  sensing_answer: 'answer', sensing_timer: 'timer', sensing_loudness: 'loudness',
-  sensing_mousex: 'mouseX', sensing_mousey: 'mouseY', sensing_mousedown: 'mouseDown',
-  sensing_username: 'username', sensing_dayssince2000: 'daysSince2000',
+  motion_xposition: 'xPosition',
+  motion_yposition: 'yPosition',
+  motion_direction: 'direction',
+  looks_size: 'size',
+  looks_costumes: 'costumes',
+  sound_volume: 'volume',
+  sensing_answer: 'answer',
+  sensing_timer: 'timer',
+  sensing_loudness: 'loudness',
+  sensing_mousex: 'mouseX',
+  sensing_mousey: 'mouseY',
+  sensing_mousedown: 'mouseDown',
+  sensing_username: 'username',
+  sensing_dayssince2000: 'daysSince2000',
 };
 const FIELD_REPORTER_EMIT = {
   looks_costumenumbername: ['NUMBER_NAME', { number: 'costumeNumber', name: 'costumeName' }],
   looks_backdropnumbername: ['NUMBER_NAME', { number: 'backdropNumber', name: 'backdropName' }],
-  sensing_current: ['CURRENTMENU', { YEAR: 'currentYear', MONTH: 'currentMonth', DATE: 'currentDate', DAYOFWEEK: 'currentDayOfWeek', HOUR: 'currentHour', MINUTE: 'currentMinute', SECOND: 'currentSecond' }],
+  sensing_current: [
+    'CURRENTMENU',
+    {
+      YEAR: 'currentYear',
+      MONTH: 'currentMonth',
+      DATE: 'currentDate',
+      DAYOFWEEK: 'currentDayOfWeek',
+      HOUR: 'currentHour',
+      MINUTE: 'currentMinute',
+      SECOND: 'currentSecond',
+    },
+  ],
 };
 const REPORTER_MENU_EMIT = {
-  sensing_touchingobject: { base: 'touching', key: 'TOUCHINGOBJECTMENU', menu: 'sensing_touchingobjectmenu', sentinels: { _mouse_: 'touchingMouse', _edge_: 'touchingEdge' } },
-  sensing_distanceto: { base: 'distanceTo', key: 'DISTANCETOMENU', menu: 'sensing_distancetomenu', sentinels: { _mouse_: 'distanceToMouse' } },
+  sensing_touchingobject: {
+    base: 'touching',
+    key: 'TOUCHINGOBJECTMENU',
+    menu: 'sensing_touchingobjectmenu',
+    sentinels: { _mouse_: 'touchingMouse', _edge_: 'touchingEdge' },
+  },
+  sensing_distanceto: {
+    base: 'distanceTo',
+    key: 'DISTANCETOMENU',
+    menu: 'sensing_distancetomenu',
+    sentinels: { _mouse_: 'distanceToMouse' },
+  },
   sensing_keypressed: { base: 'keyPressed', key: 'KEY_OPTION', menu: 'sensing_keyoptions', sentinels: {} },
 };
 const REPORTER_FUNC_EMIT = {
@@ -532,16 +603,25 @@ function tryListExpr(block, subgraph) {
   const inputKeys = Object.keys(block.inputs || {});
   const one = (k) => inputKeys.length === 1 && inputKeys[0] === k;
   if (op === 'data_itemoflist' && one('INDEX')) {
-    return { text: `item(${listArgText(name)}, ${inputValueText(block.inputs.INDEX, subgraph, 'INDEX')})`, prec: ATOM_PREC };
+    return {
+      text: `item(${listArgText(name)}, ${inputValueText(block.inputs.INDEX, subgraph, 'INDEX')})`,
+      prec: ATOM_PREC,
+    };
   }
   if (op === 'data_lengthoflist' && inputKeys.length === 0) {
     return { text: `${listArgText(name)}.length`, prec: ATOM_PREC };
   }
   if (op === 'data_listcontainsitem' && one('ITEM')) {
-    return { text: `hasItem(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
+    return {
+      text: `hasItem(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`,
+      prec: ATOM_PREC,
+    };
   }
   if (op === 'data_itemnumoflist' && one('ITEM')) {
-    return { text: `indexOf(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`, prec: ATOM_PREC };
+    return {
+      text: `indexOf(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`,
+      prec: ATOM_PREC,
+    };
   }
   return null;
 }
@@ -611,7 +691,11 @@ function tryStatementAlias(block, subgraph) {
       return `${kw} ${inputValueText(inputs[key], subgraph, key)};`;
     }
   }
-  if ((op === 'looks_sayforsecs' || op === 'looks_thinkforsecs') && !fieldKeys.length && exactInputs('MESSAGE', 'SECS')) {
+  if (
+    (op === 'looks_sayforsecs' || op === 'looks_thinkforsecs') &&
+    !fieldKeys.length &&
+    exactInputs('MESSAGE', 'SECS')
+  ) {
     const kw = op === 'looks_sayforsecs' ? 'say' : 'think';
     return `${kw} ${inputValueText(inputs.MESSAGE, subgraph, 'MESSAGE')} for ${inputValueText(inputs.SECS, subgraph, 'SECS')};`;
   }
@@ -649,7 +733,12 @@ function tryStatementAlias(block, subgraph) {
   if (op === 'sensing_setdragmode' && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'DRAG_MODE') {
     return `setDragMode ${JSON.stringify(String(fields.DRAG_MODE[0] ?? ''))};`;
   }
-  if ((op === 'data_showvariable' || op === 'data_hidevariable') && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'VARIABLE') {
+  if (
+    (op === 'data_showvariable' || op === 'data_hidevariable') &&
+    !inputKeys.length &&
+    fieldKeys.length === 1 &&
+    fieldKeys[0] === 'VARIABLE'
+  ) {
     const name = String(fields.VARIABLE[0] ?? '');
     const kw = op === 'data_showvariable' ? 'showVariable' : 'hideVariable';
     return `${kw} ${bareNameOk(name) ? name : JSON.stringify(name)};`;
@@ -659,7 +748,12 @@ function tryStatementAlias(block, subgraph) {
     if (v === 'front') return 'goFront;';
     if (v === 'back') return 'goBack;';
   }
-  if (op === 'looks_goforwardbackwardlayers' && exactInputs('NUM') && fieldKeys.length === 1 && fieldKeys[0] === 'FORWARD_BACKWARD') {
+  if (
+    op === 'looks_goforwardbackwardlayers' &&
+    exactInputs('NUM') &&
+    fieldKeys.length === 1 &&
+    fieldKeys[0] === 'FORWARD_BACKWARD'
+  ) {
     const v = fields.FORWARD_BACKWARD[0];
     if (v === 'forward') return `goForward ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
     if (v === 'backward') return `goBackward ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
@@ -681,7 +775,7 @@ function tryStatementAlias(block, subgraph) {
 function shadowBlockText(block, subgraph, id, inputName) {
   const op = String(block.opcode || '');
   if (op === 'argument_reporter_string_number' || op === 'argument_reporter_boolean') {
-    return stringifyBlockCall(block, subgraph, id, /*inline*/ true);
+    return stringifyBlockCall(block, subgraph, id, true);
   }
   const fields = block.fields || {};
   const keys = Object.keys(fields);
@@ -693,7 +787,7 @@ function shadowBlockText(block, subgraph, id, inputName) {
       if (opName) return `${opName}(${JSON.stringify(v[0])})`;
     }
   }
-  return `shadow ${stringifyBlockCall(block, subgraph, id, /*inline*/ true)}`;
+  return `shadow ${stringifyBlockCall(block, subgraph, id, true)}`;
 }
 
 export function inputValueText(arr, subgraph, inputName) {
@@ -703,10 +797,7 @@ export function inputValueText(arr, subgraph, inputName) {
   if (child && child.shadow) {
     return shadowBlockText(child, subgraph, childId, inputName);
   }
-  // Obscured shadows (the dropdown default hidden behind a plugged-in
-  // reporter) are deliberately not written out: the editor regenerates menu
-  // shadows on load, so `expr ?? menu("x")` would be pure noise. The parser
-  // still accepts the ?? form.
+
   return getInputExpr(arr, subgraph);
 }
 
@@ -719,11 +810,11 @@ function inputSeparator(name, text) {
   return ': ';
 }
 
-export function stringifyInputs(block, subgraph, cLike = false) {
+export function stringifyInputs(block, subgraph) {
   if (!block.inputs) return '';
   const args = [];
   for (const [name, val] of Object.entries(block.inputs)) {
-    if (name.startsWith('SUBSTACK')) continue; // handled as branch
+    if (name.startsWith('SUBSTACK')) continue;
 
     const arr = val;
     if (!Array.isArray(arr) || arr.length < 2) {
@@ -775,12 +866,6 @@ export function stringifyFields(block) {
   return kv.join(', ');
 }
 
-// Walks a `.next` chain, stopping either at a clean end (cursor falsy) or at
-// a *dangling* reference: a non-null id that isn't a real node anywhere in
-// the subgraph. The latter happens with corrupted/hand-edited project.json
-// files that leave forward references to blocks that were never (or no
-// longer) actually serialized - rare, but real ones exist in the wild, and
-// silently truncating the chain there would lose that reference for good.
 function linearizeWithIds(subgraph, topId) {
   const arr = [];
   let cursor = topId;
@@ -793,9 +878,6 @@ function linearizeWithIds(subgraph, topId) {
   return { ids: arr, danglingId: null };
 }
 
-// Renders a full `.next` chain as DSL statement text, appending a
-// `dangling_next("id")` sentinel when the chain ends in an unresolvable
-// forward reference instead of silently dropping it (see linearizeWithIds).
 export function renderBody(subgraph, topId, cfg) {
   const { ids, danglingId } = linearizeWithIds(subgraph, topId);
   const lines = ids.map((cid) =>
@@ -836,8 +918,6 @@ export function withAttachedComments(line, attached) {
   return out;
 }
 
-// Canonical text form of a comment declaration. `forId` (orphan comments
-// whose anchor block no longer exists) reproduces the dangling reference.
 export function commentDeclLine(c) {
   const parts = [`comment ${JSON.stringify(String(c.text ?? ''))}`];
   if ((c.x ?? 0) !== 0 || (c.y ?? 0) !== 0) parts.push(`at ${numToken(c.x)},${numToken(c.y)}`);
@@ -852,16 +932,11 @@ function numToken(n) {
   return Number.isFinite(v) ? String(v) : '0';
 }
 
-// A string whose content is canonical JSON array/object text re-emits bare -
-// `["a","b"]` instead of "[\"a\",\"b\"]" - matching the array-literal parse
-// sugar (both pack to the identical [10, json-text] primitive). Guards: the
-// text must round-trip JSON.parse -> JSON.stringify byte-for-byte, must not
-// use escapes the fractch string reader lacks (\b \f \uXXXX), and must not
-// look like a legacy raw primitive tuple ([10, "x"]), which parses as one.
 function tryJsonLiteralText(raw) {
   if (raw.length < 2) return null;
   const first = raw[0];
-  if ((first !== '[' && first !== '{') || raw.includes('\\b') || raw.includes('\\f') || raw.includes('\\u')) return null;
+  if ((first !== '[' && first !== '{') || raw.includes('\\b') || raw.includes('\\f') || raw.includes('\\u'))
+    return null;
   let v;
   try {
     v = JSON.parse(raw);
@@ -873,15 +948,14 @@ function tryJsonLiteralText(raw) {
   const isRawTupleShape =
     Array.isArray(v) &&
     (v.length === 2 || v.length === 3) &&
-    Number.isInteger(v[0]) && v[0] >= 4 && v[0] <= 13 &&
+    Number.isInteger(v[0]) &&
+    v[0] >= 4 &&
+    v[0] <= 13 &&
     typeof v[1] === 'string';
   if (isRawTupleShape) return null;
   return raw;
 }
 
-// Multiline string literals: emitted as raw """...""" blocks when the value
-// has real newlines. The content between the quotes must survive every
-// re-indent byte-for-byte, so both indenters skip lines inside an open """.
 export function stringToken(raw) {
   const s = String(raw);
   if (s.includes('\n') && !s.includes('"""') && !s.includes('\r') && !s.startsWith('"') && !s.endsWith('"')) {
@@ -898,7 +972,7 @@ function indent(str, spaces = 2) {
     .split('\n')
     .map((l) => {
       const out = l && !inRaw ? pad + l : l;
-      if (((l.match(/"""/g) || []).length) % 2) inRaw = !inRaw;
+      if ((l.match(/"""/g) || []).length % 2) inRaw = !inRaw;
       return out;
     })
     .join('\n');
@@ -911,11 +985,6 @@ function branch(block, key, subgraph) {
   return `{\n${indent(body)}\n}`;
 }
 
-// Preserve key case exactly: Scratch's own built-in keys are ALL_CAPS (fine
-// either way), but custom-block/extension argument ids are often
-// lowercase/mixed-case random strings where case is semantically load-bearing
-// (must match verbatim between a block's inputs and its own mutation). Only
-// bracket+JSON-quote keys that aren't valid bare identifiers at all.
 function formatArgKey(name) {
   try {
     const s = String(name);
@@ -944,36 +1013,29 @@ function formatLiteral(arr) {
       const value = payload[1];
       switch (typeCode) {
         case 10: {
-          // string/text
           const raw = String(value ?? '');
           if (raw !== '' && REPARSABLE_NUMBER.test(raw)) return raw;
           const arrText = tryJsonLiteralText(raw);
           if (arrText) return arrText;
           return stringToken(raw);
         }
-        case 4: // number (as string)
-        case 5: // positive number
-        case 6: // positive integer
-        case 7: // integer
+        case 4:
+        case 5:
+        case 6:
+        case 7:
         case 8: {
-          // list index / numeric - Scratch stores these as free-form text
-          // (".25", "007", "", ...), so print the original text verbatim
-          // whenever our number grammar can re-parse it exactly, rather
-          // than normalizing through Number->String and rewriting it.
           const raw = value == null ? '' : String(value);
-          if (raw === '') return '""'; // unfilled default; not "0"
+          if (raw === '') return '""';
           if (REPARSABLE_NUMBER.test(raw)) return raw;
 
           return `${JSON.stringify(raw)}`;
         }
         case 11: {
-          // broadcast name reference
           const name = String(value ?? '');
           const id = payload.length > 2 ? String(payload[2]) : undefined;
           return refCall('broadcast', name, id, CTX.broadcastNameToId);
         }
         case 12: {
-          // variable/parameter reference label -> print as bare identifier when safe
           const name = String(value ?? '');
           const local = localBareName(name);
           if (local) return local;
@@ -981,13 +1043,12 @@ function formatLiteral(arr) {
           if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) {
             return refCall('var', name, id, CTX.varMap);
           }
-          const shadowedByParam = CTX.scopeParamNames &&
-            (CTX.scopeParamNames.has(name) || [...CTX.scopeParamNames.values()].includes(name));
+          const shadowedByParam =
+            CTX.scopeParamNames && (CTX.scopeParamNames.has(name) || [...CTX.scopeParamNames.values()].includes(name));
           if (!shadowedByParam && bareNameOk(name)) return name;
           return `vars[${JSON.stringify(name)}]`;
         }
         case 13: {
-          // list reference
           const name = String(value ?? '');
           const id = payload.length > 2 ? String(payload[2]) : undefined;
           if (id == null || (CTX.listMap && CTX.listMap.get(name) === id)) return listRefText(name);
@@ -1009,7 +1070,7 @@ function formatLiteral(arr) {
       return `${String(payload)}`;
     }
   } catch {
-    // Handle error
+    return `null`;
   }
   return `null`;
 }
@@ -1033,11 +1094,17 @@ function tryOperatorInfo(block, subgraph) {
       return Object.keys(block.inputs || {}).length === 2 ? bin('/', 'NUM1', 'NUM2') : null;
     case 'operator_min':
     case 'operator_max': {
-      const values = Object.keys(block.inputs || {}).filter((key) => /^NUM\d+$/.test(key)).sort((a, b) => Number(a.slice(3)) - Number(b.slice(3))).map((key) => getInputExpr(block.inputs[key], subgraph));
+      const values = Object.keys(block.inputs || {})
+        .filter((key) => /^NUM\d+$/.test(key))
+        .sort((a, b) => Number(a.slice(3)) - Number(b.slice(3)))
+        .map((key) => getInputExpr(block.inputs[key], subgraph));
       return { text: `${op.slice(9)}(${values.join(', ')})`, prec: ATOM_PREC };
     }
     case 'operator_clamp':
-      return { text: `clamp(${getInputExpr(input('NUM'), subgraph)}, ${getInputExpr(input('MIN'), subgraph)}, ${getInputExpr(input('MAX'), subgraph)})`, prec: ATOM_PREC };
+      return {
+        text: `clamp(${getInputExpr(input('NUM'), subgraph)}, ${getInputExpr(input('MIN'), subgraph)}, ${getInputExpr(input('MAX'), subgraph)})`,
+        prec: ATOM_PREC,
+      };
     case 'operator_mod':
       return bin('%', 'NUM1', 'NUM2');
     case 'operator_round':
@@ -1055,9 +1122,15 @@ function tryOperatorInfo(block, subgraph) {
       return { text: `${recvText}.letter(${getInputExpr(input('LETTER'), subgraph)})`, prec: ATOM_PREC };
     }
     case 'operator_random':
-      return { text: `random(${getInputExpr(input('FROM'), subgraph)}, ${getInputExpr(input('TO'), subgraph)})`, prec: ATOM_PREC };
+      return {
+        text: `random(${getInputExpr(input('FROM'), subgraph)}, ${getInputExpr(input('TO'), subgraph)})`,
+        prec: ATOM_PREC,
+      };
     case 'operator_contains':
-      return { text: `contains(${getInputExpr(input('STRING1'), subgraph)}, ${getInputExpr(input('STRING2'), subgraph)})`, prec: ATOM_PREC };
+      return {
+        text: `contains(${getInputExpr(input('STRING1'), subgraph)}, ${getInputExpr(input('STRING2'), subgraph)})`,
+        prec: ATOM_PREC,
+      };
     case 'operator_join':
       return bin('++', 'STRING1', 'STRING2');
     case 'operator_equals': {

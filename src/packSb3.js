@@ -5,7 +5,13 @@ import { buildProjectFromBuildDir, deepEqual, BLANK_SVG, BLANK_SVG_ID } from './
 import { writeCompressedZip } from './writeZip.js';
 
 export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = false, fs: fsLike = fs }) {
-  const { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles } = await buildProjectFromBuildDir({
+  const {
+    manifest: newManifest,
+    hasManifest,
+    totalScripts,
+    parsedScripts,
+    assetFiles,
+  } = await buildProjectFromBuildDir({
     buildDir,
     fs: fsLike,
     verbose,
@@ -32,12 +38,14 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = 
       }
     }
   } catch {
-    // Handle error
+    wroteProject = false;
   }
   if (!wroteProject) {
     const text = JSON.stringify(newManifest);
     if (verbose)
-      console.log(`[pack] Writing rebuilt project.json (${text.length} bytes); ${parsedScripts}/${totalScripts} scripts parsed`);
+      console.log(
+        `[pack] Writing rebuilt project.json (${text.length} bytes); ${parsedScripts}/${totalScripts} scripts parsed`
+      );
     zip.addFile('project.json', Buffer.from(text));
   }
 
@@ -49,8 +57,7 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = 
       const assetShaped = /^[0-9a-f]{32}\.[A-Za-z0-9]+$/;
       for (const entry of srcZip.getEntries()) {
         if (entry.entryName === 'project.json') continue;
-        // Assets copy only when referenced; anything that isn't an asset file
-        // (custom metadata like git.json) is preserved as-is.
+
         if (assetShaped.test(entry.entryName) && !referencedAssets.has(entry.entryName)) continue;
         if (zip.getEntry(entry.entryName)) continue;
         const data = srcZip.readFile(entry);
@@ -58,7 +65,7 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = 
       }
     }
   } catch {
-    // Handle error
+    zip.getEntries();
   }
   addMissingAssetFiles(zip, newManifest);
   const entries = zip.getEntries().map((entry) => ({
@@ -90,7 +97,7 @@ function copyAssetsFromBuildDir(zip, buildDir, names, assetFiles, fsLike) {
         zip.addFile(name, fsLike.readFileSync(p));
       }
     } catch {
-      // Missing assets can still be supplied from origin or synthesized below.
+      continue;
     }
   }
 }
