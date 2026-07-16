@@ -5,6 +5,7 @@ export function groupTopLevelScripts(target) {
     if (!b) continue;
 
     if (!b.topLevel) continue;
+    if (b.shadow) continue;
     const hatOpcode = b.opcode || null;
     scripts.push({ topBlockId: id, hatOpcode });
   }

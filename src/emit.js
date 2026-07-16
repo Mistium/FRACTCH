@@ -171,7 +171,7 @@ function varNameToken(name) {
 function varValueText(v) {
   if (typeof v === 'number' && Number.isFinite(v)) return String(v);
   if (typeof v === 'boolean') return v ? 'true' : 'false';
-  if (Array.isArray(v)) return JSON.stringify(v);
+  if (Array.isArray(v) || (v !== null && typeof v === 'object')) return `json(${JSON.stringify(v)})`;
   return JSON.stringify(String(v ?? ''));
 }
 
@@ -214,7 +214,8 @@ function emitScriptBody({ script, subgraph, context, cfg = {} }) {
     const info = procInfoFor(subgraph[topBlockId], subgraph, context);
     if (info) {
       const scopeParamNames = new Map(info.params.map((p) => [p.name, p.ident]));
-      setContext({ ...context, scopeParamNames });
+      const scopeParamKinds = new Map(info.params.map((p) => [p.name, p.kind || 's']));
+      setContext({ ...context, scopeParamNames, scopeParamKinds });
     }
     let inner = subgraph[topBlockId]?.next ? renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
     inner = prependOwnComments(context, topBlockId, inner);

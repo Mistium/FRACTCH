@@ -3,13 +3,35 @@ import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch, closestMatch } from './parse.js';
 import { checkFractch } from './lint.js';
 import { LIST_METHOD_OPS } from './buildBlocks.js';
+import { KNOWN_OPCODES, MENU_OPCODES, VALIDATED_NAMESPACES } from './knownOpcodes.js';
 import { STDLIB_METHODS, STDLIB_MODULE_META } from './stdlib/index.js';
 
 export async function checkProject({ buildDir, fs: fsLike }) {
   const vfs = toPromiseFs(fsLike);
   const problems = [];
-  const files = await collectFractchFiles(vfs, buildDir);
   const sources = new Map();
+  if (!(await vfs.exists(buildDir))) {
+    return {
+      files: 0,
+      problems: [{ file: '.', line: 0, col: 0, message: `project directory does not exist: ${buildDir}`, hint: 'pass the directory that contains target folders such as Stage/' }],
+      sources,
+    };
+  }
+  if (!(await vfs.isDirectory(buildDir))) {
+    return {
+      files: 0,
+      problems: [{ file: '.', line: 0, col: 0, message: `project path is not a directory: ${buildDir}`, hint: 'pass a project directory, not a .fractch or .sb3 file' }],
+      sources,
+    };
+  }
+  const files = await collectFractchFiles(vfs, buildDir);
+  if (files.length === 0) {
+    return {
+      files: 0,
+      problems: [{ file: '.', line: 0, col: 0, message: 'project contains no .fractch files', hint: 'add a target script such as Stage/main.fractch' }],
+      sources,
+    };
+  }
 
   const perTarget = new Map();
   const targetState = (name) => {
@@ -82,11 +104,15 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       }
       const isList = st.lists.has(u.ident) || stage?.lists.has(u.ident);
       const isVar = st.vars.has(u.ident) || stage?.vars.has(u.ident);
+      if (!isList && !isVar && !u.local && VALIDATED_NAMESPACES.has(u.ident)) {
+        checkOpcodeUse(`${u.ident}_${u.method}`, u.line, u.file, !!u.stmt, push);
+        continue;
+      }
       if (isList && !LIST_METHOD_OPS[u.method]) {
         const near = closestMatch(u.method, Object.keys(LIST_METHOD_OPS), 3);
         push(u.file, u.line, 0, `list '${u.ident}' has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
           'use list functions: append(list, v), delete(list, i), insert(list, i, v), replace(list, i, v), set(list, i, v), clear(list), get(list, i), item(list, i), hasItem(list, v), indexOf(list, v)');
-      } else if (isVar && !isList && !STDLIB_METHODS[u.method]) {
+      } else if (isVar && !isList && !STDLIB_METHODS[u.method] && u.method !== 'letter') {
         const near = closestMatch(u.method, Object.keys(STDLIB_METHODS), 3);
         push(u.file, u.line, 0, `'${u.ident}' is a variable and has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
           'variable methods come from the stdlib: .split(d) .join(d) .item(i) .count() .push(v)');
@@ -100,10 +126,10 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           near ? null : 'define it with: def @' + c.ident + '(...) { ... }');
         continue;
       }
-      if (c.argCount > def.paramCount) {
+      if (c.argCount !== def.paramCount) {
         push(c.file, c.line ?? 0, 0,
           `@${c.ident} takes ${def.paramCount} argument${def.paramCount === 1 ? '' : 's'} but this call passes ${c.argCount}`,
-          `defined in ${def.file} as def @${c.ident}(${def.params.join(', ')})`);
+          `defined in ${def.file}:${def.line || 1} as def @${c.ident}(${def.params.join(', ')})`);
       }
     }
   }
@@ -112,12 +138,37 @@ export async function checkProject({ buildDir, fs: fsLike }) {
   return { files: files.length, problems, sources };
 }
 
-function collectScriptFacts(nodes, file, st, locals, push) {
+const opcodeNamespace = (opcode) => {
+  const m = /^([A-Za-z][A-Za-z0-9]*)_/.exec(opcode);
+  return m ? m[1] : null;
+};
+
+const dottedOpcode = (opcode) => {
+  const ns = opcodeNamespace(opcode);
+  return ns ? `${ns}.${opcode.slice(ns.length + 1)}` : opcode;
+};
+
+function checkOpcodeUse(opcode, line, file, stmt, push) {
+  const ns = opcodeNamespace(opcode);
+  if (!ns || !VALIDATED_NAMESPACES.has(ns)) return;
+  if (!KNOWN_OPCODES.has(opcode)) {
+    const near = closestMatch(opcode.slice(ns.length + 1), [...KNOWN_OPCODES].filter((o) => o.startsWith(`${ns}_`)).map((o) => o.slice(ns.length + 1)), 3);
+    push(file, line, 0, `unknown block '${dottedOpcode(opcode)}' - no ${ns} block has that name${near ? `, did you mean '${ns}.${near}'?` : ''}`,
+      'unknown opcodes load as broken red blocks in the editor');
+    return;
+  }
+  if (stmt && MENU_OPCODES.has(opcode)) {
+    push(file, line, 0, `'${dottedOpcode(opcode)}' is a dropdown menu, not a standalone block`,
+      `menus only work inside another block's input, like sensing.keypressed(sensing.keyoptions("space")); on its own it becomes a detached floating menu in the editor`);
+  }
+}
+
+function collectScriptFacts(nodes, file, st, locals, push, stmt = true) {
   for (const node of nodes || []) {
     if (!node) continue;
     if (node.type === 'localDecl') {
       if (locals.has(node.name)) {
-        push(file, 0, 0, `local '${node.name}' is declared twice in the same script`,
+        push(file, node.line ?? 0, 0, `local '${node.name}' is declared twice in the same script`,
           'a script has one namespace for locals; drop the second `local` or rename it');
       }
       locals.add(node.name);
@@ -126,12 +177,14 @@ function collectScriptFacts(nodes, file, st, locals, push) {
     }
     if (node.type === 'procDef') {
       if (st.defs.has(node.ident)) {
-        push(file, 0, 0, `custom block @${node.ident} is defined more than once in this sprite`,
-          `first definition in ${st.defs.get(node.ident).file}`);
+        const first = st.defs.get(node.ident);
+        push(file, node.line ?? 0, 0, `custom block @${node.ident} is defined more than once in this sprite`,
+          `first definition is at ${first.file}:${first.line || 1}`);
       } else {
-        st.defs.set(node.ident, { paramCount: node.params.length, params: node.params.map((p) => p.ident), file });
+        st.defs.set(node.ident, { paramCount: node.params.length, params: node.params.map((p) => p.ident), file, line: node.line ?? 0 });
       }
-      collectScriptFacts(node.body, file, st, locals, push);
+      const bodyScope = new Set([...locals, ...node.params.map((p) => p.ident)]);
+      collectScriptFacts(node.body, file, st, bodyScope, push);
       continue;
     }
     if (node.type !== 'call') continue;
@@ -139,7 +192,10 @@ function collectScriptFacts(nodes, file, st, locals, push) {
       st.calls.push({ ident: node.callee.name, line: node.callee.line ?? 0, argCount: node.args.length, file });
     }
     if (node.callee?.type === 'identOrMethod') {
-      st.methodUses.push({ ident: node.callee.ident, method: node.callee.method, line: node.callee.line ?? 0, file });
+      st.methodUses.push({ ident: node.callee.ident, method: node.callee.method, line: node.callee.line ?? 0, file, stmt, local: locals.has(node.callee.ident) });
+    }
+    if (node.callee?.type === 'opcode') {
+      checkOpcodeUse(node.callee.name, node.callee.line ?? 0, file, stmt, push);
     }
     for (const a of node.args || []) {
       if (a.kind === 'branch') collectScriptFacts(a.body, file, st, locals, push);
@@ -150,7 +206,7 @@ function collectScriptFacts(nodes, file, st, locals, push) {
 
 function collectFromValue(v, file, st, locals, push) {
   if (!v) return;
-  if (v.type === 'call') collectScriptFacts([v.value], file, st, locals, push);
+  if (v.type === 'call') collectScriptFacts([v.value], file, st, locals, push, false);
   else if (v.type === 'obscured') {
     collectFromValue(v.active, file, st, locals, push);
     collectFromValue(v.shadow, file, st, locals, push);
@@ -163,7 +219,7 @@ function checkDuplicateAssets(assets, file, push) {
     for (const d of list) {
       const name = String(d.name ?? '');
       if (seen.has(name)) {
-        push(file, 0, 0, `two ${kind}s are both named "${name}"`, 'Scratch identifies costumes/sounds by name - rename one');
+        push(file, d.line ?? 0, 0, `two ${kind}s are both named "${name}"`, 'Scratch identifies costumes/sounds by name - rename one');
       }
       seen.add(name);
     }

@@ -1,16 +1,5 @@
 import { STDLIB_METHODS } from './stdlib/index.js';
 
-// Opcodes that are only ever legitimately used as shadow-only blocks
-// (literal input defaults / custom-block parameter reporters). Used to
-// restore the `shadow` flag for orphan top-level blocks reconstructed from
-// DSL text alone (the snapshot path preserves this exactly; this is the
-// best-effort text-only fallback).
-const SHADOW_ONLY_OPCODES = new Set([
-  'math_number', 'math_integer', 'math_whole_number', 'math_positive_number',
-  'math_angle', 'text', 'colour_picker', 'note',
-  'argument_reporter_string_number', 'argument_reporter_boolean',
-]);
-
 export function buildBlocksFromCalls(calls, opts = {}) {
   const { hatOpcode, idGen, nested = false, ...ctx } = opts;
   const ids = idGen || new IdGen();
@@ -88,7 +77,6 @@ export function buildBlocksFromCalls(calls, opts = {}) {
         }
         node.opcode = hatOpcode; // trust directory-derived opcode when provided
       }
-      if (SHADOW_ONLY_OPCODES.has(node.opcode)) node.shadow = true;
     }
     if (node.opcode === 'control_stop' && !node.mutation) {
       const opt = node.fields?.STOP_OPTION?.[0];
@@ -170,6 +158,16 @@ export function resolveIdentOrMethod(call, ctx) {
       ...call,
       callee: { type: 'procedureCall', name: STDLIB_METHODS[method].ident, line: call.callee.line },
       args: [{ kind: 'positional', value: { type: 'ident', name: ident } }, ...call.args],
+    };
+  }
+  if (isVar && method === 'letter' && call.args.length === 1 && call.args[0].kind === 'positional') {
+    return {
+      ...call,
+      callee: { type: 'opcode', name: 'operator_letter_of' },
+      args: [
+        { kind: 'keyed', sep: 'input', key: 'LETTER', value: call.args[0].value },
+        { kind: 'keyed', sep: 'input', key: 'STRING', value: { type: 'ident', name: ident } },
+      ],
     };
   }
   return { ...call, callee: { type: 'opcode', name: `${ident}_${method}` } };
@@ -414,7 +412,7 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       // removed from the definition). Build the real reporter block by
       // display name directly, independent of whether it's still declared.
       const childId = ids.next();
-      const kind = (ctx?.scopeParams && ctx.scopeParams.get(val.name)?.kind) || 's';
+      const kind = val.bool ? 'b' : (ctx?.scopeParams && ctx.scopeParams.get(val.name)?.kind) || 's';
       const opcode = kind === 'b' ? 'argument_reporter_boolean' : 'argument_reporter_string_number';
       blocks[childId] = {
         id: childId,

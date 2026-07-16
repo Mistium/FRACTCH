@@ -26,7 +26,7 @@ const ATOM_PREC = 100;
 const REPARSABLE_NUMBER = /^-?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/;
 
 const BARE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const RESERVED_WORDS = new Set(['true', 'false', 'null', 'shadow', 'var', 'list', 'broadcast', 'arg', 'vars', 'menu', 'at', 'for', 'fallthrough', 'else', 'import', 'field', 'warp', 'color', 'returns', 'not', 'round']);
+const RESERVED_WORDS = new Set(['true', 'false', 'null', 'shadow', 'var', 'list', 'broadcast', 'arg', 'vars', 'menu', 'at', 'for', 'fallthrough', 'else', 'import', 'field', 'warp', 'color', 'returns', 'not', 'round', 'raw']);
 
 function bareNameOk(name) {
   return BARE_NAME.test(name) && !RESERVED_WORDS.has(name) && !STATEMENT_KEYWORDS.has(name);
@@ -83,15 +83,32 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   const opcode = block.opcode;
   const jsonMode = cfg?.dsl?.json ?? 'minimal'; // 'none' | 'minimal' | 'full'
 
+  if (opcode === 'patching_jscommand' || opcode === 'patching_jsreporter' || opcode === 'patching_jsboolean') {
+    const values = Object.keys(block.inputs || {})
+      .filter((key) => /^ARG\d+$/.test(key))
+      .sort((a, b) => Number(a.slice(3)) - Number(b.slice(3)))
+      .map((key) => inputValueText(block.inputs[key], subgraph, key));
+    const args = values.join(', ');
+    if (opcode === 'patching_jscommand' && values.length === 1) return `js ${values[0]};`;
+    if (opcode === 'patching_jsboolean') return `js.bool(${args})`;
+    if (opcode === 'patching_jsreporter') return `js(${args})`;
+  }
+
   if (opcode === 'procedures_call') {
     const code = block.mutation?.proccode;
     const info = code && CTX.procByCode?.get(code);
     if (info) {
       // Positional: argument order is the def's parameter order. Named form
       // (`@Name(param: v)`) still parses.
-      const args = info.params.map((p) => {
-        const inp = block.inputs?.[p.id];
-        return Array.isArray(inp) ? inputValueText(inp, subgraph, p.id) : 'null';
+      let callArgIds = null;
+      try {
+        const parsed = JSON.parse(block.mutation?.argumentids || 'null');
+        if (Array.isArray(parsed) && parsed.length === info.params.length) callArgIds = parsed;
+      } catch {}
+      const args = info.params.map((p, i) => {
+        const key = callArgIds && Object.prototype.hasOwnProperty.call(block.inputs || {}, callArgIds[i]) ? callArgIds[i] : p.id;
+        const inp = block.inputs?.[key];
+        return Array.isArray(inp) ? inputValueText(inp, subgraph, key) : 'null';
       });
       // A package def re-sugars to its `namespace.method(...)` call form.
       const pkg = STDLIB_DEF_TO_PACKAGE.get(info.ident);
@@ -128,11 +145,8 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
   if (opcode === 'argument_reporter_string_number' || opcode === 'argument_reporter_boolean') {
     const name = String(block.fields?.VALUE?.[0] ?? '');
-    // Statement position = orphan reporter. The string/number kind sugars to
-    // arg("name"); booleans keep the legacy bare-string form (only reachable
-    // via hatOpcode folder layouts, where the folder names the opcode).
     if (!inline && opcode === 'argument_reporter_string_number') return `arg(${JSON.stringify(name)});`;
-    if (!inline) return `${JSON.stringify(name)};`;
+    if (!inline) return `arg(${JSON.stringify(name)}, "boolean");`;
     // Inline (referenced from inside a procedure body): must match the
     // identifier the enclosing def signature declared for this param (see
     // emit.js defSignature/procInfoFor and convert.js's dedup in
@@ -140,12 +154,15 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     // param instead of a literal, or - when two params' names collide only
     // after cleanIdent (e.g. "X" and "+X") - the wrong param entirely.
     const mapped = CTX.scopeParamNames?.get(name);
-    if (mapped) return mapped;
+    const declaredKind = CTX.scopeParamKinds?.get(name) || 's';
+    const blockKind = opcode === 'argument_reporter_boolean' ? 'b' : 's';
+    if (mapped && declaredKind === blockKind && bareNameOk(mapped)) return mapped;
     // No declared param has this exact display name - Scratch allows a
     // custom block's body to keep referencing a param after it's been
     // removed from the definition (an orphaned/unbound reporter). Bare
     // identifier sugar can't distinguish that from a plain variable read,
     // so spell it out explicitly instead of guessing.
+    if (opcode === 'argument_reporter_boolean') return `arg(${JSON.stringify(name)}, "boolean")`;
     return `arg(${JSON.stringify(name)})`;
   }
 
@@ -176,7 +193,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     return `${header} {\n${indent(thenBody)}\n}`;
   }
 
-  if (opcode === 'data_setvariableto' || opcode === 'data_changevariableby') {
+  if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
     const varName = String(block.fields?.VARIABLE?.[0] ?? '');
     const value = inputValueText(block.inputs?.VALUE, subgraph, 'VALUE');
     const op = opcode === 'data_changevariableby' ? '+=' : '=';
@@ -276,7 +293,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
 
   const listExpr = tryListExpr(block, subgraph);
-  if (listExpr) {
+  if (listExpr && (inline || !/\.length$/.test(listExpr.text))) {
     return inline ? listExpr.text : listExpr.text + ';';
   }
 
@@ -293,7 +310,10 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   if (block.mutation) {
     argParts.push(`mutation: ${JSON.stringify(block.mutation)}`);
   }
-  const call = `${formatOpcodeName(opcode)}(${argParts.join(', ')})`;
+  const opName = formatOpcodeName(opcode);
+  const call = opName ?
+    `${opName}(${argParts.join(', ')})` :
+    `raw(${JSON.stringify(String(opcode))}${argParts.length ? `, ${argParts.join(', ')}` : ''})`;
 
   // Extension "C-block" opcodes (custom blocks with a body slot) that aren't
   // one of the hardcoded control-flow keywords above still need their
@@ -493,6 +513,7 @@ function effectFieldName(block) {
   if (keys.length !== 1 || keys[0] !== 'EFFECT') return null;
   const v = fields.EFFECT;
   if (!Array.isArray(v) || typeof v[0] !== 'string') return null;
+  if (v[0] !== v[0].replace(/_/g, ' ').toUpperCase()) return null;
   return v[0];
 }
 
@@ -668,7 +689,8 @@ function shadowBlockText(block, subgraph, id, inputName) {
   if (!hasInputs && keys.length === 1 && keys[0] === inputName && !block.mutation) {
     const v = fields[keys[0]];
     if (Array.isArray(v) && typeof v[0] === 'string' && (v.length === 1 || v[1] == null)) {
-      return `${formatOpcodeName(op)}(${JSON.stringify(v[0])})`;
+      const opName = formatOpcodeName(op);
+      if (opName) return `${opName}(${JSON.stringify(v[0])})`;
     }
   }
   return `shadow ${stringifyBlockCall(block, subgraph, id, /*inline*/ true)}`;
@@ -688,6 +710,15 @@ export function inputValueText(arr, subgraph, inputName) {
   return getInputExpr(arr, subgraph);
 }
 
+function inputSeparator(name, text) {
+  if (!LEGACY_FIELD_KEYS.has(name)) return ': ';
+  if (text.startsWith('[') || text.startsWith('{')) return '= ';
+  if (name === 'VARIABLE' && text.startsWith('var(')) return '= ';
+  if (name === 'LIST' && text.startsWith('list(')) return '= ';
+  if (name === 'BROADCAST_OPTION' && text.startsWith('broadcast(')) return '= ';
+  return ': ';
+}
+
 export function stringifyInputs(block, subgraph, cLike = false) {
   if (!block.inputs) return '';
   const args = [];
@@ -699,7 +730,8 @@ export function stringifyInputs(block, subgraph, cLike = false) {
       args.push(`${formatArgKey(name)}: null`);
       continue;
     }
-    args.push(`${formatArgKey(name)}: ${inputValueText(arr, subgraph, name)}`);
+    const text = inputValueText(arr, subgraph, name);
+    args.push(`${formatArgKey(name)}${inputSeparator(name, text)}${text}`);
   }
   return args.join(', ');
 }
@@ -711,7 +743,8 @@ function refCall(kind, name, id, map) {
 
 export function stringifyFields(block) {
   if (!block.fields) return '';
-  const kv = Object.entries(block.fields).map(([k, v]) => {
+  const entries = Object.entries(block.fields).filter(([k]) => k !== 'PLUS' && k !== 'MINUS');
+  const kv = entries.map(([k, v]) => {
     try {
       const keyLc = String(k).toLowerCase();
 
@@ -896,15 +929,14 @@ function formatArgKey(name) {
 function formatOpcodeName(opcode) {
   const s = String(opcode || '');
   const m = /^([A-Za-z][A-Za-z0-9]*)_(.+)$/.exec(s);
-  if (!m) return s;
-  const [, namespace, rest] = m;
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(rest)) return s;
-  return `${namespace}.${rest}`;
+  if (m && /^[A-Za-z_][A-Za-z0-9_]*$/.test(m[2])) return `${m[1]}.${m[2]}`;
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(s)) return null;
+  return s;
 }
 
 function formatLiteral(arr) {
   try {
-    if (!Array.isArray(arr) || arr.length < 2) return ``;
+    if (!Array.isArray(arr) || arr.length < 2) return `null`;
     const payload = arr[1];
 
     if (Array.isArray(payload) && payload.length >= 1) {
@@ -932,8 +964,6 @@ function formatLiteral(arr) {
           if (raw === '') return '""'; // unfilled default; not "0"
           if (REPARSABLE_NUMBER.test(raw)) return raw;
 
-          const n = Number(raw);
-          if (Number.isFinite(n)) return `${String(n)}`;
           return `${JSON.stringify(raw)}`;
         }
         case 11: {
@@ -947,7 +977,13 @@ function formatLiteral(arr) {
           const name = String(value ?? '');
           const local = localBareName(name);
           if (local) return local;
-          if (bareNameOk(name)) return name;
+          const id = payload.length > 2 && payload[2] != null ? String(payload[2]) : undefined;
+          if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) {
+            return refCall('var', name, id, CTX.varMap);
+          }
+          const shadowedByParam = CTX.scopeParamNames &&
+            (CTX.scopeParamNames.has(name) || [...CTX.scopeParamNames.values()].includes(name));
+          if (!shadowedByParam && bareNameOk(name)) return name;
           return `vars[${JSON.stringify(name)}]`;
         }
         case 13: {
@@ -975,7 +1011,7 @@ function formatLiteral(arr) {
   } catch {
     // Handle error
   }
-  return ``;
+  return `null`;
 }
 
 const NEGATED_CMP = { operator_equals: '!=', operator_gt: '<=', operator_lt: '>=' };
@@ -988,13 +1024,20 @@ function tryOperatorInfo(block, subgraph) {
     binaryInfo(sym, getInputExprInfo(input(k1, a1), subgraph), getInputExprInfo(input(k2, a2), subgraph));
   switch (op) {
     case 'operator_add':
-      return bin('+', 'NUM1', 'NUM2');
+      return Object.keys(block.inputs || {}).length === 2 ? bin('+', 'NUM1', 'NUM2') : null;
     case 'operator_subtract':
-      return bin('-', 'NUM1', 'NUM2');
+      return Object.keys(block.inputs || {}).length === 2 ? bin('-', 'NUM1', 'NUM2') : null;
     case 'operator_multiply':
-      return bin('*', 'NUM1', 'NUM2');
+      return Object.keys(block.inputs || {}).length === 2 ? bin('*', 'NUM1', 'NUM2') : null;
     case 'operator_divide':
-      return bin('/', 'NUM1', 'NUM2');
+      return Object.keys(block.inputs || {}).length === 2 ? bin('/', 'NUM1', 'NUM2') : null;
+    case 'operator_min':
+    case 'operator_max': {
+      const values = Object.keys(block.inputs || {}).filter((key) => /^NUM\d+$/.test(key)).sort((a, b) => Number(a.slice(3)) - Number(b.slice(3))).map((key) => getInputExpr(block.inputs[key], subgraph));
+      return { text: `${op.slice(9)}(${values.join(', ')})`, prec: ATOM_PREC };
+    }
+    case 'operator_clamp':
+      return { text: `clamp(${getInputExpr(input('NUM'), subgraph)}, ${getInputExpr(input('MIN'), subgraph)}, ${getInputExpr(input('MAX'), subgraph)})`, prec: ATOM_PREC };
     case 'operator_mod':
       return bin('%', 'NUM1', 'NUM2');
     case 'operator_round':
@@ -1064,7 +1107,7 @@ function binaryInfo(sym, L, R) {
 
 function notInfo(block, subgraph) {
   const tuple = block.inputs?.OPERAND;
-  if (isEmptyBooleanInput(tuple)) return { text: 'true', prec: ATOM_PREC };
+  if (isEmptyBooleanInput(tuple)) return { text: 'not(null)', prec: ATOM_PREC };
   const childId = Array.isArray(tuple) ? tuple[1] : null;
   const child = typeof childId === 'string' ? subgraph[childId] : null;
   if (child && NEGATED_CMP[child.opcode]) {

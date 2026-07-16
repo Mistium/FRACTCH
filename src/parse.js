@@ -12,7 +12,7 @@ function setWithCamel(list) {
 
 const STATEMENT_KEYWORDS = setWithCamel([
   'def', 'if', 'forever', 'switch', 'case', 'default', 'repeat', 'until',
-  'while', 'wait', 'wait_until', 'stop', 'return', 'broadcast', 'broadcast_wait', 'vars',
+  'while', 'wait', 'wait_until', 'stop', 'return', 'broadcast', 'broadcast_wait', 'vars', 'js',
   'dangling_next', 'when', 'script', 'lists', 'local', 'sound',
   'use', 'var', 'cloud', 'sprite', 'stage', 'watch', 'comment', 'platform',
   'say', 'think', 'ask', 'show', 'hide', 'move', 'turn', 'turn_left', 'goto', 'glide',
@@ -94,6 +94,7 @@ const FUNC_SUGAR = {
   letter: ['operator_letter_of', ['LETTER', 'STRING']],
   random: ['operator_random', ['FROM', 'TO']],
   contains: ['operator_contains', ['STRING1', 'STRING2']],
+  clamp: ['operator_clamp', ['NUM', 'MIN', 'MAX']],
 };
 
 const LIST_CMD_FN = {
@@ -369,9 +370,20 @@ class Parser {
   }
 
   lineAt(pos) {
-    let line = 1;
-    for (let j = 0; j < pos && j < this.len; j++) if (this.s[j] === '\n') line++;
-    return line;
+    if (!this.newlineOffsets) {
+      const offsets = [];
+      for (let j = 0; j < this.len; j++) if (this.s[j] === '\n') offsets.push(j);
+      this.newlineOffsets = offsets;
+    }
+    const offsets = this.newlineOffsets;
+    let lo = 0;
+    let hi = offsets.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (offsets[mid] < pos) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo + 1;
   }
 
   lineIsBlankBefore(pos) {
@@ -620,8 +632,13 @@ class Parser {
       this.restore(save);
     }
     if (isKeyword) {
+      const line = this.lineAt(this.i);
       this.tryIdentifier(); // consume keyword
-      return this.parseKeywordStatement(word);
+      const node = this.parseKeywordStatement(word);
+      // Keep source locations on statements that need whole-project checks
+      // (duplicate locals/defs, declarations, and similar diagnostics).
+      if (node && typeof node === 'object' && node.line == null) node.line = line;
+      return node;
     }
 
     // Bare assignment sugar: `score = 1;` / `score += 1;` sets a variable by
@@ -857,6 +874,11 @@ class Parser {
         const cond = this.parseExpr();
         const body = this.parseBraceBody();
         return makeCall('control_while', [keyedInput('CONDITION', cond), branchArg('substack', body)]);
+      }
+      case 'js': {
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        return makeVariadicCall('patching_jscommand', [v], 'ARG');
       }
       case 'wait': {
         const v = this.parseInputValue();
@@ -1236,6 +1258,14 @@ class Parser {
         if (this.peek() === '[') {
           value = this.readJSONValue();
           isList = true;
+        } else if (this.peekWord() === 'json') {
+          this.tryIdentifier();
+          this.skipWS();
+          this.expectChar('(');
+          this.skipWS();
+          value = this.readJSONValue();
+          this.skipWS();
+          this.expectChar(')');
         } else if (this.peek() === '"') {
           value = this.parseStringLiteral();
         } else if (this.peekWord() === 'true' || this.peekWord() === 'false') {
@@ -1614,11 +1644,9 @@ class Parser {
       return call;
     }
     // `arg("Name");` at statement position: an orphan argument reporter
-    // (detached from any definition). Only the string/number kind uses this
-    // sugar - a boolean orphan keeps the raw opcode form since the kind
-    // isn't recoverable from the name.
     if (e.type === 'arg') {
-      return makeCall('argument_reporter_string_number', [keyedField('VALUE', { type: 'array', value: [e.name] })]);
+      const opcode = e.bool ? 'argument_reporter_boolean' : 'argument_reporter_string_number';
+      return makeCall(opcode, [keyedField('VALUE', { type: 'array', value: [e.name] })]);
     }
     return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(e))]);
   }
@@ -1735,6 +1763,7 @@ class Parser {
     if (ch === '[' || ch === '{') return { type: 'json', value: this.readJSONValue() };
     if (ch === '-' || /[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(this.peek(1)))) return this.parseNumberLiteral();
 
+    const wordStart = this.i;
     const word = this.tryIdentifier();
     if (word == null) this.fail(`expected a value but found ${this.describeHere()}`,
       'values are numbers, "strings", variable names, vars["..."], lists["..."], or block calls like sensing.timer()');
@@ -1753,8 +1782,39 @@ class Parser {
       }
     }
 
+    if (word === 'raw' && this.peek() === '(') {
+      const rawSave = this.snapshot();
+      this.i++;
+      this.skipWS();
+      if (this.peek() === '"') {
+        const opcode = this.parseStringLiteral();
+        this.skipWS();
+        this.tryChar(',');
+        const args = this.parseKeyedArgs();
+        this.expectChar(')');
+        return { type: 'call', value: makeCall(opcode, args, this.lineAt(wordStart)) };
+      }
+      this.restore(rawSave);
+    }
+
     if (word === 'var' || word === 'list' || word === 'broadcast' || word === 'arg') {
       return this.parseNamedRefCall(word);
+    }
+    if (word === 'js' && this.peek() === '(') {
+      this.i++;
+      const values = this.parseKeyedArgs().map((arg) => arg.value);
+      this.expectChar(')');
+      return { type: 'call', value: makeVariadicCall('patching_jsreporter', values, 'ARG') };
+    }
+    if (word === 'js' && this.peek() === '.') {
+      const save = this.snapshot();
+      this.i++;
+      if (this.tryIdentifier() === 'bool' && this.tryChar('(')) {
+        const values = this.parseKeyedArgs().map((arg) => arg.value);
+        this.expectChar(')');
+        return { type: 'call', value: makeVariadicCall('patching_jsboolean', values, 'ARG') };
+      }
+      this.restore(save);
     }
     if (word === 'sprites' && this.peek() === '[') {
       this.i++;
@@ -1820,6 +1880,12 @@ class Parser {
       this.skipWS();
       this.expectChar(')');
       return { type: 'call', value: makeCall(opcode, [...inputs, keyedField('LIST', { type: 'list', name: listRef.name, id: null })]) };
+    }
+    if ((word === 'min' || word === 'max') && this.peek() === '(') {
+      this.i++;
+      const values = this.parseKeyedArgs().map((arg) => arg.value);
+      this.expectChar(')');
+      return { type: 'call', value: makeVariadicCall(`operator_${word}`, values, 'NUM') };
     }
     if (FUNC_SUGAR[word] && this.peek() === '(') {
       const [opcode, keys] = FUNC_SUGAR[word];
@@ -1918,7 +1984,7 @@ class Parser {
           const args = this.parseKeyedArgs();
           this.expectChar(')');
           if (args.some((a) => a.kind !== 'positional')) {
-            return { type: 'call', value: makeCall(`${word}_${part}`, args) };
+            return { type: 'call', value: makeCall(`${word}_${part}`, args, this.lineAt(wordStart)) };
           }
           return {
             type: 'call',
@@ -1934,7 +2000,7 @@ class Parser {
       this.i++;
       const args = this.parseKeyedArgs();
       this.expectChar(')');
-      return { type: 'call', value: makeCall(callee, args) };
+      return { type: 'call', value: makeCall(callee, args, this.lineAt(wordStart)) };
     }
 
     if (callee !== word) this.fail(`'${callee.replace(/_/g, '.')}' looks like a block but has no (arguments)`,
@@ -1998,6 +2064,7 @@ class Parser {
     }
     this.skipWS();
     this.expectChar(')');
+    if (kind === 'arg' && id === 'boolean') return { type: kind, name, id: null, bool: true };
     return { type: kind, name, id };
   }
 
@@ -2091,10 +2158,14 @@ class Parser {
     for (;;) {
       const argStart = this.snapshot();
       let arg = null;
-      try {
-        arg = this.parseKeyedArg();
-      } catch {
-        this.restore(argStart);
+      if (this.looksKeyedArg()) {
+        try {
+          arg = this.parseKeyedArg();
+        } catch {
+          this.restore(argStart);
+        }
+      }
+      if (!arg) {
         const value = this.parseInputValue();
         arg = { kind: 'positional', value };
       }
@@ -2108,6 +2179,27 @@ class Parser {
       break;
     }
     return args;
+  }
+
+  looksKeyedArg() {
+    const save = this.snapshot();
+    this.skipWS();
+    let ok = false;
+    if (this.peek() === '[') {
+      ok = true;
+    } else {
+      const start = this.i;
+      while (!this.eof() && /[A-Za-z0-9_]/.test(this.peek())) this.i++;
+      if (this.i > start) {
+        const word = this.s.slice(start, this.i);
+        this.skipWS();
+        const ch = this.peek();
+        if (ch === ':' || (ch === '=' && this.peek(1) !== '=')) ok = true;
+        else if (word === 'field' && ch !== ',' && ch !== ')') ok = true;
+      }
+    }
+    this.restore(save);
+    return ok;
   }
 
   parseKeyedArg() {
@@ -2235,8 +2327,14 @@ function parseEffectName(name) {
   return String(name).replace(/_/g, ' ').toUpperCase();
 }
 
-function makeCall(opcode, args) {
-  return { type: 'call', callee: { type: 'opcode', name: opcode }, args };
+function makeCall(opcode, args, line) {
+  return { type: 'call', callee: line ? { type: 'opcode', name: opcode, line } : { type: 'opcode', name: opcode }, args };
+}
+
+function makeVariadicCall(opcode, values, prefix) {
+  const args = values.map((value, i) => keyedInput(`${prefix}${i + 1}`, value));
+  args.push({ kind: 'keyed', sep: 'field', key: 'mutation', value: { type: 'json', value: { tagName: 'mutation', children: [], itemcount: String(values.length) } } });
+  return makeCall(opcode, args);
 }
 function menuValueNode(menuOpcode, value) {
   return { type: 'call', value: makeCall(menuOpcode, [{ kind: 'positional', value: { type: 'string', value } }]) };

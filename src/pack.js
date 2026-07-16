@@ -3,7 +3,7 @@ import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode, listMethodCall } from './buildBlocks.js';
 import { assertValidFractch } from './lint.js';
-import { cleanRelStem, idSafeSuffix, markerPrefixForFileStem } from './fileMarkers.js';
+import { cleanRelStem, commentMarkerForFileStem, idSafeSuffix, markerPrefixForFileStem } from './fileMarkers.js';
 import { STDLIB_MODULES, STDLIB_METHODS, STDLIB_STEM_PREFIX, resolveStdlibModules, resolvePackageMethod } from './stdlib/index.js';
 import { md5hex } from './md5.js';
 
@@ -94,6 +94,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         : [{ kind: 'implicit', calls: parsed.calls, x: null, y: null }];
       const sourceStem = cleanRelStem(sourceRel);
       const fileMarkerPrefix = sourceStem && sourceStem !== 'main' ? markerPrefixForFileStem(sourceStem) : null;
+      const fileMarkerComment = commentMarkerForFileStem(sourceStem);
       fileScripts.forEach((s, i) => {
         targets.get(manifestName).stacks.push({
           hatOpcode: s.kind === 'implicit' && i === 0 ? headerInfo?.hatOpcode || inferredHat : null,
@@ -102,6 +103,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
           x: s.x ?? (i === 0 ? headerInfo?.x ?? null : null),
           y: s.y ?? (i === 0 ? headerInfo?.y ?? null : null),
           fileMarkerPrefix,
+          fileMarkerComment,
         });
         registerProcDefs(procArgMaps, identToProccode, procMetaMaps, manifestName, s.calls);
       });
@@ -146,6 +148,14 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps);
   injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, identToProccode, procMetaMaps });
 
+  const globalIdentToProccode = new Map();
+  const globalProcArgs = new Map();
+  const globalProcMeta = new Map();
+  for (const m of identToProccode.values()) for (const [k, v] of m) if (!globalIdentToProccode.has(k)) globalIdentToProccode.set(k, v);
+  for (const m of procArgMaps.values()) for (const [k, v] of m) if (!globalProcArgs.has(k)) globalProcArgs.set(k, v);
+  for (const m of procMetaMaps.values()) for (const [k, v] of m) if (!globalProcMeta.has(k)) globalProcMeta.set(k, v);
+  const withGlobalFallback = (global, own) => (own && own.size ? new Map([...global, ...own]) : global);
+
   const stageVarMap = buildNameIdMap(stageTarget?.variables);
   const stageListMap = buildNameIdMap(stageTarget?.lists);
   const broadcastNameToId = new Map();
@@ -185,9 +195,9 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       const commentsOut = [];
       const built = buildBlocksFromCalls(s.calls, {
         hatOpcode: s.hatOpcode,
-        proceduresMapForTarget: procArgMaps.get(name),
-        identToProccode: identToProccode.get(name),
-        procMeta: procMetaMaps.get(name),
+        proceduresMapForTarget: withGlobalFallback(globalProcArgs, procArgMaps.get(name)),
+        identToProccode: withGlobalFallback(globalIdentToProccode, identToProccode.get(name)),
+        procMeta: withGlobalFallback(globalProcMeta, procMetaMaps.get(name)),
         varMap,
         listMap,
         broadcastNameToId,
@@ -201,6 +211,14 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         renameBlockId(blocks, topId, markedTopId);
         for (const c of commentsOut) if (c.blockId === topId) c.blockId = markedTopId;
         topId = markedTopId;
+      }
+      if (topId && blocks[topId] && blocks[topId].topLevel) {
+        blocks[topId].x = s.x ?? (stackIndex % 5) * 500;
+        blocks[topId].y = s.y ?? Math.floor(stackIndex / 5) * 700;
+      }
+      if (s.fileMarkerComment && topId) {
+        const hat = blocks[topId];
+        commentsOut.push({ text: s.fileMarkerComment, blockId: topId, x: (hat?.x ?? 0) + 250, y: hat?.y ?? 0, width: 20, height: 20, minimized: true });
       }
       if (commentsOut.length && manifestTarget) {
         if (!manifestTarget.comments) manifestTarget.comments = {};
@@ -217,12 +235,6 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
           };
           if (c.blockId && blocks[c.blockId]) blocks[c.blockId].comment = cid;
         }
-      }
-      // Canvas position from the header when present; a simple grid keeps
-      // headerless hand-written scripts from stacking on top of each other.
-      if (topId && blocks[topId] && blocks[topId].topLevel) {
-        blocks[topId].x = s.x ?? (stackIndex % 5) * 500;
-        blocks[topId].y = s.y ?? Math.floor(stackIndex / 5) * 700;
       }
       stackIndex++;
       scripts.push({ oldTopId: s.topBlockId || null, blocks, newTopId: topId });
@@ -241,6 +253,15 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   // fmt-style rebuilds pass prune:false - a canonicalizing rewrite must keep
   // every declared costume/sound, packing to an .sb3 prunes as usual.
   if (prune) pruneUnusedAssets(newManifest, verbose);
+  for (const t of newManifest.targets || []) {
+    if (!Array.isArray(t.costumes) || t.costumes.length === 0) {
+      t.costumes = [defaultCostume(!!t.isStage)];
+      t.currentCostume = 0;
+    }
+    for (const block of Object.values(t.blocks || {})) {
+      if (block && typeof block === 'object' && !Array.isArray(block)) delete block.id;
+    }
+  }
   return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles };
 }
 
@@ -1129,6 +1150,12 @@ function rewriteIdentOrMethod(calls, scopeNames, listNames = new Set(), nsMap = 
       } else if (scopeNames.has(ident) && STDLIB_METHODS[method]) {
         call.callee = { type: 'procedureCall', name: STDLIB_METHODS[method].ident, line: call.callee.line };
         call.args = [{ kind: 'positional', value: { type: 'ident', name: ident } }, ...call.args];
+      } else if (scopeNames.has(ident) && method === 'letter' && (call.args || []).length === 1 && call.args[0].kind === 'positional') {
+        call.callee = { type: 'opcode', name: 'operator_letter_of' };
+        call.args = [
+          { kind: 'keyed', sep: 'input', key: 'LETTER', value: call.args[0].value },
+          { kind: 'keyed', sep: 'input', key: 'STRING', value: { type: 'ident', name: ident } },
+        ];
       } else {
         if (listNames.has(ident)) {
           console.warn(`[fractch] list '${ident}' has no method '.${method}(...)' - packed as extension opcode ${ident}_${method}; run 'fractch check' for details`);
@@ -1155,10 +1182,12 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
       for (const err of parsed.errors || []) {
         console.warn(`[fractch] stdlib ${moduleId}: skipped unparsable statement: ${err.message}`);
       }
-      const marker = markerPrefixForFileStem(STDLIB_STEM_PREFIX + moduleId);
+      const markerStem = STDLIB_STEM_PREFIX + moduleId;
+      const marker = markerPrefixForFileStem(markerStem);
+      const markerComment = commentMarkerForFileStem(markerStem);
       for (const s of parsed.scripts || []) {
         const ident = s.calls[0]?.type === 'procDef' ? s.calls[0].ident : null;
-        if (ident && !registry.has(ident)) registry.set(ident, { calls: s.calls, marker, x: s.x, y: s.y });
+        if (ident && !registry.has(ident)) registry.set(ident, { calls: s.calls, marker, markerComment, x: s.x, y: s.y });
       }
     }
     const known = new Set(registry.keys());
@@ -1179,8 +1208,8 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
     const injectedCalls = [];
     for (const ident of used) {
       if (identToProccode.get(name)?.has(ident)) continue; // target's own def wins
-      const { calls, marker, x, y } = registry.get(ident);
-      data.stacks.push({ hatOpcode: null, calls, topBlockId: null, x: x ?? null, y: y ?? null, fileMarkerPrefix: marker });
+      const { calls, marker, markerComment, x, y } = registry.get(ident);
+      data.stacks.push({ hatOpcode: null, calls, topBlockId: null, x: x ?? null, y: y ?? null, fileMarkerPrefix: marker, fileMarkerComment: markerComment });
       registerProcDefs(procArgMaps, identToProccode, procMetaMaps, name, calls);
       injectedCalls.push(...calls);
     }

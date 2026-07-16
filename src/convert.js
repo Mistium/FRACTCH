@@ -2,7 +2,7 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { emitMultiScriptFile, emitTargetPrelude } from './emit.js';
 import { groupTopLevelScripts, collectBlocksSubgraph } from './graph.js';
-import { decodeFileStemFromTopId } from './fileMarkers.js';
+import { decodeFileStemFromComment, decodeFileStemFromTopId } from './fileMarkers.js';
 import { STDLIB_MODULES, STDLIB_STEM_PREFIX } from './stdlib/index.js';
 
 export async function convertProject(projectJson, { outDir, fs: fsLike, config = {}, verbose = false } = {}) {
@@ -67,7 +67,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     const varMap = new Map([...stageVarMap, ...nameIdMap(target.variables)]);
     const listMap = new Map([...stageListMap, ...nameIdMap(target.lists)]);
 
-    const { workspaceComments, blockComments } = routeComments(target);
+    const { workspaceComments, blockComments, fileMarkers } = routeComments(target);
     const prelude = emitTargetPrelude({
       projectJson,
       target,
@@ -90,6 +90,20 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     // in project.json, so sweep them into their own script files too -
     // otherwise they'd have nowhere to live once manifest.json drops blocks.
     const allBlocks = target.blocks || {};
+    let degenerateTuples = 0;
+    for (const b of Object.values(allBlocks)) {
+      if (!b || typeof b !== 'object' || Array.isArray(b)) continue;
+      for (const [key, tuple] of Object.entries(b.inputs || {})) {
+        if (Array.isArray(tuple) && tuple[0] === 3 && tuple[1] == null && tuple.length > 2 && tuple[2] != null) {
+          b.inputs[key] = [1, tuple[2]];
+          degenerateTuples++;
+        }
+      }
+    }
+    if (degenerateTuples) {
+      console.warn(`[convert] ${target.name}: normalized ${degenerateTuples} empty obscured input(s) to their visible shadow`);
+    }
+    let droppedShadows = 0;
     for (const id of Object.keys(allBlocks)) {
       if (coveredIds.has(id)) continue;
       // Some corrupted/edited project.json files carry stray dict entries
@@ -99,12 +113,19 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       // executable content and have no `opcode` to sweep.
       const entry = allBlocks[id];
       if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.opcode !== 'string') continue;
+      if (entry.shadow) {
+        droppedShadows++;
+        continue;
+      }
       const subgraph = collectBlocksSubgraph(allBlocks, id);
       const subIds = Object.keys(subgraph);
       if (!subIds.length) continue;
       for (const sid of subIds) coveredIds.add(sid);
       scripts.push({ topBlockId: id, hatOpcode: allBlocks[id]?.opcode || null });
       subgraphs.set(id, subgraph);
+    }
+    if (droppedShadows) {
+      console.warn(`[convert] ${target.name}: dropped ${droppedShadows} floating shadow block(s) left behind by editor corruption; they were never visible and are not emitted`);
     }
 
     const groups = new Map();
@@ -121,7 +142,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
 
       const procLabel =
         hatOpcode === 'procedures_definition' ? procedureDefsByTarget.get(target.name)?.get(topBlockId) || null : null;
-      const markerStem = decodeFileStemFromTopId(topBlockId);
+      const markerStem = fileMarkers.get(topBlockId) || decodeFileStemFromTopId(topBlockId);
       // Stdlib defs (marked with the fractch_lib stem at pack time) fold back
       // into a single `import "module"` line - their bodies are the bundled
       // library source, re-injected on the next pack.
@@ -252,9 +273,16 @@ function routeMonitors(projectJson, targets) {
 function routeComments(target) {
   const workspaceComments = [];
   const blockComments = new Map();
+  const fileMarkers = new Map();
   const blocks = target.blocks || {};
   for (const c of Object.values(target.comments || {})) {
     if (!c || typeof c !== 'object') continue;
+    const markerStem = decodeFileStemFromComment(c.text);
+    if (markerStem && c.blockId && blocks[c.blockId]) {
+      const anchor = statementAnchor(blocks, c.blockId);
+      if (anchor) fileMarkers.set(anchor, markerStem);
+      continue;
+    }
     const decl = {
       text: String(c.text ?? ''),
       x: c.x ?? 0,
@@ -273,7 +301,7 @@ function routeComments(target) {
       workspaceComments.push(decl);
     }
   }
-  return { workspaceComments, blockComments };
+  return { workspaceComments, blockComments, fileMarkers };
 }
 
 // Climb from any block (a nested reporter, a menu shadow, a prototype) to
@@ -335,12 +363,22 @@ export function buildProcByCode(targets) {
   // disambiguated here or the second proc's calls silently resolve to the
   // first proc's argument shape.
   const usedProcIdents = new Set();
+  const prototypes = [];
+  const seenCodes = new Set();
   for (const target of targets) {
     const blocks = target.blocks || {};
     for (const b of Object.values(blocks)) {
       if (!b || b.opcode !== 'procedures_prototype') continue;
       const proccode = b.mutation?.proccode;
-      if (!proccode || map.has(proccode)) continue;
+      if (!proccode || seenCodes.has(proccode)) continue;
+      seenCodes.add(proccode);
+      prototypes.push(b);
+    }
+  }
+  prototypes.sort((a, b) => (a.mutation.proccode < b.mutation.proccode ? -1 : a.mutation.proccode > b.mutation.proccode ? 1 : 0));
+  {
+    for (const b of prototypes) {
+      const proccode = b.mutation.proccode;
       let ids = [];
       let names = [];
       try { ids = JSON.parse(b.mutation?.argumentids || '[]'); } catch {}
@@ -350,13 +388,14 @@ export function buildProcByCode(targets) {
       // resolved by bare identifier, so collisions must be disambiguated
       // here or the second param becomes unreachable/misresolved in the DSL.
       const seenIdents = new Map();
+      const kinds = (proccode.match(/%[snb]/g) || []).map((t) => t[1]);
       const params = ids.map((id, i) => {
         const name = names[i] ?? `arg${i}`;
         const base = cleanIdent(name);
         const count = seenIdents.get(base) || 0;
         seenIdents.set(base, count + 1);
         const ident = count === 0 ? base : `${base}_${count + 1}`;
-        return { id, ident, name };
+        return { id, ident, name, kind: kinds[i] === 'b' ? 'b' : 's' };
       });
 
       let base = cleanIdent(proccode);

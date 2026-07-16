@@ -1,4 +1,5 @@
 const MARKER_RE = /^fractch_h([0-9a-fA-F]+)_fractch_/;
+const COMMENT_MARKER_RE = /^\u2063fractch:file:([0-9a-fA-F]+)$/;
 
 export function markerPrefixForFileStem(relStem) {
   const clean = cleanRelStem(relStem);
@@ -12,13 +13,26 @@ export function markerPrefixForFileStem(relStem) {
 
 export function decodeFileStemFromTopId(topId) {
   const m = MARKER_RE.exec(String(topId || ''));
-  if (!m) return null;
-  const hex = m[1];
+  return m ? decodeStemHex(m[1]) : null;
+}
+
+export function commentMarkerForFileStem(relStem) {
+  const clean = cleanRelStem(relStem);
+  if (!clean || clean === 'main') return null;
+  let hex = '';
+  for (let i = 0; i < clean.length; i++) hex += clean.charCodeAt(i).toString(16).padStart(4, '0');
+  return `\u2063fractch:file:${hex}`;
+}
+
+export function decodeFileStemFromComment(text) {
+  const m = COMMENT_MARKER_RE.exec(String(text || ''));
+  return m ? decodeStemHex(m[1]) : null;
+}
+
+function decodeStemHex(hex) {
   if (hex.length % 4 !== 0) return null;
   let out = '';
-  for (let i = 0; i < hex.length; i += 4) {
-    out += String.fromCharCode(Number.parseInt(hex.slice(i, i + 4), 16));
-  }
+  for (let i = 0; i < hex.length; i += 4) out += String.fromCharCode(Number.parseInt(hex.slice(i, i + 4), 16));
   return cleanRelStem(out);
 }
 

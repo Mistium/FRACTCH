@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import AdmZip from 'adm-zip';
 import { buildProjectFromBuildDir, deepEqual, BLANK_SVG, BLANK_SVG_ID } from './pack.js';
+import { writeCompressedZip } from './writeZip.js';
 
 export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = false, fs: fsLike = fs }) {
   const { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles } = await buildProjectFromBuildDir({
@@ -60,7 +61,11 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = 
     // Handle error
   }
   addMissingAssetFiles(zip, newManifest);
-  zip.writeZip(outSb3);
+  const entries = zip.getEntries().map((entry) => ({
+    name: entry.entryName,
+    data: zip.readFile(entry) || Buffer.alloc(0),
+  }));
+  writeCompressedZip(outSb3, entries);
   if (verbose) console.log(`Wrote ${outSb3}`);
 }
 

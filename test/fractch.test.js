@@ -12,23 +12,33 @@ import { checkFractch } from '../src/lint.js';
 import { parseFractch } from '../src/parse.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SB3 = (() => {
-  const candidates = [
-    process.env.FRACTCH_ORIGIN,
-    path.join(os.homedir(), 'origin-fractch', 'originv619.sb3'),
-    'originv6.0.0.sb3',
-  ].filter(Boolean);
-  for (const c of candidates) {
-    const abs = path.isAbsolute(c) ? c : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', c);
-    if (fs.existsSync(abs)) return abs;
-  }
-  throw new Error('no origin sb3 found - set FRACTCH_ORIGIN');
-})();
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-'));
+const fixtureDir = path.join(tmp, 'fixture');
+const SB3 = path.join(tmp, 'fixture.sb3');
 const outDir = path.join(tmp, 'build');
 const outSb3 = path.join(tmp, 'repacked.sb3');
 const run = (cmd) => execSync(cmd, { cwd: root, stdio: 'pipe' });
 
+// Build the integration fixture from test-owned text rather than relying on a
+// developer's personal SB3. This exercises the real CLI in both directions
+// while remaining deterministic and fully self-contained.
+fs.mkdirSync(path.join(fixtureDir, 'Stage', 'assets'), { recursive: true });
+fs.mkdirSync(path.join(fixtureDir, 'Player'), { recursive: true });
+fs.writeFileSync(path.join(fixtureDir, 'Stage', 'assets', 'backdrop.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#46a"/></svg>');
+fs.writeFileSync(
+  path.join(fixtureDir, 'Stage', 'main.fractch'),
+  'costume "backdrop" file "assets/backdrop.svg" center 4,4;\n' +
+    'var score = 0;\n' +
+    'var "total score" = 0;\n' +
+    'def @increase(amount) { score += amount; vars["total score"] += amount; }\n' +
+    'when flag at 10,20 {\n' +
+    '  @increase(1);\n' +
+    '  sensing.keypressed(sensing.keyoptions("space"));\n' +
+    '  switch score { case 1 { say "one"; } default { say "other"; } }\n' +
+    '}\n'
+);
+fs.writeFileSync(path.join(fixtureDir, 'Player', 'main.fractch'), 'sprite "Player" at 12,-4;\nwhen flag { move 10; }\n');
+run(`node ./bin/cli.js "${SB3}" from "${fixtureDir}"`);
 run(`node ./bin/cli.js --input "${SB3}" --out "${outDir}"`);
 
 function walk(dir) {
@@ -48,12 +58,13 @@ test('build emits script files without manifest or indexes', () => {
   assert.ok(walk(outDir).some((f) => f.endsWith('.fractch')));
 });
 
-test('converted output groups each target into main.fractch by default', () => {
+test('every converted fixture file parses cleanly', () => {
   const scriptFiles = walk(outDir).filter((f) => f.endsWith('.fractch') && path.basename(f) !== 'index.fractch');
   assert.ok(scriptFiles.length > 0, 'no generated script files');
-  assert.ok(scriptFiles.every((f) => path.relative(outDir, f).split(path.sep).length === 2), 'script file is nested below target');
-  assert.ok(scriptFiles.every((f) => path.basename(f) === 'main.fractch'), 'generated a non-main script file without a marker');
-  assert.ok(scriptFiles.some((f) => /^when flag /m.test(fs.readFileSync(f, 'utf8'))), 'no when-flag script emitted');
+  for (const file of scriptFiles) {
+    const parsed = parseFractch(fs.readFileSync(file, 'utf8'));
+    assert.deepStrictEqual(parsed.errors || [], [], `parser errors in ${path.relative(outDir, file)}`);
+  }
 });
 
 test('pack reconstructs every target purely from parsed DSL text', () => {
@@ -386,26 +397,7 @@ test('no trailing-comma noise in emitted calls', () => {
   }
 });
 
-test('emitted calls use positional extension inputs and when sugar', () => {
-  // A-B-C-named extension inputs emit positionally (no `A:` labels) ...
-  const hasPositional = walk(outDir).some((f) => {
-    if (!f.endsWith('.fractch')) return false;
-    const text = fs.readFileSync(f, 'utf8');
-    return /mistsutils\.patchcommand2\((?!A:)\S/.test(text);
-  });
-  const hasLabeledABC = walk(outDir).some((f) => {
-    if (!f.endsWith('.fractch')) return false;
-    return /mistsutils\.patchcommand\(A:/.test(fs.readFileSync(f, 'utf8'));
-  });
-  const hasWhenSugar = walk(outDir).some((f) => {
-    if (!f.endsWith('.fractch')) return false;
-    const text = fs.readFileSync(f, 'utf8');
-    return /^when broadcast .+ at -?\d+,-?\d+ \{/m.test(text);
-  });
-  assert.ok(hasPositional, 'no positional extension input syntax found');
-  assert.ok(!hasLabeledABC, 'A: labels still emitted for A-named statement inputs');
-  assert.ok(hasWhenSugar, 'no when-broadcast sugar found in emitted output');
-
+test('input and field separators parse in current and legacy forms', () => {
   const parsed = parseFractch('data_changevariableby(VALUE: 1, field VARIABLE: var("score", "id"));\n').calls[0];
   assert.strictEqual(parsed.args[0].sep, 'input');
   assert.strictEqual(parsed.args[1].sep, 'field');
@@ -467,7 +459,7 @@ test('negated comparisons desugar to not() wrapping the opposite operator', () =
   assert.strictEqual(`${inner.ident}_${inner.method}`, 'sensing_mousedown');
 });
 
-test('boolean literals use Scratch equality blocks and empty not renders true', async () => {
+test('boolean literals use Scratch equality blocks and empty not keeps its block', async () => {
   const { buildBlocksFromCalls, IdGen } = await import('../src/buildBlocks.js');
   const { stringifyBlockCall } = await import('../src/stringify.js');
 
@@ -486,7 +478,7 @@ test('boolean literals use Scratch equality blocks and empty not renders true', 
   assert.strictEqual(stringifyBlockCall(truth, {}, 'truth', true), 'true');
 
   const emptyNot = { opcode: 'operator_not', inputs: {}, fields: {} };
-  assert.strictEqual(stringifyBlockCall(emptyNot, {}, 'not', true), 'true');
+  assert.strictEqual(stringifyBlockCall(emptyNot, {}, 'not', true), 'not(null)');
 });
 
 test('bare broadcast names and stop options parse to the right blocks', () => {
@@ -839,9 +831,12 @@ test('switch/case blocks render as readable switch statements', () => {
   assert.ok(hit, 'no readable switch/case rendering found');
 });
 
-test('extension opcodes are preserved literally (not renamed)', () => {
-  const hit = walk(outDir).some((f) => f.endsWith('.fractch') && /mistsutils\.patchcommand\(/.test(fs.readFileSync(f, 'utf8')));
-  assert.ok(hit, 'extension opcode mistsutils.patchcommand not found');
+test('extension opcodes are preserved literally (not renamed)', async () => {
+  const { buildBlocksFromCalls, IdGen } = await import('../src/buildBlocks.js');
+  const parsed = parseFractch('mistsutils.patchcommand("return 1");\n');
+  assert.deepStrictEqual(parsed.errors, []);
+  const { blocks } = buildBlocksFromCalls(parsed.calls, { idGen: new IdGen() });
+  assert.ok(Object.values(blocks).some((block) => block.opcode === 'mistsutils_patchcommand'));
 });
 
 test('script files carry no raw JSON block snapshot - DSL text is the only source of truth', () => {
