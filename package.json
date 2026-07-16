@@ -1,6 +1,6 @@
 {
   "name": "fractch",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Convert Scratch 3 .sb3 projects into a lossless, human-readable DSL and pack them back",
   "keywords": [
     "scratch",
