@@ -1115,7 +1115,7 @@ class Parser {
           if (this.lineAt(this.i) > commandLine) break;
         }
         this.tryChar(';');
-        return values.length ? makeVariadicCall('patching_jscommand', values, 'ARG', false) : null;
+        return values.length ? makeVariadicCall('patching_jscommand', values, 'ARG') : null;
       }
       case 'wait': {
         const v = this.parseInputValue();
@@ -2070,7 +2070,7 @@ class Parser {
       this.i++;
       const values = this.parseKeyedArgs().map((arg) => arg.value);
       this.expectChar(')');
-      return { type: 'call', value: makeVariadicCall('patching_jsreporter', values, 'ARG', false) };
+      return { type: 'call', value: makeVariadicCall('patching_jsreporter', values, 'ARG') };
     }
     if (word === 'js' && this.peek() === '.') {
       const save = this.snapshot();
@@ -2078,7 +2078,7 @@ class Parser {
       if (this.tryIdentifier() === 'bool' && this.tryChar('(')) {
         const values = this.parseKeyedArgs().map((arg) => arg.value);
         this.expectChar(')');
-        return { type: 'call', value: makeVariadicCall('patching_jsboolean', values, 'ARG', false) };
+        return { type: 'call', value: makeVariadicCall('patching_jsboolean', values, 'ARG') };
       }
       this.restore(save);
     }
@@ -2622,16 +2622,14 @@ function makeCall(opcode, args, line) {
   };
 }
 
-function makeVariadicCall(opcode, values, prefix, includeMutation = true) {
+function makeVariadicCall(opcode, values, prefix) {
   const args = values.map((value, i) => keyedInput(`${prefix}${i + 1}`, value));
-  if (includeMutation) {
-    args.push({
-      kind: 'keyed',
-      sep: 'field',
-      key: 'mutation',
-      value: { type: 'json', value: { tagName: 'mutation', children: [], itemcount: String(values.length) } },
-    });
-  }
+  args.push({
+    kind: 'keyed',
+    sep: 'field',
+    key: 'mutation',
+    value: { type: 'json', value: { tagName: 'mutation', children: [], itemcount: String(values.length) } },
+  });
   return makeCall(opcode, args);
 }
 function menuValueNode(menuOpcode, value) {

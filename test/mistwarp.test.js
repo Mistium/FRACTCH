@@ -17,7 +17,7 @@ const build = (source) => {
 test('MistWarp JavaScript patching syntax builds each block shape', () => {
   const command = build('js "console.log(1)";');
   assert.strictEqual(command.blocks[command.topId].opcode, 'patching_jscommand');
-  assert.strictEqual(command.blocks[command.topId].mutation, undefined);
+  assert.strictEqual(command.blocks[command.topId].mutation.itemcount, '1');
   assert.strictEqual(
     stringifyBlockCall(command.blocks[command.topId], command.blocks, command.topId),
     'js "console.log(1)";'
@@ -28,7 +28,7 @@ test('MistWarp JavaScript patching syntax builds each block shape', () => {
   const variadic = build(variadicSource);
   const variadicBlock = variadic.blocks[variadic.topId];
   assert.strictEqual(variadicBlock.opcode, 'patching_jscommand');
-  assert.strictEqual(variadicBlock.mutation, undefined);
+  assert.strictEqual(variadicBlock.mutation.itemcount, '41');
   assert.deepStrictEqual(
     Object.keys(variadicBlock.inputs),
     Array.from({ length: 41 }, (_, i) => `ARG${i + 1}`)
@@ -43,7 +43,7 @@ test('MistWarp JavaScript patching syntax builds each block shape', () => {
   const reporter = build('looks.say(MESSAGE: js("return 1"));');
   const reporterBlock = Object.values(reporter.blocks).find((block) => block.opcode === 'patching_jsreporter');
   assert.ok(reporterBlock);
-  assert.strictEqual(reporterBlock.mutation, undefined);
+  assert.strictEqual(reporterBlock.mutation.itemcount, '1');
   assert.strictEqual(
     stringifyBlockCall(reporter.blocks[reporter.topId], reporter.blocks, reporter.topId),
     'say js("return 1");'
@@ -52,11 +52,23 @@ test('MistWarp JavaScript patching syntax builds each block shape', () => {
   const boolean = build('if js.bool("return true") { show; }');
   const booleanBlock = Object.values(boolean.blocks).find((block) => block.opcode === 'patching_jsboolean');
   assert.ok(booleanBlock);
-  assert.strictEqual(booleanBlock.mutation, undefined);
+  assert.strictEqual(booleanBlock.mutation.itemcount, '1');
   assert.match(
     stringifyBlockCall(boolean.blocks[boolean.topId], boolean.blocks, boolean.topId),
     /^if js\.bool\("return true"\)/
   );
+});
+
+test('MistWarp JavaScript patching preserves a variable as its second extendable input', () => {
+  const source = 'js "let last_package = " vars["Import // Current Package"];';
+  const built = build(source);
+  const block = built.blocks[built.topId];
+
+  assert.strictEqual(block.opcode, 'patching_jscommand');
+  assert.strictEqual(block.mutation.itemcount, '2');
+  assert.deepStrictEqual(Object.keys(block.inputs), ['ARG1', 'ARG2']);
+  assert.deepStrictEqual(block.inputs.ARG2, [3, [12, 'Import // Current Package', null], [10, '']]);
+  assert.strictEqual(stringifyBlockCall(block, built.blocks, built.topId), source);
 });
 
 test('MistWarp operator additions and variadic mutations round-trip', () => {
