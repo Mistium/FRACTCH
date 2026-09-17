@@ -16,6 +16,7 @@ import {
   writeAssets,
   writeExtensions,
 } from '../src/index.js';
+import { runPackage } from '../src/packageCmd.js';
 
 const USAGE =
   'Usage:\n' +
@@ -29,6 +30,9 @@ const USAGE =
   '  fractch watch <dir> [to <sb3>]          repack automatically on change\n' +
   '  fractch run <dir>                       pack, open in the editor, hot reload on save\n' +
   '                                          (--editor <url> to override, default MistWarp)\n' +
+  '  fractch package <dir|sb3> [to <out>]    package into a standalone .html (or zip/app) with the\n' +
+  '                                          MistWarp packager; prompts unless --yes or piped\n' +
+  '                                          (--target html --title X --turbo ..., --options lists all)\n' +
   '  fractch --input <sb3> --out <dir>       flag form (same as `from ... to ...`)';
 
 const rawArgs = hideBin(process.argv);
@@ -40,7 +44,7 @@ for (let i = 0; i < rawArgs.length; i++) {
   }
   if (!rawArgs[i].startsWith('-')) words.push(rawArgs[i]);
 }
-const command = ['new', 'clone', 'check', 'fmt', 'watch', 'run'].includes(words[0]) ? words[0] : null;
+const command = ['new', 'clone', 'check', 'fmt', 'watch', 'run', 'package'].includes(words[0]) ? words[0] : null;
 
 const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
 
@@ -388,7 +392,9 @@ async function runClone(url, dir, verbose) {
 
   const { project } = await getJson(`${API_BASE}/api/projects/${encodeURIComponent(id)}`);
   if (!project) throw new Error(`no project ${id}`);
-  const outDir = path.resolve(dir || (project.title || id).replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-|-$/g, '') || id);
+  const outDir = path.resolve(
+    dir || (project.title || id).replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-|-$/g, '') || id
+  );
   if (fs.existsSync(outDir) && fs.readdirSync(outDir).length) {
     console.error(`refusing to clone into non-empty directory: ${outDir}`);
     process.exit(1);
@@ -488,6 +494,10 @@ function runNew(dir) {
     if (command === 'watch') {
       const out = words[2] === 'to' ? words[3] : words[2];
       await runWatch(words[1], out, rawArgs.includes('--verbose') || rawArgs.includes('-v'));
+      return;
+    }
+    if (command === 'package') {
+      await runPackage(rawArgs.slice(rawArgs.indexOf('package') + 1));
       return;
     }
     if (command === 'run') {
