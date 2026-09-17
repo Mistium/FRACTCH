@@ -7,11 +7,20 @@ import crypto from 'crypto';
 import { spawn } from 'child_process';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { unpackSb3, packSb3, checkProject, buildProjectFromBuildDir, convertProject } from '../src/index.js';
+import {
+  unpackSb3,
+  packSb3,
+  checkProject,
+  buildProjectFromBuildDir,
+  convertProject,
+  writeAssets,
+  writeExtensions,
+} from '../src/index.js';
 
 const USAGE =
   'Usage:\n' +
   '  fractch new <dir>                       scaffold a fresh fractch project\n' +
+  '  fractch clone <url> [to <dir>]          download a MistWarp project into .fractch text\n' +
   '  fractch from <project.sb3> [to <dir>]   unpack an .sb3 into .fractch text\n' +
   '  fractch [to] <project.sb3> from <dir>   pack a project dir into an .sb3\n' +
   '                                          (--origin <sb3> copies non-asset extras from it)\n' +
@@ -31,7 +40,7 @@ for (let i = 0; i < rawArgs.length; i++) {
   }
   if (!rawArgs[i].startsWith('-')) words.push(rawArgs[i]);
 }
-const command = ['new', 'check', 'fmt', 'watch', 'run'].includes(words[0]) ? words[0] : null;
+const command = ['new', 'clone', 'check', 'fmt', 'watch', 'run'].includes(words[0]) ? words[0] : null;
 
 const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
 
@@ -350,6 +359,76 @@ function openInBrowser(url) {
   }
 }
 
+const API_BASE = 'https://mwapi.mistium.com';
+
+async function fetchRetry(url, tries = 3) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url);
+    } catch (err) {
+      if (attempt >= tries) throw new Error(`could not reach ${url}: ${err.cause?.message || err.message}`);
+      await new Promise((r) => setTimeout(r, 300 * attempt));
+    }
+  }
+}
+
+async function getJson(url) {
+  const res = await fetchRetry(url);
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText} from ${url}`);
+  return res.json();
+}
+
+async function runClone(url, dir, verbose) {
+  if (!url) {
+    console.error('usage: fractch clone <project url or id> [to <dir>]');
+    process.exit(1);
+  }
+  const id = (url.split(/[?#]/)[0].replace(/\/+$/, '').split('/').pop() || '').trim();
+  if (!id) throw new Error(`could not read a project id out of: ${url}`);
+
+  const { project } = await getJson(`${API_BASE}/api/projects/${encodeURIComponent(id)}`);
+  if (!project) throw new Error(`no project ${id}`);
+  const outDir = path.resolve(dir || (project.title || id).replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-|-$/g, '') || id);
+  if (fs.existsSync(outDir) && fs.readdirSync(outDir).length) {
+    console.error(`refusing to clone into non-empty directory: ${outDir}`);
+    process.exit(1);
+  }
+
+  console.log(`[fractch] cloning "${project.title}" by ${project.owner}`);
+  const manifest = await getJson(project.projectJsonUrl || `${API_BASE}/blobs/projects/${id}/project.json`);
+
+  const assetsBase = (project.assetsBase || `${API_BASE}/blobs/assets`).replace(/\/+$/, '');
+  const md5exts = new Set();
+  for (const t of manifest.targets || [])
+    for (const a of [...(t.costumes || []), ...(t.sounds || [])]) {
+      const md5ext = a.md5ext || (a.assetId && `${a.assetId}.${a.dataFormat || ''}`);
+      if (md5ext) md5exts.add(md5ext);
+    }
+  const blobs = new Map(
+    await Promise.all(
+      [...md5exts].map(async (md5ext) => {
+        const res = await fetchRetry(`${assetsBase}/${md5ext}`);
+        if (!res.ok) {
+          console.warn(`[fractch] asset ${md5ext}: ${res.status}`);
+          return [md5ext, null];
+        }
+        return [md5ext, Buffer.from(await res.arrayBuffer())];
+      })
+    )
+  );
+
+  const result = await convertProject(manifest, { outDir, verbose });
+  writeAssets({ readFile: (md5ext) => blobs.get(md5ext) }, manifest, outDir, { verbose });
+  await writeExtensions(manifest, outDir, { verbose });
+
+  const rel = path.relative(process.cwd(), outDir) || '.';
+  console.log(`[fractch] wrote ${result.filesWritten} files + ${blobs.size} assets to ${rel}`);
+  console.log('');
+  console.log('Next steps:');
+  console.log(`  fractch check ${rel}`);
+  console.log(`  fractch run ${rel}`);
+}
+
 function runNew(dir) {
   if (!dir) {
     console.error('usage: fractch new <dir>');
@@ -391,6 +470,11 @@ function runNew(dir) {
     }
     if (command === 'new') {
       runNew(words[1]);
+      return;
+    }
+    if (command === 'clone') {
+      const out = words[2] === 'to' ? words[3] : words[2];
+      await runClone(words[1], out, rawArgs.includes('--verbose') || rawArgs.includes('-v'));
       return;
     }
     if (command === 'check') {

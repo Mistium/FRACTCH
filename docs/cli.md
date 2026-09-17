@@ -2,6 +2,7 @@
 
 ```txt
 fractch new <dir>                       scaffold a fresh fractch project
+fractch clone <url> [to <dir>]          download a MistWarp project into .fractch text
 fractch from <project.sb3> [to <dir>]   unpack an .sb3 into .fractch text
 fractch [to] <project.sb3> from <dir>   pack a project dir into an .sb3
 fractch check <dir>                     parse + lint every .fractch file
@@ -16,6 +17,10 @@ fractch --input <sb3> --out <dir>       flag form (same as `from ... to ...`)
 ### `fractch new <dir>`
 
 Scaffolds `Stage/main.fractch` and a `.gitignore` that excludes `*.sb3`. Refuses to run in a non-empty directory.
+
+### `fractch clone <url> [to <dir>]`
+
+Downloads a shared MistWarp project and unpacks it, same output as `from`. Takes a project URL (`https://warp.mistium.com/project/p178...`) or a bare project id. Without `to`, the directory is named after the project title. Refuses to run in a non-empty directory.
 
 ### `fractch from <sb3> [to <dir>]`
 
