@@ -4,7 +4,6 @@ import path from 'path';
 import readline from 'readline/promises';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
-import { spawnSync } from 'child_process';
 import { packFromBuildDir } from './packSb3.js';
 
 const ALIASES = {
@@ -18,7 +17,7 @@ const ALIASES = {
   pause: 'controls.pause.enabled',
 };
 
-const BOOL_FLAGS = ['yes', 'y', 'verbose', 'v', 'options', 'rebuild'];
+const BOOL_FLAGS = ['yes', 'y', 'verbose', 'v', 'options'];
 const OWN_FLAGS = ['packager', ...BOOL_FLAGS];
 const BOOL_RE = /^(true|false|yes|no|y|n|1|0|on|off)$/i;
 
@@ -162,55 +161,66 @@ function listOptions(obj, prefix = '') {
 }
 
 const CACHE_DIR = path.join(os.homedir(), '.cache', 'fractch', 'packager');
-const SCAFFOLDING_BASE = 'https://packager.warp.mistium.com/scaffolding/';
-const SCAFFOLDING_FILES = ['scaffolding-min.js', 'scaffolding-full.js', 'addons.js'];
 
-async function buildPackager(flagPath) {
-  const checkout = path.resolve(
-    flagPath || process.env.FRACTCH_PACKAGER || path.join(os.homedir(), 'mistwarp', 'packager')
+async function loadPackager(flagPath) {
+  const gui = path.resolve(
+    flagPath || process.env.FRACTCH_PACKAGER || path.join(os.homedir(), 'mistwarp', 'scratch-gui')
   );
-  const webpack = path.join(checkout, 'node_modules', 'webpack', 'bin', 'webpack.js');
-  if (!fs.existsSync(webpack)) {
+  const source = path.join(gui, 'src', 'packager', 'packager');
+  if (!fs.existsSync(path.join(source, 'packager.js'))) {
     throw new Error(
-      `MistWarp packager checkout not found at ${checkout}\n` +
-        '  git clone https://github.com/MistWarp/packager && cd packager && npm ci\n' +
-        '  then pass --packager <that dir> or set $FRACTCH_PACKAGER (only needed once; the build is cached)'
+      `MistWarp editor checkout not found at ${gui}\n` +
+        '  git clone https://github.com/MistWarp/scratch-gui, install + build it,\n' +
+        '  then pass --packager <that dir> or set $FRACTCH_PACKAGER'
     );
   }
-  console.log(`[fractch] building the MistWarp packager from ${checkout} (one time)`);
-  const config = fileURLToPath(new URL('./packagerWebpack.cjs', import.meta.url));
-  const built = spawnSync(process.execPath, [webpack, '--config', config], {
-    cwd: checkout,
-    env: { ...process.env, FRACTCH_PACKAGER_OUT: CACHE_DIR },
-    encoding: 'utf8',
-  });
-  if (built.status !== 0) throw new Error(`packager build failed:\n${built.stdout}${built.stderr}`);
-
-  fs.mkdirSync(path.join(CACHE_DIR, 'scaffolding'), { recursive: true });
-  for (const file of SCAFFOLDING_FILES) {
-    const res = await fetch(SCAFFOLDING_BASE + file);
-    if (!res.ok) throw new Error(`${res.status} fetching ${SCAFFOLDING_BASE}${file}`);
-    fs.writeFileSync(path.join(CACHE_DIR, 'scaffolding', file), Buffer.from(await res.arrayBuffer()));
+  const runtimeRoot = path.join(gui, 'build', 'packager-runtime');
+  const runtimes = fs.existsSync(runtimeRoot)
+    ? fs
+        .readdirSync(runtimeRoot)
+        .filter((id) => fs.existsSync(path.join(runtimeRoot, id, 'scaffolding-full.js')))
+        .sort((a, b) => fs.statSync(path.join(runtimeRoot, b)).mtimeMs - fs.statSync(path.join(runtimeRoot, a)).mtimeMs)
+    : [];
+  if (!runtimes.length) {
+    throw new Error(`no built player runtime in ${runtimeRoot}\n  run the editor build there first (npm run build)`);
   }
-}
+  process.env.SCAFFOLDING_BUILD_ID = runtimes[0];
+  process.env.FRACTCH_PACKAGER_RUNTIME = path.join(runtimeRoot, runtimes[0]);
 
-async function loadPackager(flagPath, rebuild) {
-  const entry = path.join(CACHE_DIR, 'packager.js');
-  const scaffolding = path.join(CACHE_DIR, 'scaffolding', SCAFFOLDING_FILES[0]);
-  if (rebuild || !fs.existsSync(entry) || !fs.existsSync(scaffolding)) await buildPackager(flagPath);
-  const size = fs.statSync(scaffolding).size;
-  const tail = Buffer.alloc(Math.min(200, size));
-  const fd = fs.openSync(scaffolding, 'r');
-  fs.readSync(fd, tail, 0, tail.length, size - tail.length);
-  fs.closeSync(fd);
-  const id = /(\S+) =\^\.\.\^=\s*$/.exec(tail.toString('utf8'));
-  if (id) process.env.SCAFFOLDING_BUILD_ID = id[1];
-  return createRequire(import.meta.url)(entry);
+  const require = createRequire(path.join(gui, 'package.json'));
+  const entry = path.join(CACHE_DIR, 'packager.cjs');
+  await require('esbuild').build({
+    stdin: {
+      contents: fs.readFileSync(fileURLToPath(new URL('./packagerEntry.js', import.meta.url)), 'utf8'),
+      resolveDir: source,
+      sourcefile: 'fractch-packager-entry.js',
+    },
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    outfile: entry,
+    logLevel: 'error',
+    loader: { '.png': 'binary', '.svg': 'text' },
+    define: { 'import.meta.env.BASE_URL': '""' },
+    plugins: [
+      {
+        name: 'packager-runtime',
+        setup(build) {
+          build.onResolve({ filter: /^virtual:packager-runtime$/ }, () => ({ path: 'runtime', namespace: 'fractch' }));
+          build.onLoad({ filter: /.*/, namespace: 'fractch' }, () => ({
+            contents: 'export const buildId = process.env.SCAFFOLDING_BUILD_ID; export const development = false;',
+          }));
+        },
+      },
+    ],
+  });
+  delete require.cache[entry];
+  return require(entry);
 }
 
 export async function runPackage(args) {
   const early = parsePackageArgs(args).flags;
-  const Packager = await loadPackager(early.packager, 'rebuild' in early);
+  const Packager = await loadPackager(early.packager);
   const defaults = Packager.Packager.DEFAULT_OPTIONS();
   const { words, flags } = parsePackageArgs(args, defaults);
 
