@@ -74,6 +74,8 @@ fractch package --options                           # every packager option + de
 ```
 
 - Every packager option is a flag by its dotted path (`--controls.pause.enabled`, `--appearance.background "#111"`, `--no-fencing`). Shorthands: `--title`, `--width`, `--height`, `--fps`, `--flag`, `--stop`, `--fullscreen`, `--pause`.
+- Defaults come from the project's stored TurboWarp settings (the Stage's `// _twconfig_` comment: framerate, stage size, HQ pen, turbo, interpolation, clone/fencing/misc limits, compiler options); flags and prompt answers override them.
+- `--resizeMode dynamic-resize` resizes the stage to fill the viewport (default `preserve-ratio`; also `stretch`).
 - `--target` — `html` (default), `zip`, `zip-one-asset`, `electron-win64`, `electron-mac`, `electron-linux64`, `webview-mac`, `nwjs-*`, ...
 - The packager isn't on npm, so the first run builds its Node bundle from a local checkout (`--packager <dir>`, `$FRACTCH_PACKAGER`, default `~/mistwarp/packager`; needs `npm ci` there) and downloads the player runtime from `packager.warp.mistium.com`. Both are cached in `~/.cache/fractch/packager`; `--rebuild` refreshes them.
 

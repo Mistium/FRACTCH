@@ -107,13 +107,50 @@ export function coerceOption(defaults, key, raw) {
   }
   if (typeof current === 'number') {
     const n = Number(raw);
-    if (!Number.isFinite(n)) throw new Error(`${key} expects a number, got "${raw}"`);
+    if (raw.trim() === '' || Number.isNaN(n)) throw new Error(`${key} expects a number, got "${raw}"`);
     return n;
   }
   if (key === 'target' && !TARGETS.includes(raw)) {
     throw new Error(`target must be one of: ${TARGETS.join(', ')}`);
   }
   return raw;
+}
+
+const STORED_KEYS = {
+  framerate: 'framerate',
+  turbo: 'turbo',
+  interpolation: 'interpolation',
+  hq: 'highQualityPen',
+  width: 'stageWidth',
+  height: 'stageHeight',
+  'runtimeOptions.maxClones': 'maxClones',
+  'runtimeOptions.miscLimits': 'miscLimits',
+  'runtimeOptions.fencing': 'fencing',
+  'compilerOptions.enabled': 'compiler.enabled',
+  'compilerOptions.warpTimer': 'compiler.warpTimer',
+};
+
+export function storedSettings(stageComments = []) {
+  const line = stageComments.flatMap((text) => text.split('\n')).find((l) => l.endsWith(' // _twconfig_'));
+  if (!line) return {};
+  let config;
+  try {
+    config = JSON.parse(line.slice(0, -' // _twconfig_'.length).replace(/\bInfinity\b/g, '1e999'));
+  } catch {
+    return {};
+  }
+  const out = {};
+  for (const [from, to] of Object.entries(STORED_KEYS)) {
+    const value = getPath(config, from);
+    if (typeof value === 'number' || typeof value === 'boolean') out[to] = value;
+  }
+  return out;
+}
+
+function formatFlags(options) {
+  return Object.entries(options)
+    .map(([k, v]) => `--${k} ${typeof v === 'string' ? JSON.stringify(v) : v}`)
+    .join(' ');
 }
 
 function listOptions(obj, prefix = '') {
@@ -193,34 +230,6 @@ export async function runPackage(args) {
   const name = path.basename(input).replace(/\.sb3$/i, '') || 'project';
   const outArg = words[1] === 'to' ? words[2] : words[1];
 
-  const chosen = { 'app.windowTitle': name };
-  for (const [key, raw] of Object.entries(flags)) {
-    if (!OWN_FLAGS.includes(key)) chosen[key] = coerceOption(defaults, key, raw);
-  }
-
-  const interactive = process.stdin.isTTY && !flags.yes && !flags.y;
-  if (interactive) {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    try {
-      for (const [key, label] of PROMPTS) {
-        if (key in flags) continue;
-        const fallback = key in chosen ? chosen[key] : getPath(defaults, key);
-        for (;;) {
-          const answer = (await rl.question(`${label} [${fallback}]: `)).trim();
-          if (!answer) break;
-          try {
-            chosen[key] = coerceOption(defaults, key, answer);
-            break;
-          } catch (e) {
-            console.log(`  ${e.message}`);
-          }
-        }
-      }
-    } finally {
-      rl.close();
-    }
-  }
-
   let sb3 = input;
   let tmp = null;
   if (fs.statSync(input).isDirectory()) {
@@ -230,8 +239,41 @@ export async function runPackage(args) {
   }
 
   try {
+    const project = await Packager.loadProject(fs.readFileSync(sb3));
+    const stored = storedSettings(project.analysis?.stageComments);
+    const chosen = { 'app.windowTitle': name, ...stored };
+    if (Object.keys(stored).length) {
+      console.log(`[fractch] defaults from the project's stored settings: ${formatFlags(stored)}`);
+    }
+    for (const [key, raw] of Object.entries(flags)) {
+      if (!OWN_FLAGS.includes(key)) chosen[key] = coerceOption(defaults, key, raw);
+    }
+
+    const interactive = process.stdin.isTTY && !flags.yes && !flags.y;
+    if (interactive) {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        for (const [key, label] of PROMPTS) {
+          if (key in flags) continue;
+          const fallback = key in chosen ? chosen[key] : getPath(defaults, key);
+          for (;;) {
+            const answer = (await rl.question(`${label} [${fallback}]: `)).trim();
+            if (!answer) break;
+            try {
+              chosen[key] = coerceOption(defaults, key, answer);
+              break;
+            } catch (e) {
+              console.log(`  ${e.message}`);
+            }
+          }
+        }
+      } finally {
+        rl.close();
+      }
+    }
+
     const packager = new Packager.Packager();
-    packager.project = await Packager.loadProject(fs.readFileSync(sb3));
+    packager.project = project;
     for (const [key, value] of Object.entries(chosen)) setPath(packager.options, key, value);
     const result = await packager.package();
     const ext = path.extname(result.filename) || (result.type === 'text/html' ? '.html' : '.zip');
@@ -240,9 +282,9 @@ export async function runPackage(args) {
     fs.writeFileSync(out, result.data);
     const rel = path.relative(process.cwd(), out);
     console.log(`[fractch] packaged ${rel.startsWith('..') ? out : rel} (${result.data.length} bytes)`);
-    const replay = Object.entries(chosen).map(([k, v]) => `--${k} ${JSON.stringify(v)}`);
-    if (interactive)
-      console.log(`[fractch] repeat without prompts: fractch package ${words[0] || '.'} ${replay.join(' ')} --yes`);
+    if (interactive) {
+      console.log(`[fractch] repeat without prompts: fractch package ${words[0] || '.'} ${formatFlags(chosen)} --yes`);
+    }
   } finally {
     if (tmp) fs.rmSync(tmp, { force: true });
   }
