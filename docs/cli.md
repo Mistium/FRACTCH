@@ -62,7 +62,7 @@ Initial pack plus a filesystem watcher (200ms debounce). Default output: `./<dir
 
 ### `fractch package <dir|sb3> [to <out>]`
 
-Packages a project dir (or an existing `.sb3`) with the [MistWarp packager](https://github.com/MistWarp/packager). Default output: `./<name>.html`.
+Packages a project dir (or an existing `.sb3`) with the MistWarp editor's built-in packager. Default output: `./<name>.html`.
 
 In a terminal it prompts for the common options (target, title, stage size, framerate, turbo, controls, ...); Enter keeps the default. Any option passed as a flag is not prompted for, and `--yes` (or piped stdin) skips prompting entirely, so it scripts cleanly:
 
@@ -77,7 +77,7 @@ fractch package --options                           # every packager option + de
 - Defaults come from the project's stored TurboWarp settings (the Stage's `// _twconfig_` comment: framerate, stage size, HQ pen, turbo, interpolation, clone/fencing/misc limits, compiler options); flags and prompt answers override them.
 - `--resizeMode dynamic-resize` resizes the stage to fill the viewport (default `preserve-ratio`; also `stretch`).
 - `--target` — `html` (default), `zip`, `zip-one-asset`, `electron-win64`, `electron-mac`, `electron-linux64`, `webview-mac`, `nwjs-*`, ...
-- The packager isn't on npm, so the first run builds its Node bundle from a local checkout (`--packager <dir>`, `$FRACTCH_PACKAGER`, default `~/mistwarp/packager`; needs `npm ci` there) and downloads the player runtime from `packager.warp.mistium.com`. Both are cached in `~/.cache/fractch/packager`; `--rebuild` refreshes them.
+- It uses the exact packager built into the MistWarp editor (`scratch-gui/src/packager`), so every MistWarp VM extension works. It needs a built editor checkout: `--packager <scratch-gui dir>`, `$FRACTCH_PACKAGER`, default `~/mistwarp/scratch-gui`. The packager source is bundled with the checkout's esbuild on each run and the player runtime comes from its newest `build/packager-runtime/<id>/` — rebuild the editor to pick up VM changes. Desktop-target downloads are cached in `~/.cache/fractch/packager`.
 
 ## Index files as allow-lists
 
