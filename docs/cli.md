@@ -9,6 +9,7 @@ fractch check <dir>                     parse + lint every .fractch file
 fractch fmt <dir>                       rewrite files in canonical (current) syntax
 fractch watch <dir> [to <sb3>]          repack automatically on change
 fractch run <dir>                       pack, open in the editor, repack on save
+fractch package <dir|sb3> [to <out>]    package into a standalone .html (or zip/app)
 fractch --input <sb3> --out <dir>       flag form (same as `from ... to ...`)
 ```
 
@@ -58,6 +59,23 @@ Initial pack plus a filesystem watcher (200ms debounce). Default output: `./<dir
 `watch` + a localhost server + opens the editor with `?project_url=` pointing at the packed sb3. Edit, save, refresh the tab.
 
 - `--editor <url>` — editor to open (default `https://warp.mistium.com/editor.html`; any TurboWarp-family editor supporting `project_url` works).
+
+### `fractch package <dir|sb3> [to <out>]`
+
+Packages a project dir (or an existing `.sb3`) with the [MistWarp packager](https://github.com/MistWarp/packager). Default output: `./<name>.html`.
+
+In a terminal it prompts for the common options (target, title, stage size, framerate, turbo, controls, ...); Enter keeps the default. Any option passed as a flag is not prompted for, and `--yes` (or piped stdin) skips prompting entirely, so it scripts cleanly:
+
+```sh
+fractch package .                                   # interactive
+fractch package . to game.html --turbo --fps 60 --flag --title "My Game" --yes
+fractch package game.sb3 --target zip --yes
+fractch package --options                           # every packager option + default
+```
+
+- Every packager option is a flag by its dotted path (`--controls.pause.enabled`, `--appearance.background "#111"`, `--no-fencing`). Shorthands: `--title`, `--width`, `--height`, `--fps`, `--flag`, `--stop`, `--fullscreen`, `--pause`.
+- `--target` — `html` (default), `zip`, `zip-one-asset`, `electron-win64`, `electron-mac`, `electron-linux64`, `webview-mac`, `nwjs-*`, ...
+- The packager isn't on npm, so the first run builds its Node bundle from a local checkout (`--packager <dir>`, `$FRACTCH_PACKAGER`, default `~/mistwarp/packager`; needs `npm ci` there) and downloads the player runtime from `packager.warp.mistium.com`. Both are cached in `~/.cache/fractch/packager`; `--rebuild` refreshes them.
 
 ## Index files as allow-lists
 

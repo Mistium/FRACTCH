@@ -103,6 +103,7 @@ fractch new my-project        # scaffold Stage/main.fractch + .gitignore
 cd my-project && git init
 fractch check .               # parse + lint every file, errors with file:line, exit 1 on problems
 fractch run .                 # pack, open in the MistWarp editor, repack on every save
+fractch package .             # standalone .html via the MistWarp packager (prompts; --yes + flags to script)
 ```
 
 - `fractch watch <dir> [to <sb3>]` repacks on every save (200ms debounce) without opening anything — point your runner at the output `.sb3`.
