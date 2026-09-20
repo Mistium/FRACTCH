@@ -1,3 +1,9 @@
+import { MENU_OPCODES } from './knownOpcodes.js';
+
+export function isMenuShadow(b) {
+  return Boolean(b && b.shadow && typeof b.opcode === 'string' && (MENU_OPCODES.has(b.opcode) || b.opcode.endsWith('_menu')));
+}
+
 export function groupTopLevelScripts(target) {
   const blocks = target.blocks || {};
   const scripts = [];
@@ -5,7 +11,7 @@ export function groupTopLevelScripts(target) {
     if (!b) continue;
 
     if (!b.topLevel) continue;
-    if (b.shadow) continue;
+    if (isMenuShadow(b)) continue;
     const hatOpcode = b.opcode || null;
     scripts.push({ topBlockId: id, hatOpcode });
   }

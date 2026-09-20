@@ -1,7 +1,7 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { emitMultiScriptFile, emitTargetPrelude } from './emit.js';
-import { groupTopLevelScripts, collectBlocksSubgraph } from './graph.js';
+import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
 import { decodeFileStemFromComment, decodeFileStemFromTopId } from './fileMarkers.js';
 import { STDLIB_MODULES, STDLIB_STEM_PREFIX } from './stdlib/index.js';
 
@@ -103,7 +103,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
 
       const entry = allBlocks[id];
       if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.opcode !== 'string') continue;
-      if (entry.shadow) {
+      if (isMenuShadow(entry)) {
         droppedShadows++;
         continue;
       }
@@ -222,7 +222,24 @@ function routeMonitors(projectJson, targets) {
     if (!m) continue;
     const isList = m.opcode === 'data_listcontents';
     if (m.opcode !== 'data_variable' && !isList) {
-      console.warn(`[convert] monitor with opcode ${m.opcode} is not representable as a watch declaration, dropped`);
+      const builtinOwner = m.spriteName == null ? stageTarget : byName.get(m.spriteName);
+      push((builtinOwner || stageTarget)?.name, {
+        opcode: m.opcode,
+        params: m.params || {},
+        isList: false,
+        name: null,
+        mode: m.mode,
+        x: m.x,
+        y: m.y,
+        width: m.width,
+        height: m.height,
+        visible: m.visible,
+        sliderMin: m.sliderMin,
+        sliderMax: m.sliderMax,
+        isDiscrete: m.isDiscrete,
+        sprite: m.spriteName ?? null,
+        id: m.id ?? null,
+      });
       continue;
     }
     const name = isList ? m.params?.LIST : m.params?.VARIABLE;

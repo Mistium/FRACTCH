@@ -172,7 +172,10 @@ function varValueText(v) {
 }
 
 function watchDeclLine(w) {
-  const parts = [`watch ${w.isList ? 'list' : 'var'} ${JSON.stringify(String(w.name ?? ''))}`];
+  const head = w.opcode
+    ? `watch ${w.opcode}${watchParamsText(w.params)}`
+    : `watch ${w.isList ? 'list' : 'var'} ${JSON.stringify(String(w.name ?? ''))}`;
+  const parts = [head];
   if (w.mode === 'large' || w.mode === 'slider') parts.push(w.mode);
   if (numOr(w.x, 0) !== 0 || numOr(w.y, 0) !== 0) parts.push(`at ${numText(w.x)},${numText(w.y)}`);
   if (numOr(w.width, 0) !== 0 || numOr(w.height, 0) !== 0) parts.push(`size ${numText(w.width)}x${numText(w.height)}`);
@@ -185,6 +188,12 @@ function watchDeclLine(w) {
   if (w.sprite) parts.push(`sprite ${JSON.stringify(String(w.sprite))}`);
   if (w.id) parts.push(`id ${JSON.stringify(String(w.id))}`);
   return parts.join(' ') + ';';
+}
+
+function watchParamsText(params) {
+  const entries = Object.entries(params || {});
+  if (!entries.length) return '';
+  return `(${entries.map(([k, v]) => `${k}: ${JSON.stringify(String(v ?? ''))}`).join(', ')})`;
 }
 
 function emitScriptBody({ script, subgraph, context, cfg = {} }) {

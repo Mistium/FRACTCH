@@ -798,3 +798,72 @@ test('boolean literal true/false packs as the 0==0 idiom and survives', async ()
   const eq = Object.values(packed).find((b) => b.opcode === 'operator_equals');
   assert.ok(eq, 'boolean literal rebuilt as operator_equals');
 });
+
+test('builtin monitors survive the round trip instead of being dropped', async () => {
+  const project = projectOf(
+    target('main', {
+      hat: hat('say'),
+      say: { opcode: 'looks_say', next: null, parent: 'hat', inputs: { MESSAGE: [1, [10, 'hi']] }, fields: {} },
+    })
+  );
+  project.monitors = [
+    {
+      id: 'timer',
+      mode: 'large',
+      opcode: 'sensing_timer',
+      params: {},
+      spriteName: null,
+      value: 0,
+      width: 0,
+      height: 0,
+      x: 0,
+      y: 23,
+      visible: false,
+      sliderMin: 0,
+      sliderMax: 100,
+      isDiscrete: true,
+    },
+    {
+      id: 'backdropnumbername_number',
+      mode: 'default',
+      opcode: 'looks_backdropnumbername',
+      params: { NUMBER_NAME: 'number' },
+      spriteName: null,
+      value: 0,
+      width: 0,
+      height: 0,
+      x: 5,
+      y: 5,
+      visible: true,
+      sliderMin: 0,
+      sliderMax: 100,
+      isDiscrete: true,
+    },
+    {
+      id: 'main_size',
+      mode: 'default',
+      opcode: 'looks_size',
+      params: {},
+      spriteName: 'main',
+      value: 0,
+      width: 0,
+      height: 0,
+      x: 5,
+      y: 5,
+      visible: false,
+      sliderMin: 0,
+      sliderMax: 100,
+      isDiscrete: true,
+    },
+  ];
+  const manifest = await roundtrip(project);
+  const got = new Map((manifest.monitors || []).map((m) => [m.id, m]));
+  for (const orig of project.monitors) {
+    const m = got.get(orig.id);
+    assert.ok(m, `monitor ${orig.id} was dropped`);
+    for (const k of ['opcode', 'mode', 'spriteName', 'x', 'y', 'visible']) {
+      assert.deepStrictEqual(m[k], orig[k], `monitor ${orig.id} field ${k}`);
+    }
+    assert.deepStrictEqual(m.params, orig.params, `monitor ${orig.id} params`);
+  }
+});
