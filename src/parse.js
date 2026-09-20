@@ -839,7 +839,7 @@ class Parser {
       this.tryIdentifier();
       this.skipWS();
       const kind = this.peekWord();
-      isKeyword = kind === 'var' || kind === 'list';
+      isKeyword = kind === 'var' || kind === 'list' || /^[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+$/.test(kind || '');
       this.restore(save);
     } else if (word === 'comment') {
       const save = this.snapshot();
@@ -1600,13 +1600,36 @@ class Parser {
       case 'watch': {
         this.skipWS();
         const kindWord = this.expectIdentifier(`after 'watch'`);
-        if (kindWord !== 'var' && kindWord !== 'list') {
-          this.fail(`'watch' expects 'var' or 'list' but found '${kindWord}'`, 'example: watch var "score" at 10,10;');
+        const isBuiltin = kindWord !== 'var' && kindWord !== 'list';
+        let builtinParams = null;
+        let name = null;
+        if (isBuiltin) {
+          builtinParams = {};
+          this.skipWS();
+          if (this.tryChar('(')) {
+            for (;;) {
+              this.skipWS();
+              if (this.tryChar(')')) break;
+              const key = this.expectIdentifier(`in watch ${kindWord} parameters`);
+              this.skipWS();
+              this.expectChar(':');
+              this.skipWS();
+              builtinParams[key] = this.parseStringLiteral();
+              this.skipWS();
+              if (this.tryChar(',')) continue;
+              this.skipWS();
+              this.expectChar(')');
+              break;
+            }
+          }
+        } else {
+          this.skipWS();
+          name = this.parseStringLiteral();
         }
-        this.skipWS();
-        const name = this.parseStringLiteral();
         const decl = {
           type: 'watchDecl',
+          opcode: isBuiltin ? kindWord : null,
+          params: builtinParams,
           isList: kindWord === 'list',
           name,
           mode: null,

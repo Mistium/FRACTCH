@@ -138,3 +138,44 @@ test('check reports unknown builtin opcodes and menus at statement position', as
   );
   assert.strictEqual(problems.length, 2, `nested menu use stays legal: ${messages}`);
 });
+
+test('shadow-flagged real scripts are emitted, not mistaken for editor debris', async () => {
+  const outDir = tmp();
+  const project = minimalProject({
+    hat: {
+      opcode: 'event_whenflagclicked',
+      next: 'move',
+      parent: null,
+      inputs: {},
+      fields: {},
+      topLevel: true,
+      shadow: true,
+      x: 0,
+      y: 0,
+    },
+    move: {
+      opcode: 'motion_movesteps',
+      next: null,
+      parent: 'hat',
+      inputs: { STEPS: [1, [4, '10']] },
+      fields: {},
+      shadow: true,
+    },
+    leftover: {
+      opcode: 'motion_goto_menu',
+      next: null,
+      parent: null,
+      inputs: {},
+      fields: { TO: ['_random_', null] },
+      topLevel: true,
+      shadow: true,
+      x: 9,
+      y: 9,
+    },
+  });
+  await convertProject(project, { outDir, fs });
+  const text = fs.readFileSync(path.join(outDir, 'main', 'main.fractch'), 'utf8');
+  assert.match(text, /when flag/);
+  assert.match(text, /move 10;/);
+  assert.doesNotMatch(text, /_random_/);
+});

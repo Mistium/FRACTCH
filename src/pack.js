@@ -171,6 +171,9 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
     const varMap = new Map([...stageVarMap, ...buildNameIdMap(manifestTarget?.variables)]);
     const listMap = new Map([...stageListMap, ...buildNameIdMap(manifestTarget?.lists)]);
     let stackIndex = 0;
+    const procArgsForTarget = withGlobalFallback(globalProcArgs, procArgMaps.get(name));
+    const identToProccodeForTarget = withGlobalFallback(globalIdentToProccode, identToProccode.get(name));
+    const procMetaForTarget = withGlobalFallback(globalProcMeta, procMetaMaps.get(name));
     const localTags = computeLocalTags(data.stacks);
     for (let stackI = 0; stackI < data.stacks.length; stackI++) {
       const s = data.stacks[stackI];
@@ -190,9 +193,9 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       const commentsOut = [];
       const built = buildBlocksFromCalls(s.calls, {
         hatOpcode: s.hatOpcode,
-        proceduresMapForTarget: withGlobalFallback(globalProcArgs, procArgMaps.get(name)),
-        identToProccode: withGlobalFallback(globalIdentToProccode, identToProccode.get(name)),
-        procMeta: withGlobalFallback(globalProcMeta, procMetaMaps.get(name)),
+        proceduresMapForTarget: procArgsForTarget,
+        identToProccode: identToProccodeForTarget,
+        procMeta: procMetaForTarget,
         varMap,
         listMap,
         broadcastNameToId,
@@ -310,15 +313,46 @@ function applyWatchDecls(manifest, watchDecls, renamePlans) {
   if (!watchDecls.length) return;
   if (!Array.isArray(manifest.monitors)) manifest.monitors = [];
   const stage = (manifest.targets || []).find((t) => t.isStage);
+  const nameIdCache = new Map();
+  const nameIds = (dict) => {
+    if (!dict) return new Map();
+    let m = nameIdCache.get(dict);
+    if (!m) nameIdCache.set(dict, (m = buildNameIdMap(dict)));
+    return m;
+  };
+  const targetsByName = new Map((manifest.targets || []).map((t) => [t.name, t]));
   for (const { targetName, decl } of watchDecls) {
-    const target = (manifest.targets || []).find((t) => t.name === targetName);
+    const target = targetsByName.get(targetName);
     if (!target) continue;
+    if (decl.opcode) {
+      const builtinId = decl.id || decl.opcode;
+      const builtin = {
+        id: builtinId,
+        mode: decl.mode === 'large' ? 'large' : decl.mode === 'slider' ? 'slider' : 'default',
+        opcode: decl.opcode,
+        params: decl.params || {},
+        spriteName: decl.sprite ?? null,
+        value: 0,
+        width: decl.width ?? 0,
+        height: decl.height ?? 0,
+        x: decl.x ?? 0,
+        y: decl.y ?? 0,
+        visible: !!decl.visible,
+        sliderMin: decl.sliderMin ?? 0,
+        sliderMax: decl.sliderMax ?? 100,
+        isDiscrete: decl.isDiscrete !== false,
+      };
+      const at = manifest.monitors.findIndex((m) => m && m.id === builtinId);
+      if (at >= 0) manifest.monitors[at] = builtin;
+      else manifest.monitors.push(builtin);
+      continue;
+    }
     const dictKey = decl.isList ? 'lists' : 'variables';
     let id = decl.id || null;
     if (!id) {
       id =
-        buildNameIdMap(target[dictKey]).get(decl.name) ||
-        (stage && stage !== target ? buildNameIdMap(stage[dictKey]).get(decl.name) : null) ||
+        nameIds(target[dictKey]).get(decl.name) ||
+        (stage && stage !== target ? nameIds(stage[dictKey]).get(decl.name) : null) ||
         null;
     }
     if (!id) {
@@ -329,7 +363,7 @@ function applyWatchDecls(manifest, watchDecls, renamePlans) {
     }
     const finalName = renamePlans.get(targetName) || targetName;
     const ownedByStage =
-      !decl.sprite && (target.isStage || (stage && buildNameIdMap(stage[dictKey]).get(decl.name) === id));
+      !decl.sprite && (target.isStage || (stage && nameIds(stage[dictKey]).get(decl.name) === id));
     const monitor = {
       id,
       mode: decl.isList ? 'list' : decl.mode === 'large' ? 'large' : decl.mode === 'slider' ? 'slider' : 'default',
@@ -903,13 +937,15 @@ function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
     ...Object.values(target.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)),
     ...(stage ? Object.values(stage.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)) : []),
   ]);
+  const globalVarNames = globals ? buildNameIdMap(globals.variables) : null;
+  const globalListNames = globals ? buildNameIdMap(globals.lists) : null;
   for (const name of vars) {
     if (listNames.has(name)) continue;
-    if (globals && buildNameIdMap(globals.variables).has(name)) continue;
+    if (globalVarNames && globalVarNames.has(name)) continue;
     ensureDictEntry(target.variables, name, [name, 0]);
   }
   for (const name of lists) {
-    if (globals && buildNameIdMap(globals.lists).has(name)) continue;
+    if (globalListNames && globalListNames.has(name)) continue;
     ensureDictEntry(target.lists, name, [name, []]);
   }
 
