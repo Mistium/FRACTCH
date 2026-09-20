@@ -72,6 +72,8 @@ export async function checkProject({ buildDir, fs: fsLike }) {
   };
 
   const push = (file, line, col, message, hint = null) => problems.push({ file, line, col, message, hint });
+  const pushFatal = (file, line, col, message, hint = null) =>
+    problems.push({ file, line, col, message, hint, fatal: true });
 
   for (const fPath of files) {
     const rel = path.relative(buildDir, fPath);
@@ -80,24 +82,24 @@ export async function checkProject({ buildDir, fs: fsLike }) {
     try {
       text = String(await vfs.readFile(fPath, 'utf8'));
     } catch (e) {
-      push(rel, 0, 0, `unreadable: ${e.message}`);
+      pushFatal(rel, 0, 0, `unreadable: ${e.message}`);
       continue;
     }
     sources.set(rel, text);
 
     for (const e of checkFractch(text)) {
-      push(rel, e.line, e.col, e.message.replace(/ \(line \d+, col \d+\)$/, ''));
+      pushFatal(rel, e.line, e.col, e.message.replace(/ \(line \d+, col \d+\)$/, ''));
     }
 
     let parsed;
     try {
       parsed = parseFractch(text);
     } catch (e) {
-      push(rel, 0, 0, `parse failed: ${e.message}`, e.hint || null);
+      pushFatal(rel, 0, 0, `parse failed: ${e.message}`, e.hint || null);
       continue;
     }
     for (const err of parsed.errors || []) {
-      push(rel, err.line, err.col ?? 0, `skipped unparsable statement: ${err.message}`, err.hint || null);
+      pushFatal(rel, err.line, err.col ?? 0, `skipped unparsable statement: ${err.message}`, err.hint || null);
     }
 
     const st = targetState(target);

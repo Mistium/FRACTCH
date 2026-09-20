@@ -84,3 +84,22 @@ test('check flags unknown namespace-less blocks and bare value statements', asyn
     "'text' is a real namespace-less opcode and must not be flagged"
   );
 });
+
+test('only content-losing problems are fatal, so fmt can still format a lint-clean-but-imperfect project', async (t) => {
+  const advisory = project('when flag {\n  @nope();\n}\n');
+  t.after(() => fs.rmSync(advisory, { recursive: true, force: true }));
+  const a = await checkProject({ buildDir: advisory, fs });
+  assert.ok(a.problems.length > 0, 'expected the undefined custom block to be reported');
+  assert.ok(
+    a.problems.every((p) => !p.fatal),
+    'an undefined custom block round trips fine and must not block formatting'
+  );
+
+  const broken = project('when flag {\n  move 10;\n');
+  t.after(() => fs.rmSync(broken, { recursive: true, force: true }));
+  const b = await checkProject({ buildDir: broken, fs });
+  assert.ok(
+    b.problems.some((p) => p.fatal),
+    'an unparsable file must be fatal so fmt refuses to rewrite it'
+  );
+});

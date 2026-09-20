@@ -100,15 +100,21 @@ async function runCheck(dir) {
 async function runFmt(dir, verbose) {
   const buildDir = path.resolve(dir || '.');
   const { problems } = await checkProject({ buildDir, fs });
-  if (problems.length) {
-    for (const p of problems) {
-      const loc = p.line ? `:${p.line}${p.col ? ':' + p.col : ''}` : '';
-      console.error(`${p.file}${loc}: ${p.message}`);
-    }
+  const blocking = problems.filter((p) => p.fatal);
+  for (const p of problems) {
+    const loc = p.line ? `:${p.line}${p.col ? ':' + p.col : ''}` : '';
+    console.error(`${p.file}${loc}: ${p.message}`);
+  }
+  if (blocking.length) {
     console.error(
-      `[fractch] fmt refused: fix the ${problems.length} problem${problems.length === 1 ? '' : 's'} above first`
+      `[fractch] fmt refused: ${blocking.length} problem${blocking.length === 1 ? '' : 's'} above would lose content when rewritten - fix ${blocking.length === 1 ? 'it' : 'them'} first`
     );
     process.exit(1);
+  }
+  if (problems.length) {
+    console.error(
+      `[fractch] ${problems.length} problem${problems.length === 1 ? ' above does' : 's above do'} not block formatting; run 'fractch check' for details`
+    );
   }
   const { manifest } = await buildProjectFromBuildDir({ buildDir, verbose, prune: false });
   const result = await convertProject(manifest, { outDir: buildDir, verbose });
