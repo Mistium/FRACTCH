@@ -1,6 +1,6 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
-import { emitMultiScriptFile, emitTargetPrelude } from './emit.js';
+import { emitMultiScriptFile, emitTargetPrelude, targetDirNames } from './emit.js';
 import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
 import { decodeFileStemFromComment, decodeFileStemFromTopId } from './fileMarkers.js';
 import { STDLIB_MODULES, STDLIB_STEM_PREFIX } from './stdlib/index.js';
@@ -56,9 +56,11 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
   }
 
   const monitorsByTarget = routeMonitors(projectJson, targets);
+  const dirNames = targetDirNames(targets);
 
   for (const target of targets) {
-    const tDir = path.join(outDir, sanitize(target.name));
+    const targetDir = dirNames.get(target);
+    const tDir = path.join(outDir, targetDir);
     await vfs.mkdirp(tDir);
 
     const varMap = new Map([...stageVarMap, ...nameIdMap(target.variables)]);
@@ -175,7 +177,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
         prelude: groupKey === 'main' ? finalPrelude : '',
       });
       await vfs.writeFile(filePath, content);
-      const rel = `./${sanitize(target.name)}/${filename}`;
+      const rel = `./${targetDir}/${filename}`;
       const procLabels = entries.map((e) => e.procLabel).filter(Boolean);
       files.push({
         target: target.name,
@@ -322,10 +324,6 @@ function statementAnchor(blocks, id) {
     cur = p;
   }
   return null;
-}
-
-function sanitize(name) {
-  return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
 }
 
 function uniqueFilename(preferred, used) {

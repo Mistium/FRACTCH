@@ -1180,7 +1180,7 @@ class Parser {
         const expr = this.parseBinaryFrom({ type: 'var', name, id: null }, 1);
         this.tryChar(';');
         if (expr.type === 'call') return expr.value;
-        return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(expr))]);
+        return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(expr))], this.lineAt(this.i));
       }
       case 'when': {
         const hat = this.parseHatSpec();
@@ -1934,7 +1934,7 @@ class Parser {
       const opcode = e.bool ? 'argument_reporter_boolean' : 'argument_reporter_string_number';
       return makeCall(opcode, [keyedField('VALUE', { type: 'array', value: [e.name] })]);
     }
-    return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(e))]);
+    return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(e))], this.lineAt(this.i));
   }
 
   parseExpr() {

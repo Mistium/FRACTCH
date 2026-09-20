@@ -1,17 +1,14 @@
 import fs from 'fs';
 import path from 'path';
-import { targetAssetFiles } from './emit.js';
-
-function sanitize(name) {
-  return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
-}
+import { targetAssetFiles, targetDirNames } from './emit.js';
 
 export function writeAssets(zip, projectJson, outDir, { verbose = false } = {}) {
   let count = 0;
   let costumes = 0;
   let sounds = 0;
+  const dirNames = targetDirNames(projectJson.targets || []);
   for (const t of projectJson.targets || []) {
-    const tDir = path.join(outDir, sanitize(t.name));
+    const tDir = path.join(outDir, dirNames.get(t));
     const fileMap = targetAssetFiles(t);
     if (fileMap.size) fs.mkdirSync(path.join(tDir, 'assets'), { recursive: true });
     for (const [md5ext, rel] of fileMap) {

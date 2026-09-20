@@ -46,13 +46,14 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
 
   for (const scriptFile of scriptFiles) {
     const { fPath, targetDir, hatDir, sourceRel } = scriptFile;
-    const manifestTarget = findManifestTargetForDir(manifest, targetDir);
+    const content = await vfs.readFile(fPath, 'utf8');
+    const headerInfo = parseHeaderInfo(content);
+    const manifestTarget =
+      (headerInfo?.target != null ? (manifest?.targets || []).find((t) => t.name === headerInfo.target) : null) ||
+      findManifestTargetForDir(manifest, targetDir);
     if (!manifestTarget) continue;
     const manifestName = manifestTarget.name;
-    const content = await vfs.readFile(fPath, 'utf8');
     totalScripts++;
-
-    const headerInfo = parseHeaderInfo(content);
 
     try {
       assertValidFractch(content, fPath);
@@ -362,8 +363,7 @@ function applyWatchDecls(manifest, watchDecls, renamePlans) {
       continue;
     }
     const finalName = renamePlans.get(targetName) || targetName;
-    const ownedByStage =
-      !decl.sprite && (target.isStage || (stage && nameIds(stage[dictKey]).get(decl.name) === id));
+    const ownedByStage = !decl.sprite && (target.isStage || (stage && nameIds(stage[dictKey]).get(decl.name) === id));
     const monitor = {
       id,
       mode: decl.isList ? 'list' : decl.mode === 'large' ? 'large' : decl.mode === 'slider' ? 'slider' : 'default',
@@ -636,7 +636,7 @@ async function collectScriptFiles(vfs, buildDir, manifest, verbose) {
       if (verbose) console.log(`[pack] Ignoring ${path.relative(buildDir, file.fPath)}`);
       continue;
     }
-    unique.push(file);
+    unique.push({ ...file, headerTarget: await readHeaderTarget(vfs, file.fPath) });
   }
   return { files: unique, fromIndex: usedIndex };
 }
@@ -727,6 +727,15 @@ function scriptPathInfo(buildDir, fPath) {
   return { fPath, targetDir, hatDir, sourceRel };
 }
 
+async function readHeaderTarget(vfs, fPath) {
+  try {
+    const head = String(await vfs.readFile(fPath, 'utf8')).slice(0, 1024);
+    return parseHeaderInfo(head)?.target ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function isIgnoredScript(vfs, buildDir, fPath) {
   const base = path.basename(fPath);
   if (base.endsWith('.ignore.fractch')) return true;
@@ -753,9 +762,10 @@ function synthesizeManifest(scriptFiles) {
   const targetNames = [];
   const seen = new Set();
   for (const f of scriptFiles) {
-    if (seen.has(f.targetDir)) continue;
-    seen.add(f.targetDir);
-    targetNames.push(f.targetDir);
+    const name = f.headerTarget || f.targetDir;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    targetNames.push(name);
   }
   if (seen.has('Stage')) {
     targetNames.sort((a, b) => (a === 'Stage' ? -1 : b === 'Stage' ? 1 : 0));
@@ -783,9 +793,10 @@ function ensureTargetsForScripts(manifest, scriptFiles) {
     existing.add(sanitize(t.name));
   }
   for (const f of scriptFiles) {
-    if (existing.has(f.targetDir)) continue;
-    manifest.targets.push(makeTarget(f.targetDir, manifest.targets.length));
-    existing.add(f.targetDir);
+    const name = f.headerTarget || f.targetDir;
+    if (existing.has(name) || existing.has(f.targetDir)) continue;
+    manifest.targets.push(makeTarget(name, manifest.targets.length));
+    existing.add(name);
   }
   if (!manifest.targets.some((t) => t.isStage)) {
     const stage = manifest.targets.find((t) => t.name === 'Stage') || manifest.targets[0];
@@ -1342,6 +1353,7 @@ function parseHeaderInfo(text) {
     }
     const pos = /^(-?\d+),(-?\d+)$/.exec(map.get('pos') || '');
     return {
+      target: map.get('target'),
       hatOpcode: map.get('hatOpcode'),
       topBlockId: map.get('topBlockId'),
       x: pos ? Number(pos[1]) : null,

@@ -1,7 +1,9 @@
 import { MENU_OPCODES } from './knownOpcodes.js';
 
 export function isMenuShadow(b) {
-  return Boolean(b && b.shadow && typeof b.opcode === 'string' && (MENU_OPCODES.has(b.opcode) || b.opcode.endsWith('_menu')));
+  return Boolean(
+    b && b.shadow && typeof b.opcode === 'string' && (MENU_OPCODES.has(b.opcode) || b.opcode.endsWith('_menu'))
+  );
 }
 
 export function groupTopLevelScripts(target) {

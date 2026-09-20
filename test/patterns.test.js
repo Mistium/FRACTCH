@@ -867,3 +867,46 @@ test('builtin monitors survive the round trip instead of being dropped', async (
     assert.deepStrictEqual(m.params, orig.params, `monitor ${orig.id} params`);
   }
 });
+
+test('costume filenames that differ only by case do not collide on case-insensitive disks', async () => {
+  const { targetAssetFiles } = await import('../src/emit.js');
+  const files = targetAssetFiles({
+    costumes: [
+      { name: 'Text//A', md5ext: 'aaaa.svg', dataFormat: 'svg' },
+      { name: 'Text//a', md5ext: 'bbbb.svg', dataFormat: 'svg' },
+      { name: 'ICON', md5ext: 'cccc.png', dataFormat: 'png' },
+      { name: 'icon', md5ext: 'dddd.png', dataFormat: 'png' },
+    ],
+    sounds: [],
+  });
+  const lower = [...files.values()].map((f) => f.toLowerCase());
+  assert.strictEqual(new Set(lower).size, lower.length, `case-insensitive filename collision: ${lower.join(', ')}`);
+  assert.strictEqual(files.size, 4);
+});
+
+test('sprite names that sanitize to the same directory keep their own scripts', async () => {
+  const say = (text) => ({
+    hat: hat('say'),
+    say: { opcode: 'looks_say', next: null, parent: 'hat', inputs: { MESSAGE: [1, [10, text]] }, fields: {} },
+  });
+  const project = projectOf(
+    target('A B', say('from A B')),
+    target('A_B', say('from A_B')),
+    target('Hero', say('from Hero')),
+    target('hero', say('from hero'))
+  );
+  const manifest = await roundtrip(project);
+  for (const [name, text] of [
+    ['A B', 'from A B'],
+    ['A_B', 'from A_B'],
+    ['Hero', 'from Hero'],
+    ['hero', 'from hero'],
+  ]) {
+    const t = (manifest.targets || []).find((x) => x.name === name);
+    assert.ok(t, `target ${JSON.stringify(name)} is missing from the packed project`);
+    const said = Object.values(t.blocks || {})
+      .filter((b) => b && b.opcode === 'looks_say')
+      .map((b) => b.inputs.MESSAGE[1][1]);
+    assert.deepStrictEqual(said, [text], `target ${JSON.stringify(name)} got the wrong scripts`);
+  }
+});
