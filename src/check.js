@@ -205,6 +205,8 @@ const opcodeNamespace = (opcode) => {
   return m ? m[1] : null;
 };
 
+const BARE_VALUE_OPCODE = '__bare_value';
+
 const dottedOpcode = (opcode) => {
   const ns = opcodeNamespace(opcode);
   return ns ? `${ns}.${opcode.slice(ns.length + 1)}` : opcode;
@@ -212,18 +214,31 @@ const dottedOpcode = (opcode) => {
 
 function checkOpcodeUse(opcode, line, file, stmt, push) {
   const ns = opcodeNamespace(opcode);
-  if (!ns || !VALIDATED_NAMESPACES.has(ns)) return;
+  if (ns && !VALIDATED_NAMESPACES.has(ns)) return;
   if (!KNOWN_OPCODES.has(opcode)) {
-    const near = closestMatch(
-      opcode.slice(ns.length + 1),
-      [...KNOWN_OPCODES].filter((o) => o.startsWith(`${ns}_`)).map((o) => o.slice(ns.length + 1)),
-      3
-    );
+    if (opcode === BARE_VALUE_OPCODE) {
+      push(
+        file,
+        line,
+        0,
+        `this statement is just a value, not a block`,
+        'a bare name or expression on its own line is not something Scratch can run - did you mean to assign it, or call a block?'
+      );
+      return;
+    }
+    const near = ns
+      ? closestMatch(
+          opcode.slice(ns.length + 1),
+          [...KNOWN_OPCODES].filter((o) => o.startsWith(`${ns}_`)).map((o) => o.slice(ns.length + 1)),
+          3
+        )
+      : closestMatch(opcode, [...KNOWN_OPCODES], 3);
+    const suggestion = near ? `, did you mean '${ns ? `${ns}.${near}` : dottedOpcode(near)}'?` : '';
     push(
       file,
       line,
       0,
-      `unknown block '${dottedOpcode(opcode)}' - no ${ns} block has that name${near ? `, did you mean '${ns}.${near}'?` : ''}`,
+      `unknown block '${dottedOpcode(opcode)}'${ns ? ` - no ${ns} block has that name` : ''}${suggestion}`,
       'unknown opcodes load as broken red blocks in the editor'
     );
     return;

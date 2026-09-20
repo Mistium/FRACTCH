@@ -65,3 +65,22 @@ test('check reports exact lines for duplicate declarations and both custom-block
   assert.match(arity[1].message, /passes 3/);
   assert.match(arity[0].hint, /main\.fractch:3/);
 });
+
+test('check flags unknown namespace-less blocks and bare value statements', async (t) => {
+  const dir = project('when flag {\n  florbulate 3;\n  say frobnicate(1);\n  move 10;\n  say text;\n}\n');
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const { problems } = await checkProject({ buildDir: dir, fs });
+  const bare = problems.find((p) => /just a value, not a block/.test(p.message));
+  assert.ok(bare, 'bare value statement was not reported');
+  assert.equal(bare.line, 2);
+
+  const unknown = problems.find((p) => /unknown block 'frobnicate'/.test(p.message));
+  assert.ok(unknown, 'unknown reporter was not reported');
+  assert.equal(unknown.line, 3);
+
+  assert.ok(
+    !problems.some((p) => /unknown block 'text'/.test(p.message)),
+    "'text' is a real namespace-less opcode and must not be flagged"
+  );
+});

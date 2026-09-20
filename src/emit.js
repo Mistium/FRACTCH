@@ -29,6 +29,20 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
   return `${header}\n${[prelude, assets, bodies.join('\n\n')].filter(Boolean).join('\n\n')}\n`;
 }
 
+export function targetDirNames(targets) {
+  const used = new Set();
+  const map = new Map();
+  for (const t of targets || []) {
+    const base = String(t?.name ?? '').replace(/[^a-zA-Z0-9-_]/g, '_') || 'target';
+    let dir = base;
+    let n = 2;
+    while (used.has(dir.toLowerCase())) dir = `${base}_${n++}`;
+    used.add(dir.toLowerCase());
+    map.set(t, dir);
+  }
+  return map;
+}
+
 export function targetAssetFiles(target) {
   const used = new Set();
   const map = new Map();
@@ -39,8 +53,8 @@ export function targetAssetFiles(target) {
     const base = String(asset.name ?? 'asset').replace(/[^a-zA-Z0-9-_]/g, '_') || 'asset';
     let file = `${base}.${ext}`;
     let n = 2;
-    while (used.has(file)) file = `${base}_${n++}.${ext}`;
-    used.add(file);
+    while (used.has(file.toLowerCase())) file = `${base}_${n++}.${ext}`;
+    used.add(file.toLowerCase());
     map.set(md5ext, `assets/${file}`);
   }
   return map;
