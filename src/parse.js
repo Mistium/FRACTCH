@@ -3,8 +3,14 @@ import { STDLIB_METHODS } from './stdlib/index.js';
 function snakeToCamel(s) {
   return s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
 }
+const camelToSnakeCache = new Map();
 function camelToSnake(s) {
-  return s.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+  let v = camelToSnakeCache.get(s);
+  if (v === undefined) {
+    v = s.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+    camelToSnakeCache.set(s, v);
+  }
+  return v;
 }
 function setWithCamel(list) {
   const out = new Set();

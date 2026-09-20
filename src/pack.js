@@ -632,11 +632,12 @@ async function collectScriptFiles(vfs, buildDir, manifest, verbose) {
     const key = path.normalizePath(file.fPath);
     if (seen.has(key)) continue;
     seen.add(key);
-    if (await isIgnoredScript(vfs, buildDir, file.fPath)) {
+    const head = await readScriptHead(vfs, buildDir, file.fPath);
+    if (head.ignored) {
       if (verbose) console.log(`[pack] Ignoring ${path.relative(buildDir, file.fPath)}`);
       continue;
     }
-    unique.push({ ...file, headerTarget: await readHeaderTarget(vfs, file.fPath) });
+    unique.push({ ...file, headerTarget: head.target });
   }
   return { files: unique, fromIndex: usedIndex };
 }
@@ -727,25 +728,17 @@ function scriptPathInfo(buildDir, fPath) {
   return { fPath, targetDir, hatDir, sourceRel };
 }
 
-async function readHeaderTarget(vfs, fPath) {
+async function readScriptHead(vfs, buildDir, fPath) {
+  const base = path.basename(fPath);
+  if (base.endsWith('.ignore.fractch')) return { ignored: true, target: null };
+  const parts = path.relative(buildDir, fPath).split('/');
+  if (parts.some((p) => p.startsWith('.'))) return { ignored: true, target: null };
   try {
     const head = String(await vfs.readFile(fPath, 'utf8')).slice(0, 1024);
-    return parseHeaderInfo(head)?.target ?? null;
+    if (/\bfractch:ignore\b/.test(head.slice(0, 512))) return { ignored: true, target: null };
+    return { ignored: false, target: parseHeaderInfo(head)?.target ?? null };
   } catch {
-    return null;
-  }
-}
-
-async function isIgnoredScript(vfs, buildDir, fPath) {
-  const base = path.basename(fPath);
-  if (base.endsWith('.ignore.fractch')) return true;
-  const parts = path.relative(buildDir, fPath).split('/');
-  if (parts.some((p) => p.startsWith('.'))) return true;
-  try {
-    const head = String(await vfs.readFile(fPath, 'utf8')).slice(0, 512);
-    return /\bfractch:ignore\b/.test(head);
-  } catch {
-    return false;
+    return { ignored: false, target: null };
   }
 }
 
