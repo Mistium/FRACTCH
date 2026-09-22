@@ -2,6 +2,8 @@
 
 These patches are actual `.fractch` source generated from three public MistWarp projects. The `a/` lines come from FRACTCH commit `8d01efa` (before the readable syntax changes); the `b/` lines come from this change. Each side was generated from the **same project snapshot**. Assets and project JSON are absent from the patches because the comparison is only about generated Fractch text.
 
+[Read the focused before/after review](READABILITY-REVIEW.md) for representative project code and the next exact syntax opportunities found in the generated files.
+
 | Public project | Project JSON SHA-256 | Blocks | Top-level scripts | Round trip | Patch |
 | --- | --- | ---: | ---: | ---: | --- |
 | [MistWeather](https://mistwarp.org/p1790113566017431000QhrNe7) | `635255eae2890221be9d8dc8976d863415cbbe597197ef9641334465493fcdb0` | 145 | 11 | 11/11 | [mistweather.patch](mistweather.patch) |
