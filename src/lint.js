@@ -102,6 +102,25 @@ export function checkFractch(text) {
       continue;
     }
 
+    if (ch === '`') {
+      const start = at();
+      adv();
+      let closed = false;
+      while (i < src.length) {
+        const c = adv();
+        if (c === '\\') {
+          if (i < src.length) adv();
+          continue;
+        }
+        if (c === '`') {
+          closed = true;
+          break;
+        }
+      }
+      if (!closed) errors.push(new FractchSyntaxError('unterminated template string', start.line, start.col));
+      continue;
+    }
+
     if (ch === '(' || ch === '[' || ch === '{') {
       stack.push({ ch, ...at() });
       adv();

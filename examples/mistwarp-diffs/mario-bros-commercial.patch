@@ -1,0 +1,24 @@
+--- a/npc-4/main.fractch
++++ b/npc-4/main.fractch
+@@ -30,8 +30,7 @@
+ 
+ when flag at 18,86 {
+   hide;
+-  forever {
+-    wait 0.03;
++  every 0.03 seconds {
+     nextCostume;
+   }
+ }
+--- a/npc-53/main.fractch
++++ b/npc-53/main.fractch
+@@ -11,8 +11,7 @@
+ 
+ when flag at 15,22 {
+   hide;
+-  forever {
+-    wait 0.03;
++  every 0.03 seconds {
+     nextCostume;
+   }
+ }
