@@ -2,12 +2,14 @@
 
 A `.fractch` file holds any number of scripts plus asset declarations. Two comment styles: `// line` **attaches** to the block on the line directly below it (or, when it trails code, to that line's block) and round-trips as a Scratch block comment; `/* block */` is pure formatting and never attaches. Use `//` for notes you want in the project, `/* */` for notes you don't. Semicolons are optional. Generated files may start with a `/** ... */` header comment carrying routing metadata — it is optional and never contains block data.
 
+The current emitted forms are listed in [Readable syntax](readable-syntax.md). Older aliases shown below remain valid input.
+
 Strings are `"double-quoted"` with `\" \\ \n \t \r` escapes, or `"""raw triple-quoted"""` — raw strings run to the next `"""` with real newlines and no escape processing (emitted automatically for values containing newlines).
 
 ## Scripts
 
 ```txt
-when flag at 0,0 {          // hat scripts; `at x,y` (optional) is the canvas position
+on flag at 0,0 {            // hat scripts; `at x,y` (optional) is the canvas position
   ...
 }
 
@@ -24,11 +26,11 @@ script at 100,200 {         // a top-level stack with no hat
 
 | Form | Scratch hat |
 |---|---|
-| `when flag` | green flag clicked |
+| `on flag` / `when flag` | green flag clicked |
 | `when clone` | when I start as a clone |
 | `when clicked` | when this sprite clicked |
-| `when broadcast Name` / `when broadcast "a b"` | when I receive |
-| `when key space` / `when key "up arrow"` | when key pressed |
+| `on message Name` / `on message "a b"` / `when broadcast Name` | when I receive |
+| `on key space` / `on key "up arrow"` / `when key space` | when key pressed |
 | `when backdrop "name"` | when backdrop switches to |
 | `when any.extension_hat(...)` | any other hat block |
 
@@ -70,6 +72,8 @@ comment "hello" at 50,50 size 350x170;            // workspace comment
 ```txt
 score = 0;                  // set (identifier-safe names)
 score += 1;                 // change by
+score++;                    // change by exactly one
+score *= 2;                 // set to its current value multiplied by two
 score -= 1;                 // change by the negation
 say score;                  // bare reads
 vars["Fancy Name!"] = 1;    // any name at all
@@ -86,32 +90,33 @@ it a list operation, so no `lists["name"]` is needed (that form stays available
 for names that aren't identifiers):
 
 ```txt
-append(inv, v);       delete(inv, i);      insert(inv, i, v);
-replace(inv, i, v);   clear(inv);          showList(inv);   hideList(inv);
+inv.push(v);          delete inv[i];       inv.insert(i, v);
+inv[i] = v;          inv.clear();         inv.show();       inv.hide();
 
-item(inv, i)          // the i-th item (1-based)
-inv.length            hasItem(inv, v)      indexOf(inv, v)
+inv[i]               // the i-th item (1-based)
+inv.length           inv.includes(v)      inv.indexOf(v)
+inv.last             inv.random
 lists["inv"]          // the whole-list contents reporter
 ```
 
 Because the syntax carries the type, a variable and a list may share a name with
 no ambiguity: `inv` is the variable, `append(inv, x)` / `inv.length` are the
 list. `length(x)` and `contains(a, b)` stay the *string* operators — list length
-is `inv.length` and membership is `hasItem(inv, v)`. The legacy
-`lists["inv"].add(v)` / `.length` / `[i]` method forms still parse but re-emit as
-the function forms. Packages and their namespaces are in [packages.md](packages.md).
+is `inv.length` and membership is `inv.includes(v)`. The legacy
+`append(inv, v)` / `hasItem(inv, v)` and `lists["inv"].add(v)` forms still parse.
+Packages and their namespaces are in [packages.md](packages.md).
 
 ## Expressions
 
 Infix with the usual precedence, left-associative: `||` < `&&` < `== != < > <= >=` < `++` (string join) < `+ -` < `* / %`. Prefix `!` negates. `++` and `+` are distinct because Scratch's join and add are different blocks.
 
 ```txt
-if score >= 10 && !sensing.mousedown() {
-  say "total: " ++ (score * 2);
+if score >= 10 && !mouse.down {
+  say `total: ${score * 2}`;
 }
 ```
 
-Functions: `length(s)`, `contains(a, b)`, `random(from, to)`, `round(n)`, and the math ops `abs floor ceiling sqrt sin cos tan asin acos atan ln log exp exp10`. `not(x)` parses too, but `!x` / `!=` / `<=` / `>=` are preferred. The letter-of-string reporter is a method: `s.letter(i)` (1-based); the legacy `letter(i, s)` function form still parses but re-emits as `s.letter(i)`.
+Functions: `length(s)`, `random(from, to)`, `round(n)`, `min(a, b)`, `max(a, b)`, and the math ops `abs floor ceiling sqrt sin cos tan asin acos atan ln log exp exp10`. `not(x)` parses too, but `!x` / `!=` / `<=` / `>=` are preferred. String reporters can use `s[i]` (1-based), `s.includes(x)`, `s.trim()`, `s.toUpperCase()`, `s.toLowerCase()`, and `s.replace(old, new)`. The older `s.letter(i)`, `letter(i, s)`, and `contains(a, b)` forms still parse. `PI` and `NEWLINE` represent their Scratch reporter blocks.
 
 Another sprite's state reads like the list syntax (this is `sensing_of` under the hood):
 
@@ -151,14 +156,28 @@ Control flow:
 
 ```txt
 if c { } else if c2 { } else { }              // else-if chains nest if_else blocks
-forever { }              repeat n { }         for i in n { }        break;
-until c { }              while c { }          wait n;          wait_until c;
+unless c { }            every 1 seconds { }   // exact not/forever-wait patterns
+forever { }             repeat n { }          for i in n { }        break;
+for value in items { }   // when items is a declared list, value is each item
+for (index, value) in items { } // expose the 1-based index as well
+until c { }             while c { }           wait n;          wait until c;
 switch v { case x { } case y fallthrough { } default { } }
 stop all;   stop other_scripts_in_sprite;
 return;                  // stop this script (works in any script)
 return v;                // reporter custom-block return
-broadcast Name;          broadcast_wait Name;
+emit Name;               emit Name and wait;
 ```
+
+`for value in items` compiles to a `control_for_each` counting from 1 to the
+list length, with an item lookup at the start of each iteration. The list must
+be declared with `var items = [...]` (or already exist in the target). The
+hidden index is a real Scratch variable and is recreated when packing. Use
+`for (index, value) in items` to give it a visible name; this also permits reading the index
+inside the body. A scalar `for i in count` still counts from 1 to `count`.
+If a variable and list have the same name, use `vars["name"]` for the scalar
+count. Converted projects receive this sugar only when their blocks match the
+list length and item lookup pattern exactly; other loops retain their block
+form.
 
 Aliases (each is exactly one Scratch block):
 
@@ -171,7 +190,8 @@ set_effect ghost to 50;   change_effect brightness by 25;   clear_effects;
 costume "name";  next_costume;   backdrop "name";  next_backdrop;
 clone;  clone "sprite";  delete_clone;
 go_front;  go_back;  go_forward n;  go_backward n;
-show;  hide;  reset_timer;  pen_up;  pen_down;  pen_clear;  stamp;
+self.visible = true; self.visible = false; timer.reset();
+pen.up(); pen.down(); pen.clear(); stamp;
 ```
 
 ## Every other block: generic calls

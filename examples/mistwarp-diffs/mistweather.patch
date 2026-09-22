@@ -1,0 +1,161 @@
+--- a/Stage/main.fractch
++++ b/Stage/main.fractch
+@@ -41,37 +41,37 @@
+ costume "sky_blank" file "assets/sky_blank.svg" center 256.3927696577842,183.0000184514222 current;
+ sound "Disconnect" file "assets/Disconnect.wav" rate 22050 samples 28449;
+ 
+-when broadcast weather_decided at 754,126 {
++on message weather_decided at 754,126 {
+   if daytime == "true" {
+-    backdrop "sky";
++    stage.backdrop = "sky";
+   } else {
+-    backdrop "dark";
++    stage.backdrop = "dark";
+   }
+ }
+ 
+-when flag at 282,6 {
++on flag at 282,6 {
+   error = "false";
+-  backdrop "gettingdata";
++  stage.backdrop = "gettingdata";
+ }
+ 
+-when broadcast cancel at 163,597 {
+-  backdrop "cancel";
++on message cancel at 163,597 {
++  stage.backdrop = "cancel";
+   error = "true";
+-  penClear;
+-  playSoundUntilDone "Disconnect";
++  pen.clear();
++  sound.playUntilDone("Disconnect");
+   stop all;
+ }
+ 
+-when flag at 126,140 {
++on flag at 126,140 {
+   forever {
+-    resetTimer;
++    timer.reset();
+   }
+ }
+ 
+ when timer > 0.3 at 1021,-240 {
+-  penClear;
++  pen.clear();
+   if error == "true" {
+     wait 30;
+   }
+-  backdrop "sky_blank";
++  stage.backdrop = "sky_blank";
+ }
+--- a/text_render/main.fractch
++++ b/text_render/main.fractch
+@@ -7,35 +7,35 @@
+ 
+ costume "costume1" file "assets/costume1.svg" center 0,0;
+ 
+-when broadcast weather_decided at 320,517 {
++on message weather_decided at 320,517 {
+   if daytime == "true" {
+     text.setColor(COLOR: "#000000");
+   } else {
+     text.setColor(COLOR: "#ffffff");
+   }
+-  show;
++  self.visible = true;
+   forever {
+-    penClear;
+-    gotoXY -60, 135;
+-    setSize 200;
++    pen.clear();
++    self.position = (-60, 135);
++    self.size = 200;
+     text.setText(TEXT: temperature ++ "°" ++ temp_unit);
+     stamp;
+-    gotoXY -70, -155;
++    self.position = (-70, -155);
+     text.setText(TEXT: wind_speed);
+     stamp;
+-    gotoXY -137, 100;
+-    setSize 50;
++    self.position = (-137, 100);
++    self.size = 50;
+     text.setText(TEXT: forecast);
+     stamp;
+-    gotoXY -70, -177;
++    self.position = (-70, -177);
+     text.setText(TEXT: "Blowing to the " ++ wind_direction);
+     stamp;
+   }
+ }
+ 
+-when flag at 139,59 {
++on flag at 139,59 {
+   text.setWidth(WIDTH: 200, field ALIGN: "left");
+   text.setFont(field FONT: "Sans Serif");
+-  penClear;
+-  hide;
++  pen.clear();
++  self.visible = false;
+ }
+--- a/weather_get/main.fractch
++++ b/weather_get/main.fractch
+@@ -14,10 +14,10 @@
+   }
+ }
+ 
+-when flag at 656,669 {
+-  gotoXY -210, 150;
++on flag at 656,669 {
++  self.position = (-210, 150);
+   mistSkins.deleteAllSkins();
+-  hide;
++  self.visible = false;
+   daytime = "false";
+   temp_unit = "F";
+   temperature = 0;
+@@ -27,13 +27,13 @@
+   if sensing.online() {
+     @get_long_lat();
+     if skyhigh173JSON.json_has_key(json: get_req, key: "error") {
+-      broadcast cancel;
++      emit cancel;
+     } else {
+       latitude = skyhigh173JSON.json_get(item: "latitude", json: get_req);
+       longitude = skyhigh173JSON.json_get(item: "longitude", json: get_req);
+       @get_weather_response();
+       if skyhigh173JSON.json_has_key(json: weather_req_get, key: "error") {
+-        broadcast cancel;
++        emit cancel;
+       } else {
+         daytime = skyhigh173JSON.json_get(item: "isDaytime", json: weather_req_get) ++ "";
+         temp_unit = skyhigh173JSON.json_get(item: "temperatureUnit", json: weather_req_get);
+@@ -41,20 +41,20 @@
+         wind_direction = skyhigh173JSON.json_get(item: "windDirection", json: weather_req_get);
+         wind_speed = skyhigh173JSON.json_get(item: "windSpeed", json: weather_req_get);
+         forecast = skyhigh173JSON.json_get(item: "shortForecast", json: weather_req_get);
+-        mistSkins.registerURLSkin(URL: operator.replace(SUBSTRING: "size=medium", STRING: skyhigh173JSON.json_get(item: "icon", json: weather_req_get), REPLACE: "size=large"), NAME: "weather_skin");
++        mistSkins.registerURLSkin(URL: skyhigh173JSON.json_get(item: "icon", json: weather_req_get).replace("size=medium", "size=large"), NAME: "weather_skin");
+         mistSkins.setSkin(TARGET: shadow mistSkins.menu_targetMenu(field targetMenu: "_myself_"), NAME: "weather_skin");
+-        show;
+-        broadcast weather_decided;
++        self.visible = true;
++        emit weather_decided;
+       }
+     }
+   } else {
+-    broadcast cancel;
++    emit cancel;
+   }
+ }
+ 
+ def @get_weather_response() "get weather response" at 63,-11 {
+   weather_req_get = "";
+-  weather_req_get = fetch.get(URL: "https://api.weather.gov/points/" ++ latitude ++ "," ++ longitude);
++  weather_req_get = fetch.get(URL: `https://api.weather.gov/points/${latitude},${longitude}`);
+   if weather_req_get == "" {
+     weather_req_get = "{\"error\": \"noresponse\"}";
+   } else {

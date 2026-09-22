@@ -27,35 +27,37 @@ Outputs will be written to `./build` with:
 
 ## Documentation
 
-Full docs live in [`docs/`](docs/README.md): [getting started](docs/getting-started.md), [CLI](docs/cli.md), [syntax reference](docs/syntax.md), [assets](docs/assets.md), [programmatic API](docs/api.md), [architecture](docs/architecture.md).
+Full docs live in [`docs/`](docs/README.md): [getting started](docs/getting-started.md), [CLI](docs/cli.md), [readable syntax](docs/readable-syntax.md), [syntax reference](docs/syntax.md), [assets](docs/assets.md), [programmatic API](docs/api.md), [architecture](docs/architecture.md).
+
+The [order fulfilment example](examples/order-fulfilment/README.md) includes a runnable `.sb3` and its Fractch source. Its list traversal is written as `for (position, order) in orders { ... }`, which packs to a Scratch counting loop and item lookup and converts back to the same readable form. [Real MistWarp project diffs](examples/mistwarp-diffs/README.md) show the source generator changes on public projects.
 
 ## Fractch DSL overview
 
-A file holds any number of scripts. Hats are written as `when`, custom blocks as `def`, and hatless stacks as `script`; each takes an optional `at x,y` canvas position:
+A file holds any number of scripts. Common hats are written as `on`, custom blocks as `def`, and hatless stacks as `script`; each takes an optional `at x,y` canvas position:
 
 ```txt
-when flag at 0,0 {
+on flag at 0,0 {
   local elapsed = 0;          // script-local variable (namespaced on the Scratch side)
   score = 0;                  // plain variables assign by name
   forever {
     elapsed += 1;
-    say "score: " ++ score;
-    if lists["queue"].length > 0 {
-      handle = lists["queue"][1];
-      lists["queue"].delete(1);
-      broadcast HandleItem;
+    say `score: ${score}`;
+    if queue.length > 0 {
+      handle = queue[1];
+      delete queue[1];
+      emit HandleItem;
     }
   }
 }
 
-when broadcast HandleItem {
-  costume "active";
+on message HandleItem {
+  self.costume = "active";
   move 10;
 }
 
 def @reset() {
-  lists["queue"].clear();
-  goto 0, 0;
+  queue.clear();
+  self.position = (0, 0);
 }
 ```
 
@@ -70,7 +72,7 @@ sound "song" file "assets/song.mp3" rate 48000 samples 1123;
 
 `center X,Y` sets the rotation center (default `0,0`), `bitmap N` the bitmap resolution (default 1), and `rate` / `samples` / `format "adpcm"` carry sound metadata when you have it. Asset files live next to the code in `<Target>/assets/`, named after the costume/sound rather than a hash. Drop a PNG in, write one `costume` line, done.
 
-`when` sugar covers `flag`, `clone`, `clicked`, `broadcast <name>`, `key <name>`, `backdrop <name>`; any other hat is `when some.extension_hat() { ... }`. Statement aliases: `say E;`, `say E for N;`, `think`, `ask`, `move`, `turn`, `turn_left`, `point`, `goto X, Y;`, `set_x/set_y/change_x/change_y`, `set_size/change_size`, `change_effect brightness by 25;`, `set_effect ghost to 50;`, `clear_effects;`, `costume "name";`, `backdrop "name";`, `next_costume;`, `next_backdrop;`, `clone;` / `clone "sprite";`, `delete_clone;`, `show; hide;`, `reset_timer;`, `pen_up; pen_down; pen_clear; stamp;`. Lists: `lists["x"].add(v)`, `.delete(i)`, `.insert(i, v)`, `.clear()`, `.show()`, `.hide()`, `lists["x"][i]` (read), `lists["x"][i] = v;` (replace), `.length`, `.contains(v)`, `.indexof(v)`, and bare `lists["x"]` for the list-contents reporter. Variables: `name = v;` / `name += v;` for identifier-safe names, `vars["any name"]` for the rest, and `local name = v;` declares a script-scoped variable that packs to a namespaced real variable (`local_1_name`).
+Fractch uses assignments, list methods, properties, and string methods for common Scratch blocks. See the [readable syntax table](docs/readable-syntax.md) for the emitted forms and their exact Scratch meanings. Older aliases remain valid input. Variables use `name = v;` / `name += v;` for identifier-safe names, `vars["any name"]` for the rest, and `local name = v;` for a script-scoped variable.
 
 - Blocks are encoded as calls where the function name is the Scratch `opcode`, with the first underscore shown as a namespace dot for readability: `motion.changexby(DX: 10)` packs as Scratch opcode `motion_changexby`. Plain `name: value` arguments are Scratch inputs and may nest reporter blocks. `field name: value` arguments are Scratch fields, such as dropdowns or variable/list/broadcast references; dropdown values are written as plain strings (`field EFFECT: "COLOR"`). The `field` keyword is optional (and not emitted) when the key + value shape already identify a field: `VARIABLE: var("x")`, `LIST: list("x")`, `BROADCAST_OPTION: broadcast("x")`. The older `name= value` input form and raw underscore opcode names are still accepted for handwritten files.
 - Common control-flow blocks get readable sugar instead of the generic call form: `if cond { ... }`, `if cond { ... } else { ... }`, `forever { ... }`, `repeat n { ... }`, `until cond { ... }`, `while cond { ... }`, `switch v { case x { ... } case y fallthrough { ... } default { ... } }`, `wait n;`, `wait_until cond;`, `stop all;` / `stop other_scripts_in_sprite;`, `return;` (stop this script), `return v;`, `broadcast SomeName;` (quotes only needed when the name isn't a plain identifier), `broadcast_wait name;`, `vars["name"] = value;`, `vars["name"] += value;`. Semicolons are optional.
