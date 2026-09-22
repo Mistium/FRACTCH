@@ -29,7 +29,7 @@ Outputs will be written to `./build` with:
 
 Full docs live in [`docs/`](docs/README.md): [getting started](docs/getting-started.md), [CLI](docs/cli.md), [syntax reference](docs/syntax.md), [high-level abstractions](docs/abstractions.md), [assets](docs/assets.md), [programmatic API](docs/api.md), [architecture](docs/architecture.md).
 
-Scratch-style commands such as `when flag`, `broadcast`, `move`, and `costume` retain their existing spelling. [Multi-block abstractions](docs/abstractions.md) shorten list traversal, timed loops, and string joins while rebuilding the original Scratch block trees. [Before/after source patches](examples/mistwarp-diffs/README.md) show the changes on real MistWarp projects.
+Scratch-style commands such as `when flag`, `broadcast`, `move`, and `costume` retain their existing spelling. [Multi-block abstractions](docs/abstractions.md) shorten list and string traversal, timed loops, and string joins while rebuilding the original Scratch block trees. [Before/after source patches](examples/mistwarp-diffs/README.md) show the changes on real MistWarp projects.
 
 ## Fractch DSL overview
 

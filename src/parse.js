@@ -1110,7 +1110,22 @@ class Parser {
         if (paired) this.expectChar(')');
         this.skipWS();
         if (this.peekWord() === 'in') this.tryIdentifier();
-        const count = this.parseInputValue();
+        let characters = null;
+        if (this.peekWord() === 'chars') {
+          const start = this.snapshot();
+          this.tryIdentifier();
+          this.skipWS();
+          if (this.peek() === '(') {
+            this.i++;
+            characters = this.parseExpr();
+            if (characters.type !== 'ident' && characters.type !== 'var')
+              this.fail('chars(...) requires a variable or procedure argument');
+            this.expectChar(')');
+          } else {
+            this.restore(start);
+          }
+        }
+        const count = characters ? null : this.parseInputValue();
         this.skipWS();
         if (this.peekWord() === 'using') {
           if (paired) this.fail("a paired 'for' loop already has an index name");
@@ -1124,6 +1139,29 @@ class Parser {
           body = this.parseBraceBody();
         } finally {
           this.listForDepth--;
+        }
+        if (characters) {
+          if (paired) this.fail("chars(...) uses 'for value in chars(text)', not a paired 'for' loop");
+          const counter = indexName || name;
+          const letter = {
+            type: 'call',
+            value: makeCall('operator_letter_of', [
+              keyedInput('LETTER', { type: 'ident', name: counter }),
+              keyedInput('STRING', characters),
+            ]),
+          };
+          const length = { type: 'call', value: makeCall('operator_length', [keyedInput('STRING', characters)]) };
+          return makeCall('control_for_each', [
+            keyedInput('VALUE', length),
+            keyedField('VARIABLE', { type: 'ident', name: counter }),
+            branchArg('substack', [
+              makeCall('data_setvariableto', [
+                keyedField('VARIABLE', { type: 'ident', name }),
+                keyedInput('VALUE', letter),
+              ]),
+              ...body,
+            ]),
+          ]);
         }
         const call = makeCall('control_for_each', [
           keyedInput('VALUE', count),

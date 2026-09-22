@@ -87,3 +87,42 @@ test('a zero-second wait remains visible inside forever', () => {
   assert.match(generated, /^forever \{/);
   assert.match(generated, /wait 0;/);
 });
+
+test('character iteration expands to the original counter, length, and letter blocks', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-chars-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, 'Stage'));
+  fs.writeFileSync(
+    path.join(root, 'Stage', 'main.fractch'),
+    `
+var message = "Hi";
+var ch = 0;
+var index = 0;
+when flag {
+  for ch in chars(message) { say ch; }
+  for ch in chars(message) using index { say index; say ch; }
+}
+`
+  );
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: root, fs, prune: false });
+  const blocks = Object.values(manifest.targets[0].blocks);
+  assert.equal(blocks.filter((block) => block.opcode === 'control_for_each').length, 2);
+  assert.equal(blocks.filter((block) => block.opcode === 'operator_length').length, 2);
+  assert.equal(blocks.filter((block) => block.opcode === 'operator_letter_of').length, 2);
+  const out = path.join(root, 'generated');
+  await convertProject(manifest, { outDir: out, fs });
+  const generated = fs.readFileSync(path.join(out, 'Stage', 'main.fractch'), 'utf8');
+  assert.match(generated, /for ch in chars\(message\) \{/);
+  assert.match(generated, /for ch in chars\(message\) using index \{/);
+  const roundtrip = await verifyRoundtrip({ project: manifest, buildDir: out, fs });
+  assert.deepEqual(roundtrip.failures, []);
+});
+
+test('character iteration stays explicit when the length and letter receivers differ', () => {
+  const parsed = parseFractch('for ch in length(message) { ch = other.letter(ch); say ch; }');
+  assert.deepEqual(parsed.errors, []);
+  const { blocks, topId } = buildBlocksFromCalls(parsed.calls, { idGen: new IdGen() });
+  const generated = stringifyBlockCall(blocks[topId], blocks, topId);
+  assert.match(generated, /^for ch in length\(message\) \{/);
+  assert.match(generated, /ch = other\.letter\(ch\);/);
+});
