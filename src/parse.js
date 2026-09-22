@@ -876,6 +876,12 @@ class Parser {
       const save = this.snapshot();
       this.tryIdentifier();
       this.skipWS();
+      if (this.peek() === '+' && this.peek(1) === '+' && this.peek(2) === '=') {
+        this.i += 3;
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        return concatAssignment({ type: 'ident', name: word }, { type: 'ident', name: word }, v);
+      }
       if (this.peek() === '+' && this.peek(1) === '=') {
         this.i += 2;
         const v = this.parseInputValue();
@@ -1254,7 +1260,10 @@ class Parser {
         this.expectChar(']');
         this.skipWS();
         let op = null;
-        if (this.peek() === '+' && this.peek(1) === '=') {
+        if (this.peek() === '+' && this.peek(1) === '+' && this.peek(2) === '=') {
+          this.i += 3;
+          op = '++=';
+        } else if (this.peek() === '+' && this.peek(1) === '=') {
           this.i += 2;
           op = '+=';
         } else if (this.peek() === '=' && this.peek(1) !== '=') {
@@ -1264,6 +1273,8 @@ class Parser {
         if (op) {
           const v = this.parseInputValue();
           this.tryChar(';');
+          if (op === '++=')
+            return concatAssignment({ type: 'array', value: [name] }, { type: 'var', name, id: null }, v);
           return makeCall(op === '+=' ? 'data_changevariableby' : 'data_setvariableto', [
             keyedField('VARIABLE', { type: 'array', value: [name] }),
             keyedInput('VALUE', v),
@@ -2766,6 +2777,16 @@ function broadcastName(v) {
 
 function parseEffectName(name) {
   return String(name).replace(/_/g, ' ').toUpperCase();
+}
+
+function concatAssignment(fieldValue, receiver, value) {
+  return makeCall('data_setvariableto', [
+    keyedField('VARIABLE', fieldValue),
+    keyedInput('VALUE', {
+      type: 'call',
+      value: makeCall('operator_join', [keyedInput('STRING1', receiver), keyedInput('STRING2', value)]),
+    }),
+  ]);
 }
 
 function makeCall(opcode, args, line) {

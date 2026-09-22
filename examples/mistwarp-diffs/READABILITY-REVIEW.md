@@ -15,6 +15,15 @@ These are excerpts from the full [MistWeather](mistweather.patch), [Mario Bros C
 
 The same shape occurs six times across the Editor and Canvas2 sprites. `for ... of ...` expands to the original `control_for_each`, string length, and letter lookup blocks, including the assignment that overwrites the counter in this project. The loop body and command names stay as they were.
 
+## Building the input buffer in Katnip Render
+
+```diff
+-    buffer = buffer ++ " ";
++    buffer ++= " ";
+```
+
+The same self-join shape appears six times across the two sprites: appending a space, a pressed key, and a selected character. `++=` expands to the exact original set-variable and join blocks. It does not use Scratch's numeric change-variable block.
+
 ## A timed costume loop in Mario Bros Commercial Remake
 
 ```diff

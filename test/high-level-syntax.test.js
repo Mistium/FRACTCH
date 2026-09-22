@@ -133,3 +133,36 @@ test('character iteration stays explicit when the length and letter receivers di
   assert.match(generated, /^for ch in length\(message\) \{/);
   assert.match(generated, /ch = other\.letter\(ch\);/);
 });
+
+test('self-join assignment emits ++= and rebuilds the same Scratch blocks', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-concat-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, 'Stage'));
+  fs.writeFileSync(
+    path.join(root, 'Stage', 'main.fractch'),
+    `
+var buffer = "";
+var other = "";
+var "odd name" = "";
+when flag {
+  local scratch = "";
+  scratch ++= "x";
+  buffer = buffer ++ " ";
+  vars["odd name"] = vars["odd name"] ++ other;
+  other = buffer ++ "x";
+  buffer = buffer ++ "a" ++ other;
+}
+`
+  );
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: root, fs, prune: false });
+  const out = path.join(root, 'generated');
+  await convertProject(manifest, { outDir: out, fs });
+  const generated = fs.readFileSync(path.join(out, 'Stage', 'main.fractch'), 'utf8');
+  assert.match(generated, /buffer \+\+= " ";/);
+  assert.match(generated, /vars\["odd name"\] \+\+= other;/);
+  assert.match(generated, /scratch \+\+= "x";/);
+  assert.doesNotMatch(generated, /other \+\+=/);
+  assert.equal((generated.match(/buffer \+\+=/g) || []).length, 1);
+  const roundtrip = await verifyRoundtrip({ project: manifest, buildDir: out, fs });
+  assert.deepEqual(roundtrip.failures, []);
+});

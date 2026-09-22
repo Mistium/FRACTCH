@@ -44,4 +44,12 @@ text.setText(TEXT: `${temperature}°${unit}`);
 
 The first segment becomes the first input; each later segment adds one `operator_join` block to a left-associated chain. A template can start with an expression. The generator falls back to `++` when a template would merge two distinct literal joins, lose an empty string input, or hide a nonstandard block field. It escapes literal backticks, backslashes, and `${` markers.
 
-The [real MistWarp project patches](../examples/mistwarp-diffs/README.md) show character iteration, timed loops, and join chains before and after this change. All Scratch command calls in those patches keep their original names.
+## Append to a string variable
+
+```fractch
+buffer ++= " ";
+```
+
+This expands to `buffer = buffer ++ " ";`: one `data_setvariableto` block containing one `operator_join` block. It also works with `vars["nonstandard name"]` and local variables. The generator emits `++=` only when the outer join's first input is the exact variable being assigned. A preceding join, a comment on the join, or a different block shape keeps its explicit syntax. Numeric `+=` still means Scratch's `data_changevariableby` block.
+
+The [real MistWarp project patches](../examples/mistwarp-diffs/README.md) show character iteration, timed loops, self-joins, and join chains before and after this change. All Scratch command calls in those patches keep their original names.
