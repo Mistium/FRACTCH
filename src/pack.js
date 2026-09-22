@@ -1104,7 +1104,7 @@ function computeLocalTags(stacks) {
   });
 }
 
-function collectLocalDeclNames(calls, out = new Set()) {
+export function collectLocalDeclNames(calls, out = new Set()) {
   for (const node of calls || []) {
     if (!node) continue;
     if (node.type === 'localDecl') {

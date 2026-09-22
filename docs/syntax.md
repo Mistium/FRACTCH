@@ -107,6 +107,8 @@ Infix with the usual precedence, left-associative: `||` < `&&` < `== != < > <= >
 
 For join chains, a template such as `` `Packed ${order} (${position})` `` compiles to the same left-associated `operator_join` blocks. The source generator uses it only when it preserves every join; ordinary `++` remains available. See [High-level abstractions](abstractions.md).
 
+`buffer ++= " ";` compiles to `buffer = buffer ++ " ";`, a `data_setvariableto` containing an `operator_join`. It differs from numeric `buffer += 1;`, which uses Scratch's `data_changevariableby` block.
+
 ```txt
 if score >= 10 && !sensing.mousedown() {
   say "total: " ++ (score * 2);

@@ -25,7 +25,7 @@
    chop_i = 1;
    while chop_i < length(s) {
 -    chop_out = chop_out ++ s.letter(chop_i);
-+    chop_out = `${chop_out}${s.letter(chop_i)}`;
++    chop_out ++= s.letter(chop_i);
      chop_i = chop_i + 1;
    }
    chop_ret = chop_out;
@@ -36,9 +36,9 @@
 -    buffer = buffer ++ " ";
 -  } else {
 -    buffer = buffer ++ press_lab;
-+    buffer = `${buffer} `;
++    buffer ++= " ";
 +  } else {
-+    buffer = `${buffer}${press_lab}`;
++    buffer ++= press_lab;
    }
  }
  
@@ -79,7 +79,7 @@
    chop_i = 1;
    while chop_i < length(s) {
 -    chop_out = chop_out ++ s.letter(chop_i);
-+    chop_out = `${chop_out}${s.letter(chop_i)}`;
++    chop_out ++= s.letter(chop_i);
      chop_i = chop_i + 1;
    }
    chop_ret = chop_out;
@@ -90,9 +90,9 @@
 -    buffer = buffer ++ " ";
 -  } else {
 -    buffer = buffer ++ press_lab;
-+    buffer = `${buffer} `;
++    buffer ++= " ";
 +  } else {
-+    buffer = `${buffer}${press_lab}`;
++    buffer ++= press_lab;
    }
  }
  

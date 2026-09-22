@@ -249,9 +249,13 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 
   if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
     const varName = String(block.fields?.VARIABLE?.[0] ?? '');
-    const value = inputValueText(block.inputs?.VALUE, subgraph, 'VALUE');
-    const op = opcode === 'data_changevariableby' ? '+=' : '=';
     const local = localBareName(varName);
+    const appendValue =
+      opcode === 'data_setvariableto' && !(local && !CTX.declaredLocals?.has(local))
+        ? tryConcatAssignment(block, subgraph)
+        : null;
+    const value = appendValue ?? inputValueText(block.inputs?.VALUE, subgraph, 'VALUE');
+    const op = appendValue == null ? (opcode === 'data_changevariableby' ? '+=' : '=') : '++=';
     if (local) {
       if (op === '=' && !CTX.declaredLocals?.has(local)) {
         CTX.declaredLocals?.add(local);
@@ -661,6 +665,24 @@ function menuCmdText(block, subgraph, spec) {
     return prefix(inputValueText(arr, subgraph, spec.key));
   }
   return null;
+}
+
+function tryConcatAssignment(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).join() !== 'VARIABLE') return null;
+  if (Object.keys(block.inputs || {}).join() !== 'VALUE') return null;
+  const [name, id] = block.fields.VARIABLE || [];
+  if (typeof name !== 'string') return null;
+  if (id != null && CTX.varMap?.get(name) !== id) return null;
+  if (CTX.scopeParamNames?.has(name) || [...(CTX.scopeParamNames?.values() || [])].includes(name)) return null;
+  const joinId = block.inputs.VALUE?.[1];
+  const join = typeof joinId === 'string' ? subgraph[joinId] : null;
+  if (!join || join.opcode !== 'operator_join' || join.mutation || join.shadow || join.next) return null;
+  if (CTX.blockComments?.get(joinId)?.length || Object.keys(join.fields || {}).length) return null;
+  const keys = Object.keys(join.inputs || {});
+  if (keys.length !== 2 || !keys.includes('STRING1') || !keys.includes('STRING2')) return null;
+  const first = join.inputs.STRING1?.[1];
+  if (!Array.isArray(first) || first[0] !== 12 || first[1] !== name || first[2] !== id) return null;
+  return inputValueText(join.inputs.STRING2, subgraph, 'STRING2');
 }
 
 function tryEvery(block, subgraph) {
