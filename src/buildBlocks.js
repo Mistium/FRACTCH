@@ -142,12 +142,9 @@ export const LIST_METHOD_OPS = {
   show: ['data_showlist', []],
   hide: ['data_hidelist', []],
   item: ['data_itemoflist', ['INDEX']],
-  at: ['data_itemoflist', ['INDEX']],
   length: ['data_lengthoflist', []],
   contains: ['data_listcontainsitem', ['ITEM']],
-  includes: ['data_listcontainsitem', ['ITEM']],
   indexof: ['data_itemnumoflist', ['ITEM']],
-  indexOf: ['data_itemnumoflist', ['ITEM']],
 };
 
 export function listMethodCall(name, method, args) {
@@ -159,34 +156,6 @@ export function listMethodCall(name, method, args) {
   return { type: 'call', callee: { type: 'opcode', name: opcode }, args: inputs };
 }
 
-export function stringMethodCall(receiver, method, args) {
-  const input = (key, value) => ({ kind: 'keyed', sep: 'input', key, value });
-  const field = (key, value) => ({ kind: 'keyed', sep: 'field', key, value: { type: 'array', value: [value] } });
-  const value = { type: 'ident', name: receiver };
-  const arg = (index) => args[index]?.value;
-  let opcode;
-  let mapped;
-  if (method === 'at' && args.length === 1) {
-    opcode = 'operator_letter_of';
-    mapped = [input('LETTER', arg(0)), input('STRING', value)];
-  } else if (method === 'includes' && args.length === 1) {
-    opcode = 'operator_contains';
-    mapped = [input('STRING1', value), input('STRING2', arg(0))];
-  } else if (method === 'trim' && args.length === 0) {
-    opcode = 'operator_trim';
-    mapped = [input('STRING', value)];
-  } else if ((method === 'toUpperCase' || method === 'toLowerCase') && args.length === 0) {
-    opcode = 'operator_change_case';
-    mapped = [input('STRING', value), field('CASE', method === 'toUpperCase' ? 'uppercase' : 'lowercase')];
-  } else if (method === 'replace' && args.length === 2) {
-    opcode = 'operator_replace';
-    mapped = [input('STRING', value), input('SUBSTRING', arg(0)), input('REPLACE', arg(1))];
-  } else {
-    return null;
-  }
-  return { type: 'call', callee: { type: 'opcode', name: opcode }, args: mapped };
-}
-
 export function resolveIdentOrMethod(call, ctx) {
   if (call?.callee?.type !== 'identOrMethod') return call;
   const { ident, method } = call.callee;
@@ -195,8 +164,6 @@ export function resolveIdentOrMethod(call, ctx) {
     if (lm) return lm;
     return { ...call, callee: { type: 'opcode', name: `${ident}_${method}` } };
   }
-  const stringCall = stringMethodCall(ident, method, call.args);
-  if (stringCall) return stringCall;
   const isVar =
     (ctx?.localVars && ctx.localVars.has(ident)) ||
     (ctx?.scopeParams && ctx.scopeParams.has(ident)) ||
@@ -366,8 +333,6 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       return [1, [4, val.raw ?? String(val.value)]];
     case 'string':
       return [1, [10, String(val.value)]];
-    case 'color':
-      return [1, [9, String(val.value)]];
     case 'boolean':
       return booleanLiteralInput(Boolean(val.value), ids, blocks, parentId);
     case 'var': {

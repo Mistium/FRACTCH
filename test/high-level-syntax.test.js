@@ -1,0 +1,89 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { buildProjectFromBuildDir } from '../src/pack.js';
+import { convertProject } from '../src/convert.js';
+import { verifyRoundtrip } from '../src/roundtripDiff.js';
+import { parseFractch } from '../src/parse.js';
+import { buildBlocksFromCalls, IdGen } from '../src/buildBlocks.js';
+import { stringifyBlockCall } from '../src/stringify.js';
+
+test('multi-block abstractions retain Scratch-style command names', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-abstractions-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, 'Stage'));
+  fs.writeFileSync(
+    path.join(root, 'Stage', 'main.fractch'),
+    `var items = ["alpha", "beta"];
+when flag {
+  for value in items using index { say \`\${index}: \${value}\`; }
+  every 0.03 seconds { move 1; broadcast tick; }
+  if !mouseDown() { costume "idle"; }
+  say \`first: \${items.length}\`;
+}
+when broadcast tick { say "done"; }
+`
+  );
+
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: root, fs, prune: false });
+  const blocks = Object.values(manifest.targets.find((target) => target.isStage).blocks);
+  for (const opcode of [
+    'control_for_each',
+    'data_itemoflist',
+    'data_lengthoflist',
+    'control_forever',
+    'control_wait',
+    'operator_join',
+  ]) {
+    assert.ok(
+      blocks.some((block) => block.opcode === opcode),
+      `missing ${opcode}`
+    );
+  }
+
+  const out = path.join(root, 'generated');
+  await convertProject(manifest, { outDir: out, fs });
+  const generated = fs.readFileSync(path.join(out, 'Stage', 'main.fractch'), 'utf8');
+  for (const snippet of [
+    'when flag',
+    'when broadcast tick',
+    'for value in items using index',
+    'every 0.03 seconds',
+    'move 1;',
+    'broadcast tick;',
+    'if !mouseDown()',
+    'costume "idle";',
+    '`first: ${items.length}`',
+  ])
+    assert.ok(generated.includes(snippet), `missing ${snippet}`);
+  assert.doesNotMatch(generated, /\bon flag\b|\bemit\b|self\.|stage\.|sound\.play/);
+
+  const roundtrip = await verifyRoundtrip({ project: manifest, buildDir: out, fs });
+  assert.deepEqual(roundtrip.failures, []);
+  assert.equal(roundtrip.ok, roundtrip.total);
+});
+
+test('templates keep the exact join tree, including an expression at the start', () => {
+  for (const [source, expected] of [
+    ['say value ++ "°" ++ unit;', 'say `${value}°${unit}`;'],
+    ['say "a" ++ "b";', 'say "a" ++ "b";'],
+    ['say "" ++ value;', 'say "" ++ value;'],
+    ['say value ++ "";', 'say value ++ "";'],
+  ]) {
+    const parsed = parseFractch(source);
+    assert.deepEqual(parsed.errors, []);
+    const { blocks, topId } = buildBlocksFromCalls(parsed.calls, { idGen: new IdGen() });
+    assert.equal(stringifyBlockCall(blocks[topId], blocks, topId), expected);
+  }
+});
+
+test('a zero-second wait remains visible inside forever', () => {
+  const parsed = parseFractch('forever { wait 0; nextCostume; }');
+  assert.deepEqual(parsed.errors, []);
+  const { blocks, topId } = buildBlocksFromCalls(parsed.calls, { idGen: new IdGen() });
+  const generated = stringifyBlockCall(blocks[topId], blocks, topId);
+  assert.match(generated, /^forever \{/);
+  assert.match(generated, /wait 0;/);
+});

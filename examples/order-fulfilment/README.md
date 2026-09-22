@@ -5,8 +5,8 @@ The [Scratch project](../order-fulfilment.sb3) is built from
 copies nonempty orders to a dispatch list, and reports progress.
 
 ```fractch
-for (position, order) in orders {
-  ready.push(order);
+for order in orders using position {
+  append(ready, order);
   say `Packed ${order} (${position}/${orders.length})`;
 }
 ```

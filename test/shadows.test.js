@@ -98,7 +98,7 @@ test('convert drops floating shadows instead of emitting them as scripts', async
   await convertProject(minimalProject(blocks), { outDir, fs });
 
   const text = fs.readFileSync(path.join(outDir, 'main', 'main.fractch'), 'utf8');
-  assert.ok(text.includes('on flag'), 'real script survives');
+  assert.ok(text.includes('when flag'), 'real script survives');
   assert.ok(!text.includes('42'), 'floating topLevel shadow is not emitted');
   assert.ok(!/^\s*script\b[\s\S]*keyoptions/m.test(text), 'orphan menu shadow is not emitted as a script');
 });
@@ -175,7 +175,7 @@ test('shadow-flagged real scripts are emitted, not mistaken for editor debris', 
   });
   await convertProject(project, { outDir, fs });
   const text = fs.readFileSync(path.join(outDir, 'main', 'main.fractch'), 'utf8');
-  assert.match(text, /on flag/);
+  assert.match(text, /when flag/);
   assert.match(text, /move 10;/);
   assert.doesNotMatch(text, /_random_/);
 });

@@ -17,7 +17,7 @@ test('the order fulfilment SB3 emits readable list traversal and preserves every
 
   await unpackSb3({ input: sb3, outDir: out });
   const source = fs.readFileSync(path.join(out, 'Stage', 'main.fractch'), 'utf8');
-  assert.match(source, /for \(position, order\) in orders \{/);
+  assert.match(source, /for order in orders using position \{/);
   assert.match(source, /for order in ready \{/);
   assert.match(source, /\/\/ Example: for order in orders/);
 
