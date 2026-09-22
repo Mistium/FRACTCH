@@ -49,7 +49,7 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     const id = ids.next();
     const isFirst = topId == null;
     if (isFirst) topId = id;
-    const node = buildNode(call, ids, blocks, { ...ctx, asExpression: false }, id);
+    const node = buildNode(expandListIteration(call, ctx), ids, blocks, { ...ctx, asExpression: false }, id);
     if (isFirst && !nested) {
       node.topLevel = true;
       node.parent = null;
@@ -94,6 +94,44 @@ export function buildBlocksFromCalls(calls, opts = {}) {
   return { topId, blocks };
 }
 
+function expandListIteration(call, ctx) {
+  const spec = call?.listIteration;
+  if (!spec || (!spec.forced && !ctx.listMap?.has(spec.listName))) return call;
+  const field = (key, name, type) => ({
+    kind: 'keyed',
+    sep: 'field',
+    key,
+    value: { type, name, id: null },
+  });
+  const input = (key, value) => ({ kind: 'keyed', sep: 'input', key, value });
+  const reporter = (opcode, args) => ({
+    type: 'call',
+    value: { type: 'call', callee: { type: 'opcode', name: opcode }, args },
+  });
+  const listField = () => field('LIST', spec.listName, 'list');
+  const first = {
+    type: 'call',
+    callee: { type: 'opcode', name: 'data_setvariableto' },
+    args: [
+      field('VARIABLE', spec.valueName, 'ident'),
+      input(
+        'VALUE',
+        reporter('data_itemoflist', [input('INDEX', { type: 'ident', name: spec.indexName }), listField()])
+      ),
+    ],
+  };
+  const body = call.args.find((arg) => arg.kind === 'branch');
+  return {
+    ...call,
+    args: [
+      input('VALUE', reporter('data_lengthoflist', [listField()])),
+      field('VARIABLE', spec.indexName, 'ident'),
+      { ...body, body: [first, ...body.body] },
+    ],
+    listIteration: undefined,
+  };
+}
+
 export const LIST_METHOD_OPS = {
   add: ['data_addtolist', ['ITEM']],
   push: ['data_addtolist', ['ITEM']],
@@ -104,9 +142,12 @@ export const LIST_METHOD_OPS = {
   show: ['data_showlist', []],
   hide: ['data_hidelist', []],
   item: ['data_itemoflist', ['INDEX']],
+  at: ['data_itemoflist', ['INDEX']],
   length: ['data_lengthoflist', []],
   contains: ['data_listcontainsitem', ['ITEM']],
+  includes: ['data_listcontainsitem', ['ITEM']],
   indexof: ['data_itemnumoflist', ['ITEM']],
+  indexOf: ['data_itemnumoflist', ['ITEM']],
 };
 
 export function listMethodCall(name, method, args) {
@@ -118,6 +159,34 @@ export function listMethodCall(name, method, args) {
   return { type: 'call', callee: { type: 'opcode', name: opcode }, args: inputs };
 }
 
+export function stringMethodCall(receiver, method, args) {
+  const input = (key, value) => ({ kind: 'keyed', sep: 'input', key, value });
+  const field = (key, value) => ({ kind: 'keyed', sep: 'field', key, value: { type: 'array', value: [value] } });
+  const value = { type: 'ident', name: receiver };
+  const arg = (index) => args[index]?.value;
+  let opcode;
+  let mapped;
+  if (method === 'at' && args.length === 1) {
+    opcode = 'operator_letter_of';
+    mapped = [input('LETTER', arg(0)), input('STRING', value)];
+  } else if (method === 'includes' && args.length === 1) {
+    opcode = 'operator_contains';
+    mapped = [input('STRING1', value), input('STRING2', arg(0))];
+  } else if (method === 'trim' && args.length === 0) {
+    opcode = 'operator_trim';
+    mapped = [input('STRING', value)];
+  } else if ((method === 'toUpperCase' || method === 'toLowerCase') && args.length === 0) {
+    opcode = 'operator_change_case';
+    mapped = [input('STRING', value), field('CASE', method === 'toUpperCase' ? 'uppercase' : 'lowercase')];
+  } else if (method === 'replace' && args.length === 2) {
+    opcode = 'operator_replace';
+    mapped = [input('STRING', value), input('SUBSTRING', arg(0)), input('REPLACE', arg(1))];
+  } else {
+    return null;
+  }
+  return { type: 'call', callee: { type: 'opcode', name: opcode }, args: mapped };
+}
+
 export function resolveIdentOrMethod(call, ctx) {
   if (call?.callee?.type !== 'identOrMethod') return call;
   const { ident, method } = call.callee;
@@ -126,6 +195,8 @@ export function resolveIdentOrMethod(call, ctx) {
     if (lm) return lm;
     return { ...call, callee: { type: 'opcode', name: `${ident}_${method}` } };
   }
+  const stringCall = stringMethodCall(ident, method, call.args);
+  if (stringCall) return stringCall;
   const isVar =
     (ctx?.localVars && ctx.localVars.has(ident)) ||
     (ctx?.scopeParams && ctx.scopeParams.has(ident)) ||
@@ -295,6 +366,8 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       return [1, [4, val.raw ?? String(val.value)]];
     case 'string':
       return [1, [10, String(val.value)]];
+    case 'color':
+      return [1, [9, String(val.value)]];
     case 'boolean':
       return booleanLiteralInput(Boolean(val.value), ids, blocks, parentId);
     case 'var': {
@@ -357,7 +430,11 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
     }
     case 'ident': {
       if (!(ctx?.scopeParams && ctx.scopeParams.has(val.name))) {
-        if (!(ctx?.localVars && ctx.localVars.has(val.name)) && ctx?.listMap && ctx.listMap.has(val.name)) {
+        if (
+          !(ctx?.localVars && ctx.localVars.has(val.name)) &&
+          !ctx?.varMap?.has(val.name) &&
+          ctx?.listMap?.has(val.name)
+        ) {
           return varInput([13, val.name, ctx.listMap.get(val.name)]);
         }
         const name = (ctx?.localVars && ctx.localVars.get(val.name)) || val.name;

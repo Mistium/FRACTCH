@@ -1,7 +1,14 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch } from './parse.js';
-import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode, listMethodCall } from './buildBlocks.js';
+import {
+  buildBlocksFromCalls,
+  mergeIntoManifest,
+  IdGen,
+  synthesizeProccode,
+  listMethodCall,
+  stringMethodCall,
+} from './buildBlocks.js';
 import { assertValidFractch } from './lint.js';
 import { cleanRelStem, commentMarkerForFileStem, idSafeSuffix, markerPrefixForFileStem } from './fileMarkers.js';
 import {
@@ -941,10 +948,20 @@ function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
     ...Object.values(target.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)),
     ...(stage ? Object.values(stage.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)) : []),
   ]);
+  const iterationVars = new Set();
+  for (const spec of collectListIterations(calls)) {
+    if (!spec.forced && !listNames.has(spec.listName)) continue;
+    lists.add(spec.listName);
+    listNames.add(spec.listName);
+    vars.add(spec.valueName);
+    vars.add(spec.indexName);
+    iterationVars.add(spec.valueName);
+    iterationVars.add(spec.indexName);
+  }
   const globalVarNames = globals ? buildNameIdMap(globals.variables) : null;
   const globalListNames = globals ? buildNameIdMap(globals.lists) : null;
   for (const name of vars) {
-    if (listNames.has(name)) continue;
+    if (listNames.has(name) && !iterationVars.has(name)) continue;
     if (globalVarNames && globalVarNames.has(name)) continue;
     ensureDictEntry(target.variables, name, [name, 0]);
   }
@@ -955,6 +972,15 @@ function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
 
   const broadcastOwner = stage || target;
   for (const name of broadcasts) ensureDictEntry(broadcastOwner.broadcasts, name, name);
+}
+
+function collectListIterations(nodes, found = []) {
+  for (const node of nodes || []) {
+    if (node?.listIteration) found.push(node.listIteration);
+    if (node?.type === 'procDef') collectListIterations(node.body, found);
+    for (const arg of node?.args || []) if (arg.kind === 'branch') collectListIterations(arg.body, found);
+  }
+  return found;
 }
 
 function collectNames(nodes, out) {
@@ -976,6 +1002,12 @@ function collectNamesFromNode(node, out) {
   }
   if (node.type === 'danglingNext') return;
   if (node.type !== 'call') return;
+  if (
+    node.callee?.type === 'identOrMethod' &&
+    ['at', 'includes', 'trim', 'toUpperCase', 'toLowerCase', 'replace'].includes(node.callee.method)
+  ) {
+    out.vars.add(node.callee.ident);
+  }
 
   for (const arg of node.args || []) {
     if (arg.kind === 'branch') {
@@ -1154,6 +1186,7 @@ function rewriteIdentOrMethod(calls, scopeNames, listNames = new Set(), nsMap = 
       const { ident, method } = call.callee;
       const pkg = nsMap[ident] ? resolvePackageMethod(nsMap, ident, method) : null;
       const lm = !pkg && listNames.has(ident) ? listMethodCall(ident, method, call.args) : null;
+      const sm = !pkg && !lm ? stringMethodCall(ident, method, call.args) : null;
       if (pkg) {
         if (pkg.ident) {
           call.callee = { type: 'procedureCall', name: pkg.ident, line: call.callee.line };
@@ -1166,6 +1199,9 @@ function rewriteIdentOrMethod(calls, scopeNames, listNames = new Set(), nsMap = 
       } else if (lm) {
         call.callee = lm.callee;
         call.args = lm.args;
+      } else if (sm) {
+        call.callee = sm.callee;
+        call.args = sm.args;
       } else if (scopeNames.has(ident) && STDLIB_METHODS[method]) {
         call.callee = { type: 'procedureCall', name: STDLIB_METHODS[method].ident, line: call.callee.line };
         call.args = [{ kind: 'positional', value: { type: 'ident', name: ident } }, ...call.args];

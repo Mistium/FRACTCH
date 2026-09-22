@@ -5,6 +5,7 @@ Fractch converts Scratch 3 / TurboWarp `.sb3` projects into a lossless, human-re
 - [Getting started](getting-started.md) — install, scaffold, edit, run
 - [CLI reference](cli.md) — every command and flag
 - [Syntax reference](syntax.md) — the full `.fractch` language
+- [Readable syntax](readable-syntax.md) — emitted forms for common Scratch blocks
 - [Assets](assets.md) — costumes, sounds, and unused-asset pruning
 - [Errors](errors.md) — every error message, what it means, how to fix it
 - [Programmatic API](api.md) — Node and browser usage
@@ -20,7 +21,7 @@ fractch new my-game && cd my-game
 `Stage/main.fractch`:
 
 ```txt
-when flag {
+on flag {
   local greeting = "hello from fractch";
   say greeting for 2;
 }

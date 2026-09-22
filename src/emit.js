@@ -237,7 +237,12 @@ function emitScriptBody({ script, subgraph, context, cfg = {} }) {
     if (sugar) {
       let rest = top.next ? renderBody(subgraph, top.next, cfg) : '';
       rest = prependOwnComments(context, topBlockId, rest);
-      body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
+      const eventWord = ['event_whenflagclicked', 'event_whenkeypressed', 'event_whenbroadcastreceived'].includes(
+        top.opcode
+      )
+        ? 'on'
+        : 'when';
+      body = `${eventWord} ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
       const inner = renderFallbackBody(subgraph, topBlockId, cfg, context);
       body = `script${atText(top)} {\n${indentBlock(inner)}\n}`;
@@ -450,7 +455,7 @@ function whenSugarFor(block, context, subgraph) {
     const [name, id] = fields.BROADCAST_OPTION;
     if (typeof name !== 'string') return null;
     if (id != null && !(context?.broadcastNameToId && context.broadcastNameToId.get(name) === id)) return null;
-    return `broadcast ${nameToken(name)}`;
+    return `message ${nameToken(name)}`;
   }
   if (op === 'event_whenkeypressed' && fieldKeys.length === 1 && fieldKeys[0] === 'KEY_OPTION') {
     const name = fields.KEY_OPTION[0];

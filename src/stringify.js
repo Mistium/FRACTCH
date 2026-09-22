@@ -1,5 +1,6 @@
 import { LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS } from './parse.js';
 import { STDLIB_PROCCODE_TO_METHOD, STDLIB_DEF_TO_PACKAGE } from './stdlib/index.js';
+import { INPUT_PROPERTIES, PROPERTY_REPORTERS } from './readableSyntax.js';
 
 let CTX = {};
 export function setContext(c) {
@@ -64,20 +65,20 @@ function bareNameOk(name) {
 }
 
 const SIMPLE_ALIAS_EMIT = {
-  looks_show: 'show',
-  looks_hide: 'hide',
+  looks_show: 'self.visible = true',
+  looks_hide: 'self.visible = false',
   looks_nextcostume: 'nextCostume',
   looks_nextbackdrop: 'nextBackdrop',
   looks_cleargraphiceffects: 'clearEffects',
   control_break: 'break',
   control_delete_this_clone: 'deleteClone',
-  sensing_resettimer: 'resetTimer',
+  sensing_resettimer: 'timer.reset()',
   motion_ifonedgebounce: 'ifOnEdgeBounce',
   sound_stopallsounds: 'stopAllSounds',
   sound_cleareffects: 'clearSoundEffects',
-  pen_penUp: 'penUp',
-  pen_penDown: 'penDown',
-  pen_clear: 'penClear',
+  pen_penUp: 'pen.up()',
+  pen_penDown: 'pen.down()',
+  pen_clear: 'pen.clear()',
   pen_stamp: 'stamp',
 };
 
@@ -99,9 +100,25 @@ const UNARY_ALIAS_EMIT = {
   sound_setvolumeto: ['setVolume', 'VOLUME'],
 };
 
+const INPUT_PROPERTY_EMIT = {};
+for (const [property, operators] of Object.entries(INPUT_PROPERTIES)) {
+  for (const [operator, [opcode, key]] of Object.entries(operators)) {
+    INPUT_PROPERTY_EMIT[opcode] = [property, operator, key];
+  }
+}
+const REPORTER_PROPERTY_EMIT = Object.fromEntries(
+  Object.entries(PROPERTY_REPORTERS).map(([property, opcode]) => [opcode, property])
+);
+
 const MENU_CMD_EMIT = {
-  looks_switchcostumeto: { base: 'costume', key: 'COSTUME', menu: 'looks_costume', sentinels: {}, lead: [] },
-  looks_switchbackdropto: { base: 'backdrop', key: 'BACKDROP', menu: 'looks_backdrops', sentinels: {}, lead: [] },
+  looks_switchcostumeto: { base: 'self.costume =', key: 'COSTUME', menu: 'looks_costume', sentinels: {}, lead: [] },
+  looks_switchbackdropto: {
+    base: 'stage.backdrop =',
+    key: 'BACKDROP',
+    menu: 'looks_backdrops',
+    sentinels: {},
+    lead: [],
+  },
   control_create_clone_of: {
     base: 'clone',
     key: 'CLONE_OPTION',
@@ -117,7 +134,7 @@ const MENU_CMD_EMIT = {
     lead: [],
   },
   motion_pointtowards: {
-    base: 'pointTowards',
+    base: 'self.face',
     key: 'TOWARDS',
     menu: 'motion_pointtowards_menu',
     sentinels: { _mouse_: 'pointTowardsMouse', _random_: 'pointTowardsRandom' },
@@ -130,9 +147,9 @@ const MENU_CMD_EMIT = {
     sentinels: { _mouse_: 'glideToMouse', _random_: 'glideToRandom' },
     lead: ['SECS'],
   },
-  sound_play: { base: 'playSound', key: 'SOUND_MENU', menu: 'sound_sounds_menu', sentinels: {}, lead: [] },
+  sound_play: { base: 'sound.play', key: 'SOUND_MENU', menu: 'sound_sounds_menu', sentinels: {}, lead: [] },
   sound_playuntildone: {
-    base: 'playSoundUntilDone',
+    base: 'sound.playUntilDone',
     key: 'SOUND_MENU',
     menu: 'sound_sounds_menu',
     sentinels: {},
@@ -141,13 +158,13 @@ const MENU_CMD_EMIT = {
 };
 
 const LIST_STMT_EMIT = {
-  data_addtolist: ['append', ['ITEM']],
+  data_addtolist: ['push', ['ITEM']],
   data_deleteoflist: ['delete', ['INDEX']],
   data_deletealloflist: ['clear', []],
   data_insertatlist: ['insert', ['INDEX', 'ITEM']],
   data_replaceitemoflist: ['replace', ['INDEX', 'ITEM']],
-  data_showlist: ['showList', []],
-  data_hidelist: ['hideList', []],
+  data_showlist: ['show', []],
+  data_hidelist: ['hide', []],
 };
 
 export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}) {
@@ -227,9 +244,10 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   if (opcode === 'control_if' || opcode === 'control_if_else') {
     const condTuple = block.inputs?.CONDITION;
     const condStr = Array.isArray(condTuple) ? getInputExpr(condTuple, subgraph) : 'null';
+    const negated = opcode === 'control_if' ? tryUnless(block, subgraph) : null;
     const thenId = block.inputs?.SUBSTACK && Array.isArray(block.inputs.SUBSTACK) ? block.inputs.SUBSTACK[1] : null;
     const elseId = block.inputs?.SUBSTACK2 && Array.isArray(block.inputs.SUBSTACK2) ? block.inputs.SUBSTACK2[1] : null;
-    const header = `if ${condStr}`;
+    const header = negated ? `unless ${negated}` : `if ${condStr}`;
     const thenBody = thenId ? renderBody(subgraph, thenId) : '';
     if (opcode === 'control_if_else') {
       const elseBlock = elseId ? subgraph[elseId] : null;
@@ -249,6 +267,8 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 
   if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
     const varName = String(block.fields?.VARIABLE?.[0] ?? '');
+    const compact = tryCompactVariableUpdate(block, subgraph, varName);
+    if (compact) return compact;
     const value = inputValueText(block.inputs?.VALUE, subgraph, 'VALUE');
     const op = opcode === 'data_changevariableby' ? '+=' : '=';
     const local = localBareName(varName);
@@ -264,9 +284,13 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
 
   if (opcode === 'control_forever') {
+    const every = tryEvery(block, subgraph);
+    if (every) return every;
     return `forever ${branch(block, 'SUBSTACK', subgraph)}`;
   }
   if (opcode === 'control_for_each') {
+    const listLoop = tryListIteration(block, subgraph);
+    if (listLoop) return listLoop;
     const forLoop = tryForLoop(block, subgraph);
     if (forLoop) return forLoop;
   }
@@ -302,7 +326,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
   if (opcode === 'control_wait_until') {
     const c = Array.isArray(block.inputs?.CONDITION) ? getInputExpr(block.inputs.CONDITION, subgraph) : 'null';
-    return `wait_until ${c};`;
+    return `wait until ${c};`;
   }
   if (opcode === 'control_stop') {
     const opt = block.fields?.STOP_OPTION?.[0] ?? 'all';
@@ -324,8 +348,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
       const raw = Array.isArray(childId) ? String(childId[1] ?? '') : '';
       name = BARE_NAME.test(raw) && !RESERVED_WORDS.has(raw) ? raw : JSON.stringify(raw);
     }
-    const w = opcode === 'event_broadcastandwait' ? 'broadcastWait' : 'broadcast';
-    return `${w} ${name};`;
+    return `emit ${name}${opcode === 'event_broadcastandwait' ? ' and wait' : ''};`;
   }
 
   if (!inline) {
@@ -468,7 +491,7 @@ const FIELD_REPORTER_EMIT = {
 };
 const REPORTER_MENU_EMIT = {
   sensing_touchingobject: {
-    base: 'touching',
+    base: 'self.touching',
     key: 'TOUCHINGOBJECTMENU',
     menu: 'sensing_touchingobjectmenu',
     sentinels: { _mouse_: 'touchingMouse', _edge_: 'touchingEdge' },
@@ -479,7 +502,7 @@ const REPORTER_MENU_EMIT = {
     menu: 'sensing_distancetomenu',
     sentinels: { _mouse_: 'distanceToMouse' },
   },
-  sensing_keypressed: { base: 'keyPressed', key: 'KEY_OPTION', menu: 'sensing_keyoptions', sentinels: {} },
+  sensing_keypressed: { base: 'key.down', key: 'KEY_OPTION', menu: 'sensing_keyoptions', sentinels: {} },
 };
 const REPORTER_FUNC_EMIT = {
   sensing_touchingcolor: ['touchingColor', ['COLOR']],
@@ -516,6 +539,17 @@ function tryReporterInfo(block, subgraph) {
   if (!op || block.mutation) return null;
   const inputKeys = Object.keys(block.inputs || {});
   const fieldKeys = Object.keys(block.fields || {});
+  if (REPORTER_PROPERTY_EMIT[op] && !inputKeys.length) {
+    const property = REPORTER_PROPERTY_EMIT[op];
+    if (!fieldKeys.length) return { text: property, prec: ATOM_PREC };
+    if (
+      (property === 'self.costume' || property === 'stage.backdrop') &&
+      fieldKeys.join() === 'NUMBER_NAME' &&
+      block.fields.NUMBER_NAME?.[0] === 'name'
+    ) {
+      return { text: property, prec: ATOM_PREC };
+    }
+  }
   if (NULLARY_REPORTER_EMIT[op] && !inputKeys.length && !fieldKeys.length) {
     return { text: `${NULLARY_REPORTER_EMIT[op]}()`, prec: ATOM_PREC };
   }
@@ -603,8 +637,12 @@ function tryListExpr(block, subgraph) {
   const inputKeys = Object.keys(block.inputs || {});
   const one = (k) => inputKeys.length === 1 && inputKeys[0] === k;
   if (op === 'data_itemoflist' && one('INDEX')) {
+    const special = block.inputs.INDEX?.[1];
+    if (Array.isArray(special) && special[0] === 10 && (special[1] === 'last' || special[1] === 'random')) {
+      return { text: `${listArgText(name)}.${special[1]}`, prec: ATOM_PREC };
+    }
     return {
-      text: `item(${listArgText(name)}, ${inputValueText(block.inputs.INDEX, subgraph, 'INDEX')})`,
+      text: `${listArgText(name)}[${inputValueText(block.inputs.INDEX, subgraph, 'INDEX')}]`,
       prec: ATOM_PREC,
     };
   }
@@ -613,13 +651,13 @@ function tryListExpr(block, subgraph) {
   }
   if (op === 'data_listcontainsitem' && one('ITEM')) {
     return {
-      text: `hasItem(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`,
+      text: `${listArgText(name)}.includes(${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`,
       prec: ATOM_PREC,
     };
   }
   if (op === 'data_itemnumoflist' && one('ITEM')) {
     return {
-      text: `indexOf(${listArgText(name)}, ${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`,
+      text: `${listArgText(name)}.indexOf(${inputValueText(block.inputs.ITEM, subgraph, 'ITEM')})`,
       prec: ATOM_PREC,
     };
   }
@@ -631,7 +669,10 @@ function menuCmdText(block, subgraph, spec) {
   const inputKeys = Object.keys(block.inputs || {});
   if (inputKeys.length !== want.length || !want.every((k) => k in block.inputs)) return null;
   const leadText = spec.lead.map((k) => inputValueText(block.inputs[k], subgraph, k));
-  const prefix = (rest) => `${spec.base} ${[...leadText, rest].join(', ')};`;
+  const prefix = (rest) =>
+    /^(?:sound\.|self\.face$)/.test(spec.base)
+      ? `${spec.base}(${[...leadText, rest].join(', ')});`
+      : `${spec.base} ${[...leadText, rest].join(', ')};`;
   const arr = block.inputs[spec.key];
   const childId = Array.isArray(arr) ? arr[1] : null;
   const child = typeof childId === 'string' ? subgraph[childId] : null;
@@ -657,6 +698,57 @@ function menuCmdText(block, subgraph, spec) {
   return null;
 }
 
+function tryUnless(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).length) return null;
+  const keys = Object.keys(block.inputs || {});
+  if (keys.some((key) => key !== 'CONDITION' && key !== 'SUBSTACK')) return null;
+  const id = block.inputs?.CONDITION?.[1];
+  const child = typeof id === 'string' ? subgraph[id] : null;
+  if (!child || child.opcode !== 'operator_not' || child.mutation || CTX.blockComments?.get(id)?.length) return null;
+  if (Object.keys(child.inputs || {}).join() !== 'OPERAND' || Object.keys(child.fields || {}).length) return null;
+  return inputValueText(child.inputs.OPERAND, subgraph, 'OPERAND');
+}
+
+function tryEvery(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).length || Object.keys(block.inputs || {}).join() !== 'SUBSTACK')
+    return null;
+  const id = block.inputs.SUBSTACK?.[1];
+  const wait = typeof id === 'string' ? subgraph[id] : null;
+  if (!wait || wait.opcode !== 'control_wait' || wait.mutation || CTX.blockComments?.get(id)?.length) return null;
+  if (Object.keys(wait.fields || {}).length || Object.keys(wait.inputs || {}).join() !== 'DURATION') return null;
+  const duration = inputValueText(wait.inputs.DURATION, subgraph, 'DURATION');
+  const body = wait.next ? renderBody(subgraph, wait.next) : '';
+  return `every ${duration} seconds {\n${indent(body)}\n}`;
+}
+
+function tryCompactVariableUpdate(block, subgraph, name) {
+  const local = localBareName(name);
+  const target = local || (bareNameOk(name) ? name : null);
+  if (!target || block.mutation || Object.keys(block.fields || {}).join() !== 'VARIABLE') return null;
+  if (Object.keys(block.inputs || {}).join() !== 'VALUE') return null;
+  const value = block.inputs.VALUE?.[1];
+  if (block.opcode === 'data_changevariableby' && Array.isArray(value) && value[0] === 4) {
+    if (value[1] === '1') return `${target}++;`;
+    if (value[1] === '-1') return `${target}--;`;
+  }
+  if (block.opcode !== 'data_setvariableto' || typeof value !== 'string') return null;
+  const math = subgraph[value];
+  if (!math || math.mutation || CTX.blockComments?.get(value)?.length) return null;
+  const op = math.opcode === 'operator_multiply' ? '*=' : math.opcode === 'operator_divide' ? '/=' : null;
+  if (!op || Object.keys(math.fields || {}).length) return null;
+  if (
+    Object.keys(math.inputs || {})
+      .sort()
+      .join() !== 'NUM1,NUM2'
+  )
+    return null;
+  const lhs = math.inputs.NUM1?.[1];
+  if (!Array.isArray(lhs) || lhs[0] !== 12 || lhs[1] !== name) return null;
+  const fieldId = block.fields.VARIABLE?.[1];
+  if (lhs[2] != null && fieldId != null && lhs[2] !== fieldId) return null;
+  return `${target} ${op} ${inputValueText(math.inputs.NUM2, subgraph, 'NUM2')};`;
+}
+
 function tryForLoop(block, subgraph) {
   if (block.mutation) return null;
   const fieldKeys = Object.keys(block.fields || {});
@@ -669,8 +761,73 @@ function tryForLoop(block, subgraph) {
   const id = v.length > 1 ? v[1] : undefined;
   if (!bareNameOk(name)) return null;
   if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) return null;
+  const countRef = block.inputs.VALUE?.[1];
+  if (Array.isArray(countRef) && countRef[0] === 12 && CTX.listMap?.has(countRef[1])) return null;
   const count = getInputExpr(block.inputs.VALUE, subgraph);
   return `for ${name} in ${count} ${branch(block, 'SUBSTACK', subgraph)}`;
+}
+
+function tryListIteration(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).join() !== 'VARIABLE') return null;
+  const keys = Object.keys(block.inputs || {});
+  if (keys.length !== 2 || !keys.includes('VALUE') || !keys.includes('SUBSTACK')) return null;
+  const [indexName, indexId] = block.fields.VARIABLE || [];
+  if (typeof indexName !== 'string' || !bareNameOk(indexName.replace(/^!local_[A-Za-z0-9]+_/, ''))) return null;
+  if (indexId != null && CTX.varMap?.get(indexName) !== indexId) return null;
+  const lengthId = block.inputs.VALUE?.[1];
+  const length = typeof lengthId === 'string' ? subgraph[lengthId] : null;
+  if (CTX.blockComments?.get(lengthId)?.length) return null;
+  if (!length || length.opcode !== 'data_lengthoflist' || length.mutation || Object.keys(length.inputs || {}).length)
+    return null;
+  const listName = listFieldName(length);
+  if (listName == null) return null;
+  const firstId = block.inputs.SUBSTACK?.[1];
+  const first = typeof firstId === 'string' ? subgraph[firstId] : null;
+  if (!first || first.opcode !== 'data_setvariableto' || first.mutation || CTX.blockComments?.get(firstId)?.length)
+    return null;
+  if (Object.keys(first.fields || {}).join() !== 'VARIABLE' || Object.keys(first.inputs || {}).join() !== 'VALUE')
+    return null;
+  const [valueName, valueId] = first.fields.VARIABLE || [];
+  if (typeof valueName !== 'string' || !bareNameOk(valueName) || valueName === indexName) return null;
+  if (valueId != null && CTX.varMap?.get(valueName) !== valueId) return null;
+  const itemId = first.inputs.VALUE?.[1];
+  const item = typeof itemId === 'string' ? subgraph[itemId] : null;
+  if (CTX.blockComments?.get(itemId)?.length) return null;
+  if (!item || item.opcode !== 'data_itemoflist' || item.mutation || listFieldName(item) !== listName) return null;
+  if (Object.keys(item.inputs || {}).join() !== 'INDEX') return null;
+  const indexInput = item.inputs.INDEX?.[1];
+  if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
+  if (indexInput[2] != null && indexInput[2] !== indexId) return null;
+  const hidden = indexName === `!local_for0_${valueName}`;
+  if (indexName.startsWith('!local_') && first.next && referencesVariable(subgraph, first.next, indexName)) return null;
+  const rest = first.next ? renderBody(subgraph, first.next) : '';
+  const indexText = bareNameOk(indexName) ? indexName : JSON.stringify(indexName);
+  const head = hidden
+    ? `for ${valueName} in ${listArgText(listName)}`
+    : `for (${indexText}, ${valueName}) in ${listArgText(listName)}`;
+  return `${head} {\n${indent(rest)}\n}`;
+}
+
+function referencesVariable(subgraph, startId, name) {
+  const seen = new Set();
+  const pending = [startId];
+  while (pending.length) {
+    const id = pending.pop();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const block = subgraph[id];
+    if (!block) continue;
+    if (block.fields?.VARIABLE?.[0] === name) return true;
+    if (block.next) pending.push(block.next);
+    for (const tuple of Object.values(block.inputs || {})) {
+      if (!Array.isArray(tuple)) continue;
+      for (const part of tuple.slice(1)) {
+        if (typeof part === 'string') pending.push(part);
+        else if (Array.isArray(part) && part[0] === 12 && part[1] === name) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function tryStatementAlias(block, subgraph) {
@@ -684,6 +841,15 @@ function tryStatementAlias(block, subgraph) {
 
   if (SIMPLE_ALIAS_EMIT[op] && !fieldKeys.length && !inputKeys.length) {
     return `${SIMPLE_ALIAS_EMIT[op]};`;
+  }
+  if (INPUT_PROPERTY_EMIT[op] && !fieldKeys.length) {
+    const [property, operator, key] = INPUT_PROPERTY_EMIT[op];
+    if (exactInputs(key)) {
+      const active = inputs[key]?.[1];
+      if (property !== 'pen.color' || typeof active === 'string' || (Array.isArray(active) && active[0] === 9)) {
+        return `${property} ${operator} ${inputValueText(inputs[key], subgraph, key)};`;
+      }
+    }
   }
   if (UNARY_ALIAS_EMIT[op]) {
     const [kw, key] = UNARY_ALIAS_EMIT[op];
@@ -704,22 +870,18 @@ function tryStatementAlias(block, subgraph) {
     if (effect == null) return null;
     const inputKey = op === 'looks_changeeffectby' ? 'CHANGE' : 'VALUE';
     if (!exactInputs(inputKey)) return null;
-    const kw = op === 'looks_changeeffectby' ? 'changeEffect' : 'setEffect';
-    const connector = op === 'looks_changeeffectby' ? 'by' : 'to';
-    return `${kw} ${effectNameToken(effect)} ${connector} ${inputValueText(inputs[inputKey], subgraph, inputKey)};`;
+    return `self.effect.${effectNameToken(effect)} ${op === 'looks_changeeffectby' ? '+=' : '='} ${inputValueText(inputs[inputKey], subgraph, inputKey)};`;
   }
   if (op === 'sound_changeeffectby' || op === 'sound_seteffectto') {
     const effect = effectFieldName(block);
     if (effect == null || !exactInputs('VALUE')) return null;
-    const kw = op === 'sound_changeeffectby' ? 'changeSoundEffect' : 'setSoundEffect';
-    const connector = op === 'sound_changeeffectby' ? 'by' : 'to';
-    return `${kw} ${effectNameToken(effect)} ${connector} ${inputValueText(inputs.VALUE, subgraph, 'VALUE')};`;
+    return `sound.effect.${effectNameToken(effect)} ${op === 'sound_changeeffectby' ? '+=' : '='} ${inputValueText(inputs.VALUE, subgraph, 'VALUE')};`;
   }
   if (op === 'motion_gotoxy' && !fieldKeys.length && exactInputs('X', 'Y')) {
-    return `gotoXY ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+    return `self.position = (${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')});`;
   }
   if (op === 'motion_glidesecstoxy' && !fieldKeys.length && exactInputs('SECS', 'X', 'Y')) {
-    return `glideXY ${inputValueText(inputs.SECS, subgraph, 'SECS')}, ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
+    return `self.glideTo(${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')}, ${inputValueText(inputs.SECS, subgraph, 'SECS')});`;
   }
   if (op === 'motion_pointtowards_xy' && !fieldKeys.length && exactInputs('X', 'Y')) {
     return `pointTowardsXY ${inputValueText(inputs.X, subgraph, 'X')}, ${inputValueText(inputs.Y, subgraph, 'Y')};`;
@@ -745,8 +907,8 @@ function tryStatementAlias(block, subgraph) {
   }
   if (op === 'looks_gotofrontback' && !inputKeys.length && fieldKeys.length === 1 && fieldKeys[0] === 'FRONT_BACK') {
     const v = fields.FRONT_BACK[0];
-    if (v === 'front') return 'goFront;';
-    if (v === 'back') return 'goBack;';
+    if (v === 'front') return 'self.layer = front;';
+    if (v === 'back') return 'self.layer = back;';
   }
   if (
     op === 'looks_goforwardbackwardlayers' &&
@@ -755,7 +917,7 @@ function tryStatementAlias(block, subgraph) {
     fieldKeys[0] === 'FORWARD_BACKWARD'
   ) {
     const v = fields.FORWARD_BACKWARD[0];
-    if (v === 'forward') return `goForward ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
+    if (v === 'forward') return `self.layer += ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
     if (v === 'backward') return `goBackward ${inputValueText(inputs.NUM, subgraph, 'NUM')};`;
   }
   if (MENU_CMD_EMIT[op] && !fieldKeys.length) {
@@ -767,7 +929,10 @@ function tryStatementAlias(block, subgraph) {
     const [fn, keys] = LIST_STMT_EMIT[op];
     if (!exactInputs(...keys)) return null;
     const args = keys.map((k) => inputValueText(inputs[k], subgraph, k));
-    return `${fn}(${[listArgText(name), ...args].join(', ')});`;
+    const list = listArgText(name);
+    if (op === 'data_deleteoflist') return `delete ${list}[${args[0]}];`;
+    if (op === 'data_replaceitemoflist') return `${list}[${args[0]}] = ${args[1]};`;
+    return `${list}.${fn}(${args.join(', ')});`;
   }
   return null;
 }
@@ -1077,6 +1242,57 @@ function formatLiteral(arr) {
 
 const NEGATED_CMP = { operator_equals: '!=', operator_gt: '<=', operator_lt: '>=' };
 
+function stringReceiver(tuple, subgraph) {
+  const ref = tuple?.[1];
+  if (Array.isArray(ref) && ref[0] === 12 && CTX.listMap?.has(ref[1])) return `vars[${JSON.stringify(ref[1])}]`;
+  const info = getInputExprInfo(tuple, subgraph);
+  return info.prec === ATOM_PREC ? info.text : `(${info.text})`;
+}
+
+function tryTemplateJoin(block, subgraph) {
+  const parts = [];
+  const visit = (node) => {
+    if (
+      node?.opcode !== 'operator_join' ||
+      Object.keys(node.inputs || {})
+        .sort()
+        .join() !== 'STRING1,STRING2' ||
+      Object.keys(node.fields || {}).length ||
+      node.mutation
+    )
+      return false;
+    const left = node.inputs.STRING1?.[1];
+    if (typeof left === 'string' && subgraph[left]?.opcode === 'operator_join') {
+      if (CTX.blockComments?.get(left)?.length || !visit(subgraph[left])) return false;
+    } else if (Array.isArray(left) && left[0] === 10) {
+      parts.push({ literal: String(left[1] ?? '') });
+    } else return false;
+    const right = node.inputs.STRING2?.[1];
+    if (Array.isArray(right) && right[0] === 10) parts.push({ literal: String(right[1] ?? '') });
+    else parts.push({ expr: getInputExpr(node.inputs.STRING2, subgraph) });
+    return true;
+  };
+  if (!visit(block)) return null;
+  if (!parts.some((part) => part.expr !== undefined)) return null;
+  if (parts.some((part, index) => index > 0 && part.literal !== undefined && parts[index - 1].literal !== undefined))
+    return null;
+  const escape = (value) =>
+    value
+      .replaceAll('\\', '\\\\')
+      .replaceAll('`', '\\`')
+      .replaceAll('${', '\\${')
+      .replaceAll('\n', '\\n')
+      .replaceAll('\r', '\\r')
+      .replaceAll('\t', '\\t');
+  return {
+    text:
+      '`' +
+      parts.map((part) => (part.literal === undefined ? '${' + part.expr + '}' : escape(part.literal))).join('') +
+      '`',
+    prec: ATOM_PREC,
+  };
+}
+
 function tryOperatorInfo(block, subgraph) {
   const op = block?.opcode;
   if (typeof op !== 'string' || !op.startsWith('operator_')) return null;
@@ -1084,6 +1300,14 @@ function tryOperatorInfo(block, subgraph) {
   const bin = (sym, k1, k2, a1, a2) =>
     binaryInfo(sym, getInputExprInfo(input(k1, a1), subgraph), getInputExprInfo(input(k2, a2), subgraph));
   switch (op) {
+    case 'operator_pi':
+      return !Object.keys(block.inputs || {}).length && !Object.keys(block.fields || {}).length && !block.mutation
+        ? { text: 'PI', prec: ATOM_PREC }
+        : null;
+    case 'operator_newline':
+      return !Object.keys(block.inputs || {}).length && !Object.keys(block.fields || {}).length && !block.mutation
+        ? { text: 'NEWLINE', prec: ATOM_PREC }
+        : null;
     case 'operator_add':
       return Object.keys(block.inputs || {}).length === 2 ? bin('+', 'NUM1', 'NUM2') : null;
     case 'operator_subtract':
@@ -1117,9 +1341,15 @@ function tryOperatorInfo(block, subgraph) {
     case 'operator_length':
       return { text: `length(${getInputExpr(input('STRING'), subgraph)})`, prec: ATOM_PREC };
     case 'operator_letter_of': {
-      const recv = getInputExprInfo(input('STRING'), subgraph);
-      const recvText = recv.prec === ATOM_PREC ? recv.text : `(${recv.text})`;
-      return { text: `${recvText}.letter(${getInputExpr(input('LETTER'), subgraph)})`, prec: ATOM_PREC };
+      const recv = stringReceiver(input('STRING'), subgraph);
+      const ref = input('STRING')?.[1];
+      const collides = Array.isArray(ref) && ref[0] === 12 && CTX.listMap?.has(ref[1]);
+      return {
+        text: collides
+          ? `${recv}.letter(${getInputExpr(input('LETTER'), subgraph)})`
+          : `${recv}[${getInputExpr(input('LETTER'), subgraph)}]`,
+        prec: ATOM_PREC,
+      };
     }
     case 'operator_random':
       return {
@@ -1128,11 +1358,34 @@ function tryOperatorInfo(block, subgraph) {
       };
     case 'operator_contains':
       return {
-        text: `contains(${getInputExpr(input('STRING1'), subgraph)}, ${getInputExpr(input('STRING2'), subgraph)})`,
+        text: `${stringReceiver(input('STRING1'), subgraph)}.includes(${getInputExpr(input('STRING2'), subgraph)})`,
         prec: ATOM_PREC,
       };
+    case 'operator_trim':
+      return Object.keys(block.inputs || {}).join() === 'STRING' && !Object.keys(block.fields || {}).length
+        ? { text: `${stringReceiver(input('STRING'), subgraph)}.trim()`, prec: ATOM_PREC }
+        : null;
+    case 'operator_change_case': {
+      if (Object.keys(block.inputs || {}).join() !== 'STRING' || Object.keys(block.fields || {}).join() !== 'CASE')
+        return null;
+      const mode = block.fields.CASE?.[0];
+      if (mode !== 'uppercase' && mode !== 'lowercase') return null;
+      return {
+        text: `${stringReceiver(input('STRING'), subgraph)}.${mode === 'uppercase' ? 'toUpperCase' : 'toLowerCase'}()`,
+        prec: ATOM_PREC,
+      };
+    }
+    case 'operator_replace':
+      return Object.keys(block.inputs || {})
+        .sort()
+        .join() === 'REPLACE,STRING,SUBSTRING' && !Object.keys(block.fields || {}).length
+        ? {
+            text: `${stringReceiver(input('STRING'), subgraph)}.replace(${getInputExpr(input('SUBSTRING'), subgraph)}, ${getInputExpr(input('REPLACE'), subgraph)})`,
+            prec: ATOM_PREC,
+          }
+        : null;
     case 'operator_join':
-      return bin('++', 'STRING1', 'STRING2');
+      return tryTemplateJoin(block, subgraph) ?? bin('++', 'STRING1', 'STRING2');
     case 'operator_equals': {
       const bool = booleanLiteralInfo(block);
       if (bool) return bool;

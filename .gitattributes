@@ -1,0 +1,2 @@
+# Unified diffs contain a mandatory leading space on empty context lines.
+examples/mistwarp-diffs/*.patch whitespace=-blank-at-eol

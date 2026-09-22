@@ -178,7 +178,7 @@ test('browser entry: convert + pack against an in-memory lightning-fs style fs',
   assert.ok(result.filesWritten > 0);
   const mainTarget = projectJson.targets.find((t) => Object.keys(t.blocks || {}).length > 0);
   const sanitized = mainTarget.name.replace(/[^a-zA-Z0-9-_]/g, '_');
-  assert.ok((await memfs.promises.readFile(`/build/${sanitized}/main.fractch`, 'utf8')).includes('when '));
+  assert.ok((await memfs.promises.readFile(`/build/${sanitized}/main.fractch`, 'utf8')).includes('on '));
 
   const { manifest } = await buildProjectFromBuildDir({ buildDir: '/build', fs: memfs });
   const origCounts = projectJson.targets.map((t) => Object.keys(t.blocks || {}).length);
@@ -794,9 +794,9 @@ test('looks effect blocks render as effect statement sugar', async () => {
   const { calls } = parseFractch('change_effect brightness by 25;\nset_effect ghost to 50;\nclear_effects;\n');
   const { blocks, topId } = buildBlocksFromCalls(calls, { idGen: new IdGen() });
 
-  assert.strictEqual(stringifyBlockCall(blocks[topId], blocks, topId), 'changeEffect brightness by 25;');
+  assert.strictEqual(stringifyBlockCall(blocks[topId], blocks, topId), 'self.effect.brightness += 25;');
   const secondId = blocks[topId].next;
-  assert.strictEqual(stringifyBlockCall(blocks[secondId], blocks, secondId), 'setEffect ghost to 50;');
+  assert.strictEqual(stringifyBlockCall(blocks[secondId], blocks, secondId), 'self.effect.ghost = 50;');
   const thirdId = blocks[secondId].next;
   assert.strictEqual(stringifyBlockCall(blocks[thirdId], blocks, thirdId), 'clearEffects;');
 });
@@ -814,7 +814,7 @@ test('nested non-main fractch files are preserved across pack then convert', asy
 
   assert.ok(fs.existsSync(path.join(out, 'Stage', 'main.fractch')), 'main.fractch missing after convert');
   assert.ok(fs.existsSync(path.join(out, 'Stage', 'systems', 'ui.fractch')), 'nested side file missing after convert');
-  assert.match(fs.readFileSync(path.join(out, 'Stage', 'systems', 'ui.fractch'), 'utf8'), /when broadcast Ping/);
+  assert.match(fs.readFileSync(path.join(out, 'Stage', 'systems', 'ui.fractch'), 'utf8'), /on message Ping/);
 });
 
 test('list sugar desugars to data_* blocks and round-trips through build', async () => {

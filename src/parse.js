@@ -1,4 +1,5 @@
 import { STDLIB_METHODS } from './stdlib/index.js';
+import { INPUT_PROPERTIES, PROPERTY_REPORTERS, SIMPLE_METHODS } from './readableSyntax.js';
 
 function snakeToCamel(s) {
   return s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
@@ -25,7 +26,9 @@ function setWithCamel(list) {
 const STATEMENT_KEYWORDS = setWithCamel([
   'def',
   'if',
+  'unless',
   'forever',
+  'every',
   'switch',
   'case',
   'default',
@@ -42,9 +45,12 @@ const STATEMENT_KEYWORDS = setWithCamel([
   'js',
   'dangling_next',
   'when',
+  'on',
+  'emit',
   'script',
   'lists',
   'local',
+  'delete',
   'sound',
   'use',
   'var',
@@ -572,6 +578,7 @@ class Parser {
     this.attachLineComments = attachLineComments;
     this.pendingLineComments = [];
     this.seenComments = new Set();
+    this.listForDepth = 0;
   }
 
   fail(message, hint = null) {
@@ -860,6 +867,12 @@ class Parser {
       this.skipWS();
       isKeyword = this.peek() === '"';
       this.restore(save);
+    } else if (word === 'delete') {
+      const save = this.snapshot();
+      this.tryIdentifier();
+      this.skipWS();
+      isKeyword = this.peek() !== '(';
+      this.restore(save);
     }
     if (isKeyword) {
       const line = this.lineAt(this.i);
@@ -870,10 +883,58 @@ class Parser {
       return node;
     }
 
+    const readable = this.parseReadableStatement();
+    if (readable) return readable;
+
     if (word) {
       const save = this.snapshot();
       this.tryIdentifier();
       this.skipWS();
+      if (this.peek() === '[' && word !== 'vars' && word !== 'lists' && word !== 'sprites') {
+        this.i++;
+        const index = this.parseExpr();
+        this.expectChar(']');
+        this.skipWS();
+        if (this.peek() === '=' && this.peek(1) !== '=') {
+          this.i++;
+          const value = this.parseInputValue();
+          this.tryChar(';');
+          return makeCall('data_replaceitemoflist', [
+            keyedInput('INDEX', index),
+            keyedInput('ITEM', value),
+            keyedField('LIST', { type: 'list', name: word, id: null }),
+          ]);
+        }
+        this.restore(save);
+        this.tryIdentifier();
+        this.skipWS();
+      }
+      const postfixEnd = this.s.slice(this.i + 2).match(/^[ \t]*(?:\r?\n|;|}|\/\/|\/\*|$)/);
+      if (
+        postfixEnd &&
+        ((this.peek() === '+' && this.peek(1) === '+') || (this.peek() === '-' && this.peek(1) === '-'))
+      ) {
+        const delta = this.peek() === '+' ? 1 : -1;
+        this.i += 2;
+        this.tryChar(';');
+        return makeCall('data_changevariableby', [
+          keyedField('VARIABLE', { type: 'ident', name: word }),
+          keyedInput('VALUE', { type: 'number', value: delta, raw: String(delta) }),
+        ]);
+      }
+      if ((this.peek() === '*' || this.peek() === '/') && this.peek(1) === '=') {
+        const opcode = this.peek() === '*' ? 'operator_multiply' : 'operator_divide';
+        this.i += 2;
+        const rhs = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall('data_setvariableto', [
+          keyedField('VARIABLE', { type: 'ident', name: word }),
+          keyedInput('VALUE', {
+            type: 'call',
+            value: makeCall(opcode, [keyedInput('NUM1', { type: 'ident', name: word }), keyedInput('NUM2', rhs)]),
+          }),
+        ]);
+      }
       if (this.peek() === '+' && this.peek(1) === '=') {
         this.i += 2;
         const v = this.parseInputValue();
@@ -918,6 +979,132 @@ class Parser {
     const expr = this.parseExprStatementHead();
     this.tryChar(';');
     return expr;
+  }
+
+  parseReadableStatement() {
+    const save = this.snapshot();
+    const receiver = this.tryIdentifier();
+    if (!['self', 'stage', 'sound', 'pen', 'timer'].includes(receiver)) {
+      this.restore(save);
+      return null;
+    }
+    let name = receiver;
+    while (this.peek() === '.' && this.peek(1) !== '.') {
+      this.i++;
+      name += `.${this.expectIdentifier()}`;
+    }
+    this.skipWS();
+    let operator = null;
+    if (this.peek() === '+' && this.peek(1) === '=') {
+      operator = '+=';
+      this.i += 2;
+    } else if (this.peek() === '=' && this.peek(1) !== '=') {
+      operator = '=';
+      this.i++;
+    }
+    if (operator) {
+      const spec = INPUT_PROPERTIES[name]?.[operator];
+      if (spec) {
+        let value = this.parseInputValue();
+        if (name === 'pen.color' && value.type === 'string') value = { type: 'color', value: value.value };
+        this.tryChar(';');
+        return makeCall(spec[0], [keyedInput(spec[1], value)]);
+      }
+      if (name === 'self.position' && operator === '=') {
+        this.expectChar('(');
+        const x = this.parseInputValue();
+        this.expectChar(',');
+        const y = this.parseInputValue();
+        this.expectChar(')');
+        this.tryChar(';');
+        return makeCall('motion_gotoxy', [keyedInput('X', x), keyedInput('Y', y)]);
+      }
+      if (name === 'self.visible' && operator === '=') {
+        const value = this.parseInputValue();
+        if (value.type !== 'boolean') this.fail('self.visible expects true or false');
+        this.tryChar(';');
+        return makeCall(value.value ? 'looks_show' : 'looks_hide', []);
+      }
+      if ((name === 'self.costume' || name === 'stage.backdrop') && operator === '=') {
+        const value = this.parseInputValue();
+        this.tryChar(';');
+        const costume = name === 'self.costume';
+        return makeCall(costume ? 'looks_switchcostumeto' : 'looks_switchbackdropto', [
+          keyedInput(
+            costume ? 'COSTUME' : 'BACKDROP',
+            menuInputNode(costume ? 'looks_costume' : 'looks_backdrops', value)
+          ),
+        ]);
+      }
+      if (name === 'self.layer') {
+        if (operator === '=') {
+          const value = this.parseNameToken();
+          this.tryChar(';');
+          if (value !== 'front' && value !== 'back') this.fail('self.layer expects front or back');
+          return makeCall('looks_gotofrontback', [keyedField('FRONT_BACK', { type: 'array', value: [value] })]);
+        }
+        const value = this.parseInputValue();
+        this.tryChar(';');
+        return makeCall('looks_goforwardbackwardlayers', [
+          keyedInput('NUM', value),
+          keyedField('FORWARD_BACKWARD', { type: 'array', value: ['forward'] }),
+        ]);
+      }
+      if ((name.startsWith('self.effect.') || name.startsWith('sound.effect.')) && ['=', '+='].includes(operator)) {
+        const sound = name.startsWith('sound.');
+        const effect = parseEffectName(name.split('.')[2]);
+        const value = this.parseInputValue();
+        this.tryChar(';');
+        const opcode = sound
+          ? operator === '='
+            ? 'sound_seteffectto'
+            : 'sound_changeeffectby'
+          : operator === '='
+            ? 'looks_seteffectto'
+            : 'looks_changeeffectby';
+        return makeCall(opcode, [
+          keyedInput(sound || operator === '=' ? 'VALUE' : 'CHANGE', value),
+          keyedField('EFFECT', { type: 'array', value: [effect] }),
+        ]);
+      }
+      this.fail(`'${name} ${operator}' is not a writable property`);
+    }
+    if (this.peek() === '(') {
+      this.i++;
+      const args = this.parseKeyedArgs();
+      this.expectChar(')');
+      const values = args.map((arg) => arg.value);
+      if (args.some((arg) => arg.kind !== 'positional')) {
+        this.restore(save);
+        return null;
+      }
+      if (SIMPLE_METHODS[name] && values.length === 0) {
+        this.tryChar(';');
+        return makeCall(SIMPLE_METHODS[name], []);
+      }
+      if (name === 'self.face' && values.length === 1) {
+        this.tryChar(';');
+        return makeCall('motion_pointtowards', [
+          keyedInput('TOWARDS', menuInputNode('motion_pointtowards_menu', values[0])),
+        ]);
+      }
+      if (name === 'self.glideTo' && values.length === 3) {
+        this.tryChar(';');
+        return makeCall('motion_glidesecstoxy', [
+          keyedInput('SECS', values[2]),
+          keyedInput('X', values[0]),
+          keyedInput('Y', values[1]),
+        ]);
+      }
+      if ((name === 'sound.play' || name === 'sound.playUntilDone') && values.length === 1) {
+        this.tryChar(';');
+        return makeCall(name === 'sound.play' ? 'sound_play' : 'sound_playuntildone', [
+          keyedInput('SOUND_MENU', menuInputNode('sound_sounds_menu', values[0])),
+        ]);
+      }
+    }
+    this.restore(save);
+    return null;
   }
 
   parseAssetDecl(kind, name) {
@@ -999,7 +1186,7 @@ class Parser {
       this.tryIdentifier();
       return makeCall('event_whenthisspriteclicked', []);
     }
-    if (word === 'broadcast' || word === 'receive') {
+    if (word === 'broadcast' || word === 'receive' || word === 'message') {
       this.tryIdentifier();
       const name = this.parseNameToken();
       return makeCall('event_whenbroadcastreceived', [
@@ -1058,8 +1245,25 @@ class Parser {
         return this.parseDef();
       case 'if':
         return this.parseIf();
+      case 'unless': {
+        const cond = this.parseExpr();
+        const body = this.parseBraceBody();
+        return makeCall('control_if', [
+          keyedInput('CONDITION', { type: 'call', value: makeCall('operator_not', [keyedInput('OPERAND', cond)]) }),
+          branchArg('then', body, 'SUBSTACK'),
+        ]);
+      }
       case 'forever':
         return this.parseSingleBranch('control_forever');
+      case 'every': {
+        const duration = this.parseInputValue();
+        this.skipWS();
+        if (this.peekWord() === 'seconds') this.tryIdentifier();
+        const body = this.parseBraceBody();
+        return makeCall('control_forever', [
+          branchArg('substack', [makeCall('control_wait', [keyedInput('DURATION', duration)]), ...body]),
+        ]);
+      }
       case 'switch': {
         const value = this.parseInputValue();
         const body = this.parseBraceBody();
@@ -1089,16 +1293,47 @@ class Parser {
         return makeCall('control_repeat', [keyedInput('TIMES', times), branchArg('substack', body)]);
       }
       case 'for': {
+        this.skipWS();
+        const paired = this.peek() === '(';
+        let indexName = null;
+        if (paired) this.i++;
+        if (paired) indexName = this.expectIdentifier(`after 'for ('`);
+        if (paired) this.expectChar(',');
         const name = this.expectIdentifier(`after 'for'`);
+        if (paired) this.expectChar(')');
         this.skipWS();
         if (this.peekWord() === 'in') this.tryIdentifier();
         const count = this.parseInputValue();
-        const body = this.parseBraceBody();
-        return makeCall('control_for_each', [
+        this.skipWS();
+        if (this.peekWord() === 'using') {
+          if (paired) this.fail("a paired 'for' loop already has an index name");
+          this.tryIdentifier();
+          indexName = this.parseNameToken();
+          if (indexName === name) this.fail("the 'using' index must differ from the loop value");
+        }
+        this.listForDepth++;
+        let body;
+        try {
+          body = this.parseBraceBody();
+        } finally {
+          this.listForDepth--;
+        }
+        const call = makeCall('control_for_each', [
           keyedInput('VALUE', count),
           keyedField('VARIABLE', { type: 'ident', name }),
           branchArg('substack', body),
         ]);
+        if (count.type === 'ident' || count.type === 'list') {
+          call.listIteration = {
+            valueName: name,
+            listName: count.name,
+            indexName: indexName || `!local_for${this.listForDepth}_${name}`,
+            forced: indexName != null || count.type === 'list',
+          };
+        } else if (indexName) {
+          this.fail("'using' requires a list name after 'in'");
+        }
+        return call;
       }
       case 'until': {
         const cond = this.parseExpr();
@@ -1124,6 +1359,13 @@ class Parser {
         return values.length ? makeVariadicCall('patching_jscommand', values, 'ARG') : null;
       }
       case 'wait': {
+        this.skipWS();
+        if (this.peekWord() === 'until') {
+          this.tryIdentifier();
+          const cond = this.parseExpr();
+          this.tryChar(';');
+          return makeCall('control_wait_until', [keyedInput('CONDITION', cond)]);
+        }
         const v = this.parseInputValue();
         this.tryChar(';');
         return makeCall('control_wait', [keyedInput('DURATION', v)]);
@@ -1157,6 +1399,19 @@ class Parser {
         this.tryChar(';');
         return makeCall('event_broadcast', [keyedInput('BROADCAST_INPUT', v)]);
       }
+      case 'emit': {
+        const v = broadcastName(this.parseInputValue());
+        this.skipWS();
+        let wait = false;
+        if (this.peekWord() === 'and') {
+          this.tryIdentifier();
+          if (this.peekWord() !== 'wait') this.fail("expected 'wait' after 'emit ... and'");
+          this.tryIdentifier();
+          wait = true;
+        }
+        this.tryChar(';');
+        return makeCall(wait ? 'event_broadcastandwait' : 'event_broadcast', [keyedInput('BROADCAST_INPUT', v)]);
+      }
       case 'broadcast_wait': {
         const v = broadcastName(this.parseInputValue());
         this.tryChar(';');
@@ -1188,7 +1443,8 @@ class Parser {
         if (expr.type === 'call') return expr.value;
         return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(expr))], this.lineAt(this.i));
       }
-      case 'when': {
+      case 'when':
+      case 'on': {
         const hat = this.parseHatSpec();
         const { x, y } = this.tryAt();
         const body = this.parseBraceBody();
@@ -1206,6 +1462,26 @@ class Parser {
         const v = this.parseInputValue();
         this.tryChar(';');
         return { type: 'localDecl', name, value: v };
+      }
+      case 'delete': {
+        this.skipWS();
+        let name;
+        if (this.peekWord() === 'lists') {
+          this.tryIdentifier();
+          this.expectChar('[');
+          name = this.parseStringLiteral();
+          this.expectChar(']');
+        } else {
+          name = this.expectIdentifier();
+        }
+        this.expectChar('[');
+        const index = this.parseExpr();
+        this.expectChar(']');
+        this.tryChar(';');
+        return makeCall('data_deleteoflist', [
+          keyedInput('INDEX', index),
+          keyedField('LIST', { type: 'list', name, id: null }),
+        ]);
       }
       case 'sound': {
         this.skipWS();
@@ -2000,6 +2276,33 @@ class Parser {
         };
         continue;
       }
+      if (['includes', 'trim', 'toUpperCase', 'toLowerCase', 'replace'].includes(name) && this.peek() === '(') {
+        this.i++;
+        const args = this.parseKeyedArgs();
+        this.expectChar(')');
+        if (args.some((arg) => arg.kind !== 'positional')) this.fail(`.${name}(...) takes positional arguments`);
+        const values = args.map((arg) => arg.value);
+        let opcode;
+        let mapped;
+        if (name === 'includes' && values.length === 1) {
+          opcode = 'operator_contains';
+          mapped = [keyedInput('STRING1', expr), keyedInput('STRING2', values[0])];
+        } else if (name === 'trim' && values.length === 0) {
+          opcode = 'operator_trim';
+          mapped = [keyedInput('STRING', expr)];
+        } else if ((name === 'toUpperCase' || name === 'toLowerCase') && values.length === 0) {
+          opcode = 'operator_change_case';
+          mapped = [
+            keyedInput('STRING', expr),
+            keyedField('CASE', { type: 'array', value: [name === 'toUpperCase' ? 'uppercase' : 'lowercase'] }),
+          ];
+        } else if (name === 'replace' && values.length === 2) {
+          opcode = 'operator_replace';
+          mapped = [keyedInput('STRING', expr), keyedInput('SUBSTRING', values[0]), keyedInput('REPLACE', values[1])];
+        } else this.fail(`.${name}(...) has the wrong number of arguments`);
+        expr = { type: 'call', value: makeCall(opcode, mapped) };
+        continue;
+      }
       const m = name && STDLIB_METHODS[name];
       if (!m || this.peek() !== '(') {
         this.restore(save);
@@ -2051,6 +2354,7 @@ class Parser {
 
     if (ch === '(') return this.parseParenExpr();
     if (ch === '"') return { type: 'string', value: this.parseStringLiteral() };
+    if (ch === '`') return this.parseTemplateLiteral();
     if (ch === '@') return this.parseProcCallExpr();
     if (ch === '[' || ch === '{') return { type: 'json', value: this.readJSONValue() };
     if (ch === '-' || /[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(this.peek(1)))) return this.parseNumberLiteral();
@@ -2066,6 +2370,9 @@ class Parser {
     if (word === 'true') return { type: 'boolean', value: true };
     if (word === 'false') return { type: 'boolean', value: false };
     if (word === 'null') return { type: 'null' };
+    if (word === 'PI' || word === 'NEWLINE') {
+      return { type: 'call', value: makeCall(word === 'PI' ? 'operator_pi' : 'operator_newline', []) };
+    }
 
     if (word === 'shadow') {
       this.skipWS();
@@ -2160,6 +2467,23 @@ class Parser {
       this.skipWS();
       this.expectChar(']');
       return { type: 'var', name, id: null };
+    }
+
+    const readable = this.parseReadablePrimary(word);
+    if (readable) return readable;
+
+    if (this.peek() === '[') {
+      this.i++;
+      const index = this.parseExpr();
+      this.expectChar(']');
+      return {
+        type: 'call',
+        value: {
+          type: 'call',
+          callee: { type: 'identOrMethod', ident: word, method: 'at', line: this.lineAt(wordStart) },
+          args: [{ kind: 'positional', value: index }],
+        },
+      };
     }
 
     this.skipWS();
@@ -2261,9 +2585,18 @@ class Parser {
     if (this.peek() === '.' && this.peek(1) !== '.') {
       const dotSave = this.snapshot();
       this.i++;
-      if (this.tryIdentifier() === 'length') {
+      const property = this.tryIdentifier();
+      if (property === 'length' || property === 'last' || property === 'random') {
         this.skipWS();
         if (this.peek() !== '(') {
+          if (property !== 'length')
+            return {
+              type: 'call',
+              value: makeCall('data_itemoflist', [
+                keyedInput('INDEX', { type: 'string', value: property }),
+                keyedField('LIST', { type: 'list', name: word, id: null }),
+              ]),
+            };
           return {
             type: 'call',
             value: makeCall('data_lengthoflist', [keyedField('LIST', { type: 'list', name: word, id: null })]),
@@ -2318,6 +2651,39 @@ class Parser {
     return { type: 'ident', name: word };
   }
 
+  parseReadablePrimary(word) {
+    if (!['self', 'stage', 'sound', 'mouse', 'timer', 'key'].includes(word)) return null;
+    const save = this.snapshot();
+    let name = word;
+    while (this.peek() === '.' && this.peek(1) !== '.') {
+      this.i++;
+      name += `.${this.expectIdentifier()}`;
+    }
+    this.skipWS();
+    if (PROPERTY_REPORTERS[name] && this.peek() !== '(') {
+      const opcode = PROPERTY_REPORTERS[name];
+      if (name === 'self.costume' || name === 'stage.backdrop') {
+        return {
+          type: 'call',
+          value: makeCall(opcode, [keyedField('NUMBER_NAME', { type: 'array', value: ['name'] })]),
+        };
+      }
+      return { type: 'call', value: makeCall(opcode, []) };
+    }
+    if ((name === 'key.down' || name === 'self.touching') && this.peek() === '(') {
+      this.i++;
+      const args = this.parseKeyedArgs();
+      this.expectChar(')');
+      if (args.length !== 1 || args[0].kind !== 'positional') this.fail(`${name}(...) expects one value`);
+      const key = name === 'key.down' ? 'KEY_OPTION' : 'TOUCHINGOBJECTMENU';
+      const menu = name === 'key.down' ? 'sensing_keyoptions' : 'sensing_touchingobjectmenu';
+      const opcode = name === 'key.down' ? 'sensing_keypressed' : 'sensing_touchingobject';
+      return { type: 'call', value: makeCall(opcode, [keyedInput(key, menuInputNode(menu, args[0].value))]) };
+    }
+    this.restore(save);
+    return null;
+  }
+
   parseListPostfix(name) {
     const listF = keyedField('LIST', { type: 'list', name, id: null });
     this.skipWS();
@@ -2330,23 +2696,27 @@ class Parser {
     if (this.peek() === '.' && this.peek(1) !== '.') {
       this.i++;
       const method = this.expectIdentifier();
-      if (method === 'length') {
+      if (method === 'length' || method === 'last' || method === 'random') {
         this.skipWS();
-        if (this.peek() === '(') {
+        if (this.peek() === '(' && method === 'length') {
           this.i++;
           this.skipWS();
           this.expectChar(')');
         }
-        return { type: 'call', value: makeCall('data_lengthoflist', [listF]) };
+        if (method === 'length') return { type: 'call', value: makeCall('data_lengthoflist', [listF]) };
+        return {
+          type: 'call',
+          value: makeCall('data_itemoflist', [keyedInput('INDEX', { type: 'string', value: method }), listF]),
+        };
       }
       this.expectChar('(');
       const arg = this.parseExpr();
       this.skipWS();
       this.expectChar(')');
-      if (method === 'contains') {
+      if (method === 'contains' || method === 'includes') {
         return { type: 'call', value: makeCall('data_listcontainsitem', [keyedInput('ITEM', arg), listF]) };
       }
-      if (method === 'indexof') {
+      if (method === 'indexof' || method === 'indexOf') {
         return { type: 'call', value: makeCall('data_itemnumoflist', [keyedInput('ITEM', arg), listF]) };
       }
       if (method === 'item') {
@@ -2464,6 +2834,44 @@ class Parser {
       );
     this.i++;
     return result;
+  }
+
+  parseTemplateLiteral() {
+    this.expectChar('`');
+    let literal = '';
+    let result = null;
+    const append = (value) => {
+      result =
+        result === null
+          ? value
+          : {
+              type: 'call',
+              value: makeCall('operator_join', [keyedInput('STRING1', result), keyedInput('STRING2', value)]),
+            };
+    };
+    while (!this.eof()) {
+      const ch = this.next();
+      if (ch === '`') {
+        if (literal || result === null) append({ type: 'string', value: literal });
+        return result;
+      }
+      if (ch === '\\') {
+        if (this.eof()) this.fail('unterminated template string');
+        const escaped = this.next();
+        literal += { n: '\n', t: '\t', r: '\r' }[escaped] ?? escaped;
+        continue;
+      }
+      if (ch === '$' && this.peek() === '{') {
+        this.i++;
+        if (literal || result === null) append({ type: 'string', value: literal });
+        literal = '';
+        append(this.parseExpr());
+        this.expectChar('}');
+        continue;
+      }
+      literal += ch;
+    }
+    this.fail('unterminated template string');
   }
 
   parseKeyedArgs() {

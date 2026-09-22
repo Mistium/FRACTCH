@@ -1,0 +1,26 @@
+var orders = ["A-1042", "A-1043", "A-1044"];
+var ready = [];
+var processed = 0;
+
+on flag {
+  ready.clear();
+  processed = 0;
+
+  // Example: for order in orders { append(ready, order); }
+  for (position, order) in orders {
+    unless order == "" {
+      ready.push(order);
+      processed++;
+      say `Packed ${order} (${position}/${orders.length})` for 1;
+    }
+  }
+
+  say `Ready for dispatch: ${processed}`;
+}
+
+on key space {
+  // Example: for order in ready { say order; }
+  for order in ready {
+    say order;
+  }
+}
