@@ -157,8 +157,8 @@ forever { }              repeat n { }         for i in n { }        break;
 every 0.03 seconds { }   // forever with a leading wait block
 for value in items { }   // iterate over a declared list
 for value in items using index { } // also expose its 1-based index
-for ch in chars(message) { } // length + letter lookup, with ch reused as counter
-for ch in chars(message) using index { } // separate 1-based counter
+for ch of message { } // length + letter lookup, with ch reused as counter
+for ch of message using index { } // separate 1-based counter
 until c { }              while c { }          wait n;          wait_until c;
 switch v { case x { } case y fallthrough { } default { } }
 stop all;   stop other_scripts_in_sprite;

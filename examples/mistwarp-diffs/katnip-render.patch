@@ -6,7 +6,7 @@
    }
 -  for text_ch in length(msg) {
 -    text_ch = msg.letter(text_ch);
-+  for text_ch in chars(msg) {
++  for text_ch of msg {
      @glyph_ch_x_y_scale(text_ch, text_penX, y, scale);
      text_penX = text_penX + text_advance;
    }
@@ -16,7 +16,7 @@
    keyRow_kx = startX;
 -  for keyRow_ch in length(letters) {
 -    keyRow_ch = letters.letter(keyRow_ch);
-+  for keyRow_ch in chars(letters) {
++  for keyRow_ch of letters {
      @addKey_label_x_y_w_h(keyRow_ch, keyRow_kx, y, 42, 32);
      keyRow_kx = keyRow_kx + 46;
    }
@@ -48,7 +48,7 @@
    pen.setPenColorToColor(COLOR: "#f5f5f5");
 -  for drawBuffer_ch in length(buffer) {
 -    drawBuffer_ch = buffer.letter(drawBuffer_ch);
-+  for drawBuffer_ch in chars(buffer) {
++  for drawBuffer_ch of buffer {
      if drawBuffer_col >= 36 {
        drawBuffer_col = 0;
        drawBuffer_row = drawBuffer_row + 1;
@@ -60,7 +60,7 @@
    }
 -  for text_ch in length(msg) {
 -    text_ch = msg.letter(text_ch);
-+  for text_ch in chars(msg) {
++  for text_ch of msg {
      @glyph_ch_x_y_scale(text_ch, text_penX, y, scale);
      text_penX = text_penX + text_advance;
    }
@@ -70,7 +70,7 @@
    keyRow_kx = startX;
 -  for keyRow_ch in length(letters) {
 -    keyRow_ch = letters.letter(keyRow_ch);
-+  for keyRow_ch in chars(letters) {
++  for keyRow_ch of letters {
      @addKey_label_x_y_w_h(keyRow_ch, keyRow_kx, y, 42, 32);
      keyRow_kx = keyRow_kx + 46;
    }
@@ -102,7 +102,7 @@
    pen.setPenColorToColor(COLOR: "#000000");
 -  for drawBuffer_ch in length(buffer) {
 -    drawBuffer_ch = buffer.letter(drawBuffer_ch);
-+  for drawBuffer_ch in chars(buffer) {
++  for drawBuffer_ch of buffer {
      if drawBuffer_col >= 36 {
        drawBuffer_col = 0;
        drawBuffer_row = drawBuffer_row + 1;

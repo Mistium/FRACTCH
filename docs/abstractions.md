@@ -18,12 +18,12 @@ The [order fulfilment example](../examples/order-fulfilment/README.md) includes 
 ## Iterate through a string
 
 ```fractch
-for ch in chars(message) {
+for ch of message {
   say ch;
 }
 ```
 
-This expands to a `control_for_each` counter from 1 to `operator_length(message)`, followed by an assignment of `operator_letter_of(counter, message)` to `ch` at the start of each iteration. When the body needs the numeric position too, write `for ch in chars(message) using index { ... }`; that form uses a separate counter variable. `message` must be a variable or a procedure argument. The generator recognizes only matching length and letter inputs with no intervening blocks or comments. It also recognizes a loop that reuses its counter variable for the character, as seen in the [Katnip Render source patch](../examples/mistwarp-diffs/katnip-render.patch).
+This expands to a `control_for_each` counter from 1 to `operator_length(message)`, followed by an assignment of `operator_letter_of(counter, message)` to `ch` at the start of each iteration. When the body needs the numeric position too, write `for ch of message using index { ... }`; that form uses a separate counter variable. `message` must be a variable or a procedure argument. The earlier `for ch in chars(message)` spelling still parses. The generator recognizes only matching length and letter inputs with no intervening blocks or comments. It also recognizes a loop that reuses its counter variable for the character, as seen in the [Katnip Render source patch](../examples/mistwarp-diffs/katnip-render.patch).
 
 ## Timed forever loop
 

@@ -1109,9 +1109,15 @@ class Parser {
         const name = this.expectIdentifier(`after 'for'`);
         if (paired) this.expectChar(')');
         this.skipWS();
-        if (this.peekWord() === 'in') this.tryIdentifier();
+        const stringIteration = this.peekWord() === 'of';
+        if (stringIteration || this.peekWord() === 'in') this.tryIdentifier();
         let characters = null;
-        if (this.peekWord() === 'chars') {
+        if (stringIteration) {
+          if (paired) this.fail("'for ... of ...' cannot use a paired loop variable");
+          characters = this.parseInputValue();
+          if (characters.type !== 'ident' && characters.type !== 'var')
+            this.fail("'for ... of ...' requires a variable or procedure argument");
+        } else if (this.peekWord() === 'chars') {
           const start = this.snapshot();
           this.tryIdentifier();
           this.skipWS();

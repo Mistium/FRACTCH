@@ -7,13 +7,13 @@ These are excerpts from the full [MistWeather](mistweather.patch), [Mario Bros C
 ```diff
 -  for text_ch in length(msg) {
 -    text_ch = msg.letter(text_ch);
-+  for text_ch in chars(msg) {
++  for text_ch of msg {
      @glyph_ch_x_y_scale(text_ch, text_penX, y, scale);
      text_penX = text_penX + text_advance;
    }
 ```
 
-The same shape occurs six times across the Editor and Canvas2 sprites. `chars` expands to the original `control_for_each`, string length, and letter lookup blocks, including the assignment that overwrites the counter in this project. The loop body and command names stay as they were.
+The same shape occurs six times across the Editor and Canvas2 sprites. `for ... of ...` expands to the original `control_for_each`, string length, and letter lookup blocks, including the assignment that overwrites the counter in this project. The loop body and command names stay as they were.
 
 ## A timed costume loop in Mario Bros Commercial Remake
 
