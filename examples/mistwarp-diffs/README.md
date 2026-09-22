@@ -7,10 +7,11 @@ These patches compare real `.fractch` source generated from the same public Mist
 | [MistWeather](https://mistwarp.org/p1790113566017431000QhrNe7) | `635255eae2890221be9d8dc8976d863415cbbe597197ef9641334465493fcdb0` | 145 | 11/11 | [mistweather.patch](mistweather.patch) |
 | [Mario Bros Commercial Remake](https://mistwarp.org/p1790007347770079000Hj9vVZ) | `348b03deec59d8a4d074e9843d498a9fdd82ba283e3450a8918ad8638609189f` | 341 | 57/57 | [mario-bros-commercial.patch](mario-bros-commercial.patch) |
 | [Multiplayer Template](https://mistwarp.org/p1788662745700208000eL7hHP) | `c33e1636f11154d820d2b760678fbd2742de8469dd5285c8963c2eb5dd7b7a5b` | 426 | 30/30 | [multiplayer-template.patch](multiplayer-template.patch) |
+| [Katnip Render](https://mistwarp.org/p1788117427503815000NMzuL8) | `29443b640d5e02ac0a3ef76f71650d010a3e2fcd686ef367b7c376621d9dd1b0` | 1412 | 44/44 | [katnip-render.patch](katnip-render.patch) |
 
 [The focused code review](READABILITY-REVIEW.md) shows before-and-after excerpts and identifies further compound patterns in these projects. The separate [order fulfilment example](../order-fulfilment/README.md) is a runnable SB3 demonstrating `for value in list` and `for value in list using index`.
 
-`Structurally identical scripts` counts top-level Scratch block trees rebuilt with no mismatch: **98/98** across these three snapshots. The project JSON hashes identify the exact snapshots, since public projects can change.
+`Structurally identical scripts` counts top-level Scratch block trees rebuilt with no mismatch: **142/142** across these four snapshots. The project JSON hashes identify the exact snapshots, since public projects can change.
 
 ## Reproduction
 

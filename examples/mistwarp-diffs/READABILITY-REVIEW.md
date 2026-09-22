@@ -1,6 +1,19 @@
 # Multi-block abstractions visible in real projects
 
-These are excerpts from the full [MistWeather](mistweather.patch), [Mario Bros Commercial Remake](mario-bros-commercial.patch), and [Multiplayer Template](multiplayer-template.patch) patches. `-` is source from baseline commit `8d01efa`; `+` is source from this branch, generated from the same SB3 file.
+These are excerpts from the full [MistWeather](mistweather.patch), [Mario Bros Commercial Remake](mario-bros-commercial.patch), [Multiplayer Template](multiplayer-template.patch), and [Katnip Render](katnip-render.patch) patches. `-` is source from baseline commit `8d01efa`; `+` is source from this branch, generated from the same SB3 file.
+
+## Drawing text in Katnip Render
+
+```diff
+-  for text_ch in length(msg) {
+-    text_ch = msg.letter(text_ch);
++  for text_ch in chars(msg) {
+     @glyph_ch_x_y_scale(text_ch, text_penX, y, scale);
+     text_penX = text_penX + text_advance;
+   }
+```
+
+The same shape occurs six times across the Editor and Canvas2 sprites. `chars` expands to the original `control_for_each`, string length, and letter lookup blocks, including the assignment that overwrites the counter in this project. The loop body and command names stay as they were.
 
 ## A timed costume loop in Mario Bros Commercial Remake
 

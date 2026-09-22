@@ -1,0 +1,108 @@
+--- a/Canvas2/main.fractch
++++ b/Canvas2/main.fractch
+@@ -195,8 +195,7 @@
+   } else {
+     text_penX = x;
+   }
+-  for text_ch in length(msg) {
+-    text_ch = msg.letter(text_ch);
++  for text_ch in chars(msg) {
+     @glyph_ch_x_y_scale(text_ch, text_penX, y, scale);
+     text_penX = text_penX + text_advance;
+   }
+@@ -212,8 +211,7 @@
+ 
+ def @keyRow_letters_startX_y(letters, startX, y) "keyRow letters %s startX %n y %n" warp at 0,5200 {
+   keyRow_kx = startX;
+-  for keyRow_ch in length(letters) {
+-    keyRow_ch = letters.letter(keyRow_ch);
++  for keyRow_ch in chars(letters) {
+     @addKey_label_x_y_w_h(keyRow_ch, keyRow_kx, y, 42, 32);
+     keyRow_kx = keyRow_kx + 46;
+   }
+@@ -250,7 +248,7 @@
+   chop_out = "";
+   chop_i = 1;
+   while chop_i < length(s) {
+-    chop_out = chop_out ++ s.letter(chop_i);
++    chop_out = `${chop_out}${s.letter(chop_i)}`;
+     chop_i = chop_i + 1;
+   }
+   chop_ret = chop_out;
+@@ -265,9 +263,9 @@
+   } else if press_lab == "CLR" {
+     buffer = "";
+   } else if press_lab == "SPACE" {
+-    buffer = buffer ++ " ";
+-  } else {
+-    buffer = buffer ++ press_lab;
++    buffer = `${buffer} `;
++  } else {
++    buffer = `${buffer}${press_lab}`;
+   }
+ }
+ 
+@@ -286,8 +284,7 @@
+   drawBuffer_col = 0;
+   drawBuffer_row = 0;
+   pen.setPenColorToColor(COLOR: "#f5f5f5");
+-  for drawBuffer_ch in length(buffer) {
+-    drawBuffer_ch = buffer.letter(drawBuffer_ch);
++  for drawBuffer_ch in chars(buffer) {
+     if drawBuffer_col >= 36 {
+       drawBuffer_col = 0;
+       drawBuffer_row = drawBuffer_row + 1;
+--- a/Editor/main.fractch
++++ b/Editor/main.fractch
+@@ -177,8 +177,7 @@
+   } else {
+     text_penX = x;
+   }
+-  for text_ch in length(msg) {
+-    text_ch = msg.letter(text_ch);
++  for text_ch in chars(msg) {
+     @glyph_ch_x_y_scale(text_ch, text_penX, y, scale);
+     text_penX = text_penX + text_advance;
+   }
+@@ -194,8 +193,7 @@
+ 
+ def @keyRow_letters_startX_y(letters, startX, y) "keyRow letters %s startX %n y %n" warp at 0,5200 {
+   keyRow_kx = startX;
+-  for keyRow_ch in length(letters) {
+-    keyRow_ch = letters.letter(keyRow_ch);
++  for keyRow_ch in chars(letters) {
+     @addKey_label_x_y_w_h(keyRow_ch, keyRow_kx, y, 42, 32);
+     keyRow_kx = keyRow_kx + 46;
+   }
+@@ -232,7 +230,7 @@
+   chop_out = "";
+   chop_i = 1;
+   while chop_i < length(s) {
+-    chop_out = chop_out ++ s.letter(chop_i);
++    chop_out = `${chop_out}${s.letter(chop_i)}`;
+     chop_i = chop_i + 1;
+   }
+   chop_ret = chop_out;
+@@ -247,9 +245,9 @@
+   } else if press_lab == "CLR" {
+     buffer = "";
+   } else if press_lab == "SPACE" {
+-    buffer = buffer ++ " ";
+-  } else {
+-    buffer = buffer ++ press_lab;
++    buffer = `${buffer} `;
++  } else {
++    buffer = `${buffer}${press_lab}`;
+   }
+ }
+ 
+@@ -268,8 +266,7 @@
+   drawBuffer_col = 0;
+   drawBuffer_row = 0;
+   pen.setPenColorToColor(COLOR: "#000000");
+-  for drawBuffer_ch in length(buffer) {
+-    drawBuffer_ch = buffer.letter(drawBuffer_ch);
++  for drawBuffer_ch in chars(buffer) {
+     if drawBuffer_col >= 36 {
+       drawBuffer_col = 0;
+       drawBuffer_row = drawBuffer_row + 1;

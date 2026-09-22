@@ -271,6 +271,8 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   if (opcode === 'control_for_each') {
     const listLoop = tryListIteration(block, subgraph);
     if (listLoop) return listLoop;
+    const stringLoop = tryStringIteration(block, subgraph);
+    if (stringLoop) return stringLoop;
     const forLoop = tryForLoop(block, subgraph);
     if (forLoop) return forLoop;
   }
@@ -730,6 +732,73 @@ function tryListIteration(block, subgraph) {
     ? `for ${valueName} in ${listArgText(listName)}`
     : `for ${valueName} in ${listArgText(listName)} using ${indexText}`;
   return `${head} {\n${indent(rest)}\n}`;
+}
+
+function sameStringReceiver(left, right, subgraph) {
+  const a = left?.[1];
+  const b = right?.[1];
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a[0] === 12 && b[0] === 12 && a[1] === b[1] && a[2] === b[2];
+  }
+  const first = typeof a === 'string' ? subgraph[a] : null;
+  const second = typeof b === 'string' ? subgraph[b] : null;
+  if (!first || !second || first.opcode !== 'argument_reporter_string_number' || second.opcode !== first.opcode)
+    return false;
+  if (first.shadow !== second.shadow || first.next || second.next) return false;
+  if (CTX.blockComments?.get(a)?.length || CTX.blockComments?.get(b)?.length) return false;
+  if (
+    first.mutation ||
+    second.mutation ||
+    Object.keys(first.inputs || {}).length ||
+    Object.keys(second.inputs || {}).length
+  )
+    return false;
+  if (Object.keys(first.fields || {}).join() !== 'VALUE' || Object.keys(second.fields || {}).join() !== 'VALUE')
+    return false;
+  return first.fields.VALUE?.[0] === second.fields.VALUE?.[0];
+}
+
+function tryStringIteration(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).join() !== 'VARIABLE') return null;
+  const keys = Object.keys(block.inputs || {});
+  if (keys.length !== 2 || !keys.includes('VALUE') || !keys.includes('SUBSTACK')) return null;
+  const [indexName, indexId] = block.fields.VARIABLE || [];
+  if (typeof indexName !== 'string' || !bareNameOk(indexName)) return null;
+  if (indexId != null && CTX.varMap?.get(indexName) !== indexId) return null;
+  const lengthId = block.inputs.VALUE?.[1];
+  const length = typeof lengthId === 'string' ? subgraph[lengthId] : null;
+  if (!length || length.opcode !== 'operator_length' || length.mutation || CTX.blockComments?.get(lengthId)?.length)
+    return null;
+  if (Object.keys(length.fields || {}).length || Object.keys(length.inputs || {}).join() !== 'STRING') return null;
+  const firstId = block.inputs.SUBSTACK?.[1];
+  const first = typeof firstId === 'string' ? subgraph[firstId] : null;
+  if (!first || first.opcode !== 'data_setvariableto' || first.mutation || CTX.blockComments?.get(firstId)?.length)
+    return null;
+  if (Object.keys(first.fields || {}).join() !== 'VARIABLE' || Object.keys(first.inputs || {}).join() !== 'VALUE')
+    return null;
+  const [valueName, valueId] = first.fields.VARIABLE || [];
+  if (typeof valueName !== 'string' || !bareNameOk(valueName)) return null;
+  if (valueId != null && CTX.varMap?.get(valueName) !== valueId) return null;
+  const letterId = first.inputs.VALUE?.[1];
+  const letter = typeof letterId === 'string' ? subgraph[letterId] : null;
+  if (!letter || letter.opcode !== 'operator_letter_of' || letter.mutation || CTX.blockComments?.get(letterId)?.length)
+    return null;
+  if (
+    Object.keys(letter.fields || {}).length ||
+    Object.keys(letter.inputs || {}).length !== 2 ||
+    !('LETTER' in letter.inputs) ||
+    !('STRING' in letter.inputs)
+  )
+    return null;
+  const indexInput = letter.inputs.LETTER?.[1];
+  if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
+  if (indexInput[2] != null && indexInput[2] !== indexId) return null;
+  if (!sameStringReceiver(length.inputs.STRING, letter.inputs.STRING, subgraph)) return null;
+  const receiver = getInputExpr(length.inputs.STRING, subgraph);
+  if (!bareNameOk(receiver) && !/^vars\[".*"\]$/.test(receiver)) return null;
+  const rest = first.next ? renderBody(subgraph, first.next) : '';
+  const indexText = indexName === valueName ? '' : ` using ${indexName}`;
+  return `for ${valueName} in chars(${receiver})${indexText} {\n${indent(rest)}\n}`;
 }
 
 function referencesVariable(subgraph, startId, name) {
