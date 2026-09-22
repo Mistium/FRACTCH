@@ -1,0 +1,58 @@
+--- a/Connection_Authentication/main.fractch
++++ b/Connection_Authentication/main.fractch
+@@ -29,7 +29,7 @@
+     procedures.call(arg0: "Failed to connect", mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
+     g1nxIrisText.setText(TEXT: g1nxIrisText.colorMarkup(TEXT: "An error occurred", COLOR: "#ff0000"));
+     if cloudlink.returnStatusCode() != "" {
+-      g1nxIrisText.addLine(TEXT: "Error type: " ++ cloudlink.returnStatusCode());
++      g1nxIrisText.addLine(TEXT: `Error type: ${cloudlink.returnStatusCode()}`);
+     } else {
+       g1nxIrisText.addLine(TEXT: "Error type: Unknown");
+     }
+@@ -52,7 +52,7 @@
+   } else {
+     procedures.call(arg0: "Username not synced.", mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
+     g1nxIrisText.setText(TEXT: g1nxIrisText.colorMarkup(TEXT: "An error occurred", COLOR: "#ff0000"));
+-    g1nxIrisText.addLine(TEXT: "Error type: " ++ cloudlink.returnStatusCode());
++    g1nxIrisText.addLine(TEXT: `Error type: ${cloudlink.returnStatusCode()}`);
+     wait 3;
+     g1nxIrisText.addLine(TEXT: "Restart the project to try to re-connect.");
+     stop all;
+@@ -60,7 +60,7 @@
+   wait 0.1;
+   g1nxIrisText.setText(TEXT: "Which room do you want to join?");
+   ask "";
+-  cloudlink.linkToRooms(ROOMS: "mptest-" ++ answer());
++  cloudlink.linkToRooms(ROOMS: `mptest-${answer()}`);
+   until cloudlink.getRoomState() || cloudlink.returnIsNewData(field TYPE: "Status code") {
+     g1nxIrisText.typeText(TEXT: "Joining room...");
+   }
+@@ -70,7 +70,7 @@
+   } else {
+     procedures.call(arg0: "Failed to link to room.", mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
+     g1nxIrisText.setText(TEXT: g1nxIrisText.colorMarkup(TEXT: "An error occurred", COLOR: "#ff0000"));
+-    g1nxIrisText.addLine(TEXT: "Error type: " ++ cloudlink.returnStatusCode());
++    g1nxIrisText.addLine(TEXT: `Error type: ${cloudlink.returnStatusCode()}`);
+     wait 3;
+     g1nxIrisText.addLine(TEXT: "Restart the project to try to re-connect.");
+     stop all;
+--- a/Player/main.fractch
++++ b/Player/main.fractch
+@@ -92,7 +92,7 @@
+   if !lmsclonesplus.isClone() {
+     vars["Clone ID"] = skyhigh173JSON.json_get(item: "id", json: vars["received data"]);
+     vars["Clone Username"] = skyhigh173JSON.json_get(item: "username", json: vars["received data"]);
+-    procedures.call(arg0: vars["Clone Username"] ++ " joined the game", mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
++    procedures.call(arg0: `${vars["Clone Username"]} joined the game`, mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
+     cloneMyself;
+   }
+ }
+@@ -104,7 +104,7 @@
+     }
+     if !cloudlink.checkForID(ID: vars["Clone Username"]) {
+       delete(lists["Player List"], indexOf(lists["Player List"], vars["Clone Username"]));
+-      procedures.call(arg0: vars["Clone Username"] ++ " left the game", mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
++      procedures.call(arg0: `${vars["Clone Username"]} left the game`, mutation: {"tagName":"mutation","children":[],"proccode":"​​log​​ %s","argumentids":"[\"arg0\"]","warp":"false"});
+       deleteClone;
+     }
+   }

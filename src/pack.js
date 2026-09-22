@@ -941,10 +941,20 @@ function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
     ...Object.values(target.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)),
     ...(stage ? Object.values(stage.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)) : []),
   ]);
+  const iterationVars = new Set();
+  for (const spec of collectListIterations(calls)) {
+    if (!spec.forced && !listNames.has(spec.listName)) continue;
+    lists.add(spec.listName);
+    listNames.add(spec.listName);
+    vars.add(spec.valueName);
+    vars.add(spec.indexName);
+    iterationVars.add(spec.valueName);
+    iterationVars.add(spec.indexName);
+  }
   const globalVarNames = globals ? buildNameIdMap(globals.variables) : null;
   const globalListNames = globals ? buildNameIdMap(globals.lists) : null;
   for (const name of vars) {
-    if (listNames.has(name)) continue;
+    if (listNames.has(name) && !iterationVars.has(name)) continue;
     if (globalVarNames && globalVarNames.has(name)) continue;
     ensureDictEntry(target.variables, name, [name, 0]);
   }
@@ -955,6 +965,15 @@ function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
 
   const broadcastOwner = stage || target;
   for (const name of broadcasts) ensureDictEntry(broadcastOwner.broadcasts, name, name);
+}
+
+function collectListIterations(nodes, found = []) {
+  for (const node of nodes || []) {
+    if (node?.listIteration) found.push(node.listIteration);
+    if (node?.type === 'procDef') collectListIterations(node.body, found);
+    for (const arg of node?.args || []) if (arg.kind === 'branch') collectListIterations(arg.body, found);
+  }
+  return found;
 }
 
 function collectNames(nodes, out) {
@@ -1085,7 +1104,7 @@ function computeLocalTags(stacks) {
   });
 }
 
-function collectLocalDeclNames(calls, out = new Set()) {
+export function collectLocalDeclNames(calls, out = new Set()) {
   for (const node of calls || []) {
     if (!node) continue;
     if (node.type === 'localDecl') {

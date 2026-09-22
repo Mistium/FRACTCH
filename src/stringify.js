@@ -249,9 +249,13 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 
   if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
     const varName = String(block.fields?.VARIABLE?.[0] ?? '');
-    const value = inputValueText(block.inputs?.VALUE, subgraph, 'VALUE');
-    const op = opcode === 'data_changevariableby' ? '+=' : '=';
     const local = localBareName(varName);
+    const appendValue =
+      opcode === 'data_setvariableto' && !(local && !CTX.declaredLocals?.has(local))
+        ? tryConcatAssignment(block, subgraph)
+        : null;
+    const value = appendValue ?? inputValueText(block.inputs?.VALUE, subgraph, 'VALUE');
+    const op = appendValue == null ? (opcode === 'data_changevariableby' ? '+=' : '=') : '++=';
     if (local) {
       if (op === '=' && !CTX.declaredLocals?.has(local)) {
         CTX.declaredLocals?.add(local);
@@ -264,9 +268,15 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
   }
 
   if (opcode === 'control_forever') {
+    const every = tryEvery(block, subgraph);
+    if (every) return every;
     return `forever ${branch(block, 'SUBSTACK', subgraph)}`;
   }
   if (opcode === 'control_for_each') {
+    const listLoop = tryListIteration(block, subgraph);
+    if (listLoop) return listLoop;
+    const stringLoop = tryStringIteration(block, subgraph);
+    if (stringLoop) return stringLoop;
     const forLoop = tryForLoop(block, subgraph);
     if (forLoop) return forLoop;
   }
@@ -657,6 +667,38 @@ function menuCmdText(block, subgraph, spec) {
   return null;
 }
 
+function tryConcatAssignment(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).join() !== 'VARIABLE') return null;
+  if (Object.keys(block.inputs || {}).join() !== 'VALUE') return null;
+  const [name, id] = block.fields.VARIABLE || [];
+  if (typeof name !== 'string') return null;
+  if (id != null && CTX.varMap?.get(name) !== id) return null;
+  if (CTX.scopeParamNames?.has(name) || [...(CTX.scopeParamNames?.values() || [])].includes(name)) return null;
+  const joinId = block.inputs.VALUE?.[1];
+  const join = typeof joinId === 'string' ? subgraph[joinId] : null;
+  if (!join || join.opcode !== 'operator_join' || join.mutation || join.shadow || join.next) return null;
+  if (CTX.blockComments?.get(joinId)?.length || Object.keys(join.fields || {}).length) return null;
+  const keys = Object.keys(join.inputs || {});
+  if (keys.length !== 2 || !keys.includes('STRING1') || !keys.includes('STRING2')) return null;
+  const first = join.inputs.STRING1?.[1];
+  if (!Array.isArray(first) || first[0] !== 12 || first[1] !== name || first[2] !== id) return null;
+  return inputValueText(join.inputs.STRING2, subgraph, 'STRING2');
+}
+
+function tryEvery(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).length || Object.keys(block.inputs || {}).join() !== 'SUBSTACK')
+    return null;
+  const id = block.inputs.SUBSTACK?.[1];
+  const wait = typeof id === 'string' ? subgraph[id] : null;
+  if (!wait || wait.opcode !== 'control_wait' || wait.mutation || CTX.blockComments?.get(id)?.length) return null;
+  if (Object.keys(wait.fields || {}).length || Object.keys(wait.inputs || {}).join() !== 'DURATION') return null;
+  const waitValue = wait.inputs.DURATION?.[1];
+  if (Array.isArray(waitValue) && (waitValue[0] === 4 || waitValue[0] === 5) && Number(waitValue[1]) === 0) return null;
+  const duration = inputValueText(wait.inputs.DURATION, subgraph, 'DURATION');
+  const body = wait.next ? renderBody(subgraph, wait.next) : '';
+  return `every ${duration} seconds {\n${indent(body)}\n}`;
+}
+
 function tryForLoop(block, subgraph) {
   if (block.mutation) return null;
   const fieldKeys = Object.keys(block.fields || {});
@@ -671,6 +713,136 @@ function tryForLoop(block, subgraph) {
   if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) return null;
   const count = getInputExpr(block.inputs.VALUE, subgraph);
   return `for ${name} in ${count} ${branch(block, 'SUBSTACK', subgraph)}`;
+}
+
+function tryListIteration(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).join() !== 'VARIABLE') return null;
+  const keys = Object.keys(block.inputs || {});
+  if (keys.length !== 2 || !keys.includes('VALUE') || !keys.includes('SUBSTACK')) return null;
+  const [indexName, indexId] = block.fields.VARIABLE || [];
+  if (typeof indexName !== 'string' || !bareNameOk(indexName.replace(/^!local_[A-Za-z0-9]+_/, ''))) return null;
+  if (indexId != null && CTX.varMap?.get(indexName) !== indexId) return null;
+  const lengthId = block.inputs.VALUE?.[1];
+  const length = typeof lengthId === 'string' ? subgraph[lengthId] : null;
+  if (CTX.blockComments?.get(lengthId)?.length) return null;
+  if (!length || length.opcode !== 'data_lengthoflist' || length.mutation || Object.keys(length.inputs || {}).length)
+    return null;
+  const listName = listFieldName(length);
+  if (listName == null) return null;
+  const firstId = block.inputs.SUBSTACK?.[1];
+  const first = typeof firstId === 'string' ? subgraph[firstId] : null;
+  if (!first || first.opcode !== 'data_setvariableto' || first.mutation || CTX.blockComments?.get(firstId)?.length)
+    return null;
+  if (Object.keys(first.fields || {}).join() !== 'VARIABLE' || Object.keys(first.inputs || {}).join() !== 'VALUE')
+    return null;
+  const [valueName, valueId] = first.fields.VARIABLE || [];
+  if (typeof valueName !== 'string' || !bareNameOk(valueName) || valueName === indexName) return null;
+  if (valueId != null && CTX.varMap?.get(valueName) !== valueId) return null;
+  const itemId = first.inputs.VALUE?.[1];
+  const item = typeof itemId === 'string' ? subgraph[itemId] : null;
+  if (CTX.blockComments?.get(itemId)?.length) return null;
+  if (!item || item.opcode !== 'data_itemoflist' || item.mutation || listFieldName(item) !== listName) return null;
+  if (Object.keys(item.inputs || {}).join() !== 'INDEX') return null;
+  const indexInput = item.inputs.INDEX?.[1];
+  if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
+  if (indexInput[2] != null && indexInput[2] !== indexId) return null;
+  const hidden = indexName === `!local_for0_${valueName}`;
+  if (indexName.startsWith('!local_') && first.next && referencesVariable(subgraph, first.next, indexName)) return null;
+  const rest = first.next ? renderBody(subgraph, first.next) : '';
+  const indexText = bareNameOk(indexName) ? indexName : JSON.stringify(indexName);
+  const head = hidden
+    ? `for ${valueName} in ${listArgText(listName)}`
+    : `for ${valueName} in ${listArgText(listName)} using ${indexText}`;
+  return `${head} {\n${indent(rest)}\n}`;
+}
+
+function sameStringReceiver(left, right, subgraph) {
+  const a = left?.[1];
+  const b = right?.[1];
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a[0] === 12 && b[0] === 12 && a[1] === b[1] && a[2] === b[2];
+  }
+  const first = typeof a === 'string' ? subgraph[a] : null;
+  const second = typeof b === 'string' ? subgraph[b] : null;
+  if (!first || !second || first.opcode !== 'argument_reporter_string_number' || second.opcode !== first.opcode)
+    return false;
+  if (first.shadow !== second.shadow || first.next || second.next) return false;
+  if (CTX.blockComments?.get(a)?.length || CTX.blockComments?.get(b)?.length) return false;
+  if (
+    first.mutation ||
+    second.mutation ||
+    Object.keys(first.inputs || {}).length ||
+    Object.keys(second.inputs || {}).length
+  )
+    return false;
+  if (Object.keys(first.fields || {}).join() !== 'VALUE' || Object.keys(second.fields || {}).join() !== 'VALUE')
+    return false;
+  return first.fields.VALUE?.[0] === second.fields.VALUE?.[0];
+}
+
+function tryStringIteration(block, subgraph) {
+  if (block.mutation || Object.keys(block.fields || {}).join() !== 'VARIABLE') return null;
+  const keys = Object.keys(block.inputs || {});
+  if (keys.length !== 2 || !keys.includes('VALUE') || !keys.includes('SUBSTACK')) return null;
+  const [indexName, indexId] = block.fields.VARIABLE || [];
+  if (typeof indexName !== 'string' || !bareNameOk(indexName)) return null;
+  if (indexId != null && CTX.varMap?.get(indexName) !== indexId) return null;
+  const lengthId = block.inputs.VALUE?.[1];
+  const length = typeof lengthId === 'string' ? subgraph[lengthId] : null;
+  if (!length || length.opcode !== 'operator_length' || length.mutation || CTX.blockComments?.get(lengthId)?.length)
+    return null;
+  if (Object.keys(length.fields || {}).length || Object.keys(length.inputs || {}).join() !== 'STRING') return null;
+  const firstId = block.inputs.SUBSTACK?.[1];
+  const first = typeof firstId === 'string' ? subgraph[firstId] : null;
+  if (!first || first.opcode !== 'data_setvariableto' || first.mutation || CTX.blockComments?.get(firstId)?.length)
+    return null;
+  if (Object.keys(first.fields || {}).join() !== 'VARIABLE' || Object.keys(first.inputs || {}).join() !== 'VALUE')
+    return null;
+  const [valueName, valueId] = first.fields.VARIABLE || [];
+  if (typeof valueName !== 'string' || !bareNameOk(valueName)) return null;
+  if (valueId != null && CTX.varMap?.get(valueName) !== valueId) return null;
+  const letterId = first.inputs.VALUE?.[1];
+  const letter = typeof letterId === 'string' ? subgraph[letterId] : null;
+  if (!letter || letter.opcode !== 'operator_letter_of' || letter.mutation || CTX.blockComments?.get(letterId)?.length)
+    return null;
+  if (
+    Object.keys(letter.fields || {}).length ||
+    Object.keys(letter.inputs || {}).length !== 2 ||
+    !('LETTER' in letter.inputs) ||
+    !('STRING' in letter.inputs)
+  )
+    return null;
+  const indexInput = letter.inputs.LETTER?.[1];
+  if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
+  if (indexInput[2] != null && indexInput[2] !== indexId) return null;
+  if (!sameStringReceiver(length.inputs.STRING, letter.inputs.STRING, subgraph)) return null;
+  const receiver = getInputExpr(length.inputs.STRING, subgraph);
+  if (!bareNameOk(receiver) && !/^vars\[".*"\]$/.test(receiver)) return null;
+  const rest = first.next ? renderBody(subgraph, first.next) : '';
+  const indexText = indexName === valueName ? '' : ` using ${indexName}`;
+  return `for ${valueName} of ${receiver}${indexText} {\n${indent(rest)}\n}`;
+}
+
+function referencesVariable(subgraph, startId, name) {
+  const seen = new Set();
+  const pending = [startId];
+  while (pending.length) {
+    const id = pending.pop();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const block = subgraph[id];
+    if (!block) continue;
+    if (block.fields?.VARIABLE?.[0] === name) return true;
+    if (block.next) pending.push(block.next);
+    for (const tuple of Object.values(block.inputs || {})) {
+      if (!Array.isArray(tuple)) continue;
+      for (const part of tuple.slice(1)) {
+        if (typeof part === 'string') pending.push(part);
+        else if (Array.isArray(part) && part[0] === 12 && part[1] === name) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function tryStatementAlias(block, subgraph) {
@@ -1077,6 +1249,53 @@ function formatLiteral(arr) {
 
 const NEGATED_CMP = { operator_equals: '!=', operator_gt: '<=', operator_lt: '>=' };
 
+function tryTemplateJoin(block, subgraph) {
+  const parts = [];
+  const visit = (node) => {
+    if (
+      node?.opcode !== 'operator_join' ||
+      Object.keys(node.inputs || {})
+        .sort()
+        .join() !== 'STRING1,STRING2' ||
+      Object.keys(node.fields || {}).some((key) => key !== 'PLUS' && key !== 'MINUS') ||
+      node.mutation
+    )
+      return false;
+    const left = node.inputs.STRING1?.[1];
+    if (typeof left === 'string' && subgraph[left]?.opcode === 'operator_join') {
+      if (CTX.blockComments?.get(left)?.length || !visit(subgraph[left])) return false;
+    } else if (Array.isArray(left) && left[0] === 10) {
+      parts.push({ literal: String(left[1] ?? '') });
+    } else {
+      parts.push({ expr: getInputExpr(node.inputs.STRING1, subgraph) });
+    }
+    const right = node.inputs.STRING2?.[1];
+    if (Array.isArray(right) && right[0] === 10) parts.push({ literal: String(right[1] ?? '') });
+    else parts.push({ expr: getInputExpr(node.inputs.STRING2, subgraph) });
+    return true;
+  };
+  if (!visit(block)) return null;
+  if (!parts.some((part) => part.expr !== undefined)) return null;
+  if (parts[0].literal === '' || parts.some((part, index) => index > 0 && part.literal === '')) return null;
+  if (parts.some((part, index) => index > 0 && part.literal !== undefined && parts[index - 1].literal !== undefined))
+    return null;
+  const escape = (value) =>
+    value
+      .replaceAll('\\', '\\\\')
+      .replaceAll('`', '\\`')
+      .replaceAll('${', '\\${')
+      .replaceAll('\n', '\\n')
+      .replaceAll('\r', '\\r')
+      .replaceAll('\t', '\\t');
+  return {
+    text:
+      '`' +
+      parts.map((part) => (part.literal === undefined ? '${' + part.expr + '}' : escape(part.literal))).join('') +
+      '`',
+    prec: ATOM_PREC,
+  };
+}
+
 function tryOperatorInfo(block, subgraph) {
   const op = block?.opcode;
   if (typeof op !== 'string' || !op.startsWith('operator_')) return null;
@@ -1132,7 +1351,7 @@ function tryOperatorInfo(block, subgraph) {
         prec: ATOM_PREC,
       };
     case 'operator_join':
-      return bin('++', 'STRING1', 'STRING2');
+      return tryTemplateJoin(block, subgraph) ?? bin('++', 'STRING1', 'STRING2');
     case 'operator_equals': {
       const bool = booleanLiteralInfo(block);
       if (bool) return bool;

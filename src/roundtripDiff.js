@@ -4,6 +4,34 @@ import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, IdGen } from './buildBlocks.js';
 import { buildProcByCode } from './convert.js';
 import { groupTopLevelScripts } from './graph.js';
+import { collectLocalDeclNames } from './pack.js';
+
+function localVarsInOriginal(calls, blocks, rootId) {
+  const names = collectLocalDeclNames(calls);
+  if (!names.size) return null;
+  const matches = new Map([...names].map((name) => [name, new Set()]));
+  const seen = new Set();
+  const pending = [rootId];
+  while (pending.length) {
+    const id = pending.pop();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const block = blocks[id];
+    if (!block) continue;
+    const variable = block.fields?.VARIABLE?.[0];
+    if (typeof variable === 'string' && variable.startsWith('!local_')) {
+      for (const name of names) if (variable.endsWith(`_${name}`)) matches.get(name).add(variable);
+    }
+    if (block.next) pending.push(block.next);
+    for (const input of Object.values(block.inputs || {})) {
+      if (!Array.isArray(input)) continue;
+      for (const value of input.slice(1)) if (typeof value === 'string' && blocks[value]) pending.push(value);
+    }
+  }
+  const result = new Map();
+  for (const [name, found] of matches) if (found.size === 1) result.set(name, [...found][0]);
+  return result;
+}
 
 export function nameIdMap(dict) {
   const m = new Map();
@@ -229,6 +257,7 @@ export async function verifyRoundtrip({ project, buildDir, fs: fsLike }) {
           varMap: new Map([...ctx.stageVarMap, ...nameIdMap(t.variables)]),
           listMap: new Map([...ctx.stageListMap, ...nameIdMap(t.lists)]),
           broadcastNameToId: ctx.broadcastNameToId,
+          localVars: localVarsInOriginal(s.calls, t.blocks, expected.topBlockId),
           idGen: sharedIdGen,
         });
         const diff = compareTrees(t.blocks, expected.topBlockId, newBlocks, topId);

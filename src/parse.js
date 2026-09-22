@@ -25,6 +25,7 @@ function setWithCamel(list) {
 const STATEMENT_KEYWORDS = setWithCamel([
   'def',
   'if',
+  'every',
   'forever',
   'switch',
   'case',
@@ -572,6 +573,7 @@ class Parser {
     this.attachLineComments = attachLineComments;
     this.pendingLineComments = [];
     this.seenComments = new Set();
+    this.listForDepth = 0;
   }
 
   fail(message, hint = null) {
@@ -874,6 +876,12 @@ class Parser {
       const save = this.snapshot();
       this.tryIdentifier();
       this.skipWS();
+      if (this.peek() === '+' && this.peek(1) === '+' && this.peek(2) === '=') {
+        this.i += 3;
+        const v = this.parseInputValue();
+        this.tryChar(';');
+        return concatAssignment({ type: 'ident', name: word }, { type: 'ident', name: word }, v);
+      }
       if (this.peek() === '+' && this.peek(1) === '=') {
         this.i += 2;
         const v = this.parseInputValue();
@@ -1060,6 +1068,15 @@ class Parser {
         return this.parseIf();
       case 'forever':
         return this.parseSingleBranch('control_forever');
+      case 'every': {
+        const duration = this.parseInputValue();
+        this.skipWS();
+        if (this.peekWord() === 'seconds') this.tryIdentifier();
+        const body = this.parseBraceBody();
+        return makeCall('control_forever', [
+          branchArg('substack', [makeCall('control_wait', [keyedInput('DURATION', duration)]), ...body]),
+        ]);
+      }
       case 'switch': {
         const value = this.parseInputValue();
         const body = this.parseBraceBody();
@@ -1089,16 +1106,91 @@ class Parser {
         return makeCall('control_repeat', [keyedInput('TIMES', times), branchArg('substack', body)]);
       }
       case 'for': {
-        const name = this.expectIdentifier(`after 'for'`);
         this.skipWS();
-        if (this.peekWord() === 'in') this.tryIdentifier();
-        const count = this.parseInputValue();
-        const body = this.parseBraceBody();
-        return makeCall('control_for_each', [
+        const paired = this.peek() === '(';
+        let indexName = null;
+        if (paired) this.i++;
+        if (paired) indexName = this.expectIdentifier(`after 'for ('`);
+        if (paired) this.expectChar(',');
+        const name = this.expectIdentifier(`after 'for'`);
+        if (paired) this.expectChar(')');
+        this.skipWS();
+        const stringIteration = this.peekWord() === 'of';
+        if (stringIteration || this.peekWord() === 'in') this.tryIdentifier();
+        let characters = null;
+        if (stringIteration) {
+          if (paired) this.fail("'for ... of ...' cannot use a paired loop variable");
+          characters = this.parseInputValue();
+          if (characters.type !== 'ident' && characters.type !== 'var')
+            this.fail("'for ... of ...' requires a variable or procedure argument");
+        } else if (this.peekWord() === 'chars') {
+          const start = this.snapshot();
+          this.tryIdentifier();
+          this.skipWS();
+          if (this.peek() === '(') {
+            this.i++;
+            characters = this.parseExpr();
+            if (characters.type !== 'ident' && characters.type !== 'var')
+              this.fail('chars(...) requires a variable or procedure argument');
+            this.expectChar(')');
+          } else {
+            this.restore(start);
+          }
+        }
+        const count = characters ? null : this.parseInputValue();
+        this.skipWS();
+        if (this.peekWord() === 'using') {
+          if (paired) this.fail("a paired 'for' loop already has an index name");
+          this.tryIdentifier();
+          indexName = this.parseNameToken();
+          if (indexName === name) this.fail("the 'using' index must differ from the loop value");
+        }
+        this.listForDepth++;
+        let body;
+        try {
+          body = this.parseBraceBody();
+        } finally {
+          this.listForDepth--;
+        }
+        if (characters) {
+          if (paired) this.fail("chars(...) uses 'for value in chars(text)', not a paired 'for' loop");
+          const counter = indexName || name;
+          const letter = {
+            type: 'call',
+            value: makeCall('operator_letter_of', [
+              keyedInput('LETTER', { type: 'ident', name: counter }),
+              keyedInput('STRING', characters),
+            ]),
+          };
+          const length = { type: 'call', value: makeCall('operator_length', [keyedInput('STRING', characters)]) };
+          return makeCall('control_for_each', [
+            keyedInput('VALUE', length),
+            keyedField('VARIABLE', { type: 'ident', name: counter }),
+            branchArg('substack', [
+              makeCall('data_setvariableto', [
+                keyedField('VARIABLE', { type: 'ident', name }),
+                keyedInput('VALUE', letter),
+              ]),
+              ...body,
+            ]),
+          ]);
+        }
+        const call = makeCall('control_for_each', [
           keyedInput('VALUE', count),
           keyedField('VARIABLE', { type: 'ident', name }),
           branchArg('substack', body),
         ]);
+        if (count.type === 'ident' || count.type === 'list') {
+          call.listIteration = {
+            valueName: name,
+            listName: count.name,
+            indexName: indexName || `!local_for${this.listForDepth}_${name}`,
+            forced: indexName != null || count.type === 'list',
+          };
+        } else if (indexName) {
+          this.fail("'using' requires a list name after 'in'");
+        }
+        return call;
       }
       case 'until': {
         const cond = this.parseExpr();
@@ -1168,7 +1260,10 @@ class Parser {
         this.expectChar(']');
         this.skipWS();
         let op = null;
-        if (this.peek() === '+' && this.peek(1) === '=') {
+        if (this.peek() === '+' && this.peek(1) === '+' && this.peek(2) === '=') {
+          this.i += 3;
+          op = '++=';
+        } else if (this.peek() === '+' && this.peek(1) === '=') {
           this.i += 2;
           op = '+=';
         } else if (this.peek() === '=' && this.peek(1) !== '=') {
@@ -1178,6 +1273,8 @@ class Parser {
         if (op) {
           const v = this.parseInputValue();
           this.tryChar(';');
+          if (op === '++=')
+            return concatAssignment({ type: 'array', value: [name] }, { type: 'var', name, id: null }, v);
           return makeCall(op === '+=' ? 'data_changevariableby' : 'data_setvariableto', [
             keyedField('VARIABLE', { type: 'array', value: [name] }),
             keyedInput('VALUE', v),
@@ -2051,6 +2148,7 @@ class Parser {
 
     if (ch === '(') return this.parseParenExpr();
     if (ch === '"') return { type: 'string', value: this.parseStringLiteral() };
+    if (ch === '`') return this.parseTemplateLiteral();
     if (ch === '@') return this.parseProcCallExpr();
     if (ch === '[' || ch === '{') return { type: 'json', value: this.readJSONValue() };
     if (ch === '-' || /[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(this.peek(1)))) return this.parseNumberLiteral();
@@ -2466,6 +2564,44 @@ class Parser {
     return result;
   }
 
+  parseTemplateLiteral() {
+    this.expectChar('`');
+    let literal = '';
+    let result = null;
+    const append = (value) => {
+      result =
+        result === null
+          ? value
+          : {
+              type: 'call',
+              value: makeCall('operator_join', [keyedInput('STRING1', result), keyedInput('STRING2', value)]),
+            };
+    };
+    while (!this.eof()) {
+      const ch = this.next();
+      if (ch === '`') {
+        if (literal || result === null) append({ type: 'string', value: literal });
+        return result;
+      }
+      if (ch === '\\') {
+        if (this.eof()) this.fail('unterminated template string');
+        const escaped = this.next();
+        literal += { n: '\n', t: '\t', r: '\r' }[escaped] ?? escaped;
+        continue;
+      }
+      if (ch === '$' && this.peek() === '{') {
+        this.i++;
+        if (literal) append({ type: 'string', value: literal });
+        literal = '';
+        append(this.parseExpr());
+        this.expectChar('}');
+        continue;
+      }
+      literal += ch;
+    }
+    this.fail('unterminated template string');
+  }
+
   parseKeyedArgs() {
     const args = [];
     this.skipWS();
@@ -2641,6 +2777,16 @@ function broadcastName(v) {
 
 function parseEffectName(name) {
   return String(name).replace(/_/g, ' ').toUpperCase();
+}
+
+function concatAssignment(fieldValue, receiver, value) {
+  return makeCall('data_setvariableto', [
+    keyedField('VARIABLE', fieldValue),
+    keyedInput('VALUE', {
+      type: 'call',
+      value: makeCall('operator_join', [keyedInput('STRING1', receiver), keyedInput('STRING2', value)]),
+    }),
+  ]);
 }
 
 function makeCall(opcode, args, line) {

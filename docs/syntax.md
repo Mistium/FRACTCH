@@ -105,6 +105,10 @@ the function forms. Packages and their namespaces are in [packages.md](packages.
 
 Infix with the usual precedence, left-associative: `||` < `&&` < `== != < > <= >=` < `++` (string join) < `+ -` < `* / %`. Prefix `!` negates. `++` and `+` are distinct because Scratch's join and add are different blocks.
 
+For join chains, a template such as `` `Packed ${order} (${position})` `` compiles to the same left-associated `operator_join` blocks. The source generator uses it only when it preserves every join; ordinary `++` remains available. See [High-level abstractions](abstractions.md).
+
+`buffer ++= " ";` compiles to `buffer = buffer ++ " ";`, a `data_setvariableto` containing an `operator_join`. It differs from numeric `buffer += 1;`, which uses Scratch's `data_changevariableby` block.
+
 ```txt
 if score >= 10 && !sensing.mousedown() {
   say "total: " ++ (score * 2);
@@ -152,6 +156,11 @@ Control flow:
 ```txt
 if c { } else if c2 { } else { }              // else-if chains nest if_else blocks
 forever { }              repeat n { }         for i in n { }        break;
+every 0.03 seconds { }   // forever with a leading wait block
+for value in items { }   // iterate over a declared list
+for value in items using index { } // also expose its 1-based index
+for ch of message { } // length + letter lookup, with ch reused as counter
+for ch of message using index { } // separate 1-based counter
 until c { }              while c { }          wait n;          wait_until c;
 switch v { case x { } case y fallthrough { } default { } }
 stop all;   stop other_scripts_in_sprite;

@@ -1,0 +1,38 @@
+--- a/text_render/main.fractch
++++ b/text_render/main.fractch
+@@ -18,7 +18,7 @@
+     penClear;
+     gotoXY -60, 135;
+     setSize 200;
+-    text.setText(TEXT: temperature ++ "°" ++ temp_unit);
++    text.setText(TEXT: `${temperature}°${temp_unit}`);
+     stamp;
+     gotoXY -70, -155;
+     text.setText(TEXT: wind_speed);
+@@ -28,7 +28,7 @@
+     text.setText(TEXT: forecast);
+     stamp;
+     gotoXY -70, -177;
+-    text.setText(TEXT: "Blowing to the " ++ wind_direction);
++    text.setText(TEXT: `Blowing to the ${wind_direction}`);
+     stamp;
+   }
+ }
+--- a/weather_get/main.fractch
++++ b/weather_get/main.fractch
+@@ -54,7 +54,7 @@
+ 
+ def @get_weather_response() "get weather response" at 63,-11 {
+   weather_req_get = "";
+-  weather_req_get = fetch.get(URL: "https://api.weather.gov/points/" ++ latitude ++ "," ++ longitude);
++  weather_req_get = fetch.get(URL: `https://api.weather.gov/points/${latitude},${longitude}`);
+   if weather_req_get == "" {
+     weather_req_get = "{\"error\": \"noresponse\"}";
+   } else {
+@@ -71,5 +71,5 @@
+ }
+ 
+ script at 372,1869 {
+-  currentMonth() ++ "/" ++ currentDate() ++ "/" ++ currentYear();
++  `${currentMonth()}/${currentDate()}/${currentYear()}`;
+ }

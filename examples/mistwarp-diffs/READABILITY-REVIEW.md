@@ -1,0 +1,73 @@
+# Multi-block abstractions visible in real projects
+
+These are excerpts from the full [MistWeather](mistweather.patch), [Mario Bros Commercial Remake](mario-bros-commercial.patch), [Multiplayer Template](multiplayer-template.patch), and [Katnip Render](katnip-render.patch) patches. `-` is source from baseline commit `8d01efa`; `+` is source from this branch, generated from the same SB3 file.
+
+## Drawing text in Katnip Render
+
+```diff
+-  for text_ch in length(msg) {
+-    text_ch = msg.letter(text_ch);
++  for text_ch of msg {
+     @glyph_ch_x_y_scale(text_ch, text_penX, y, scale);
+     text_penX = text_penX + text_advance;
+   }
+```
+
+The same shape occurs six times across the Editor and Canvas2 sprites. `for ... of ...` expands to the original `control_for_each`, string length, and letter lookup blocks, including the assignment that overwrites the counter in this project. The loop body and command names stay as they were.
+
+## Building the input buffer in Katnip Render
+
+```diff
+-    buffer = buffer ++ " ";
++    buffer ++= " ";
+```
+
+The same self-join shape appears six times across the two sprites: appending a space, a pressed key, and a selected character. `++=` expands to the exact original set-variable and join blocks. It does not use Scratch's numeric change-variable block.
+
+## A timed costume loop in Mario Bros Commercial Remake
+
+```diff
+ when flag at 18,86 {
+   hide;
+-  forever {
+-    wait 0.03;
++  every 0.03 seconds {
+     nextCostume;
+   }
+ }
+```
+
+The `every` statement expands to the same `control_forever` block with a leading `control_wait`. A zero-second wait stays visible as `forever { wait 0; ... }`.
+
+## Weather text in MistWeather
+
+```diff
+-    text.setText(TEXT: temperature ++ "°" ++ temp_unit);
++    text.setText(TEXT: `${temperature}°${temp_unit}`);
+```
+
+```diff
+-  weather_req_get = fetch.get(URL: "https://api.weather.gov/points/" ++ latitude ++ "," ++ longitude);
++  weather_req_get = fetch.get(URL: `https://api.weather.gov/points/${latitude},${longitude}`);
+```
+
+The template prints the same left-associated `operator_join` chain. Its first interpolation does not introduce an extra empty-string join.
+
+## Connection messages in Multiplayer Template
+
+```diff
+-      g1nxIrisText.addLine(TEXT: "Error type: " ++ cloudlink.returnStatusCode());
++      g1nxIrisText.addLine(TEXT: `Error type: ${cloudlink.returnStatusCode()}`);
+```
+
+Its extension call, `when` hats, broadcasts, and stop commands retain their original spelling.
+
+## Other compound patterns to consider
+
+| Project evidence | Possible abstraction | Required exact-match rule |
+| --- | --- | --- |
+| Mario Bros has `repeat 6 { costume "12"; wait 0.2; costume "13"; wait 0.2; }` | An `animate` or frame-sequence form | Each frame must be a costume switch followed by a wait; preserve order, duration, menu shadow data, and comments |
+| Multiplayer Template repeats error branches ending in `stop all;` | A guard/abort form | Match the complete conditional and its stop block; leave branches with additional exits or attached comments alone |
+| MistWeather checks an empty response after each fetch | A retry/response-chain form | Match the full nested control tree; keep every fetch, assignment, and branch in its original order |
+
+These are candidates, not emitted syntax. They would shorten sequences of Scratch blocks. Changing individual command names or flattening a control tree without an exact inverse would not meet the round-trip requirement.
