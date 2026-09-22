@@ -99,8 +99,8 @@ var message = "Hi";
 var ch = 0;
 var index = 0;
 when flag {
-  for ch in chars(message) { say ch; }
-  for ch in chars(message) using index { say index; say ch; }
+  for ch of message { say ch; }
+  for ch of message using index { say index; say ch; }
 }
 `
   );
@@ -112,10 +112,17 @@ when flag {
   const out = path.join(root, 'generated');
   await convertProject(manifest, { outDir: out, fs });
   const generated = fs.readFileSync(path.join(out, 'Stage', 'main.fractch'), 'utf8');
-  assert.match(generated, /for ch in chars\(message\) \{/);
-  assert.match(generated, /for ch in chars\(message\) using index \{/);
+  assert.match(generated, /for ch of message \{/);
+  assert.match(generated, /for ch of message using index \{/);
   const roundtrip = await verifyRoundtrip({ project: manifest, buildDir: out, fs });
   assert.deepEqual(roundtrip.failures, []);
+});
+
+test('the earlier chars(...) spelling still parses and generates the of spelling', () => {
+  const parsed = parseFractch('for ch in chars(message) { say ch; }');
+  assert.deepEqual(parsed.errors, []);
+  const { blocks, topId } = buildBlocksFromCalls(parsed.calls, { idGen: new IdGen() });
+  assert.match(stringifyBlockCall(blocks[topId], blocks, topId), /^for ch of message \{/);
 });
 
 test('character iteration stays explicit when the length and letter receivers differ', () => {

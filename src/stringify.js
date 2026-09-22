@@ -798,7 +798,7 @@ function tryStringIteration(block, subgraph) {
   if (!bareNameOk(receiver) && !/^vars\[".*"\]$/.test(receiver)) return null;
   const rest = first.next ? renderBody(subgraph, first.next) : '';
   const indexText = indexName === valueName ? '' : ` using ${indexName}`;
-  return `for ${valueName} in chars(${receiver})${indexText} {\n${indent(rest)}\n}`;
+  return `for ${valueName} of ${receiver}${indexText} {\n${indent(rest)}\n}`;
 }
 
 function referencesVariable(subgraph, startId, name) {
