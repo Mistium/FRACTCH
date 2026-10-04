@@ -12,6 +12,40 @@ export function localBareName(name) {
   return m ? m[1] : null;
 }
 
+// Which packed `local` variables (!local_<tag>_<name>) a script may write by their
+// bare name: the ones it assigns, so a `local` declaration gets emitted, one per bare
+// name. Another script's local, or one that is never assigned here, keeps its full
+// vars["!local_..."] name. Globals sharing an owned bare name must use vars["..."].
+export function scriptLocalScope(subgraph) {
+  const ownedLocals = new Map();
+  const localBareNames = new Set();
+  for (const b of Object.values(subgraph || {})) {
+    if (!b || Array.isArray(b) || b.opcode !== 'data_setvariableto') continue;
+    const name = String(b.fields?.VARIABLE?.[0] ?? '');
+    const bare = localBareName(name);
+    if (!bare || ownedLocals.has(name) || localBareNames.has(bare) || !bareNameOk(bare)) continue;
+    ownedLocals.set(name, bare);
+    localBareNames.add(bare);
+  }
+  return { ownedLocals, localBareNames };
+}
+
+function ownedLocal(name) {
+  if (!CTX.ownedLocals) return localBareName(name);
+  return CTX.ownedLocals.get(String(name)) ?? null;
+}
+
+function shadowedByLocal(name) {
+  return !!CTX.localBareNames?.has(String(name));
+}
+
+// A variable field whose id isn't the one its name resolves to (duplicate names, or
+// a sprite variable shadowing a global) needs the var("name", "id") form.
+function variableNeedsId(field) {
+  const id = Array.isArray(field) ? field[1] : undefined;
+  return id != null && !!CTX.varMap && CTX.varMap.get(String(field[0] ?? '')) !== id;
+}
+
 const PREC = {
   '||': 1,
   '&&': 2,
@@ -203,7 +237,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 
   if (opcode === 'data_variable') {
     const name = block.fields?.VARIABLE?.[0] ?? '';
-    const local = localBareName(name);
+    const local = ownedLocal(name);
     if (local && inline) return local;
 
     if (!inline) return `${JSON.stringify(String(name))};`;
@@ -247,9 +281,13 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     return `${header} {\n${indent(thenBody)}\n}`;
   }
 
-  if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
+  if (
+    (opcode === 'data_setvariableto' || opcode === 'data_changevariableby') &&
+    !inline &&
+    (ownedLocal(block.fields?.VARIABLE?.[0] ?? '') || !variableNeedsId(block.fields?.VARIABLE))
+  ) {
     const varName = String(block.fields?.VARIABLE?.[0] ?? '');
-    const local = localBareName(varName);
+    const local = ownedLocal(varName);
     const appendValue =
       opcode === 'data_setvariableto' && !(local && !CTX.declaredLocals?.has(local))
         ? tryConcatAssignment(block, subgraph)
@@ -263,7 +301,7 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
       }
       return `${local} ${op} ${value};`;
     }
-    if (bareNameOk(varName)) return `${varName} ${op} ${value};`;
+    if (bareNameOk(varName) && !shadowedByLocal(varName)) return `${varName} ${op} ${value};`;
     return `vars[${JSON.stringify(varName)}] ${op} ${value};`;
   }
 
@@ -330,6 +368,11 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     let name;
     if (typeof childId === 'string' && subgraph[childId]) {
       name = inputValueText(tuple, subgraph, 'BROADCAST_INPUT');
+    } else if (Array.isArray(childId) && (childId[0] === 12 || childId[0] === 13)) {
+      // A variable/list reporter dropped on the input. A bare name here would read
+      // back as a fixed message name, so spell variables out as vars["..."].
+      name = getInputExpr(tuple, subgraph);
+      if (childId[0] === 12 && BARE_NAME.test(name)) name = `vars[${JSON.stringify(String(childId[1] ?? ''))}]`;
     } else {
       const raw = Array.isArray(childId) ? String(childId[1] ?? '') : '';
       name = BARE_NAME.test(raw) && !RESERVED_WORDS.has(raw) ? raw : JSON.stringify(raw);
@@ -746,7 +789,7 @@ function tryListIteration(block, subgraph) {
   const indexInput = item.inputs.INDEX?.[1];
   if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
   if (indexInput[2] != null && indexInput[2] !== indexId) return null;
-  const hidden = indexName === `!local_for0_${valueName}`;
+  const hidden = /^!local_for\d+_/.test(indexName) && indexName.replace(/^!local_for\d+_/, '') === valueName;
   if (indexName.startsWith('!local_') && first.next && referencesVariable(subgraph, first.next, indexName)) return null;
   const rest = first.next ? renderBody(subgraph, first.next) : '';
   const indexText = bareNameOk(indexName) ? indexName : JSON.stringify(indexName);
@@ -909,7 +952,8 @@ function tryStatementAlias(block, subgraph) {
     (op === 'data_showvariable' || op === 'data_hidevariable') &&
     !inputKeys.length &&
     fieldKeys.length === 1 &&
-    fieldKeys[0] === 'VARIABLE'
+    fieldKeys[0] === 'VARIABLE' &&
+    !variableNeedsId(fields.VARIABLE)
   ) {
     const name = String(fields.VARIABLE[0] ?? '');
     const kw = op === 'data_showvariable' ? 'showVariable' : 'hideVariable';
@@ -1068,7 +1112,9 @@ export function isSimpleAttachedComment(c) {
     (c.height ?? 200) === 200 &&
     !c.minimized &&
     !c.forId &&
-    !text.includes('\n') &&
+    !/[\n\r]/.test(text) &&
+    // A `//` line is written verbatim, and a stray """ would desync raw-string tracking.
+    !text.includes('"""') &&
     text === text.trim()
   );
 }
@@ -1209,7 +1255,7 @@ function formatLiteral(arr) {
         }
         case 12: {
           const name = String(value ?? '');
-          const local = localBareName(name);
+          const local = ownedLocal(name);
           if (local) return local;
           const id = payload.length > 2 && payload[2] != null ? String(payload[2]) : undefined;
           if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) {
@@ -1217,7 +1263,7 @@ function formatLiteral(arr) {
           }
           const shadowedByParam =
             CTX.scopeParamNames && (CTX.scopeParamNames.has(name) || [...CTX.scopeParamNames.values()].includes(name));
-          if (!shadowedByParam && bareNameOk(name)) return name;
+          if (!shadowedByParam && !shadowedByLocal(name) && bareNameOk(name)) return name;
           return `vars[${JSON.stringify(name)}]`;
         }
         case 13: {
@@ -1279,14 +1325,17 @@ function tryTemplateJoin(block, subgraph) {
   if (parts[0].literal === '' || parts.some((part, index) => index > 0 && part.literal === '')) return null;
   if (parts.some((part, index) => index > 0 && part.literal !== undefined && parts[index - 1].literal !== undefined))
     return null;
-  const escape = (value) =>
-    value
+  const escape = (value) => {
+    const text = value
       .replaceAll('\\', '\\\\')
       .replaceAll('`', '\\`')
       .replaceAll('${', '\\${')
       .replaceAll('\n', '\\n')
       .replaceAll('\r', '\\r')
       .replaceAll('\t', '\\t');
+    // Keep """ out of the source so indentation can't mistake it for a raw string.
+    return text.includes('"""') ? text.replaceAll('"', '\\"') : text;
+  };
   return {
     text:
       '`' +

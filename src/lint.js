@@ -39,6 +39,26 @@ export function checkFractch(text) {
     return ch;
   };
 
+  // Scan template text up to its closing backtick, or up to a `${`, whose
+  // expression the main loop then scans like any other code (so it may hold
+  // strings and nested templates).
+  const scanTemplate = (start) => {
+    while (i < src.length) {
+      const c = adv();
+      if (c === '\\') {
+        if (i < src.length) adv();
+        continue;
+      }
+      if (c === '`') return;
+      if (c === '$' && src[i] === '{') {
+        stack.push({ ch: '${', ...at(), template: start });
+        adv();
+        return;
+      }
+    }
+    errors.push(new FractchSyntaxError('unterminated template string', start.line, start.col));
+  };
+
   while (i < src.length) {
     const ch = src[i];
 
@@ -107,25 +127,20 @@ export function checkFractch(text) {
     if (ch === '`') {
       const start = at();
       adv();
-      let closed = false;
-      while (i < src.length) {
-        const c = adv();
-        if (c === '\\') {
-          if (i < src.length) adv();
-          continue;
-        }
-        if (c === '`') {
-          closed = true;
-          break;
-        }
-      }
-      if (!closed) errors.push(new FractchSyntaxError('unterminated template string', start.line, start.col));
+      scanTemplate(start);
       continue;
     }
 
     if (ch === '(' || ch === '[' || ch === '{') {
       stack.push({ ch, ...at() });
       adv();
+      continue;
+    }
+
+    if (ch === '}' && stack[stack.length - 1]?.ch === '${') {
+      // End of a template interpolation: resume scanning the template's text.
+      adv();
+      scanTemplate(stack.pop().template);
       continue;
     }
 
@@ -148,7 +163,11 @@ export function checkFractch(text) {
     adv();
   }
 
-  for (const open of stack) errors.push(new FractchSyntaxError(`unclosed '${open.ch}'`, open.line, open.col));
+  for (const open of stack) {
+    if (open.ch === '${')
+      errors.push(new FractchSyntaxError('unterminated template string', open.template.line, open.template.col));
+    else errors.push(new FractchSyntaxError(`unclosed '${open.ch}'`, open.line, open.col));
+  }
 
   return errors;
 }

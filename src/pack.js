@@ -115,7 +115,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       if (!hasManifest)
         nameCollections.push({
           target: manifestTarget,
-          calls: parsed.calls,
+          scripts: fileScripts.map((script) => script.calls),
           cloudAliases: cloudAliasMaps.get(manifestName),
         });
       for (const imp of parsed.imports || []) {
@@ -142,8 +142,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   const stageTarget = (manifest.targets || []).find((t) => t.isStage);
 
   nameCollections.sort((a, b) => (b.target.isStage ? 1 : 0) - (a.target.isStage ? 1 : 0));
-  for (const { target, calls, cloudAliases } of nameCollections) {
-    collectNamesIntoManifest(target, calls, cloudAliases, stageTarget);
+  for (const { target, scripts, cloudAliases } of nameCollections) {
+    collectNamesIntoManifest(target, scripts, cloudAliases, stageTarget);
   }
 
   resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps);
@@ -930,12 +930,18 @@ export function assetSourceRel(targetDir, file) {
   return path.join(targetDir, ...parts);
 }
 
-function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
+function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
   const vars = new Set();
   const lists = new Set();
   const broadcasts = new Set();
-  collectNames(calls, { vars, lists, broadcasts });
-  for (const local of collectLocalDeclNames(calls)) vars.delete(local);
+  // A `local` only shadows names inside the script that declares it.
+  for (const scriptCalls of scripts) {
+    const scriptVars = new Set();
+    collectNames(scriptCalls, { vars: scriptVars, lists, broadcasts });
+    for (const local of collectLocalDeclNames(scriptCalls)) scriptVars.delete(local);
+    for (const name of scriptVars) vars.add(name);
+  }
+  const calls = scripts.flat();
   if (cloudAliases) for (const bare of cloudAliases.keys()) vars.delete(bare);
   const globals = stage && stage !== target ? stage : null;
 
@@ -1099,11 +1105,14 @@ function computeLocalTags(stacks) {
     }
     return name;
   });
-  const seen = new Map();
+  // A numbered tag (flagclicked2) may equal another stack's own prefix, so check
+  // every candidate against all tags handed out so far.
+  const used = new Set();
   return prefixes.map((t) => {
-    const n = (seen.get(t) || 0) + 1;
-    seen.set(t, n);
-    return n === 1 ? t : `${t}${n}`;
+    let tag = t;
+    for (let n = 2; used.has(tag); n++) tag = `${t}${n}`;
+    used.add(tag);
+    return tag;
   });
 }
 
@@ -1252,7 +1261,7 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
       collectProcCallIdents(registry.get(ident).calls, known, queue);
     }
 
-    const injectedCalls = [];
+    const injectedScripts = [];
     for (const ident of used) {
       if (identToProccode.get(name)?.has(ident)) continue;
       const { calls, marker, markerComment, x, y } = registry.get(ident);
@@ -1266,12 +1275,12 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
         fileMarkerComment: markerComment,
       });
       registerProcDefs(procArgMaps, identToProccode, procMetaMaps, name, calls);
-      injectedCalls.push(...calls);
+      injectedScripts.push(calls);
     }
-    if (injectedCalls.length) {
+    if (injectedScripts.length) {
       const manifestTarget = (manifest.targets || []).find((t) => t.name === name);
       const stageTarget = (manifest.targets || []).find((t) => t.isStage);
-      if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedCalls, null, stageTarget);
+      if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedScripts, null, stageTarget);
     }
   }
 }
@@ -1354,6 +1363,10 @@ function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
 }
 
+export function unescapeHeader(s) {
+  return s.replace(/\\(.)/g, (_, c) => ({ n: '\n', r: '\r' })[c] ?? c);
+}
+
 function parseHeaderInfo(text) {
   try {
     text = String(text || '').replace(/^\uFEFF/, '');
@@ -1365,7 +1378,7 @@ function parseHeaderInfo(text) {
     const map = new Map();
     for (const line of lines) {
       const m = /\*\s*([^:]+):\s*(.*)$/.exec(line.trim());
-      if (m) map.set(m[1].trim(), m[2].trim());
+      if (m) map.set(m[1].trim(), unescapeHeader(m[2].trim()));
     }
     const pos = /^(-?\d+),(-?\d+)$/.exec(map.get('pos') || '');
     return {

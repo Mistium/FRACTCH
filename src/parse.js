@@ -442,6 +442,20 @@ function withComments(st, ...calls) {
   return [...(st.leadingComments || []), ...calls, ...(st.trailingComments || [])];
 }
 
+// Statements that declare things about the file or target rather than being blocks.
+const TOP_LEVEL_ONLY = new Set([
+  'useDecl',
+  'importDecl',
+  'varDecl',
+  'watchDecl',
+  'platformDecl',
+  'spriteDecl',
+  'assetDecl',
+  'procDef',
+  'whenScript',
+  'chainScript',
+]);
+
 export function parseFractch(content, { attachLineComments = true } = {}) {
   const text = stripHeader(content);
   const parser = new Parser(text, { attachLineComments });
@@ -617,9 +631,10 @@ class Parser {
     return true;
   }
 
-  drainLineComments(out, { havePrev }) {
-    if (!this.pendingLineComments.length) return;
-    for (const c of this.pendingLineComments) {
+  drainLineComments(out, { havePrev, comments = null }) {
+    const pending = comments ?? this.pendingLineComments;
+    if (!pending.length) return;
+    for (const c of pending) {
       out.push({
         type: 'commentDecl',
         text: c.text,
@@ -633,7 +648,7 @@ class Parser {
         anchor: c.anchor === 'prev' && havePrev ? 'prev' : 'next',
       });
     }
-    this.pendingLineComments = [];
+    if (!comments) this.pendingLineComments = [];
   }
 
   eof() {
@@ -768,6 +783,15 @@ class Parser {
       const save = this.snapshot();
       try {
         const stmt = this.parseStatement();
+        if (stmt && stopAtBrace && TOP_LEVEL_ONLY.has(stmt.type)) {
+          this.errors.push({
+            line: this.lineAt(save),
+            col: this.colAt(save),
+            message: `'${word}' only works at the top level of a file, not inside a script`,
+            hint: 'move it out of the { } block',
+          });
+          continue;
+        }
         if (stmt) {
           stmts.push(stmt);
           haveRealPrev = true;
@@ -2009,9 +2033,22 @@ class Parser {
 
   parseBraceBody() {
     this.expectChar('{');
+    // A `//` trailing the `{` line belongs to the block that owns the brace (the
+    // hat, `def`, or C-block), not to the first statement inside it.
+    const braceLine = this.lineAt(this.i - 1);
+    this.skipWS();
+    const enclosing = [];
+    this.pendingLineComments = this.pendingLineComments.filter((c) => {
+      if (c.anchor !== 'prev' || this.lineAt(c.start) !== braceLine) return true;
+      enclosing.push(c);
+      return false;
+    });
     const stmts = this.parseStatementList(true);
     this.expectChar('}');
-    return stmts;
+    const comments = [];
+    this.drainLineComments(comments, { havePrev: true, comments: enclosing });
+    for (const c of comments) c.anchor = 'enclosing';
+    return [...comments, ...stmts];
   }
 
   parseExprStatementHead() {
@@ -2544,13 +2581,7 @@ class Parser {
       }
       const ch = this.next();
       if (ch === '\\') {
-        const nx = this.next();
-        if (nx === '"') result += '"';
-        else if (nx === '\\') result += '\\';
-        else if (nx === 'n') result += '\n';
-        else if (nx === 't') result += '\t';
-        else if (nx === 'r') result += '\r';
-        else result += nx;
+        result += this.readEscape();
       } else {
         result += ch;
       }
@@ -2562,6 +2593,20 @@ class Parser {
       );
     this.i++;
     return result;
+  }
+
+  // The character after a backslash: the JSON escapes (which the emitter writes
+  // via JSON.stringify) plus any other character standing for itself.
+  readEscape() {
+    const nx = this.next();
+    const simple = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f' }[nx];
+    if (simple) return simple;
+    if (nx === 'u' && /^[0-9a-fA-F]{4}$/.test(this.s.slice(this.i, this.i + 4))) {
+      const code = parseInt(this.s.slice(this.i, this.i + 4), 16);
+      this.i += 4;
+      return String.fromCharCode(code);
+    }
+    return nx ?? '';
   }
 
   parseTemplateLiteral() {
@@ -2585,8 +2630,7 @@ class Parser {
       }
       if (ch === '\\') {
         if (this.eof()) this.fail('unterminated template string');
-        const escaped = this.next();
-        literal += { n: '\n', t: '\t', r: '\r' }[escaped] ?? escaped;
+        literal += this.readEscape();
         continue;
       }
       if (ch === '$' && this.peek() === '{') {

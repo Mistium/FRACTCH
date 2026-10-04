@@ -6,9 +6,8 @@ import {
   renderBody,
   commentDeclLine,
   withAttachedComments,
-  isSimpleAttachedComment,
-  lineCommentText,
   inputValueText,
+  scriptLocalScope,
 } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
@@ -214,7 +213,7 @@ function watchParamsText(params) {
 function emitScriptBody({ script, subgraph, context, cfg = {} }) {
   const { topBlockId, hatOpcode } = script;
 
-  const scriptContext = { ...context, declaredLocals: new Set() };
+  const scriptContext = { ...context, declaredLocals: new Set(), ...scriptLocalScope(subgraph) };
   setContext(scriptContext);
   context = scriptContext;
 
@@ -319,7 +318,9 @@ function renderFallbackBody(subgraph, topId, cfg, context) {
 function prependOwnComments(context, topBlockId, bodyText) {
   const own = context?.blockComments?.get(topBlockId);
   if (!own?.length) return bodyText;
-  const lines = own.map((c) => (isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c))).join('\n');
+  // Always the explicit form: a `//` line attaches to the statement below it, so it
+  // would move the hat's comment onto the first block of the body.
+  const lines = own.map((c) => commentDeclLine(c)).join('\n');
   return bodyText ? `${lines}\n${bodyText}` : lines;
 }
 
@@ -358,8 +359,10 @@ function formatOpcodeName(opcode) {
   return `${namespace}.${rest}`;
 }
 
+// Header values sit inside a /** */ comment: backslash-escape anything that could end
+// the comment (*/) or the line. pack.js parseHeaderInfo undoes this.
 function escapeHeader(s) {
-  return String(s).replace(/\*/g, '\\*');
+  return String(s).replace(/[\\*/\n\r]/g, (c) => ({ '\n': '\\n', '\r': '\\r' })[c] ?? `\\${c}`);
 }
 
 function deriveImports(blocksArr, context) {
