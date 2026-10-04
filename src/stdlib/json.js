@@ -144,9 +144,13 @@ def @fractch_json_get_keys(JSON) warp {
 
 def @fractch_json_get_from(Key, JSON) warp {
   @fractch_json_get_data(JSON);
-  local i = 0;
-  until i > lists["!json:stack"].length / 2 || lists["!json:stack"][i] == Key {
-    i += 1;
+  local i = 1;
+  until i > lists["!json:stack"].length || lists["!json:stack"][i] == Key {
+    i += 2;
+  }
+  if i > lists["!json:stack"].length {
+    vars["!json:return"] = "";
+    return "";
   }
   vars["!json:return"] = lists["!json:stack"][i + 1];
   if letter(1, vars["!json:return"]) ++ letter(length(vars["!json:return"]), vars["!json:return"]) == "\"\"" {
@@ -190,28 +194,27 @@ def @fractch_json_has(Key, JSON) warp {
 
 def @fractch_json_replace(value, text, newval) warp {
   vars["!json:return"] = "";
-  local idx = length(value);
-  local i = length(text);
-  local i2 = 0;
-  until i < 1 {
-    if idx == 0 {
-      vars["!json:return"] = newval ++ (letter(i, text) ++ vars["!json:return"]);
-      i += -1;
+  local n = length(value);
+  local i = 1;
+  local j = 0;
+  if n == 0 {
+    repeat length(text) {
+      vars["!json:return"] = vars["!json:return"] ++ (newval ++ letter(i, text));
+      i += 1;
+    }
+    return vars["!json:return"];
+  }
+  until i > length(text) {
+    j = 0;
+    until j == n || letter(i + j, text) != letter(j + 1, value) {
+      j += 1;
+    }
+    if j == n {
+      vars["!json:return"] = vars["!json:return"] ++ newval;
+      i += n;
     } else {
-      i2 = 0;
-      until letter(idx - i2, value) != letter(i, text) || i < 1 {
-        i += -1;
-        i2 += 1;
-      }
-      if i2 == idx {
-        vars["!json:return"] = newval ++ vars["!json:return"];
-      } else {
-        i += i2;
-        repeat i2 + 1 {
-          vars["!json:return"] = letter(i, text) ++ vars["!json:return"];
-          i += -1;
-        }
-      }
+      vars["!json:return"] = vars["!json:return"] ++ letter(i, text);
+      i += 1;
     }
   }
   return vars["!json:return"];

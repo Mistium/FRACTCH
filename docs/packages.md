@@ -69,11 +69,11 @@ Vanilla string helpers.
 
 | Call | Result |
 |---|---|
-| `strings.replace(text, old, new)` | `text` with every `old` replaced by `new` |
+| `strings.replace(text, old, new)` | `text` with every `old` replaced by `new`, scanning left to right (matching ignores case, like all Scratch text comparison) |
 | `strings.slice(text, start, end)` | substring `start..end` (negative `end` counts from the end) |
 | `strings.join(delim)` | the return stack joined into one string with `delim` |
 | `strings.chr(code)` | the character for ASCII/code point `code` (printable range, plus `\n`/`\r`/`\t`) |
-| `strings.ord(ch)` | the ASCII code for character `ch` (0 if unknown) |
+| `strings.ord(ch)` | the ASCII code for character `ch` (0 if unknown). Scratch compares text case-insensitively, so a letter always gives its uppercase code (`ord("a")` is 65) |
 
 ## Authoring a package
 
