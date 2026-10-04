@@ -8,10 +8,11 @@ export class FractchSyntaxError extends Error {
 }
 
 function stripHeader(text) {
-  const s = String(text || '');
+  const s = String(text || '').replace(/^\uFEFF/, '');
   if (s.startsWith('/**')) {
     const end = s.indexOf('*/');
-    if (end >= 0) return ' '.repeat(end + 2) + s.slice(end + 2);
+    // Blank the header but keep its newlines so reported lines match the file.
+    if (end >= 0) return s.slice(0, end + 2).replace(/[^\n]/g, ' ') + s.slice(end + 2);
   }
   return s;
 }
@@ -25,7 +26,8 @@ export function checkFractch(text) {
   let col = 0;
   let i = 0;
 
-  const at = () => ({ line, col });
+  // `col` counts consumed characters; report 1-based columns like the parser.
+  const at = () => ({ line, col: col + 1 });
   const adv = () => {
     const ch = src[i++];
     if (ch === '\n') {

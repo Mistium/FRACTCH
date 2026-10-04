@@ -31,7 +31,7 @@ Stage/main.fractch:7:10: skipped unparsable statement: 'when flg' is not a known
 | Message | Cause & fix |
 |---|---|
 | `call to undefined custom block @X - did you mean @Y?` | The `@X(...)` call has no matching `def @X` in the same sprite. Fix the typo or add the def. |
-| `@X takes N arguments but this call passes M` | Positional call with too many arguments; the hint shows the definition. (Fewer arguments is allowed — missing ones are empty.) |
+| `@X takes N arguments but this call passes M` | Positional call with a different number of arguments than the definition; the hint shows the definition. Missing arguments pack as empty, but a mismatch is almost always a mistake. |
 | `local 'x' is declared twice in the same script` | One `local x = ...` per script; assign with `x = ...` afterwards. |
 | `custom block @X is defined more than once in this sprite` | Duplicate `def`; the second silently wins at pack time, so rename one. |
 | `costume "x" points at a missing file` | The `file "..."` path doesn't exist under the sprite's folder. Paths are relative to the sprite (`assets/x.png` → `Sprite/assets/x.png`). |

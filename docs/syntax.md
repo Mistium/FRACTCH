@@ -135,19 +135,15 @@ Array (and object) literals in expression position are JSON text sugar: `[1, 2, 
 
 ```txt
 import "fractch/strings";        // at the top of a target's file
+import "fractch/json" as j;      // bind the namespace under another name
 
 when flag {
-  parts = "a,b,c".split(",");    // -> ["a","b","c"]   (JSON array text)
-  say parts.item(2);             // "b" (1-based; strings decoded)
-  say parts.count();             // 3
-  parts = parts.push("d");       // ["a","b","c","d"]
-  say parts.join(" - ");         // "a - b - c - d"
+  say strings.replace("a-b", "-", " ");   // "a b"
+  say j.get_from("name", msg);
 }
 ```
 
-Modules are written in fractch itself with vanilla blocks only (reporter custom blocks need TurboWarp/MistWarp `return`; no extensions). At pack time the imported module's `def`s are injected into the target (deduped — a def the target declares itself wins) and marked so converting the `.sb3` folds them back into the `import` line. Using a method without the import auto-injects its module; the import line is for explicitness. Library bodies are pinned: editor edits to injected defs are replaced by the bundled source on the next convert+pack.
-
-Methods: `split`/`join` (`fractch/strings`), `item`/`count`/`push` (`fractch/json`). `value.method(...)` on a bare identifier resolves at pack time: if a variable/local/param of that name exists it's a method call, otherwise it's the extension opcode (`mistsutils.item(C: 1, ...)` keeps working; keyed args always mean an opcode call, and raw `ns_method(...)` is the explicit escape hatch). Scratch caveat: string comparison is case-insensitive, so `split` matches its delimiter case-insensitively.
+Packages are written in fractch itself with vanilla blocks only (reporter custom blocks need TurboWarp/MistWarp `return`; no extensions). At pack time the functions you call (plus their dependencies) are injected into the target as `def`s and marked so converting the `.sb3` folds them back into the `import` line. Package functions are called through the namespace (`strings.fn(...)`); variables have no methods. See [packages.md](packages.md) for the function list. Scratch caveat: string comparison is case-insensitive, so matching inside package functions is too.
 
 ## Statements
 

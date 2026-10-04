@@ -519,7 +519,7 @@ export function preprocess(text) {
 }
 
 function stripHeader(text) {
-  const s = String(text || '');
+  const s = String(text || '').replace(/^\uFEFF/, '');
   if (s.startsWith('/**')) {
     const end = s.indexOf('*/');
 

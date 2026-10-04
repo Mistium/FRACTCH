@@ -2,6 +2,7 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch, closestMatch } from './parse.js';
 import { checkFractch } from './lint.js';
+import { assetSourceRel } from './pack.js';
 import { LIST_METHOD_OPS } from './buildBlocks.js';
 import { KNOWN_OPCODES, MENU_OPCODES, VALIDATED_NAMESPACES } from './knownOpcodes.js';
 import { STDLIB_METHODS, STDLIB_MODULE_META } from './stdlib/index.js';
@@ -18,6 +19,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           file: '.',
           line: 0,
           col: 0,
+          fatal: true,
           message: `project directory does not exist: ${buildDir}`,
           hint: 'pass the directory that contains target folders such as Stage/',
         },
@@ -33,6 +35,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           file: '.',
           line: 0,
           col: 0,
+          fatal: true,
           message: `project path is not a directory: ${buildDir}`,
           hint: 'pass a project directory, not a .fractch or .sb3 file',
         },
@@ -49,6 +52,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           file: '.',
           line: 0,
           col: 0,
+          fatal: true,
           message: 'project contains no .fractch files',
           hint: 'add a target script such as Stage/main.fractch',
         },
@@ -113,8 +117,19 @@ export async function checkProject({ buildDir, fs: fsLike }) {
     for (const decl of [...(parsed.assets?.costumes || []), ...(parsed.assets?.sounds || [])]) {
       const kind = parsed.assets.costumes.includes(decl) ? 'costume' : 'sound';
       const fileRel = String(decl.file || '');
-      const abs = path.join(buildDir, target, ...fileRel.split('/').filter(Boolean));
       if (!fileRel) continue;
+      const sourceRel = assetSourceRel(target, fileRel);
+      if (!sourceRel) {
+        push(
+          rel,
+          decl.line ?? 0,
+          0,
+          `${kind} "${decl.name}" has an invalid file path: ${fileRel}`,
+          'asset paths are relative to the target folder and may not contain .. or hidden segments'
+        );
+        continue;
+      }
+      const abs = path.join(buildDir, sourceRel);
       if (!(await vfs.exists(abs))) {
         push(
           rel,
@@ -163,13 +178,13 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           'use list functions: append(list, v), delete(list, i), insert(list, i, v), replace(list, i, v), set(list, i, v), clear(list), get(list, i), item(list, i), hasItem(list, v), indexOf(list, v)'
         );
       } else if (isVar && !isList && !STDLIB_METHODS[u.method] && u.method !== 'letter') {
-        const near = closestMatch(u.method, Object.keys(STDLIB_METHODS), 3);
+        const near = closestMatch(u.method, ['letter', ...Object.keys(STDLIB_METHODS)], 3);
         push(
           u.file,
           u.line,
           0,
           `'${u.ident}' is a variable and has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
-          'variable methods come from the stdlib: .split(d) .join(d) .item(i) .count() .push(v)'
+          'variables only have .letter(i); string helpers live in packages, e.g. import "fractch/strings" then strings.replace(...)'
         );
       }
     }

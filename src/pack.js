@@ -43,6 +43,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   let commentSeq = 0;
   let totalScripts = 0;
   let parsedScripts = 0;
+  const parsedFiles = [];
 
   for (const scriptFile of scriptFiles) {
     const { fPath, targetDir, hatDir, sourceRel } = scriptFile;
@@ -130,8 +131,10 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         }
       }
       parsedScripts++;
+      parsedFiles.push(fPath);
     } catch (e) {
-      if (verbose) console.warn(`Skip unparsable file: ${fPath}: ${e.message}`);
+      // Never drop a whole file silently: a stray bracket would otherwise pack an empty target.
+      console.warn(`[fractch] skipped unparsable file ${fPath}:\n${e.message}`);
       continue;
     }
   }
@@ -268,7 +271,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       if (block && typeof block === 'object' && !Array.isArray(block)) delete block.id;
     }
   }
-  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles };
+  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, parsedFiles, assetFiles };
 }
 
 function validateSb3InputPrimitives(manifest) {
@@ -918,12 +921,12 @@ async function resolveAssetDecl(vfs, buildDir, targetDir, decl, kind) {
   return { assetId, ext, md5ext: `${assetId}.${ext}`, sourceRel };
 }
 
-function assetSourceRel(targetDir, file) {
+export function assetSourceRel(targetDir, file) {
   const rel = String(file || '')
     .replace(/\\/g, '/')
     .replace(/^\/+/, '');
-  const parts = rel.split('/').filter(Boolean);
-  if (!parts.length || parts.some((p) => p === '.' || p === '..' || p.startsWith('.'))) return null;
+  const parts = rel.split('/').filter((p) => p && p !== '.');
+  if (!parts.length || parts.some((p) => p.startsWith('.'))) return null;
   return path.join(targetDir, ...parts);
 }
 
@@ -1353,7 +1356,8 @@ function sanitize(name) {
 
 function parseHeaderInfo(text) {
   try {
-    if (!String(text || '').startsWith('/**')) return null;
+    text = String(text || '').replace(/^\uFEFF/, '');
+    if (!text.startsWith('/**')) return null;
     const headStart = text.indexOf('/**');
     const headEnd = text.indexOf('*/', headStart + 3);
     const head = headStart >= 0 && headEnd > headStart ? text.slice(headStart, headEnd) : text;

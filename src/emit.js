@@ -49,7 +49,8 @@ export function targetAssetFiles(target) {
   for (const asset of [...(target.costumes || []), ...(target.sounds || [])]) {
     const md5ext = asset.md5ext || (asset.assetId && `${asset.assetId}.${asset.dataFormat || ''}`);
     if (!md5ext || map.has(md5ext)) continue;
-    const ext = asset.dataFormat || String(md5ext).split('.').pop() || 'dat';
+    // dataFormat comes from the project file, so keep it to a plain extension (no '/', '..').
+    const ext = String(asset.dataFormat || String(md5ext).split('.').pop()).replace(/[^a-zA-Z0-9]/g, '') || 'dat';
     const base = String(asset.name ?? 'asset').replace(/[^a-zA-Z0-9-_]/g, '_') || 'asset';
     let file = `${base}.${ext}`;
     let n = 2;

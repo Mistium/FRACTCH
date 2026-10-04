@@ -48,6 +48,7 @@ export function toPromiseFs(fsLike) {
     writeFile: (p, data) => impl.writeFile(p, data),
     readdir: (p) => impl.readdir(p),
     stat: (p) => impl.stat(p),
+    unlink: (p) => impl.unlink(p),
     exists,
     isDirectory,
     mkdirp,

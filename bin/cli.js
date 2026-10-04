@@ -15,6 +15,7 @@ import {
   convertProject,
   writeAssets,
   writeExtensions,
+  formatProject,
 } from '../src/index.js';
 import { runPackage } from '../src/packageCmd.js';
 
@@ -36,14 +37,22 @@ const USAGE =
   '  fractch --input <sb3> --out <dir>       flag form (same as `from ... to ...`)';
 
 const rawArgs = hideBin(process.argv);
-const words = [];
-for (let i = 0; i < rawArgs.length; i++) {
-  if (rawArgs[i] === '--editor' || rawArgs[i] === '--origin') {
-    i++;
-    continue;
+// Flags whose next argument is their value, which must not be mistaken for a word.
+const VALUE_FLAGS = new Set(['--editor', '--origin', '--input', '-i', '--out', '-o', '--outSb3']);
+
+function splitArgs(args) {
+  const flags = [];
+  const words = [];
+  for (let i = 0; i < args.length; i++) {
+    if (VALUE_FLAGS.has(args[i])) {
+      flags.push(args[i]);
+      if (i + 1 < args.length) flags.push(args[++i]);
+    } else (args[i].startsWith('-') ? flags : words).push(args[i]);
   }
-  if (!rawArgs[i].startsWith('-')) words.push(rawArgs[i]);
+  return { flags, words };
 }
+
+const { words } = splitArgs(rawArgs);
 const command = ['new', 'clone', 'check', 'fmt', 'watch', 'run', 'package'].includes(words[0]) ? words[0] : null;
 
 const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
@@ -51,15 +60,15 @@ const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
 const WATCHED_FILE_RE = /\.(fractch|json|svg|png|jpg|jpeg|gif|wav|mp3)$/i;
 
 function translateWordSyntax(args) {
-  const flags = [];
-  const words = [];
-  for (const a of args) (a.startsWith('-') ? flags : words).push(a);
+  const { flags, words } = splitArgs(args);
   if (!words.length) return args;
 
   if (words[0] === 'from' && words[1]) {
     const input = words[1];
-    const out =
-      words[2] === 'to' && words[3] ? words[3] : path.join('.', path.basename(input).replace(/\.sb3$/i, '') || 'build');
+    if (words[2] === 'to' && words[3]) return ['--input', input, '--out', words[3], ...flags];
+    const hasOut = flags.some((f) => f === '--out' || f === '-o' || f.startsWith('--out='));
+    if (hasOut) return ['--input', input, ...flags];
+    const out = path.join('.', path.basename(input).replace(/\.sb3$/i, '') || 'build');
     return ['--input', input, '--out', out, ...flags];
   }
 
@@ -116,10 +125,14 @@ async function runFmt(dir, verbose) {
       `[fractch] ${problems.length} problem${problems.length === 1 ? ' above does' : 's above do'} not block formatting; run 'fractch check' for details`
     );
   }
-  const { manifest } = await buildProjectFromBuildDir({ buildDir, verbose, prune: false });
-  const result = await convertProject(manifest, { outDir: buildDir, verbose });
+  const result = await formatProject({ buildDir, verbose });
+  const extra = [
+    result.filesRemoved && `removed ${result.filesRemoved} file${result.filesRemoved === 1 ? '' : 's'} that moved`,
+    result.assetsCopied && `copied ${result.assetsCopied} asset${result.assetsCopied === 1 ? '' : 's'}`,
+  ].filter(Boolean);
   console.log(
-    `[fractch] fmt: rewrote ${result.filesWritten} file${result.filesWritten === 1 ? '' : 's'} in ${buildDir}`
+    `[fractch] fmt: rewrote ${result.filesWritten} file${result.filesWritten === 1 ? '' : 's'} in ${buildDir}` +
+      (extra.length ? ` (${extra.join(', ')})` : '')
   );
 }
 
@@ -248,7 +261,14 @@ async function runRun(dir, editorFlagValue) {
     }
 
     if (pathname.startsWith('/assets/')) {
-      const name = decodeURIComponent(pathname.slice('/assets/'.length));
+      let name;
+      try {
+        name = decodeURIComponent(pathname.slice('/assets/'.length));
+      } catch {
+        res.writeHead(400);
+        res.end();
+        return;
+      }
       const rel = latestAssetFiles.get(name);
       if (!rel) {
         res.writeHead(404);
@@ -361,11 +381,22 @@ async function runRun(dir, editorFlagValue) {
 }
 
 function openInBrowser(url) {
-  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+  const manual = () => console.log(`[fractch] open manually: ${url}`);
+  // On Windows go through cmd without shell parsing: the URL contains '&', which an
+  // unquoted shell command line would split. The empty "" is start's window title.
+  const [cmd, args] =
+    process.platform === 'darwin'
+      ? ['open', [url]]
+      : process.platform === 'win32'
+        ? ['cmd', ['/c', 'start', '""', url.replace(/&/g, '^&')]]
+        : ['xdg-open', [url]];
   try {
-    spawn(cmd, [url], { detached: true, stdio: 'ignore', shell: process.platform === 'win32' }).unref();
+    const child = spawn(cmd, args, { detached: true, stdio: 'ignore', windowsVerbatimArguments: true });
+    // A missing opener (ENOENT) is reported asynchronously, not thrown.
+    child.on('error', manual);
+    child.unref();
   } catch {
-    console.log(`[fractch] open manually: ${url}`);
+    manual();
   }
 }
 
@@ -537,6 +568,7 @@ function runNew(dir) {
 
     const verbose = argv.verbose;
     const originIdx = rawArgs.indexOf('--origin');
+    if (originIdx >= 0 && !rawArgs[originIdx + 1]) throw new Error('--origin needs a path to an .sb3');
     if (argv.pack) {
       await packSb3({
         buildDir: path.resolve(argv.out),
