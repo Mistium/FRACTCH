@@ -47,3 +47,29 @@ export function collectBlocksSubgraph(blocks, topId) {
   }
   return sub;
 }
+
+// Scratch saves a loose variable/list reporter on the canvas in compact form,
+// [12 or 13, name, id, x, y]. Expand those into ordinary top-level blocks so they
+// are emitted like any other script instead of being skipped.
+export function expandCompactTopLevel(target) {
+  const blocks = target?.blocks;
+  if (!blocks || !Object.values(blocks).some((b) => Array.isArray(b) && b.length >= 5)) return target;
+  const out = {};
+  for (const [id, b] of Object.entries(blocks)) {
+    if (Array.isArray(b) && b.length >= 5 && (b[0] === 12 || b[0] === 13)) {
+      const isVar = b[0] === 12;
+      out[id] = {
+        opcode: isVar ? 'data_variable' : 'data_listcontents',
+        next: null,
+        parent: null,
+        inputs: {},
+        fields: isVar ? { VARIABLE: [b[1], b[2]] } : { LIST: [b[1], b[2]] },
+        shadow: false,
+        topLevel: true,
+        x: b[3],
+        y: b[4],
+      };
+    } else out[id] = b;
+  }
+  return { ...target, blocks: out };
+}

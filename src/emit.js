@@ -6,9 +6,8 @@ import {
   renderBody,
   commentDeclLine,
   withAttachedComments,
-  isSimpleAttachedComment,
-  lineCommentText,
   inputValueText,
+  scriptLocalScope,
 } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
@@ -30,7 +29,8 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
 }
 
 export function targetDirNames(targets) {
-  const used = new Set();
+  // Pack skips these folder names (they hold project-level files), so no target may use them.
+  const used = new Set(['assets', 'extensions']);
   const map = new Map();
   for (const t of targets || []) {
     const base = String(t?.name ?? '').replace(/[^a-zA-Z0-9-_]/g, '_') || 'target';
@@ -49,7 +49,8 @@ export function targetAssetFiles(target) {
   for (const asset of [...(target.costumes || []), ...(target.sounds || [])]) {
     const md5ext = asset.md5ext || (asset.assetId && `${asset.assetId}.${asset.dataFormat || ''}`);
     if (!md5ext || map.has(md5ext)) continue;
-    const ext = asset.dataFormat || String(md5ext).split('.').pop() || 'dat';
+    // dataFormat comes from the project file, so keep it to a plain extension (no '/', '..').
+    const ext = String(asset.dataFormat || String(md5ext).split('.').pop()).replace(/[^a-zA-Z0-9]/g, '') || 'dat';
     const base = String(asset.name ?? 'asset').replace(/[^a-zA-Z0-9-_]/g, '_') || 'asset';
     let file = `${base}.${ext}`;
     let n = 2;
@@ -90,7 +91,7 @@ function numText(n) {
   return Number.isFinite(v) ? String(v) : '0';
 }
 
-export function emitTargetPrelude({ projectJson, target, monitors = [], workspaceComments = [] }) {
+export function emitTargetPrelude({ projectJson, target, monitors = [], workspaceComments = [], order = null }) {
   const lines = [];
 
   if (target.isStage) {
@@ -132,6 +133,7 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
       attrs.push(`rotation ${JSON.stringify(String(target.rotationStyle))}`);
     if (numOr(target.volume, 100) !== 100) attrs.push(`volume ${numText(target.volume)}`);
     if (target.layerOrder != null) attrs.push(`layer ${numText(target.layerOrder)}`);
+    if (order != null) attrs.push(`order ${order}`);
     lines.push(`sprite ${attrs.join(' ')};`);
   }
 
@@ -139,7 +141,8 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
     if (!Array.isArray(entry)) continue;
     const [name, value, isCloud] = entry;
 
-    if (/^!local_[A-Za-z0-9]+_/.test(String(name)) || /^local_\d+_/.test(String(name))) continue;
+    // Hidden script-local variables are re-created from the scripts' `local` lines.
+    if (/^!local_[A-Za-z0-9]+_/.test(String(name))) continue;
     const idSuffix = ` id ${JSON.stringify(String(id))}`;
     if (isCloud === true && String(name).startsWith('☁ ')) {
       lines.push(`cloud ${varNameToken(String(name).slice(2))} = ${varValueText(value)}${idSuffix};`);
@@ -213,7 +216,7 @@ function watchParamsText(params) {
 function emitScriptBody({ script, subgraph, context, cfg = {} }) {
   const { topBlockId, hatOpcode } = script;
 
-  const scriptContext = { ...context, declaredLocals: new Set() };
+  const scriptContext = { ...context, declaredLocals: new Set(), ...scriptLocalScope(subgraph) };
   setContext(scriptContext);
   context = scriptContext;
 
@@ -318,7 +321,9 @@ function renderFallbackBody(subgraph, topId, cfg, context) {
 function prependOwnComments(context, topBlockId, bodyText) {
   const own = context?.blockComments?.get(topBlockId);
   if (!own?.length) return bodyText;
-  const lines = own.map((c) => (isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c))).join('\n');
+  // Always the explicit form: a `//` line attaches to the statement below it, so it
+  // would move the hat's comment onto the first block of the body.
+  const lines = own.map((c) => commentDeclLine(c)).join('\n');
   return bodyText ? `${lines}\n${bodyText}` : lines;
 }
 
@@ -357,8 +362,10 @@ function formatOpcodeName(opcode) {
   return `${namespace}.${rest}`;
 }
 
+// Header values sit inside a /** */ comment: backslash-escape anything that could end
+// the comment (*/) or the line. pack.js parseHeaderInfo undoes this.
 function escapeHeader(s) {
-  return String(s).replace(/\*/g, '\\*');
+  return String(s).replace(/[\\*/\n\r]/g, (c) => ({ '\n': '\\n', '\r': '\\r' })[c] ?? `\\${c}`);
 }
 
 function deriveImports(blocksArr, context) {

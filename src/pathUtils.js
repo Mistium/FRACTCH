@@ -17,6 +17,10 @@ export function normalizePath(p) {
   if (drive) {
     prefix = drive[1] + '/';
     rest = s.slice(drive[1].length + 1);
+  } else if (/^\/\/[^/]/.test(s)) {
+    // Windows UNC path (\\server\share): the leading double slash is significant.
+    prefix = '//';
+    rest = s.slice(2);
   } else if (s.startsWith('/')) {
     prefix = '/';
     rest = s.slice(1);
@@ -37,10 +41,12 @@ export function normalizePath(p) {
 }
 
 export function join(...parts) {
+  // Don't add a separator after one that's already there: join('/', 'x') must not
+  // become the UNC-looking '//x'.
   const joined = parts
     .map(norm)
     .filter((p) => p !== '')
-    .join('/');
+    .reduce((acc, p) => (acc === '' ? p : acc.endsWith('/') ? acc + p : `${acc}/${p}`), '');
   return normalizePath(joined);
 }
 

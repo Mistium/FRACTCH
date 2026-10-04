@@ -4,7 +4,7 @@ import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, IdGen } from './buildBlocks.js';
 import { buildProcByCode } from './convert.js';
 import { groupTopLevelScripts } from './graph.js';
-import { collectLocalDeclNames } from './pack.js';
+import { collectLocalDeclNames, unescapeHeader } from './pack.js';
 
 function localVarsInOriginal(calls, blocks, rootId) {
   const names = collectLocalDeclNames(calls);
@@ -95,6 +95,12 @@ export function compareTrees(origBlocks, origId, newBlocks, newId, path_ = '$', 
     const bChild = typeof bVal === 'string' && newBlocks[bVal] ? bVal : null;
     if (aChild || bChild) {
       return compareTrees(origBlocks, aChild, newBlocks, bChild, `${path_}.inputs.${k}`, seen);
+    }
+    // Literal kinds (4-10) are interchangeable, but a broadcast (11), variable (12)
+    // or list (13) reference must stay that kind: [12,"x"] is not the text "x".
+    const refKind = (v) => (Array.isArray(v) && v[0] >= 11 && v[0] <= 13 ? v[0] : 0);
+    if (refKind(aVal) !== refKind(bVal)) {
+      return `${path_}.inputs.${k}: reference kind ${JSON.stringify(av)} vs ${JSON.stringify(bv)}`;
     }
     const aPayload = Array.isArray(aVal) ? aVal[1] : aVal;
     const bPayload = Array.isArray(bVal) ? bVal[1] : bVal;
@@ -190,7 +196,7 @@ function parseHeader(text) {
   const map = new Map();
   for (const line of head.split(/\r?\n/)) {
     const m = /\*\s*([^:]+):\s*(.*)$/.exec(line.trim());
-    if (m) map.set(m[1].trim(), m[2].trim());
+    if (m) map.set(m[1].trim(), unescapeHeader(m[2].trim()));
   }
   return { target: map.get('target'), topBlockId: map.get('topBlockId'), hatOpcode: map.get('hatOpcode') };
 }
@@ -216,7 +222,10 @@ export async function verifyRoundtrip({ project, buildDir, fs: fsLike }) {
   const ctx = buildRoundtripContext(project);
   const files = (await walkFractchFiles(vfs, buildDir)).sort();
 
-  const targetScriptCursor = new Map();
+  // Scripts are paired with the origin's by content: a target split across several
+  // files needn't list its scripts in origin order. The next unmatched origin script
+  // is tried first (the usual case), the rest only on a mismatch.
+  const unmatchedByTarget = new Map();
   let total = 0;
   let ok = 0;
   const failures = [];
@@ -240,30 +249,56 @@ export async function verifyRoundtrip({ project, buildDir, fs: fsLike }) {
       continue;
     }
 
-    const originScripts = groupTopLevelScripts(t);
+    if (!unmatchedByTarget.has(t.name))
+      unmatchedByTarget.set(
+        t.name,
+        groupTopLevelScripts(t).filter((o) => t.blocks[o.topBlockId])
+      );
+    const unmatched = unmatchedByTarget.get(t.name);
     const sharedIdGen = new IdGen();
+    const diffAgainst = (s, expected) => {
+      const { blocks: newBlocks, topId } = buildBlocksFromCalls(s.calls, {
+        hatOpcode: s.kind === 'implicit' ? expected.hatOpcode : null,
+        proceduresMapForTarget: ctx.procArgMaps.get(t.name),
+        identToProccode: ctx.identToProccode.get(t.name),
+        varMap: new Map([...ctx.stageVarMap, ...nameIdMap(t.variables)]),
+        listMap: new Map([...ctx.stageListMap, ...nameIdMap(t.lists)]),
+        broadcastNameToId: ctx.broadcastNameToId,
+        localVars: localVarsInOriginal(s.calls, t.blocks, expected.topBlockId),
+        idGen: sharedIdGen,
+      });
+      return compareTrees(t.blocks, expected.topBlockId, newBlocks, topId);
+    };
     for (const s of scripts || []) {
-      const cursor = targetScriptCursor.get(t.name) || 0;
-      const expected = s.topBlockId ? { topBlockId: s.topBlockId, hatOpcode: s.hatOpcode } : originScripts[cursor];
-      targetScriptCursor.set(t.name, cursor + 1);
-      if (!expected?.topBlockId || !t.blocks[expected.topBlockId]) continue;
+      if (s.topBlockId) {
+        if (!t.blocks[s.topBlockId]) continue;
+        total++;
+        const at = unmatched.findIndex((o) => o.topBlockId === s.topBlockId);
+        if (at >= 0) unmatched.splice(at, 1);
+        try {
+          const diff = diffAgainst(s, { topBlockId: s.topBlockId, hatOpcode: s.hatOpcode });
+          if (diff) failures.push({ file: f, err: diff });
+          else ok++;
+        } catch (e) {
+          failures.push({ file: f, err: `build: ${e.message}` });
+        }
+        continue;
+      }
+      if (!unmatched.length) continue;
       total++;
-
       try {
-        const { blocks: newBlocks, topId } = buildBlocksFromCalls(s.calls, {
-          hatOpcode: s.kind === 'implicit' ? expected.hatOpcode : null,
-          proceduresMapForTarget: ctx.procArgMaps.get(t.name),
-          identToProccode: ctx.identToProccode.get(t.name),
-          varMap: new Map([...ctx.stageVarMap, ...nameIdMap(t.variables)]),
-          listMap: new Map([...ctx.stageListMap, ...nameIdMap(t.lists)]),
-          broadcastNameToId: ctx.broadcastNameToId,
-          localVars: localVarsInOriginal(s.calls, t.blocks, expected.topBlockId),
-          idGen: sharedIdGen,
-        });
-        const diff = compareTrees(t.blocks, expected.topBlockId, newBlocks, topId);
-        if (diff) failures.push({ file: f, err: diff });
-        else ok++;
+        const firstDiff = diffAgainst(s, unmatched[0]);
+        let at = firstDiff ? -1 : 0;
+        for (let i = 1; at < 0 && i < unmatched.length; i++) if (!diffAgainst(s, unmatched[i])) at = i;
+        if (at >= 0) {
+          unmatched.splice(at, 1);
+          ok++;
+        } else {
+          unmatched.shift();
+          failures.push({ file: f, err: firstDiff });
+        }
       } catch (e) {
+        unmatched.shift();
         failures.push({ file: f, err: `build: ${e.message}` });
       }
     }

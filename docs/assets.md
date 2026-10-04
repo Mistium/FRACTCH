@@ -38,7 +38,7 @@ Adding art is: drop the file in `assets/`, write one line. A missing or unreadab
 Packing removes costumes and sounds the code never references:
 
 - **Constant references count**: `costume "walk";`, `backdrop "night";`, a menu like `sound.sounds_menu("pop")`, a literal string typed into a switch-costume input, `when backdrop "x"` hats.
-- **Dynamic use keeps everything**: a reporter plugged into a costume/backdrop/sound slot, `next_costume;`, `next_backdrop;`, or the `"next/previous/random backdrop"` menu specials make every costume (or sound) of that target reachable, so nothing is removed.
+- **Dynamic use keeps everything**: a reporter plugged into a costume/backdrop/sound slot, `next_costume;`, `next_backdrop;`, the `"next/previous/random costume"` and `"next/previous/random backdrop"` specials, or a number (Scratch reads `costume 3;` as an index) make every costume (or sound) of that target reachable, so nothing is removed.
 - The costume at the target's current-costume index is always kept (it's what the sprite is wearing), and the index is remapped after pruning.
 - Backdrop references from *any* sprite protect the Stage's costumes.
 

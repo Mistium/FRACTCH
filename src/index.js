@@ -7,6 +7,7 @@ import { writeExtensions as writeExtensionsCore } from './extensions.js';
 import { packFromBuildDir } from './packSb3.js';
 import { checkProject as checkProjectCore } from './check.js';
 import { writeAssets } from './assets.js';
+import { formatProject as formatProjectCore } from './format.js';
 
 export async function convertProject(projectJson, opts = {}) {
   return convertProjectCore(projectJson, { fs: nodeFs, ...opts });
@@ -18,6 +19,10 @@ export async function buildProjectFromBuildDir(opts = {}) {
 
 export async function writeExtensions(projectJson, outDir, opts = {}) {
   return writeExtensionsCore(projectJson, outDir, { fs: nodeFs, ...opts });
+}
+
+export async function formatProject(opts = {}) {
+  return formatProjectCore({ fs: nodeFs, ...opts });
 }
 
 export async function checkProject(opts = {}) {
@@ -58,5 +63,6 @@ export { cleanIdent, buildProcByCode } from './convert.js';
 export { parseFractch, preprocess } from './parse.js';
 export { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode } from './buildBlocks.js';
 export { checkFractch, assertValidFractch, FractchSyntaxError } from './lint.js';
-export { emitScriptFile, emitMultiScriptFile, emitIndex, emitTargetIndex } from './emit.js';
+export { emitScriptFile, emitMultiScriptFile, emitIndex, emitTargetIndex, targetAssetFiles } from './emit.js';
+export { md5hex } from './md5.js';
 export { stringifyBlockCall, renderBody, setContext } from './stringify.js';

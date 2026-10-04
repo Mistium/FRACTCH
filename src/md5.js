@@ -11,7 +11,14 @@ function rotl(x, c) {
 }
 
 export function md5hex(input) {
-  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input.buffer ?? input);
+  const bytes =
+    input instanceof Uint8Array
+      ? input
+      : typeof input === 'string'
+        ? new TextEncoder().encode(input)
+        : ArrayBuffer.isView(input)
+          ? new Uint8Array(input.buffer, input.byteOffset, input.byteLength)
+          : new Uint8Array(input);
   const bitLen = bytes.length * 8;
   const paddedLen = (((bytes.length + 8) >> 6) + 1) << 6;
   const buf = new Uint8Array(paddedLen);

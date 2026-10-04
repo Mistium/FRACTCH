@@ -5,6 +5,10 @@ import { buildProjectFromBuildDir, deepEqual, BLANK_SVG, BLANK_SVG_ID } from './
 import { writeCompressedZip } from './writeZip.js';
 
 export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = false, fs: fsLike = fs }) {
+  // A mistyped directory would otherwise overwrite the .sb3 with a blank project.
+  if (fsLike.existsSync && fsLike.statSync && !(fsLike.existsSync(buildDir) && fsLike.statSync(buildDir).isDirectory()))
+    throw new Error(`project directory not found: ${buildDir}`);
+  if (originSb3 && !fs.existsSync(path.resolve(originSb3))) throw new Error(`origin .sb3 not found: ${originSb3}`);
   const {
     manifest: newManifest,
     hasManifest,

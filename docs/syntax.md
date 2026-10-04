@@ -59,7 +59,7 @@ comment "hello" at 50,50 size 350x170;            // workspace comment
 ```
 
 - `use` registers an extension id (plus its source URL for custom extensions). Extensions are also auto-detected from opcodes (`mistsutils.patchcommand(...)` registers `mistsutils`), so `use` is mainly for attaching URLs.
-- `sprite` takes an optional quoted display name (folder names are sanitized copies) and attributes: `at x,y`, `size`, `direction`, `visible`/`hidden`, `draggable`, `rotation "all around"|"left-right"|"don't rotate"`, `volume`, `layer`, `costume n` (current costume index). `stage` takes `tempo`, `volume`, `video on|off|"on-flipped"`, `transparency`, `tts "lang"`, `costume n`. A costume declaration can carry `current` instead of the index form.
+- `sprite` takes an optional quoted display name (folder names are sanitized copies) and attributes: `at x,y`, `size`, `direction`, `visible`/`hidden`, `draggable`, `rotation "all around"|"left-right"|"don't rotate"`, `volume`, `layer`, `order n` (position in the sprite list; converted projects only write it when folder order would differ), `costume n` (current costume index). `stage` takes `tempo`, `volume`, `video on|off|"on-flipped"`, `transparency`, `tts "lang"`, `costume n`. A costume declaration can carry `current` instead of the index form.
 - `var` in a sprite's file makes a for-this-sprite-only variable; in the Stage's file it's global. Variables also spring into existence on first assignment (value 0) — `var` is for initial values and lists.
 - `watch` declares a stage-monitor for a variable or list of this target: `at x,y`, `size WxH`, `large`/`slider`, `range min,max`, `continuous` (non-discrete slider), `hidden`/`visible`. Converted projects may carry `sprite "name"`/`id "..."` attributes to preserve watchers of since-deleted sprites verbatim.
 - `comment` at the top level of a file is a workspace comment; inside a script body it attaches to the preceding statement's block (or to the hat when it's the first line). Attributes: `at x,y`, `size WxH`, `minimized`, and `for "blockId"` (converted projects only: reproduces a comment whose anchor block no longer exists). A `//` comment is the sugar for the common case: it emits `comment` under the hood, and a block comment with default position/size (no `at`/`size`/`minimized`/`for`) re-emits as a `//` line above its block. Positioned or minimized comments keep the explicit `comment "..."` form.
@@ -74,7 +74,7 @@ score -= 1;                 // change by the negation
 say score;                  // bare reads
 vars["Fancy Name!"] = 1;    // any name at all
 local temp = 10;            // script-local: packs to a namespaced real
-temp += 1;                  // variable (local_1_temp), invisible to other scripts
+temp += 1;                  // variable (!local_f_temp), invisible to other scripts
 ```
 
 `local` names shadow globals within their script; `vars["name"]` always means the global.
@@ -135,19 +135,15 @@ Array (and object) literals in expression position are JSON text sugar: `[1, 2, 
 
 ```txt
 import "fractch/strings";        // at the top of a target's file
+import "fractch/json" as j;      // bind the namespace under another name
 
 when flag {
-  parts = "a,b,c".split(",");    // -> ["a","b","c"]   (JSON array text)
-  say parts.item(2);             // "b" (1-based; strings decoded)
-  say parts.count();             // 3
-  parts = parts.push("d");       // ["a","b","c","d"]
-  say parts.join(" - ");         // "a - b - c - d"
+  say strings.replace("a-b", "-", " ");   // "a b"
+  say j.get_from("name", msg);
 }
 ```
 
-Modules are written in fractch itself with vanilla blocks only (reporter custom blocks need TurboWarp/MistWarp `return`; no extensions). At pack time the imported module's `def`s are injected into the target (deduped — a def the target declares itself wins) and marked so converting the `.sb3` folds them back into the `import` line. Using a method without the import auto-injects its module; the import line is for explicitness. Library bodies are pinned: editor edits to injected defs are replaced by the bundled source on the next convert+pack.
-
-Methods: `split`/`join` (`fractch/strings`), `item`/`count`/`push` (`fractch/json`). `value.method(...)` on a bare identifier resolves at pack time: if a variable/local/param of that name exists it's a method call, otherwise it's the extension opcode (`mistsutils.item(C: 1, ...)` keeps working; keyed args always mean an opcode call, and raw `ns_method(...)` is the explicit escape hatch). Scratch caveat: string comparison is case-insensitive, so `split` matches its delimiter case-insensitively.
+Packages are written in fractch itself with vanilla blocks only (reporter custom blocks need TurboWarp/MistWarp `return`; no extensions). At pack time the functions you call (plus their dependencies) are injected into the target as `def`s and marked so converting the `.sb3` folds them back into the `import` line. Package functions are called through the namespace (`strings.fn(...)`); variables have no methods. See [packages.md](packages.md) for the function list. Scratch caveat: string comparison is case-insensitive, so matching inside package functions is too.
 
 ## Statements
 

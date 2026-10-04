@@ -2,6 +2,7 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch, closestMatch } from './parse.js';
 import { checkFractch } from './lint.js';
+import { assetSourceRel } from './pack.js';
 import { LIST_METHOD_OPS } from './buildBlocks.js';
 import { KNOWN_OPCODES, MENU_OPCODES, VALIDATED_NAMESPACES } from './knownOpcodes.js';
 import { STDLIB_METHODS, STDLIB_MODULE_META } from './stdlib/index.js';
@@ -18,6 +19,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           file: '.',
           line: 0,
           col: 0,
+          fatal: true,
           message: `project directory does not exist: ${buildDir}`,
           hint: 'pass the directory that contains target folders such as Stage/',
         },
@@ -33,6 +35,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           file: '.',
           line: 0,
           col: 0,
+          fatal: true,
           message: `project path is not a directory: ${buildDir}`,
           hint: 'pass a project directory, not a .fractch or .sb3 file',
         },
@@ -40,16 +43,28 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       sources,
     };
   }
-  const files = await collectFractchFiles(vfs, buildDir);
+  const strays = [];
+  const files = await collectFractchFiles(vfs, buildDir, [], strays);
+  for (const stray of strays) {
+    problems.push({
+      file: path.relative(buildDir, stray),
+      line: 0,
+      col: 0,
+      message: 'pack ignores .fractch files at the project root',
+      hint: 'move it into a target folder such as Stage/',
+    });
+  }
   if (files.length === 0) {
     return {
       files: 0,
       problems: [
+        ...problems,
         {
           file: '.',
           line: 0,
           col: 0,
-          message: 'project contains no .fractch files',
+          fatal: true,
+          message: 'project contains no .fractch files in target folders',
           hint: 'add a target script such as Stage/main.fractch',
         },
       ],
@@ -113,8 +128,19 @@ export async function checkProject({ buildDir, fs: fsLike }) {
     for (const decl of [...(parsed.assets?.costumes || []), ...(parsed.assets?.sounds || [])]) {
       const kind = parsed.assets.costumes.includes(decl) ? 'costume' : 'sound';
       const fileRel = String(decl.file || '');
-      const abs = path.join(buildDir, target, ...fileRel.split('/').filter(Boolean));
       if (!fileRel) continue;
+      const sourceRel = assetSourceRel(target, fileRel);
+      if (!sourceRel) {
+        push(
+          rel,
+          decl.line ?? 0,
+          0,
+          `${kind} "${decl.name}" has an invalid file path: ${fileRel}`,
+          'asset paths are relative to the target folder and may not contain .. or hidden segments'
+        );
+        continue;
+      }
+      const abs = path.join(buildDir, sourceRel);
       if (!(await vfs.exists(abs))) {
         push(
           rel,
@@ -163,13 +189,13 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           'use list functions: append(list, v), delete(list, i), insert(list, i, v), replace(list, i, v), set(list, i, v), clear(list), get(list, i), item(list, i), hasItem(list, v), indexOf(list, v)'
         );
       } else if (isVar && !isList && !STDLIB_METHODS[u.method] && u.method !== 'letter') {
-        const near = closestMatch(u.method, Object.keys(STDLIB_METHODS), 3);
+        const near = closestMatch(u.method, ['letter', ...Object.keys(STDLIB_METHODS)], 3);
         push(
           u.file,
           u.line,
           0,
           `'${u.ident}' is a variable and has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
-          'variable methods come from the stdlib: .split(d) .join(d) .item(i) .count() .push(v)'
+          'variables only have .letter(i); string helpers live in packages, e.g. import "fractch/strings" then strings.replace(...)'
         );
       }
     }
@@ -350,10 +376,13 @@ function checkDuplicateAssets(assets, file, push) {
   }
 }
 
-async function collectFractchFiles(vfs, dir, out = []) {
+// The files pack reads: target folders only (assets/ and extensions/ at the root are
+// reserved), minus *.ignore.fractch and files marked fractch:ignore near the top.
+// Other .fractch files at the root are never packed; they're returned as strays.
+async function collectFractchFiles(vfs, dir, out = [], strays = [], depth = 0) {
   let entries;
   try {
-    entries = await vfs.readdir(dir);
+    entries = (await vfs.readdir(dir)).slice().sort();
   } catch {
     return out;
   }
@@ -361,9 +390,20 @@ async function collectFractchFiles(vfs, dir, out = []) {
     if (e.startsWith('.')) continue;
     const p = path.join(dir, e);
     if (await vfs.isDirectory(p)) {
-      if (e === 'assets' || e === 'extensions') continue;
-      await collectFractchFiles(vfs, p, out);
-    } else if (e.endsWith('.fractch')) {
+      if (depth === 0 && (e === 'assets' || e === 'extensions')) continue;
+      await collectFractchFiles(vfs, p, out, strays, depth + 1);
+    } else if (e.endsWith('.fractch') && !e.endsWith('.ignore.fractch')) {
+      if (depth === 0) {
+        if (e !== 'index.fractch') strays.push(p);
+        continue;
+      }
+      let head = '';
+      try {
+        head = String(await vfs.readFile(p, 'utf8')).slice(0, 512);
+      } catch {
+        head = '';
+      }
+      if (/\bfractch:ignore\b/.test(head)) continue;
       out.push(p);
     }
   }

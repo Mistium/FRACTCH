@@ -14,28 +14,27 @@ def @fractch_strings_join(delim) warp {
 
 def @fractch_strings_replace(text, old, new) warp {
   local ret = ""
-  local idx = length(old)
-  local i = length(text)
-  local i2 = 0
-  until i < 1 {
-    if idx == 0 {
-      ret = new ++ letter(i, text) ++ ret
-      i -= 1
+  local n = length(old)
+  local i = 1
+  local j = 0
+  if n == 0 {
+    repeat length(text) {
+      ret = ret ++ new ++ letter(i, text)
+      i += 1
+    }
+    return ret
+  }
+  until i > length(text) {
+    j = 0
+    until j == n || letter(i + j, text) != letter(j + 1, old) {
+      j += 1
+    }
+    if j == n {
+      ret = ret ++ new
+      i += n
     } else {
-      i2 = 0
-      until letter(idx - i2, old) != letter(i, text) || i < 1 {
-        i -= 1
-        i2 += 1
-      }
-      if i2 == idx {
-        ret = new ++ ret
-      } else {
-        i += i2
-        repeat i2 + 1 {
-          ret = letter(i, text) ++ ret
-          i -= 1
-        }
-      }
+      ret = ret ++ letter(i, text)
+      i += 1
     }
   }
   return ret

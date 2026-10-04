@@ -31,6 +31,8 @@ export function buildBlocksFromCalls(calls, opts = {}) {
       if (ctx.commentsOut) {
         if (call.anchor === 'next' && !call.forId) {
           pendingNextComments.push({ ...call, blockId: null });
+        } else if (call.anchor === 'enclosing' && !call.forId && ctx.enclosingId) {
+          ctx.commentsOut.push({ ...call, blockId: ctx.enclosingId });
         } else {
           const entry = { ...call, blockId: call.forId || lastId };
           ctx.commentsOut.push(entry);
@@ -97,6 +99,8 @@ export function buildBlocksFromCalls(calls, opts = {}) {
 function expandListIteration(call, ctx) {
   const spec = call?.listIteration;
   if (!spec || (!spec.forced && !ctx.listMap?.has(spec.listName))) return call;
+  // A parameter or local of that name is a number to count to, not the list.
+  if (!spec.forced && (ctx.scopeParams?.has(spec.listName) || ctx.localVars?.has(spec.listName))) return call;
   const field = (key, name, type) => ({
     kind: 'keyed',
     sep: 'field',
@@ -294,6 +298,7 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
         idGen: ids,
         nested: true,
         asExpression: false,
+        enclosingId: node.id,
       });
       Object.assign(blocks, sub);
       if (topId) {
@@ -582,10 +587,14 @@ function buildProcDefScript(procDef, ids, ctx) {
   );
   const bodyCtx = { ...ctx, scopeParams };
 
+  // Leading comments belong to the def hat, except a `//` line written directly above
+  // the first statement, which attaches to that statement as it does everywhere else.
   let leadingComments = 0;
   while (procDef.body[leadingComments]?.type === 'commentDecl') leadingComments++;
-  const hatComments = procDef.body.slice(0, leadingComments);
-  const bodyCalls = procDef.body.slice(leadingComments);
+  const leading = procDef.body.slice(0, leadingComments);
+  const attachesBelow = (c) => c.anchor === 'next' && !c.forId;
+  const hatComments = leading.filter((c) => !attachesBelow(c));
+  const bodyCalls = [...leading.filter(attachesBelow), ...procDef.body.slice(leadingComments)];
   if (ctx.commentsOut) {
     for (const c of hatComments) ctx.commentsOut.push({ ...c, blockId: c.forId || defId });
   }
