@@ -34,7 +34,14 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   const procArgMaps = new Map();
   const identToProccode = new Map();
   const procMetaMaps = new Map();
-  const cloudAliasMaps = new Map();
+  // Bare name -> "☁ name" for every cloud variable. Clouds live on the stage, so any
+  // target may use the bare name unless it has its own variable called that.
+  const cloudAliases = new Map();
+  const cloudAliasesFor = (target) => {
+    if (!cloudAliases.size || !target || target.isStage) return cloudAliases;
+    const own = buildNameIdMap(target.variables);
+    return new Map([...cloudAliases].filter(([bare]) => !own.has(bare)));
+  };
   const watchDecls = [];
   const nameCollections = [];
   const stdlibImports = new Map();
@@ -68,8 +75,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
       await applyParsedAssets(vfs, buildDir, manifestTarget, parsed.assets, targetDir, assetFiles, assetSeenForTarget);
       await applyUses(manifest, parsed.uses, vfs, buildDir);
-      if (!cloudAliasMaps.has(manifestName)) cloudAliasMaps.set(manifestName, new Map());
-      applyVarDecls(manifest, manifestTarget, parsed.varDecls, cloudAliasMaps.get(manifestName));
+      applyVarDecls(manifest, manifestTarget, parsed.varDecls, cloudAliases);
       applySpriteProps(manifestTarget, parsed.spriteProps);
 
       if (parsed.spriteProps?.name && !hasManifest && parsed.spriteProps.name !== manifestName) {
@@ -116,7 +122,6 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         nameCollections.push({
           target: manifestTarget,
           scripts: fileScripts.map((script) => script.calls),
-          cloudAliases: cloudAliasMaps.get(manifestName),
         });
       for (const imp of parsed.imports || []) {
         if (!STDLIB_MODULES[imp]) continue;
@@ -142,8 +147,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   const stageTarget = (manifest.targets || []).find((t) => t.isStage);
 
   nameCollections.sort((a, b) => (b.target.isStage ? 1 : 0) - (a.target.isStage ? 1 : 0));
-  for (const { target, scripts, cloudAliases } of nameCollections) {
-    collectNamesIntoManifest(target, scripts, cloudAliases, stageTarget, manifest);
+  for (const { target, scripts } of nameCollections) {
+    collectNamesIntoManifest(target, scripts, cloudAliasesFor(target), stageTarget, manifest);
   }
 
   resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps);
@@ -182,8 +187,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
     for (let stackI = 0; stackI < data.stacks.length; stackI++) {
       const s = data.stacks[stackI];
 
-      const cloudAliases = cloudAliasMaps.get(name);
-      let localVars = cloudAliases && cloudAliases.size ? new Map(cloudAliases) : null;
+      const aliases = cloudAliasesFor(manifestTarget);
+      let localVars = aliases.size ? new Map(aliases) : null;
       const localNames = collectLocalDeclNames(s.calls);
       if (localNames.size) {
         localVars = localVars || new Map();
@@ -255,7 +260,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   const newManifest = mergeIntoManifest(manifest, builtTargets);
   validateSb3InputPrimitives(newManifest);
   autoRegisterExtensions(newManifest);
-  applyWatchDecls(newManifest, watchDecls, renamePlans);
+  applyWatchDecls(newManifest, watchDecls, renamePlans, cloudAliases);
   for (const [oldName, newName] of renamePlans) {
     const t = (newManifest.targets || []).find((x) => x.name === oldName);
     if (t && !(newManifest.targets || []).some((x) => x.name === newName)) t.name = newName;
@@ -313,7 +318,7 @@ function validateInputTuple(tuple, targetName, blockId, opcode, inputKey) {
   }
 }
 
-function applyWatchDecls(manifest, watchDecls, renamePlans) {
+function applyWatchDecls(manifest, watchDecls, renamePlans, cloudAliases = new Map()) {
   if (!watchDecls.length) return;
   if (!Array.isArray(manifest.monitors)) manifest.monitors = [];
   const stage = (manifest.targets || []).find((t) => t.isStage);
@@ -325,7 +330,9 @@ function applyWatchDecls(manifest, watchDecls, renamePlans) {
     return m;
   };
   const targetsByName = new Map((manifest.targets || []).map((t) => [t.name, t]));
-  for (const { targetName, decl } of watchDecls) {
+  for (const entry of watchDecls) {
+    const { targetName } = entry;
+    let { decl } = entry;
     const target = targetsByName.get(targetName);
     if (!target) continue;
     if (decl.opcode) {
@@ -358,6 +365,10 @@ function applyWatchDecls(manifest, watchDecls, renamePlans) {
         nameIds(target[dictKey]).get(decl.name) ||
         (stage && stage !== target ? nameIds(stage[dictKey]).get(decl.name) : null) ||
         null;
+    }
+    if (!id && !decl.isList && cloudAliases.has(decl.name) && stage) {
+      decl = { ...decl, name: cloudAliases.get(decl.name) };
+      id = nameIds(stage.variables).get(decl.name) || null;
     }
     if (!id) {
       console.warn(

@@ -1,14 +1,14 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { emitMultiScriptFile, emitTargetPrelude, targetDirNames } from './emit.js';
-import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
+import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow, expandCompactTopLevel } from './graph.js';
 import { decodeFileStemFromComment, decodeFileStemFromTopId } from './fileMarkers.js';
 import { STDLIB_MODULES, STDLIB_STEM_PREFIX } from './stdlib/index.js';
 
 export async function convertProject(projectJson, { outDir, fs: fsLike, config = {}, verbose = false } = {}) {
   const vfs = toPromiseFs(fsLike);
   await vfs.mkdirp(outDir);
-  const targets = projectJson.targets || [];
+  const targets = (projectJson.targets || []).map(expandCompactTopLevel);
   const files = [];
 
   const broadcastMap = new Map();
@@ -171,7 +171,15 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       const content = emitMultiScriptFile({
         target,
         entries,
-        context: { broadcastMap, proceduresMap, procByCode, varMap, listMap, broadcastNameToId, blockComments },
+        context: {
+          broadcastMap,
+          proceduresMap,
+          procByCode: procByCodeForTarget(procByCode, target.name),
+          varMap,
+          listMap,
+          broadcastNameToId,
+          blockComments,
+        },
         cfg: config,
         includeAssets: groupKey === 'main',
         prelude: groupKey === 'main' ? finalPrelude : '',
@@ -356,18 +364,53 @@ export function cleanIdent(label) {
   return id || 'proc';
 }
 
+function prototypeParams(b) {
+  const proccode = b.mutation.proccode;
+  let ids = [];
+  let names = [];
+  try {
+    ids = JSON.parse(b.mutation?.argumentids || '[]');
+  } catch {
+    ids = [];
+  }
+  try {
+    names = JSON.parse(b.mutation?.argumentnames || '[]');
+  } catch {
+    names = [];
+  }
+
+  const seenIdents = new Map();
+  const kinds = (proccode.match(/%[snb]/g) || []).map((t) => t[1]);
+  return ids.map((id, i) => {
+    const name = names[i] ?? `arg${i}`;
+    const base = cleanIdent(name);
+    const count = seenIdents.get(base) || 0;
+    seenIdents.set(base, count + 1);
+    const ident = count === 0 ? base : `${base}_${count + 1}`;
+    return { id, ident, name, kind: kinds[i] === 'b' ? 'b' : 's' };
+  });
+}
+
+// proccode -> { ident, params, label }. The ident is project-wide; params come from
+// the first prototype, with each target's own parameter names in paramsByTarget
+// (two sprites may define the same proccode with different argument names).
 export function buildProcByCode(targets) {
   const map = new Map();
 
   const usedProcIdents = new Set();
   const prototypes = [];
   const seenCodes = new Set();
+  const paramsByCode = new Map();
   for (const target of targets) {
     const blocks = target.blocks || {};
     for (const b of Object.values(blocks)) {
       if (!b || b.opcode !== 'procedures_prototype') continue;
       const proccode = b.mutation?.proccode;
-      if (!proccode || seenCodes.has(proccode)) continue;
+      if (!proccode) continue;
+      if (!paramsByCode.has(proccode)) paramsByCode.set(proccode, new Map());
+      const byTarget = paramsByCode.get(proccode);
+      if (!byTarget.has(target.name)) byTarget.set(target.name, prototypeParams(b));
+      if (seenCodes.has(proccode)) continue;
       seenCodes.add(proccode);
       prototypes.push(b);
     }
@@ -375,41 +418,16 @@ export function buildProcByCode(targets) {
   prototypes.sort((a, b) =>
     a.mutation.proccode < b.mutation.proccode ? -1 : a.mutation.proccode > b.mutation.proccode ? 1 : 0
   );
-  {
-    for (const b of prototypes) {
-      const proccode = b.mutation.proccode;
-      let ids = [];
-      let names = [];
-      try {
-        ids = JSON.parse(b.mutation?.argumentids || '[]');
-      } catch {
-        ids = [];
-      }
-      try {
-        names = JSON.parse(b.mutation?.argumentnames || '[]');
-      } catch {
-        names = [];
-      }
+  for (const b of prototypes) {
+    const proccode = b.mutation.proccode;
+    const params = prototypeParams(b);
+    let base = cleanIdent(proccode);
+    let ident = base;
+    let n = 1;
+    while (usedProcIdents.has(ident)) ident = `${base}_${++n}`;
+    usedProcIdents.add(ident);
 
-      const seenIdents = new Map();
-      const kinds = (proccode.match(/%[snb]/g) || []).map((t) => t[1]);
-      const params = ids.map((id, i) => {
-        const name = names[i] ?? `arg${i}`;
-        const base = cleanIdent(name);
-        const count = seenIdents.get(base) || 0;
-        seenIdents.set(base, count + 1);
-        const ident = count === 0 ? base : `${base}_${count + 1}`;
-        return { id, ident, name, kind: kinds[i] === 'b' ? 'b' : 's' };
-      });
-
-      let base = cleanIdent(proccode);
-      let ident = base;
-      let n = 1;
-      while (usedProcIdents.has(ident)) ident = `${base}_${++n}`;
-      usedProcIdents.add(ident);
-
-      map.set(proccode, { ident, params, label: proccode });
-    }
+    map.set(proccode, { ident, params, label: proccode, paramsByTarget: paramsByCode.get(proccode) });
   }
 
   for (const target of targets) {
@@ -420,4 +438,14 @@ export function buildProcByCode(targets) {
     }
   }
   return map;
+}
+
+// The procedure table as seen from one target, with that target's parameter names.
+export function procByCodeForTarget(procByCode, targetName) {
+  const out = new Map();
+  for (const [code, info] of procByCode) {
+    const own = info.paramsByTarget?.get(targetName);
+    out.set(code, own && own !== info.params ? { ...info, params: own } : info);
+  }
+  return out;
 }

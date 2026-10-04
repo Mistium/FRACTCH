@@ -29,7 +29,8 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
 }
 
 export function targetDirNames(targets) {
-  const used = new Set();
+  // Pack skips these folder names (they hold project-level files), so no target may use them.
+  const used = new Set(['assets', 'extensions']);
   const map = new Map();
   for (const t of targets || []) {
     const base = String(t?.name ?? '').replace(/[^a-zA-Z0-9-_]/g, '_') || 'target';
