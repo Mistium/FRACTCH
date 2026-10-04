@@ -2057,14 +2057,11 @@ class Parser {
       const call = e.value;
 
       if (call.callee.type === 'opcode' || call.callee.type === 'identOrMethod') {
-        const substackKeys = ['SUBSTACK', 'SUBSTACK2'];
-        let si = 0;
-        while (si < substackKeys.length) {
+        for (let si = 0; ; si++) {
           this.skipWS();
           if (this.peek() !== '{') break;
           const body = this.parseBraceBody();
-          call.args.push(branchArg('substack', body, substackKeys[si]));
-          si++;
+          call.args.push(branchArg('substack', body, si ? `SUBSTACK${si + 1}` : 'SUBSTACK'));
         }
       }
       return call;
@@ -2566,7 +2563,8 @@ class Parser {
           'triple-quoted strings are raw: no escapes, closed by """'
         );
       }
-      const result = this.s.slice(this.i, end);
+      // The emitter never writes \r in a raw string, so a CRLF here is the checkout's.
+      const result = this.s.slice(this.i, end).replace(/\r\n/g, '\n');
       this.i = end + 3;
       return result;
     }

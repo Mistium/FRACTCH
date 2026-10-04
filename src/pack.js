@@ -143,7 +143,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
 
   nameCollections.sort((a, b) => (b.target.isStage ? 1 : 0) - (a.target.isStage ? 1 : 0));
   for (const { target, scripts, cloudAliases } of nameCollections) {
-    collectNamesIntoManifest(target, scripts, cloudAliases, stageTarget);
+    collectNamesIntoManifest(target, scripts, cloudAliases, stageTarget, manifest);
   }
 
   resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps);
@@ -189,7 +189,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         localVars = localVars || new Map();
         for (const n of localNames) {
           const mangled = `!local_${localTags[stackI]}_${n}`;
-          const id = ensureDictEntry(manifestTarget?.variables || {}, mangled, [mangled, 0]);
+          const id = ensureDictEntry(manifestTarget?.variables || {}, mangled, [mangled, 0], manifest);
           if (id) varMap.set(mangled, id);
           localVars.set(n, mangled);
         }
@@ -481,12 +481,12 @@ function applyVarDecls(manifest, target, decls, cloudAliases) {
     const owner = d.cloud ? (manifest.targets || []).find((t) => t.isStage) || target : target;
     if (!owner) continue;
     if (d.isList) {
-      const id = d.id || ensureDictEntry(owner.lists, d.name, [d.name, d.value]);
+      const id = d.id || ensureDictEntry(owner.lists, d.name, [d.name, d.value], manifest);
       if (id) owner.lists[id] = [d.name, d.value];
     } else {
       const name = d.cloud && !String(d.name).startsWith('\u2601 ') ? `\u2601 ${d.name}` : d.name;
       const entry = d.cloud ? [name, d.value, true] : [name, d.value];
-      const id = d.id || ensureDictEntry(owner.variables, name, entry);
+      const id = d.id || ensureDictEntry(owner.variables, name, entry, manifest);
       if (id) owner.variables[id] = entry;
       if (d.cloud && cloudAliases) cloudAliases.set(d.name, name);
     }
@@ -515,6 +515,16 @@ const COSTUME_MENU_OPCODES = new Set(['looks_costume']);
 const BACKDROP_MENU_OPCODES = new Set(['looks_backdrops']);
 const SOUND_MENU_OPCODES = new Set(['sound_sounds_menu']);
 const BACKDROP_SPECIALS = new Set(['next backdrop', 'previous backdrop', 'random backdrop']);
+const COSTUME_SPECIALS = new Set(['next costume', 'previous costume', 'random costume']);
+const SWITCH_COSTUME_OPCODES = new Set(['looks_switchcostumeto']);
+const SWITCH_BACKDROP_OPCODES = new Set(['looks_switchbackdropto', 'looks_switchbackdroptoandwait']);
+const PLAY_SOUND_OPCODES = new Set(['sound_play', 'sound_playuntildone']);
+// Scratch reads a value that names no asset but looks like a number as a 1-based index.
+const indexLike = (v) => /^\s*[-+]?(\d+\.?\d*|\.\d+)\s*$/.test(String(v));
+const reachesAll = (refs, assets, specials) => {
+  const names = new Set(assets.map((a) => String(a.name)));
+  return [...refs].some((r) => specials.has(r) || (indexLike(r) && !names.has(r)));
+};
 
 function pruneUnusedAssets(manifest, verbose) {
   const targets = manifest.targets || [];
@@ -561,8 +571,8 @@ function pruneUnusedAssets(manifest, verbose) {
           }
         }
 
-        if (b.opcode === 'looks_switchcostumeto' || b.opcode === 'looks_switchbackdropto') {
-          const isBackdrop = b.opcode === 'looks_switchbackdropto';
+        if (SWITCH_COSTUME_OPCODES.has(b.opcode) || SWITCH_BACKDROP_OPCODES.has(b.opcode)) {
+          const isBackdrop = SWITCH_BACKDROP_OPCODES.has(b.opcode);
           if (
             activeId &&
             !ids.some(
@@ -581,7 +591,7 @@ function pruneUnusedAssets(manifest, verbose) {
           }
         }
         if (
-          (b.opcode === 'sound_play' || b.opcode === 'sound_playuntildone') &&
+          PLAY_SOUND_OPCODES.has(b.opcode) &&
           !activeId &&
           Array.isArray(tuple[1]) &&
           typeof tuple[1][1] === 'string'
@@ -589,7 +599,7 @@ function pruneUnusedAssets(manifest, verbose) {
           st.soundRefs.add(tuple[1][1]);
         }
         if (
-          (b.opcode === 'sound_play' || b.opcode === 'sound_playuntildone') &&
+          PLAY_SOUND_OPCODES.has(b.opcode) &&
           activeId &&
           !ids.some((id) => blocks[id] && SOUND_MENU_OPCODES.has(blocks[id].opcode))
         ) {
@@ -602,9 +612,12 @@ function pruneUnusedAssets(manifest, verbose) {
   for (const t of targets) {
     const st = perTarget.get(t);
     if (!st) continue;
-    const keepAllCostumes = st.all || (t.isStage && stageAll);
     const costumeRefs = t.isStage ? new Set([...st.refs, ...stageRefs]) : st.refs;
     const costumes = t.costumes || [];
+    const keepAllCostumes =
+      st.all ||
+      (t.isStage && stageAll) ||
+      reachesAll(costumeRefs, costumes, t.isStage ? BACKDROP_SPECIALS : COSTUME_SPECIALS);
     const currentIdx = Math.min(Math.max(t.currentCostume ?? 0, 0), Math.max(costumes.length - 1, 0));
     if (!keepAllCostumes && costumes.length) {
       const kept = costumes.filter((c, i) => i === currentIdx || costumeRefs.has(String(c.name)));
@@ -615,7 +628,7 @@ function pruneUnusedAssets(manifest, verbose) {
       }
     }
     const sounds = t.sounds || [];
-    if (!st.allSounds && sounds.length) {
+    if (!st.allSounds && !reachesAll(st.soundRefs, sounds, new Set()) && sounds.length) {
       const kept = sounds.filter((s) => st.soundRefs.has(String(s.name)));
       if (kept.length !== sounds.length) {
         if (verbose) console.log(`[pack] ${t.name}: removed ${sounds.length - kept.length} unused sound(s)`);
@@ -930,18 +943,19 @@ export function assetSourceRel(targetDir, file) {
   return path.join(targetDir, ...parts);
 }
 
-function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
+function collectNamesIntoManifest(target, scripts, cloudAliases, stage, manifest) {
   const vars = new Set();
   const lists = new Set();
   const broadcasts = new Set();
+  // Names in a variable field or vars[...] are variables even when a list shares the name.
+  const definiteVars = new Set();
   // A `local` only shadows names inside the script that declares it.
   for (const scriptCalls of scripts) {
     const scriptVars = new Set();
-    collectNames(scriptCalls, { vars: scriptVars, lists, broadcasts });
+    collectNames(scriptCalls, { vars: scriptVars, lists, broadcasts, definiteVars });
     for (const local of collectLocalDeclNames(scriptCalls)) scriptVars.delete(local);
     for (const name of scriptVars) vars.add(name);
   }
-  const calls = scripts.flat();
   if (cloudAliases) for (const bare of cloudAliases.keys()) vars.delete(bare);
   const globals = stage && stage !== target ? stage : null;
 
@@ -951,7 +965,10 @@ function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
     ...(stage ? Object.values(stage.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)) : []),
   ]);
   const iterationVars = new Set();
-  for (const spec of collectListIterations(calls)) {
+  const specs = scripts.flatMap((scriptCalls) =>
+    collectListIterations(scriptCalls, [], collectLocalDeclNames(scriptCalls))
+  );
+  for (const spec of specs) {
     if (!spec.forced && !listNames.has(spec.listName)) continue;
     lists.add(spec.listName);
     listNames.add(spec.listName);
@@ -963,24 +980,28 @@ function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
   const globalVarNames = globals ? buildNameIdMap(globals.variables) : null;
   const globalListNames = globals ? buildNameIdMap(globals.lists) : null;
   for (const name of vars) {
-    if (listNames.has(name) && !iterationVars.has(name)) continue;
+    if (listNames.has(name) && !iterationVars.has(name) && !definiteVars.has(name)) continue;
     if (globalVarNames && globalVarNames.has(name)) continue;
-    ensureDictEntry(target.variables, name, [name, 0]);
+    ensureDictEntry(target.variables, name, [name, 0], manifest);
   }
   for (const name of lists) {
     if (globalListNames && globalListNames.has(name)) continue;
-    ensureDictEntry(target.lists, name, [name, []]);
+    ensureDictEntry(target.lists, name, [name, []], manifest);
   }
 
   const broadcastOwner = stage || target;
-  for (const name of broadcasts) ensureDictEntry(broadcastOwner.broadcasts, name, name);
+  for (const name of broadcasts) ensureDictEntry(broadcastOwner.broadcasts, name, name, manifest);
 }
 
-function collectListIterations(nodes, found = []) {
+// `scalars` are the locals and parameters in scope: `for i in n` over one of them
+// counts, even when a list shares the name.
+function collectListIterations(nodes, found = [], scalars = new Set()) {
   for (const node of nodes || []) {
-    if (node?.listIteration) found.push(node.listIteration);
-    if (node?.type === 'procDef') collectListIterations(node.body, found);
-    for (const arg of node?.args || []) if (arg.kind === 'branch') collectListIterations(arg.body, found);
+    const spec = node?.listIteration;
+    if (spec && (spec.forced || !scalars.has(spec.listName))) found.push(spec);
+    if (node?.type === 'procDef')
+      collectListIterations(node.body, found, new Set([...scalars, ...(node.params || []).map((p) => p.ident)]));
+    for (const arg of node?.args || []) if (arg.kind === 'branch') collectListIterations(arg.body, found, scalars);
   }
   return found;
 }
@@ -993,7 +1014,7 @@ function collectNamesFromNode(node, out) {
   if (!node) return;
   if (node.type === 'procDef') {
     const bodyVars = new Set();
-    collectNames(node.body, { vars: bodyVars, lists: out.lists, broadcasts: out.broadcasts });
+    collectNames(node.body, { ...out, vars: bodyVars });
     for (const p of node.params || []) bodyVars.delete(p.ident);
     for (const v of bodyVars) out.vars.add(v);
     return;
@@ -1016,7 +1037,10 @@ function collectNamesFromNode(node, out) {
     }
     if (arg.kind !== 'keyed') continue;
     if (arg.sep === 'field') {
-      if (arg.key === 'VARIABLE') collectFieldName(arg.value, out.vars);
+      if (arg.key === 'VARIABLE') {
+        collectFieldName(arg.value, out.vars);
+        if (out.definiteVars) collectFieldName(arg.value, out.definiteVars);
+      }
       if (arg.key === 'LIST') collectFieldName(arg.value, out.lists);
       if (arg.key === 'BROADCAST_OPTION') collectFieldName(arg.value, out.broadcasts);
       continue;
@@ -1028,8 +1052,10 @@ function collectNamesFromNode(node, out) {
 
 function collectNamesFromValue(value, out) {
   if (!value) return;
-  if (value.type === 'var') out.vars.add(value.name);
-  else if (value.type === 'list') out.lists.add(value.name);
+  if (value.type === 'var') {
+    out.vars.add(value.name);
+    out.definiteVars?.add(value.name);
+  } else if (value.type === 'list') out.lists.add(value.name);
   else if (value.type === 'broadcast') out.broadcasts.add(value.name);
   else if (value.type === 'ident') out.vars.add(value.name);
   else if (value.type === 'call') collectNamesFromNode(value.value, out);
@@ -1049,17 +1075,24 @@ function collectBroadcastInputName(value, set) {
   else if (value.type === 'broadcast') set.add(value.name);
 }
 
-function ensureDictEntry(dict, name, value) {
-  if (!dict || !name) return null;
+// scratch-vm keeps a target's variables, lists and broadcasts in one id-keyed map
+// and falls back to the stage's, so a new id must not repeat any id in the project.
+function ensureDictEntry(dict, name, value, manifest = null) {
+  if (!dict || name == null) return null;
   for (const [key, entry] of Object.entries(dict)) {
     const existing = Array.isArray(entry) ? entry[0] : entry;
     if (existing === name) return key;
   }
+  const taken = (id) =>
+    Object.prototype.hasOwnProperty.call(dict, id) ||
+    (manifest?.targets || []).some((t) =>
+      [t.variables, t.lists, t.broadcasts].some((d) => d && Object.prototype.hasOwnProperty.call(d, id))
+    );
   let id = sanitize(name) || 'item';
   if (!/^[A-Za-z_]/.test(id)) id = `_${id}`;
   let n = 1;
   let finalId = id;
-  while (Object.prototype.hasOwnProperty.call(dict, finalId)) finalId = `${id}_${++n}`;
+  while (taken(finalId)) finalId = `${id}_${++n}`;
   dict[finalId] = value;
   return finalId;
 }
@@ -1089,8 +1122,9 @@ function renameBlockId(blocks, oldId, newId) {
 }
 
 function stackBaseName(s) {
-  const c0 = s.calls?.[0];
-  if (c0?.type === 'procDef') return c0.ident;
+  const def = stackProcDef(s.calls);
+  if (def) return def.ident;
+  const c0 = s.calls?.find((c) => c?.type !== 'commentDecl');
   const hat = s.hatOpcode || (c0?.callee?.type === 'opcode' ? c0.callee.name : null);
   if (hat) return String(hat).replace(/^event_when|^control_/, '');
   return 'script';
@@ -1150,9 +1184,7 @@ function resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps = n
     for (const s of data.stacks) {
       const scopeNames = new Set(globalNames);
       for (const n of collectLocalDeclNames(s.calls)) scopeNames.add(n);
-      if (s.calls.length === 1 && s.calls[0].type === 'procDef') {
-        for (const p of s.calls[0].params || []) scopeNames.add(p.ident);
-      }
+      for (const p of stackProcDef(s.calls)?.params || []) scopeNames.add(p.ident);
       rewriteIdentOrMethod(s.calls, scopeNames, listNames, nsMap);
     }
   }
@@ -1244,7 +1276,7 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
       const marker = markerPrefixForFileStem(markerStem);
       const markerComment = commentMarkerForFileStem(markerStem);
       for (const s of parsed.scripts || []) {
-        const ident = s.calls[0]?.type === 'procDef' ? s.calls[0].ident : null;
+        const ident = stackProcDef(s.calls)?.ident ?? null;
         if (ident && !registry.has(ident))
           registry.set(ident, { calls: s.calls, marker, markerComment, x: s.x, y: s.y });
       }
@@ -1280,7 +1312,7 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
     if (injectedScripts.length) {
       const manifestTarget = (manifest.targets || []).find((t) => t.name === name);
       const stageTarget = (manifest.targets || []).find((t) => t.isStage);
-      if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedScripts, null, stageTarget);
+      if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedScripts, null, stageTarget, manifest);
     }
   }
 }
@@ -1313,9 +1345,15 @@ function collectProcCallIdents(calls, known, out) {
   for (const c of calls || []) visitCall(c);
 }
 
+// The def of a `def` script; comments written above it ride along in the same stack.
+function stackProcDef(calls) {
+  const real = (calls || []).filter((c) => c?.type !== 'commentDecl');
+  return real.length === 1 && real[0].type === 'procDef' ? real[0] : null;
+}
+
 function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName, calls) {
-  if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
-  const procDef = calls[0];
+  const procDef = stackProcDef(calls);
+  if (!procDef) return;
   const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
   if (!procArgMaps.has(targetName)) procArgMaps.set(targetName, new Map());
   if (!identToProccode.has(targetName)) identToProccode.set(targetName, new Map());

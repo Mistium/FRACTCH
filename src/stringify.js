@@ -388,7 +388,11 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
 
   const opExpr = tryOperatorInfo(block, subgraph);
   if (opExpr) {
-    return inline ? opExpr.text : opExpr.text + ';';
+    if (inline) return opExpr.text;
+    // A lone `true;` would read back as a bare value, not an operator block.
+    if (opExpr.text === 'true') return '0 == 0;';
+    if (opExpr.text === 'false') return '0 == 1;';
+    return opExpr.text + ';';
   }
 
   const rep = tryReporterInfo(block, subgraph);
@@ -416,12 +420,18 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     ? `${opName}(${argParts.join(', ')})`
     : `raw(${JSON.stringify(String(opcode))}${argParts.length ? `, ${argParts.join(', ')}` : ''})`;
 
-  const substackKeys = Object.keys(block.inputs || {})
-    .filter((k) => k.startsWith('SUBSTACK'))
-    .sort();
-  if (substackKeys.length) {
-    const branches = substackKeys.map((k) => `${branch(block, k, subgraph)}`).join(' ');
-    return `${call} ${branches}`;
+  // Brace bodies map to SUBSTACK, SUBSTACK2, SUBSTACK3... by position, so write an
+  // empty {} for any missing branch before the last one present.
+  const branchIndexes = Object.keys(block.inputs || {})
+    .map((k) => /^SUBSTACK(\d*)$/.exec(k))
+    .filter(Boolean)
+    .map((m) => (m[1] ? Number(m[1]) : 1));
+  if (branchIndexes.length) {
+    const count = Math.max(...branchIndexes);
+    const branches = Array.from({ length: count }, (_, i) =>
+      branch(block, i ? `SUBSTACK${i + 1}` : 'SUBSTACK', subgraph)
+    );
+    return `${call} ${branches.join(' ')}`;
   }
   return inline ? call : call + ';';
 }
@@ -754,7 +764,12 @@ function tryForLoop(block, subgraph) {
   const id = v.length > 1 ? v[1] : undefined;
   if (!bareNameOk(name)) return null;
   if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) return null;
-  const count = getInputExpr(block.inputs.VALUE, subgraph);
+  let count = getInputExpr(block.inputs.VALUE, subgraph);
+  // `for i in items` iterates the list when one is named items, so spell a
+  // same-named variable out.
+  const countVar = block.inputs.VALUE?.[1];
+  if (Array.isArray(countVar) && countVar[0] === 12 && count === countVar[1] && CTX.listMap?.has(count))
+    count = `vars[${JSON.stringify(count)}]`;
   return `for ${name} in ${count} ${branch(block, 'SUBSTACK', subgraph)}`;
 }
 
