@@ -529,3 +529,31 @@ test('roundtrip verification still passes for the regression fixtures', async (t
   const result = await verifyRoundtrip({ project, buildDir: out, fs });
   assert.deepEqual(result.failures, []);
 });
+
+test('verifyRoundtrip pairs scripts across files and checks reference kinds', async (t) => {
+  const say = (parent, message) => stmt('looks_say', parent, { MESSAGE: message });
+  const project = projectOf(
+    stageTarget(
+      {
+        h1: flag('s1'),
+        s1: say('h1', [1, [10, 'one']]),
+        h2: { ...flag('s2'), y: 300 },
+        s2: say('h2', [3, [12, 'score', 'v'], [10, '']]),
+      },
+      { variables: { v: ['score', 0] } }
+    )
+  );
+  const out = tempDir(t);
+  await convertProject(structuredClone(project), { outDir: out });
+  const main = path.join(out, 'Stage', 'main.fractch');
+  // Move the first script into a file that sorts before main.fractch.
+  const text = fs.readFileSync(main, 'utf8');
+  const first = /when flag at 0,0 \{\n {2}say "one";\n\}\n/;
+  fs.writeFileSync(path.join(out, 'Stage', 'a.fractch'), text.match(first)[0]);
+  fs.writeFileSync(main, text.replace(first, ''));
+  assert.deepEqual((await verifyRoundtrip({ project, buildDir: out, fs })).failures, []);
+
+  fs.writeFileSync(main, fs.readFileSync(main, 'utf8').replace('say score;', 'say "score";'));
+  const { failures } = await verifyRoundtrip({ project, buildDir: out, fs });
+  assert.match(failures[0].err, /reference kind/);
+});
