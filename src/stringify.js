@@ -358,7 +358,8 @@ export function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}
     const bare = { all: 'all', 'other scripts in sprite': 'other_scripts_in_sprite' }[opt];
     return `stop ${bare ?? JSON.stringify(opt)};`;
   }
-  if ((opcode === 'procedures_return' || opcode === 'control_return') && block.inputs?.VALUE) {
+  // `return v;` parses back as procedures_return, so control_return keeps its generic form.
+  if (opcode === 'procedures_return' && block.inputs?.VALUE) {
     return `return ${inputValueText(block.inputs.VALUE, subgraph, 'VALUE')};`;
   }
   if (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') {

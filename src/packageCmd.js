@@ -293,7 +293,10 @@ export async function runPackage(args) {
     const rel = path.relative(process.cwd(), out);
     console.log(`[fractch] packaged ${rel.startsWith('..') ? out : rel} (${result.data.length} bytes)`);
     if (interactive) {
-      console.log(`[fractch] repeat without prompts: fractch package ${words[0] || '.'} ${formatFlags(chosen)} --yes`);
+      const toOut = outArg ? ` to ${outArg}` : '';
+      console.log(
+        `[fractch] repeat without prompts: fractch package ${words[0] || '.'}${toOut} ${formatFlags(chosen)} --yes`
+      );
     }
   } finally {
     if (tmp) fs.rmSync(tmp, { force: true });

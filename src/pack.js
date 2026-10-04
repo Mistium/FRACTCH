@@ -239,8 +239,11 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         if (!manifestTarget.comments) manifestTarget.comments = {};
         for (const c of commentsOut) {
           const cid = uniqueCommentId(manifestTarget.comments, `~c${++commentSeq}`);
+          // A block shows only the one comment it points at; any further comment
+          // for it becomes a workspace comment so it stays visible.
+          const blockId = c.blockId && !(blocks[c.blockId] && blocks[c.blockId].comment) ? c.blockId : null;
           manifestTarget.comments[cid] = {
-            blockId: c.blockId || null,
+            blockId,
             x: c.x ?? 0,
             y: c.y ?? 0,
             width: c.width ?? 200,
@@ -248,7 +251,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
             minimized: !!c.minimized,
             text: String(c.text ?? ''),
           };
-          if (c.blockId && blocks[c.blockId]) blocks[c.blockId].comment = cid;
+          if (blockId && blocks[blockId]) blocks[blockId].comment = cid;
         }
       }
       stackIndex++;
@@ -851,8 +854,13 @@ function ensureTargetsForScripts(manifest, scriptFiles) {
 
 function pruneManifestToScriptTargets(manifest, scriptFiles) {
   if (!Array.isArray(manifest.targets)) return;
+  // Keep the targets the imported files resolve to: by header name first (folder
+  // names may carry a dedupe suffix like A_B_2), else by folder.
   const imported = new Set();
-  for (const f of scriptFiles) imported.add(f.targetDir);
+  for (const f of scriptFiles) {
+    if (f.headerTarget != null && manifest.targets.some((t) => t.name === f.headerTarget)) imported.add(f.headerTarget);
+    else imported.add(f.targetDir);
+  }
   manifest.targets = manifest.targets.filter((t) => {
     if (t.isStage) return true;
     return imported.has(t.name) || imported.has(sanitize(t.name));
