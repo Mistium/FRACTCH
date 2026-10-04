@@ -261,11 +261,22 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
   validateSb3InputPrimitives(newManifest);
   autoRegisterExtensions(newManifest);
   applyWatchDecls(newManifest, watchDecls, renamePlans, cloudAliases);
+  // Resolve every rename against the names as they were before any of them, so
+  // chains (A -> B while B -> C) and swaps work.
+  const allTargets = newManifest.targets || [];
+  const byOldName = new Map(allTargets.map((t) => [t.name, t]));
+  const finalNames = new Map(allTargets.map((t) => [t, t.name]));
   for (const [oldName, newName] of renamePlans) {
-    const t = (newManifest.targets || []).find((x) => x.name === oldName);
-    if (t && !(newManifest.targets || []).some((x) => x.name === newName)) t.name = newName;
+    const t = byOldName.get(oldName);
+    if (t) finalNames.set(t, newName);
+  }
+  const counts = new Map();
+  for (const name of finalNames.values()) counts.set(name, (counts.get(name) || 0) + 1);
+  for (const [t, name] of finalNames) {
+    if (name !== t.name && counts.get(name) === 1) t.name = name;
   }
 
+  applySpriteOrder(newManifest);
   if (prune) pruneUnusedAssets(newManifest, verbose);
   for (const t of newManifest.targets || []) {
     if (!Array.isArray(t.costumes) || t.costumes.length === 0) {
@@ -504,6 +515,19 @@ function applyVarDecls(manifest, target, decls, cloudAliases) {
   }
 }
 
+// `sprite ... order N` places sprites in the sprite pane; sprites without it keep their
+// relative order after the numbered ones. The stage stays first.
+function applySpriteOrder(manifest) {
+  const targets = manifest.targets || [];
+  if (!targets.some((t) => t.__order != null)) return;
+  const rank = (t) => (t.isStage ? -Infinity : (t.__order ?? Infinity));
+  manifest.targets = targets
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => rank(a.t) - rank(b.t) || a.i - b.i)
+    .map(({ t }) => t);
+  for (const t of manifest.targets) delete t.__order;
+}
+
 function applySpriteProps(target, props) {
   if (!target || !props) return;
   if (props.x != null) target.x = props.x;
@@ -516,6 +540,7 @@ function applySpriteProps(target, props) {
   if (props.volume != null) target.volume = props.volume;
   if (props.tempo != null) target.tempo = props.tempo;
   if (props.layer != null) target.layerOrder = props.layer;
+  if (props.order != null) target.__order = props.order;
   if (props.currentCostume != null) target.currentCostume = props.currentCostume;
   if (props.videoState != null) target.videoState = props.videoState;
   if (props.transparency != null) target.videoTransparency = props.transparency;
@@ -1393,7 +1418,8 @@ function buildNameIdMap(dict) {
 
 async function safeListDir(vfs, dir) {
   try {
-    return await vfs.readdir(dir);
+    // Sorted, so pack order never depends on the filesystem's listing order.
+    return (await vfs.readdir(dir)).slice().sort();
   } catch {
     return [];
   }

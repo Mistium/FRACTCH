@@ -57,6 +57,12 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
 
   const monitorsByTarget = routeMonitors(projectJson, targets);
   const dirNames = targetDirNames(targets);
+  // Pack lists sprites in folder-name order; record the real sprite-pane order only
+  // when it differs.
+  const sprites = targets.filter((t) => !t.isStage);
+  const spriteDirs = sprites.map((t) => dirNames.get(t));
+  const sortedDirs = [...spriteDirs].sort();
+  const needsOrder = spriteDirs.some((d, i) => d !== sortedDirs[i]);
 
   for (const target of targets) {
     const targetDir = dirNames.get(target);
@@ -72,6 +78,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       target,
       monitors: monitorsByTarget.get(target.name) || [],
       workspaceComments,
+      order: needsOrder && !target.isStage ? sprites.indexOf(target) + 1 : null,
     });
 
     const scripts = groupTopLevelScripts(target);

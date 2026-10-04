@@ -91,7 +91,7 @@ function numText(n) {
   return Number.isFinite(v) ? String(v) : '0';
 }
 
-export function emitTargetPrelude({ projectJson, target, monitors = [], workspaceComments = [] }) {
+export function emitTargetPrelude({ projectJson, target, monitors = [], workspaceComments = [], order = null }) {
   const lines = [];
 
   if (target.isStage) {
@@ -133,6 +133,7 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
       attrs.push(`rotation ${JSON.stringify(String(target.rotationStyle))}`);
     if (numOr(target.volume, 100) !== 100) attrs.push(`volume ${numText(target.volume)}`);
     if (target.layerOrder != null) attrs.push(`layer ${numText(target.layerOrder)}`);
+    if (order != null) attrs.push(`order ${order}`);
     lines.push(`sprite ${attrs.join(' ')};`);
   }
 
@@ -140,7 +141,8 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
     if (!Array.isArray(entry)) continue;
     const [name, value, isCloud] = entry;
 
-    if (/^!local_[A-Za-z0-9]+_/.test(String(name)) || /^local_\d+_/.test(String(name))) continue;
+    // Hidden script-local variables are re-created from the scripts' `local` lines.
+    if (/^!local_[A-Za-z0-9]+_/.test(String(name))) continue;
     const idSuffix = ` id ${JSON.stringify(String(id))}`;
     if (isCloud === true && String(name).startsWith('☁ ')) {
       lines.push(`cloud ${varNameToken(String(name).slice(2))} = ${varValueText(value)}${idSuffix};`);

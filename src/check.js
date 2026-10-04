@@ -43,17 +43,28 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       sources,
     };
   }
-  const files = await collectFractchFiles(vfs, buildDir);
+  const strays = [];
+  const files = await collectFractchFiles(vfs, buildDir, [], strays);
+  for (const stray of strays) {
+    problems.push({
+      file: path.relative(buildDir, stray),
+      line: 0,
+      col: 0,
+      message: 'pack ignores .fractch files at the project root',
+      hint: 'move it into a target folder such as Stage/',
+    });
+  }
   if (files.length === 0) {
     return {
       files: 0,
       problems: [
+        ...problems,
         {
           file: '.',
           line: 0,
           col: 0,
           fatal: true,
-          message: 'project contains no .fractch files',
+          message: 'project contains no target .fractch files',
           hint: 'add a target script such as Stage/main.fractch',
         },
       ],
@@ -365,10 +376,13 @@ function checkDuplicateAssets(assets, file, push) {
   }
 }
 
-async function collectFractchFiles(vfs, dir, out = []) {
+// The files pack reads: target folders only (assets/ and extensions/ at the root are
+// reserved), minus *.ignore.fractch and files marked fractch:ignore near the top.
+// Other .fractch files at the root are never packed; they're returned as strays.
+async function collectFractchFiles(vfs, dir, out = [], strays = [], depth = 0) {
   let entries;
   try {
-    entries = await vfs.readdir(dir);
+    entries = (await vfs.readdir(dir)).slice().sort();
   } catch {
     return out;
   }
@@ -376,9 +390,20 @@ async function collectFractchFiles(vfs, dir, out = []) {
     if (e.startsWith('.')) continue;
     const p = path.join(dir, e);
     if (await vfs.isDirectory(p)) {
-      if (e === 'assets' || e === 'extensions') continue;
-      await collectFractchFiles(vfs, p, out);
-    } else if (e.endsWith('.fractch')) {
+      if (depth === 0 && (e === 'assets' || e === 'extensions')) continue;
+      await collectFractchFiles(vfs, p, out, strays, depth + 1);
+    } else if (e.endsWith('.fractch') && !e.endsWith('.ignore.fractch')) {
+      if (depth === 0) {
+        if (e !== 'index.fractch') strays.push(p);
+        continue;
+      }
+      let head = '';
+      try {
+        head = String(await vfs.readFile(p, 'utf8')).slice(0, 512);
+      } catch {
+        head = '';
+      }
+      if (/\bfractch:ignore\b/.test(head)) continue;
       out.push(p);
     }
   }

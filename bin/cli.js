@@ -59,6 +59,39 @@ const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
 
 const WATCHED_FILE_RE = /\.(fractch|json|svg|png|jpg|jpeg|gif|wav|mp3)$/i;
 
+// fs.watch with recursive: true is unsupported on Linux before Node 20; there,
+// watch every directory separately (and pick up directories created later).
+function watchTree(dir, onChange) {
+  try {
+    fs.watch(dir, { recursive: true }, (event, file) => onChange(file));
+    return;
+  } catch (e) {
+    if (e?.code !== 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM') throw e;
+  }
+  const watched = new Set();
+  const add = (d) => {
+    if (watched.has(d)) return;
+    watched.add(d);
+    try {
+      fs.watch(d, (event, file) => {
+        if (!file) return;
+        const full = path.join(d, String(file));
+        try {
+          if (fs.statSync(full).isDirectory()) add(full);
+        } catch {
+          // deleted
+        }
+        onChange(path.relative(dir, full));
+      });
+      for (const entry of fs.readdirSync(d, { withFileTypes: true }))
+        if (entry.isDirectory() && !entry.name.startsWith('.')) add(path.join(d, entry.name));
+    } catch {
+      watched.delete(d);
+    }
+  };
+  add(dir);
+}
+
 function translateWordSyntax(args) {
   const { flags, words } = splitArgs(args);
   if (!words.length) return args;
@@ -165,7 +198,7 @@ async function runWatch(dir, outSb3, verbose, onPacked) {
 
   await repack('initial');
   let timer = null;
-  fs.watch(buildDir, { recursive: true }, (event, file) => {
+  watchTree(buildDir, (file) => {
     if (!file || !WATCHED_FILE_RE.test(file)) return;
     clearTimeout(timer);
     timer = setTimeout(() => repack('change'), 200);
@@ -363,7 +396,7 @@ async function runRun(dir, editorFlagValue) {
       }
     }, 200);
   };
-  fs.watch(buildDir, { recursive: true }, (event, file) => {
+  watchTree(buildDir, (file) => {
     if (!file || !WATCHED_FILE_RE.test(file)) return;
     scheduleRebuild();
   });

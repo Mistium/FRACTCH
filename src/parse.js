@@ -860,6 +860,7 @@ class Parser {
           'volume',
           'tempo',
           'layer',
+          'order',
           'costume',
           'video',
           'transparency',
@@ -1691,6 +1692,7 @@ class Parser {
             attr === 'volume' ||
             attr === 'tempo' ||
             attr === 'layer' ||
+            attr === 'order' ||
             attr === 'transparency'
           ) {
             this.tryIdentifier();
