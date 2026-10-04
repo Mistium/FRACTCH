@@ -64,7 +64,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           line: 0,
           col: 0,
           fatal: true,
-          message: 'project contains no target .fractch files',
+          message: 'project contains no .fractch files in target folders',
           hint: 'add a target script such as Stage/main.fractch',
         },
       ],
