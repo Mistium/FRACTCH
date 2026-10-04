@@ -986,11 +986,13 @@ function collectNamesIntoManifest(target, scripts, cloudAliases, stage, manifest
   // Names in a variable field or vars[...] are variables even when a list shares the name.
   const definiteVars = new Set();
   // A `local` only shadows names inside the script that declares it.
+  // vars["x"] always means the global x, even in a script with `local x`.
   for (const scriptCalls of scripts) {
     const scriptVars = new Set();
-    collectNames(scriptCalls, { vars: scriptVars, lists, broadcasts, definiteVars });
+    const explicitVars = new Set();
+    collectNames(scriptCalls, { vars: scriptVars, lists, broadcasts, definiteVars, explicitVars });
     for (const local of collectLocalDeclNames(scriptCalls)) scriptVars.delete(local);
-    for (const name of scriptVars) vars.add(name);
+    for (const name of [...scriptVars, ...explicitVars]) vars.add(name);
   }
   if (cloudAliases) for (const bare of cloudAliases.keys()) vars.delete(bare);
   const globals = stage && stage !== target ? stage : null;
@@ -1076,6 +1078,7 @@ function collectNamesFromNode(node, out) {
       if (arg.key === 'VARIABLE') {
         collectFieldName(arg.value, out.vars);
         if (out.definiteVars) collectFieldName(arg.value, out.definiteVars);
+        if (out.explicitVars && arg.value?.type !== 'ident') collectFieldName(arg.value, out.explicitVars);
       }
       if (arg.key === 'LIST') collectFieldName(arg.value, out.lists);
       if (arg.key === 'BROADCAST_OPTION') collectFieldName(arg.value, out.broadcasts);
@@ -1091,6 +1094,7 @@ function collectNamesFromValue(value, out) {
   if (value.type === 'var') {
     out.vars.add(value.name);
     out.definiteVars?.add(value.name);
+    out.explicitVars?.add(value.name);
   } else if (value.type === 'list') out.lists.add(value.name);
   else if (value.type === 'broadcast') out.broadcasts.add(value.name);
   else if (value.type === 'ident') out.vars.add(value.name);
