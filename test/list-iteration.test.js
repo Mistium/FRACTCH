@@ -6,14 +6,17 @@ import path from 'node:path';
 import AdmZip from 'adm-zip';
 import { buildProjectFromBuildDir } from '../src/pack.js';
 import { convertProject } from '../src/convert.js';
-import { unpackSb3 } from '../src/index.js';
+import { packSb3, unpackSb3 } from '../src/index.js';
 import { verifyRoundtrip } from '../src/roundtripDiff.js';
 
 test('the order fulfilment SB3 emits readable list traversal and preserves every block', async (t) => {
-  const sb3 = path.resolve('examples/order-fulfilment.sb3');
+  // *.sb3 is gitignored, so build the example project from its checked-in source.
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-orders-'));
+  t.after(() => fs.rmSync(work, { recursive: true, force: true }));
+  const sb3 = path.join(work, 'order-fulfilment.sb3');
+  await packSb3({ buildDir: path.resolve('examples/order-fulfilment'), outSb3: sb3 });
   const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
-  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-orders-'));
-  t.after(() => fs.rmSync(out, { recursive: true, force: true }));
+  const out = path.join(work, 'out');
 
   await unpackSb3({ input: sb3, outDir: out });
   const source = fs.readFileSync(path.join(out, 'Stage', 'main.fractch'), 'utf8');
