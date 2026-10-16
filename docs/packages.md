@@ -41,7 +41,7 @@ internally). Public functions:
 
 | Call | Result |
 |---|---|
-| `json.get_from(key, obj)` | the value stored at `key` (reporter) |
+| `json.get_from(key, obj)` | the value stored at `key`, or `""` when there's no such key (reporter) |
 | `json.get_keys(obj)` | leaves the object's keys on the return stack |
 | `json.get_values(obj)` | leaves the object's values on the return stack |
 | `json.has(key, obj)` | `true`/`false` — is `key` present (reporter) |

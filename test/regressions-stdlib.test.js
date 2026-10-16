@@ -24,7 +24,8 @@ test('stdlib json.get_from finds every key and only compares keys', async (t) =>
       '  say json.get_from("c", "{\\"a\\":1,\\"b\\":2,\\"c\\":3}");\n' +
       '  say json.get_from("x", "{\\"a\\":\\"q\\",\\"b\\":\\"x\\",\\"x\\":\\"y\\"}");\n' +
       '  say json.get_from("missing", "{\\"a\\":1}");\n' +
+      '  say json.get_from("1", "{\\"a\\":1,\\"1\\":\\"z\\"}");\n' +
       '}\n',
   });
-  assert.deepEqual(runStage(manifest.targets[0]).map(String), ['1', '3', 'y', '']);
+  assert.deepEqual(runStage(manifest.targets[0]).map(String), ['1', '3', 'y', '', 'z']);
 });
