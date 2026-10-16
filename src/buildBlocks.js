@@ -189,6 +189,7 @@ export function resolveIdentOrMethod(call, ctx) {
 }
 
 function buildNode(call, ids, blocks, ctx, nodeId) {
+  if (ctx.spansOut && call.span) ctx.spansOut.set(nodeId, call.span);
   if (call.type === 'localDecl') {
     const mangled = (ctx.localVars && ctx.localVars.get(call.name)) || call.name;
     return {
@@ -245,13 +246,36 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
     return node;
   }
 
+  const sig = signatureFor(ctx, opcode);
   let posIndex = 0;
   for (const a of call.args) {
     if (a.kind === 'positional') {
+      if (sig) {
+        const arg = sig.args[posIndex++];
+        if (!arg) {
+          ctx.problemsOut?.push({
+            code: 'FR209',
+            span: a.value?.span || a.value?.value?.span || call.span,
+            message: `${sig.label} takes ${sig.args.length} argument${sig.args.length === 1 ? '' : 's'} but this call passes more`,
+            hint: sig.args.length ? `arguments: ${sig.args.map((x) => x.name).join(', ')}` : null,
+          });
+          continue;
+        }
+        applySignatureArg(node, arg, a.value, ids, blocks, ctx, nodeId);
+        continue;
+      }
       const keyName = String.fromCharCode(65 + posIndex++);
       node.inputs[keyName] = valueToInput(a.value, ids, blocks, ctx, nodeId, keyName);
     } else if (a.kind === 'keyed') {
-      const keyName = a.key;
+      let keyName = a.key;
+      const sigArg = sig && keyName !== 'mutation' ? resolveSignatureKey(sig, keyName) : null;
+      if (sigArg) {
+        keyName = sigArg.name;
+        if (sig.extension && (sigArg.kind === 'field' || sigArg.menuOpcode)) {
+          applySignatureArg(node, sigArg, a.value, ids, blocks, ctx, nodeId);
+          continue;
+        }
+      }
       if (a.sep === 'field' && keyName === 'mutation' && a.value?.type === 'json') {
         node.mutation = a.value.value;
       } else if (a.sep === 'field') {
@@ -319,11 +343,56 @@ function varInput(primitive) {
   return [3, primitive, [10, '']];
 }
 
+function nullInput(ctx) {
+  const tuple = [1, [10, '']];
+  ctx?.nullInputs?.add(tuple);
+  return tuple;
+}
+
+function signatureFor(ctx, opcode) {
+  return ctx?.signatures?.get(opcode) || null;
+}
+
+function resolveSignatureKey(sig, key) {
+  const exact = sig.args.find((arg) => arg.name === key);
+  if (exact) return exact;
+  const folded = sig.args.filter((arg) => arg.name.toLowerCase() === String(key).toLowerCase());
+  return folded.length === 1 ? folded[0] : null;
+}
+
+function applySignatureArg(node, arg, value, ids, blocks, ctx, nodeId) {
+  if (arg.kind === 'field') {
+    if (value?.type === 'string' || value?.type === 'number' || value?.type === 'boolean') {
+      node.fields[arg.name] = [value.type === 'number' ? (value.raw ?? String(value.value)) : String(value.value)];
+    } else {
+      node.fields[arg.name] = fieldValueFromNode(value, ctx);
+    }
+    return;
+  }
+  if (arg.menuOpcode && (value?.type === 'string' || value?.type === 'number')) {
+    const childId = ids.next();
+    if (ctx.spansOut && value.span) ctx.spansOut.set(childId, value.span);
+    blocks[childId] = {
+      id: childId,
+      opcode: arg.menuOpcode,
+      next: null,
+      parent: nodeId,
+      inputs: {},
+      fields: { [arg.menuField]: [value.type === 'number' ? (value.raw ?? String(value.value)) : String(value.value)] },
+      shadow: true,
+      topLevel: false,
+    };
+    node.inputs[arg.name] = [1, childId];
+    return;
+  }
+  node.inputs[arg.name] = valueToInput(value, ids, blocks, ctx, nodeId, arg.name);
+}
+
 function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
-  if (!val) return [1, [10, '']];
+  if (!val) return nullInput(ctx);
   switch (val.type) {
     case 'null':
-      return [1, [10, '']];
+      return nullInput(ctx);
     case 'obscured': {
       const active = valueToInput(val.active, ids, blocks, ctx, parentId, inputKey);
       const shadowRef = buildShadowRef(val.shadow, ids, blocks, ctx, parentId, inputKey);
@@ -365,12 +434,14 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
 
       const positional =
         callNode.callee.type === 'opcode' &&
+        !signatureFor(ctx, callNode.callee.name)?.extension &&
         callNode.args.length === 1 &&
         callNode.args[0].kind === 'positional' &&
         callNode.args[0].value?.type === 'string' &&
         inputKey;
       if (positional) {
         const childId = ids.next();
+        if (ctx?.spansOut && callNode.span) ctx.spansOut.set(childId, callNode.span);
         blocks[childId] = {
           id: childId,
           opcode: callNode.callee.name,
@@ -407,6 +478,7 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
         return varInput([12, name, id]);
       }
       const childId = ids.next();
+      if (ctx?.spansOut && val.span) ctx.spansOut.set(childId, val.span);
       const node = buildIdentReporterNode(val.name, ctx, childId);
       blocks[childId] = { id: childId, ...node, parent: parentId };
       return [2, childId];
@@ -519,6 +591,7 @@ function buildProcDefScript(procDef, ids, ctx) {
   const blocks = {};
   const defId = ids.next();
   const protoId = ids.next();
+  if (ctx.spansOut && procDef.span) ctx.spansOut.set(defId, procDef.span);
 
   const paramNames = procDef.params.map((p) => p.name);
   const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
@@ -602,16 +675,83 @@ function buildProcDefScript(procDef, ids, ctx) {
 }
 
 export class IdGen {
-  constructor() {
+  constructor(prefix = '~') {
     this.n = 0;
+    this.prefix = prefix;
   }
   next() {
     this.n += 1;
     return this.peek();
   }
   peek() {
-    return `~${base62(this.n)}`;
+    return `${this.prefix}${base62(this.n)}`;
   }
+}
+
+export function collapseOperators(blocks) {
+  const headChild = new Set();
+  const headOf = (block) => {
+    const prefix = EXTENDABLE_PREFIX[block?.opcode];
+    if (!prefix) return null;
+    const tuple = block.inputs?.[`${prefix}1`];
+    return Array.isArray(tuple) && typeof tuple[1] === 'string' ? tuple : null;
+  };
+  for (const [, block] of Object.entries(blocks)) {
+    const head = headOf(block);
+    if (!head) continue;
+    const child = blocks[head[1]];
+    if (child && child.opcode === block.opcode && !child.shadow && !child.comment) headChild.add(head[1]);
+  }
+  const obscured = new Map();
+  for (const [id, block] of Object.entries(blocks)) {
+    if (headChild.has(id) || !block || !EXTENDABLE_PREFIX[block.opcode]) continue;
+    const prefix = EXTENDABLE_PREFIX[block.opcode];
+    const seen = [];
+    for (;;) {
+      const head = headOf(block);
+      if (!head) break;
+      const child = blocks[head[1]];
+      if (!child || child.opcode !== block.opcode || child.shadow || child.comment) break;
+      const count = itemCountOf(block);
+      const childCount = itemCountOf(child);
+      const inputs = {};
+      for (let i = 1; i <= childCount; i++) {
+        const tuple = child.inputs?.[`${prefix}${i}`];
+        inputs[`${prefix}${i}`] = tuple ?? [1, null];
+        if (Array.isArray(tuple)) {
+          for (let k = 1; k < tuple.length; k++) {
+            if (typeof tuple[k] === 'string' && blocks[tuple[k]]) blocks[tuple[k]].parent = id;
+          }
+        }
+      }
+      for (let i = 2; i <= count; i++) {
+        const tuple = block.inputs?.[`${prefix}${i}`];
+        inputs[`${prefix}${childCount + i - 1}`] = tuple ?? [1, null];
+      }
+      seen.push(head[0] === 3 && head.length > 2 && head[2] != null ? head[2] : null);
+      block.inputs = inputs;
+      block.mutation = { tagName: 'mutation', children: [], itemcount: String(childCount + count - 1) };
+      delete blocks[head[1]];
+    }
+    if (seen.length) obscured.set(id, seen);
+  }
+  return obscured;
+}
+
+const EXTENDABLE_PREFIX = {
+  operator_add: 'NUM',
+  operator_subtract: 'NUM',
+  operator_multiply: 'NUM',
+  operator_divide: 'NUM',
+  operator_mod: 'NUM',
+  operator_and: 'OPERAND',
+  operator_or: 'OPERAND',
+  operator_join: 'STRING',
+};
+
+function itemCountOf(block) {
+  const n = parseInt(block?.mutation?.itemcount, 10);
+  return n >= 2 ? n : 2;
 }
 
 function base62(num) {

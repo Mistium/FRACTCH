@@ -20,19 +20,20 @@ function decodeDataUrl(u) {
   return decodeURIComponent(data);
 }
 
-export async function writeExtensions(projectJson, outDir, { verbose = false, fs: fsLike } = {}) {
+export async function writeExtensions(projectJson, outDir, { fs: fsLike } = {}) {
   const exts = projectJson.extensions || [];
   const urls = projectJson.extensionURLs || {};
   const dataExts = exts.filter((id) => String(urls[id] || '').startsWith('data:'));
-  if (!dataExts.length) return { count: 0 };
+  if (!dataExts.length) return { count: 0, files: [] };
 
   const vfs = toPromiseFs(fsLike);
   const dir = path.join(outDir, 'extensions');
   await vfs.mkdirp(dir);
+  const files = [];
   for (const id of dataExts) {
     const file = `${sanitize(id)}.js`;
     await vfs.writeFile(path.join(dir, file), decodeDataUrl(urls[id]));
-    if (verbose) console.log(`[ext] extracted ${id} -> extensions/${file}`);
+    files.push(`extensions/${file}`);
   }
-  return { count: dataExts.length };
+  return { count: dataExts.length, files };
 }

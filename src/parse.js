@@ -121,6 +121,10 @@ const STATEMENT_KEYWORDS = setWithCamel([
   'pen_down',
   'pen_clear',
   'stamp',
+  'set_pen_color',
+  'set_pen_size',
+  'change_pen_size',
+  'backdrop_and_wait',
 ]);
 
 const SIMPLE_ALIASES = {
@@ -157,6 +161,9 @@ const UNARY_ALIASES = {
   change_size: ['looks_changesizeby', 'CHANGE'],
   change_volume: ['sound_changevolumeby', 'VOLUME'],
   set_volume: ['sound_setvolumeto', 'VOLUME'],
+  set_pen_color: ['pen_setPenColorToColor', 'COLOR'],
+  set_pen_size: ['pen_setPenSizeTo', 'SIZE'],
+  change_pen_size: ['pen_changePenSizeBy', 'SIZE'],
 };
 
 const FIELD_ALIASES = {
@@ -172,6 +179,7 @@ const UNARY_FIELD_ALIASES = {
 const MENU_ALIASES = {
   costume: ['looks_switchcostumeto', 'COSTUME', 'looks_costume'],
   backdrop: ['looks_switchbackdropto', 'BACKDROP', 'looks_backdrops'],
+  backdrop_and_wait: ['looks_switchbackdroptoandwait', 'BACKDROP', 'looks_backdrops'],
   clone: ['control_create_clone_of', 'CLONE_OPTION', 'control_create_clone_of_menu'],
   point_towards: ['motion_pointtowards', 'TOWARDS', 'motion_pointtowards_menu'],
   play_sound: ['sound_play', 'SOUND_MENU', 'sound_sounds_menu'],
@@ -236,6 +244,8 @@ const UNARY_SUGAR = new Set([
 const MATHOP_NAME = { exp: 'e ^', exp10: '10 ^' };
 
 const REPORTER_NULLARY = {
+  pi: 'operator_pi',
+  newline: 'operator_newline',
   xPosition: 'motion_xposition',
   yPosition: 'motion_yposition',
   direction: 'motion_direction',
@@ -399,6 +409,24 @@ const LEGACY_FIELD_KEYS = new Set([
   'mutation',
 ]);
 
+const IMPLICIT_TOP_TYPES = new Set(['call', 'localDecl', 'danglingNext']);
+const RECOVERY_HAT_WORDS = new Set(['when', 'def', 'script', 'region', 'locked']);
+const RECOVERY_STOP_WORDS = new Set([
+  'when',
+  'def',
+  'script',
+  'region',
+  'locked',
+  'var',
+  'cloud',
+  'import',
+  'watch',
+  'use',
+  'sprite',
+  'stage',
+  'platform',
+]);
+
 const NON_ATTACHABLE_TOP = new Set([
   'useDecl',
   'importDecl',
@@ -449,6 +477,8 @@ export function parseFractch(content, { attachLineComments = true } = {}) {
   const assets = { costumes: [], sounds: [] };
 
   const scripts = [];
+  const lockedScripts = [];
+  const regions = [];
   let cur = null;
   const flush = () => {
     if (cur && cur.calls.length) scripts.push(cur);
@@ -456,60 +486,122 @@ export function parseFractch(content, { attachLineComments = true } = {}) {
   };
   const uses = [];
   const imports = [];
+  const importDecls = [];
   const importNamespaces = {};
   const varDecls = [];
   const watches = [];
   const comments = [];
   let platform = null;
   let spriteProps = null;
-  for (const st of stmts) {
-    if (st.type === 'useDecl') {
-      uses.push(st);
-    } else if (st.type === 'importDecl') {
-      imports.push(st.id);
-      importNamespaces[st.alias || String(st.id).split('/').pop()] = st.id;
-    } else if (st.type === 'varDecl') {
-      varDecls.push(st);
-    } else if (st.type === 'watchDecl') {
-      watches.push(st);
-    } else if (st.type === 'commentDecl') {
-      comments.push(st);
-    } else if (st.type === 'platformDecl') {
-      platform = st;
-    } else if (st.type === 'spriteDecl') {
-      spriteProps = { ...(spriteProps || {}), ...st.props };
-    } else if (st.type === 'assetDecl') {
-      if (st.kind === 'costume') assets.costumes.push(st.value);
-      else if (st.kind === 'sound') assets.sounds.push(st.value);
-    } else if (st.type === 'procDef') {
-      flush();
-      scripts.push({ kind: 'def', calls: withComments(st, st), x: st.x ?? null, y: st.y ?? null });
-    } else if (st.type === 'whenScript') {
-      flush();
-      scripts.push({ kind: 'explicit', calls: withComments(st, st.hat, ...st.body), x: st.x, y: st.y });
-    } else if (st.type === 'chainScript') {
-      flush();
-      scripts.push({ kind: 'explicit', calls: withComments(st, ...st.body), x: st.x, y: st.y });
-    } else {
-      if (!cur) cur = { kind: 'implicit', calls: [], x: null, y: null };
-      cur.calls.push(...withComments(st, st));
+  const spriteDecls = [];
+  const scriptSpan = (st) => {
+    const lead = st.leadingComments?.[0]?.span;
+    const own = st.span || [0, 0];
+    return lead ? [Math.min(lead[0], own[0]), own[1]] : own;
+  };
+  const visit = (list, region) => {
+    for (const st of list) {
+      if (st.type === 'useDecl') {
+        uses.push(st);
+        spriteDecls.push(st);
+      } else if (st.type === 'importDecl') {
+        imports.push(st.id);
+        importDecls.push(st);
+        importNamespaces[st.alias || String(st.id).split('/').pop()] = st.id;
+      } else if (st.type === 'varDecl') {
+        varDecls.push(st);
+      } else if (st.type === 'watchDecl') {
+        watches.push(st);
+      } else if (st.type === 'commentDecl') {
+        comments.push(region ? { ...st, region } : st);
+      } else if (st.type === 'platformDecl') {
+        platform = st;
+        spriteDecls.push(st);
+      } else if (st.type === 'spriteDecl') {
+        spriteProps = { ...(spriteProps || {}), ...st.props };
+        spriteDecls.push(st);
+      } else if (st.type === 'assetDecl') {
+        if (st.kind === 'costume') assets.costumes.push(st.value);
+        else if (st.kind === 'sound') assets.sounds.push(st.value);
+        spriteDecls.push(st);
+      } else if (st.type === 'regionDecl') {
+        flush();
+        regions.push({ name: st.name, span: st.span, line: st.line });
+        visit(st.body, st.name);
+        flush();
+      } else if (st.type === 'lockedScript') {
+        flush();
+        lockedScripts.push({ id: st.id, region: region ?? null, span: st.span, line: st.line });
+      } else if (st.type === 'procDef') {
+        flush();
+        scripts.push({
+          kind: 'def',
+          calls: withComments(st, st),
+          x: st.x ?? null,
+          y: st.y ?? null,
+          region: region ?? null,
+          span: scriptSpan(st),
+        });
+      } else if (st.type === 'whenScript') {
+        flush();
+        if (st.hat && !st.hat.span) st.hat.span = st.span;
+        scripts.push({
+          kind: 'explicit',
+          calls: withComments(st, st.hat, ...st.body),
+          x: st.x,
+          y: st.y,
+          region: region ?? null,
+          span: scriptSpan(st),
+        });
+      } else if (st.type === 'chainScript') {
+        flush();
+        scripts.push({
+          kind: 'explicit',
+          calls: withComments(st, ...st.body),
+          x: st.x,
+          y: st.y,
+          region: region ?? null,
+          span: scriptSpan(st),
+          chain: true,
+        });
+      } else if (region) {
+        parser.errors.push(
+          parser.makeError(
+            'only whole scripts can go inside a region',
+            'wrap the statements in a script: script { ... } or when flag { ... }',
+            'FR120',
+            st.span?.[0] ?? 0,
+            st.span?.[1] ?? 0
+          )
+        );
+      } else {
+        const span = scriptSpan(st);
+        if (!cur) cur = { kind: 'implicit', calls: [], x: null, y: null, region: null, span: [...span] };
+        cur.calls.push(...withComments(st, st));
+        cur.span[1] = Math.max(cur.span[1], span[1]);
+      }
     }
-  }
+  };
+  visit(stmts, null);
   flush();
 
   const calls = scripts.length === 1 ? scripts[0].calls : scripts.flatMap((s) => s.calls);
   return {
     calls,
     scripts,
+    lockedScripts,
+    regions,
     assets,
     uses,
     imports,
+    importDecls,
     importNamespaces,
     varDecls,
     watches,
     comments,
     platform,
     spriteProps,
+    spriteDecls,
     errors: parser.errors,
   };
 }
@@ -523,18 +615,16 @@ function stripHeader(text) {
   if (s.startsWith('/**')) {
     const end = s.indexOf('*/');
 
-    if (end >= 0) {
-      const newlines = (s.slice(0, end + 2).match(/\n/g) || []).length;
-      return '\n'.repeat(newlines) + s.slice(end + 2);
-    }
+    if (end >= 0) return s.slice(0, end + 2).replace(/[^\n]/g, ' ') + s.slice(end + 2);
   }
   return s;
 }
 
 class ParseError extends Error {
-  constructor(message, hint = null) {
+  constructor(message, hint = null, code = 'FR100') {
     super(message);
     this.hint = hint;
+    this.code = code;
   }
 }
 
@@ -574,10 +664,13 @@ class Parser {
     this.pendingLineComments = [];
     this.seenComments = new Set();
     this.listForDepth = 0;
+    this.depth = 0;
+    this.inRegion = false;
+    this.excludedFrom = null;
   }
 
-  fail(message, hint = null) {
-    throw new ParseError(message, hint);
+  fail(message, hint = null, code = 'FR100') {
+    throw new ParseError(message, hint, code);
   }
 
   describeHere() {
@@ -631,6 +724,8 @@ class Parser {
         forId: null,
         fromLineComment: true,
         anchor: c.anchor === 'prev' && havePrev ? 'prev' : 'next',
+        span: [c.start, c.end],
+        line: this.lineAt(c.start),
       });
     }
     this.pendingLineComments = [];
@@ -666,6 +761,7 @@ class Parser {
           this.seenComments.add(start);
           this.pendingLineComments.push({
             start,
+            end: this.i,
             text: this.s.slice(textStart, this.i).trim(),
             anchor: this.lineIsBlankBefore(start) ? 'next' : 'prev',
           });
@@ -696,21 +792,21 @@ class Parser {
   tryIdentifier() {
     this.skipWS();
     const start = this.i;
-    if (this.eof() || !/[A-Za-z_]/.test(this.peek())) return null;
-    while (!this.eof() && /[A-Za-z0-9_]/.test(this.peek())) this.i++;
+    if (this.eof() || !isIdentStart(this.s.charCodeAt(this.i))) return null;
+    while (this.i < this.len && isIdentPart(this.s.charCodeAt(this.i))) this.i++;
     return this.s.slice(start, this.i);
   }
 
   expectIdentifier(ctx = '') {
     const id = this.tryIdentifier();
-    if (id == null) this.fail(`expected a name${ctx ? ` ${ctx}` : ''} but found ${this.describeHere()}`);
+    if (id == null) this.fail(`expected a name${ctx ? ` ${ctx}` : ''} but found ${this.describeHere()}`, null, 'FR100');
     return id;
   }
 
   expectChar(ch, ctx = '') {
     this.skipWS();
     if (this.peek() !== ch) {
-      this.fail(`expected '${ch}'${ctx ? ` ${ctx}` : ''} but found ${this.describeHere()}`);
+      this.fail(`expected '${ch}'${ctx ? ` ${ctx}` : ''} but found ${this.describeHere()}`, null, 'FR100');
     }
     this.i++;
   }
@@ -724,25 +820,54 @@ class Parser {
     return false;
   }
 
-  parseStatementList(stopAtBrace) {
+  parseStatementList(stopAtBrace, { scriptLevel = !stopAtBrace } = {}) {
     const stmts = [];
     let haveRealPrev = false;
+    let hatRecovery = null;
+    let implicitStart = -1;
     for (;;) {
       this.skipWS();
       this.drainLineComments(stmts, { havePrev: haveRealPrev });
       if (this.eof()) break;
       if (this.peek() === '}') {
         if (stopAtBrace) break;
-        this.errors.push({
-          line: this.lineAt(this.i),
-          col: this.colAt(this.i),
-          message: "unmatched '}' at the top level",
-          hint: 'usually caused by an error earlier in the block above, or one too many closing braces',
-        });
+        const at = this.i;
         this.i++;
+        if (hatRecovery) {
+          hatRecovery.region.to = this.i;
+          hatRecovery = null;
+          continue;
+        }
+        const err = this.makeError(
+          "unmatched '}' at the top level",
+          'usually caused by an error earlier in the block above, or one too many closing braces',
+          'FR103',
+          at,
+          at + 1
+        );
+        if (implicitStart >= 0) {
+          stmts.splice(implicitStart);
+          err.region = { from: this.excludedFrom ?? at, to: this.i };
+          err.hint =
+            'the statements before this brace were left out of the build: they look like the body of a block whose opening line is missing or broken';
+          this.excludedFrom = null;
+          implicitStart = -1;
+        }
+        this.errors.push(err);
         continue;
       }
+      const stmtStart = this.i;
       const word = this.peekWord();
+      if (hatRecovery && scriptLevel) {
+        if (RECOVERY_STOP_WORDS.has(word)) {
+          hatRecovery = null;
+        } else {
+          const scan = this.scanRecovery(stmtStart, stmtStart);
+          hatRecovery.region.to = scan.end;
+          this.i = scan.end > stmtStart ? scan.end : stmtStart + 1;
+          continue;
+        }
+      }
       if (word === 'import') {
         const save = this.snapshot();
         this.tryIdentifier();
@@ -757,8 +882,9 @@ class Parser {
             alias = this.expectIdentifier('for the import namespace');
           }
           this.tryChar(';');
-          stmts.push({ type: 'importDecl', id, alias });
+          stmts.push({ type: 'importDecl', id, alias, line: this.lineAt(stmtStart), span: [stmtStart, this.i] });
           haveRealPrev = true;
+          implicitStart = -1;
           continue;
         }
         this.restore(save);
@@ -769,22 +895,197 @@ class Parser {
       try {
         const stmt = this.parseStatement();
         if (stmt) {
+          if (typeof stmt === 'object' && !stmt.span) stmt.span = [stmtStart, this.i];
+          if (scriptLevel && IMPLICIT_TOP_TYPES.has(stmt.type)) {
+            if (implicitStart < 0) {
+              implicitStart = stmts.length;
+              this.excludedFrom = stmtStart;
+            }
+          } else if (scriptLevel) {
+            implicitStart = -1;
+          }
           stmts.push(stmt);
           haveRealPrev = true;
           continue;
         }
       } catch (e) {
-        this.errors.push({
-          line: this.lineAt(this.i > save ? this.i : save),
-          col: this.colAt(this.i > save ? this.i : save),
-          message: e && e.message ? e.message : String(e),
-          hint: (e && e.hint) || null,
-        });
+        if (e && e.resumeAt != null) {
+          if (!scriptLevel) throw e;
+          const scan = this.scanRecovery(save, e.resumeAt, e.resumeAt);
+          const open = scan.suspect ?? scan.unclosed[scan.unclosed.length - 1] ?? save;
+          let openEnd = this.s.indexOf('\n', open);
+          if (openEnd < 0) openEnd = this.len;
+          const err = this.makeError(
+            "this '{' is never closed",
+            `add a '}' to close it before line ${this.lineAt(e.resumeAt)}; this script was left out of the build`,
+            'FR104',
+            open,
+            openEnd
+          );
+          err.region = { from: save, to: e.resumeAt };
+          this.errors.push(err);
+          this.pendingLineComments = [];
+          this.i = e.resumeAt;
+          continue;
+        }
+        const failPos = this.i > save ? this.i : save;
+        const scan = this.scanRecovery(save, failPos);
+        const err = this.recoveryError(e, save, failPos, scan);
+        this.errors.push(err);
+        if (scriptLevel && RECOVERY_HAT_WORDS.has(word) && !scan.closedPair && !scan.unclosed.length) {
+          hatRecovery = err;
+        }
+        this.pendingLineComments = [];
+        this.i = scan.end > save ? scan.end : save + 1;
+        if (this.i > this.len) this.i = this.len;
+        continue;
       }
       this.restore(save);
       this.skipToEOL();
     }
     return stmts;
+  }
+
+  makeError(message, hint, code, from, to) {
+    const line = this.lineAt(from);
+    const col = this.colAt(from);
+    const endPos = Math.max(from, to ?? from);
+    return {
+      severity: 'error',
+      code: code || 'FR100',
+      line,
+      col,
+      column: col,
+      endLine: this.lineAt(endPos),
+      endColumn: this.colAt(endPos),
+      from,
+      to: endPos,
+      message,
+      hint: hint || null,
+    };
+  }
+
+  recoveryError(e, save, failPos, scan) {
+    const message = e && e.message ? e.message : String(e);
+    const code = (e && e.code) || 'FR100';
+    let lineEnd = this.s.indexOf('\n', failPos);
+    if (lineEnd < 0) lineEnd = this.len;
+    if (scan.unclosed.length && (failPos >= this.len || code === 'FR108')) {
+      const open = scan.suspect ?? scan.unclosed[scan.unclosed.length - 1];
+      let openEnd = this.s.indexOf('\n', open);
+      if (openEnd < 0) openEnd = this.len;
+      const err = this.makeError(
+        "this '{' is never closed",
+        "add a '}' to close it; everything after this line was left out of the build",
+        'FR104',
+        open,
+        openEnd
+      );
+      err.region = { from: save, to: scan.end };
+      return err;
+    }
+    let text = message;
+    let hint = (e && e.hint) || null;
+    if (code === 'FR100' || code === 'FR109' || code === 'FR108') {
+      const first = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+[^=+\-.(\s]/.exec(this.s.slice(save, lineEnd));
+      if (first && !STATEMENT_KEYWORDS.has(first[1])) {
+        const near = closestMatch(
+          first[1],
+          [...STATEMENT_KEYWORDS].filter((k) => !k.includes('_')),
+          2
+        );
+        if (near) {
+          text = `'${first[1]}' is not a statement - did you mean '${near}'?`;
+          hint = hint || message;
+        }
+      }
+    }
+    const err = this.makeError(text, hint, code, failPos, Math.max(failPos, lineEnd));
+    err.region = { from: save, to: scan.end };
+    return err;
+  }
+
+  scanRecovery(start, failPos, limit = this.len) {
+    const s = this.s;
+    const len = limit;
+    let failLineEnd = s.indexOf('\n', failPos);
+    if (failLineEnd < 0) failLineEnd = len;
+    const opens = [];
+    let suspect = null;
+    let closedPair = false;
+    let i = start;
+    const lineStart = (pos) => {
+      let j = pos;
+      while (j > 0 && s[j - 1] !== '\n') j--;
+      return j;
+    };
+    const indentOf = (pos) => {
+      let j = lineStart(pos);
+      let n = 0;
+      while (s[j] === ' ' || s[j] === '\t') {
+        j++;
+        n++;
+      }
+      return n;
+    };
+    const firstOnLine = (pos) => {
+      for (let j = lineStart(pos); j < pos; j++) if (s[j] !== ' ' && s[j] !== '\t') return false;
+      return true;
+    };
+    while (i < len) {
+      const ch = s[i];
+      if (ch === '"') {
+        if (s.startsWith('"""', i)) {
+          const e = s.indexOf('"""', i + 3);
+          i = e < 0 ? len : e + 3;
+          continue;
+        }
+        i++;
+        while (i < len && s[i] !== '"' && s[i] !== '\n') {
+          if (s[i] === '\\') i++;
+          i++;
+        }
+        if (s[i] === '"') i++;
+        continue;
+      }
+      if (ch === '`') {
+        let j = i + 1;
+        while (j < len && s[j] !== '`' && s[j] !== '\n') {
+          if (s[j] === '\\') j++;
+          j++;
+        }
+        i = s[j] === '`' ? j + 1 : j;
+        continue;
+      }
+      if (ch === '/' && s[i + 1] === '/') {
+        while (i < len && s[i] !== '\n') i++;
+        continue;
+      }
+      if (ch === '/' && s[i + 1] === '*') {
+        const e = s.indexOf('*/', i + 2);
+        i = e < 0 ? len : e + 2;
+        continue;
+      }
+      if (ch === '{') {
+        opens.push(i);
+        i++;
+        continue;
+      }
+      if (ch === '}') {
+        if (!opens.length) break;
+        const open = opens.pop();
+        if (suspect == null && firstOnLine(i) && indentOf(i) < indentOf(open)) suspect = open;
+        closedPair = true;
+        i++;
+        continue;
+      }
+      if (ch === '\n' && !opens.length && i >= failLineEnd) {
+        i++;
+        break;
+      }
+      i++;
+    }
+    return { end: i, unclosed: opens, suspect: opens.length ? suspect : null, closedPair };
   }
 
   parseStatement() {
@@ -794,7 +1095,18 @@ class Parser {
     const word = this.peekWord();
 
     let isKeyword = STATEMENT_KEYWORDS.has(word);
-    if (word === 'sound' || word === 'use') {
+    if (word === 'region') {
+      const save = this.snapshot();
+      this.tryIdentifier();
+      this.skipWS();
+      isKeyword = this.peek() === '"';
+      this.restore(save);
+    } else if (word === 'locked') {
+      const save = this.snapshot();
+      this.tryIdentifier();
+      isKeyword = this.peekWord() === 'script';
+      this.restore(save);
+    } else if (word === 'sound' || word === 'use') {
       const save = this.snapshot();
       this.tryIdentifier();
       this.skipWS();
@@ -1046,7 +1358,8 @@ class Parser {
         const near = closestMatch(word, ['flag', 'clone', 'clicked', 'broadcast', 'receive', 'key', 'backdrop']);
         this.fail(
           `'when ${word}' is not a known hat${near ? ` - did you mean 'when ${near}'?` : ''}`,
-          'valid hats: when flag / when clone / when clicked / when broadcast Name / when key space / when backdrop "name" / when some.extension_hat()'
+          'valid hats: when flag / when clone / when clicked / when broadcast Name / when key space / when backdrop "name" / when some.extension_hat()',
+          'FR101'
         );
       }
       this.restore(save);
@@ -1055,7 +1368,8 @@ class Parser {
     if (e.type === 'call' && e.value.callee.type === 'opcode') return e.value;
     this.fail(
       `expected a hat after 'when' but found ${this.describeHere()}`,
-      'valid hats: when flag / when clone / when clicked / when broadcast Name / when key space / when backdrop "name" / when some.extension_hat()'
+      'valid hats: when flag / when clone / when clicked / when broadcast Name / when key space / when backdrop "name" / when some.extension_hat()',
+      'FR101'
     );
   }
 
@@ -1119,10 +1433,10 @@ class Parser {
         if (stringIteration || this.peekWord() === 'in') this.tryIdentifier();
         let characters = null;
         if (stringIteration) {
-          if (paired) this.fail("'for ... of ...' cannot use a paired loop variable");
+          if (paired) this.fail("'for ... of ...' cannot use a paired loop variable", null, 'FR115');
           characters = this.parseInputValue();
           if (characters.type !== 'ident' && characters.type !== 'var')
-            this.fail("'for ... of ...' requires a variable or procedure argument");
+            this.fail("'for ... of ...' requires a variable or procedure argument", null, 'FR115');
         } else if (this.peekWord() === 'chars') {
           const start = this.snapshot();
           this.tryIdentifier();
@@ -1131,7 +1445,7 @@ class Parser {
             this.i++;
             characters = this.parseExpr();
             if (characters.type !== 'ident' && characters.type !== 'var')
-              this.fail('chars(...) requires a variable or procedure argument');
+              this.fail('chars(...) requires a variable or procedure argument', null, 'FR115');
             this.expectChar(')');
           } else {
             this.restore(start);
@@ -1140,10 +1454,10 @@ class Parser {
         const count = characters ? null : this.parseInputValue();
         this.skipWS();
         if (this.peekWord() === 'using') {
-          if (paired) this.fail("a paired 'for' loop already has an index name");
+          if (paired) this.fail("a paired 'for' loop already has an index name", null, 'FR115');
           this.tryIdentifier();
           indexName = this.parseNameToken();
-          if (indexName === name) this.fail("the 'using' index must differ from the loop value");
+          if (indexName === name) this.fail("the 'using' index must differ from the loop value", null, 'FR115');
         }
         this.listForDepth++;
         let body;
@@ -1153,7 +1467,7 @@ class Parser {
           this.listForDepth--;
         }
         if (characters) {
-          if (paired) this.fail("chars(...) uses 'for value in chars(text)', not a paired 'for' loop");
+          if (paired) this.fail("chars(...) uses 'for value in chars(text)', not a paired 'for' loop", null, 'FR115');
           const counter = indexName || name;
           const letter = {
             type: 'call',
@@ -1188,7 +1502,7 @@ class Parser {
             forced: indexName != null || count.type === 'list',
           };
         } else if (indexName) {
-          this.fail("'using' requires a list name after 'in'");
+          this.fail("'using' requires a list name after 'in'", null, 'FR115');
         }
         return call;
       }
@@ -1230,7 +1544,11 @@ class Parser {
         this.tryChar(';');
 
         const opt =
-          v.type === 'string' ? v.value : v.type === 'ident' ? v.name.replace(/_/g, ' ') : String(v.value ?? 'all');
+          v.type === 'string'
+            ? v.value
+            : v.type === 'ident'
+              ? camelToSnake(v.name).replace(/_/g, ' ')
+              : String(v.value ?? 'all');
         return makeCall('control_stop', [keyedField('STOP_OPTION', { type: 'array', value: [opt] })]);
       }
       case 'return': {
@@ -1280,18 +1598,50 @@ class Parser {
             keyedInput('VALUE', v),
           ]);
         }
-        const expr = this.parseBinaryFrom({ type: 'var', name, id: null }, 1);
+        const expr = this.parseBinaryFrom(this.parsePostfixMethods({ type: 'var', name, id: null }), 1);
         this.tryChar(';');
         if (expr.type === 'call') return expr.value;
         return makeCall('__bare_value', [keyedField('VALUE', toFieldValueNode(expr))], this.lineAt(this.i));
       }
+      case 'region': {
+        if (this.depth > 0 || this.inRegion) {
+          this.fail(
+            'a region can only be written at the top level of the file, around whole scripts',
+            'regions group scripts: region "Enemies" { when flag { ... } }',
+            'FR120'
+          );
+        }
+        const name = this.parseStringLiteral();
+        this.expectChar('{', `after region ${JSON.stringify(name)}`);
+        this.inRegion = true;
+        let body;
+        try {
+          body = mergeLeadingComments(this.parseStatementList(true, { scriptLevel: true }));
+        } finally {
+          this.inRegion = false;
+        }
+        this.expectChar('}', `to close region ${JSON.stringify(name)}`);
+        return { type: 'regionDecl', name, body };
+      }
+      case 'locked': {
+        this.expectIdentifier("after 'locked'");
+        this.skipWS();
+        if (this.peek() !== '"') {
+          this.fail(`expected the script id after 'locked script'`, 'locked script "<top block id>";', 'FR121');
+        }
+        const id = this.parseStringLiteral();
+        this.tryChar(';');
+        return { type: 'lockedScript', id };
+      }
       case 'when': {
+        if (this.depth > 0) this.scriptInsideBlock();
         const hat = this.parseHatSpec();
         const { x, y } = this.tryAt();
         const body = this.parseBraceBody();
         return { type: 'whenScript', hat, x, y, body };
       }
       case 'script': {
+        if (this.depth > 0) this.scriptInsideBlock();
         const { x, y } = this.tryAt();
         const body = this.parseBraceBody();
         return { type: 'chainScript', x, y, body };
@@ -1309,11 +1659,16 @@ class Parser {
         if (this.peek() !== '"')
           this.fail(
             `expected a "quoted name" after 'sound' but found ${this.describeHere()}`,
-            'example: sound "pop" file "assets/pop.wav";'
+            'example: sound "pop" file "assets/pop.wav";',
+            'FR113'
           );
         const name = this.parseStringLiteral();
         if (this.peekWord() !== 'file')
-          this.fail(`a sound declaration needs 'file' after its name`, 'example: sound "pop" file "assets/pop.wav";');
+          this.fail(
+            `a sound declaration needs 'file' after its name`,
+            'example: sound "pop" file "assets/pop.wav";',
+            'FR113'
+          );
         return this.parseAssetDecl('sound', name);
       }
       case 'lists': {
@@ -1374,7 +1729,8 @@ class Parser {
             const near = closestMatch(method, ['add', 'push', 'delete', 'clear', 'insert', 'replace', 'show', 'hide']);
             return this.fail(
               `lists have no '.${method}(...)' statement${near ? ` - did you mean '.${near}'?` : ''}`,
-              'use function calls instead: append(list, v), delete(list, i), insert(list, i, v), replace(list, i, v), set(list, i, v), clear(list), showList(list), hideList(list); or lists["x"][i] = v;'
+              'use function calls instead: append(list, v), delete(list, i), insert(list, i, v), replace(list, i, v), set(list, i, v), clear(list), showList(list), hideList(list); or lists["x"][i] = v;',
+              'FR106'
             );
           }
         }
@@ -1496,6 +1852,7 @@ class Parser {
       }
       case 'costume':
       case 'backdrop':
+      case 'backdrop_and_wait':
       case 'clone':
       case 'point_towards':
       case 'play_sound':
@@ -1519,7 +1876,7 @@ class Parser {
         }
         this.tryChar(';');
         if (v == null && word === 'clone') v = { type: 'string', value: '_myself_' };
-        if (v == null) this.fail(`'${word}' needs a value`, `example: ${word} "name";`);
+        if (v == null) this.fail(`'${word}' needs a value`, `example: ${word} "name";`, 'FR111');
         if (v.type === 'string') {
           v = { type: 'call', value: makeCall(menuOpcode, [{ kind: 'positional', value: v }]) };
         }
@@ -1617,7 +1974,13 @@ class Parser {
         this.skipWS();
         let value;
         let isList = false;
-        if (this.peek() === '[') {
+        let keep = false;
+        if (this.peekWord() === 'keep') {
+          this.tryIdentifier();
+          keep = true;
+          value = null;
+          isList = null;
+        } else if (this.peek() === '[') {
           value = this.readJSONValue();
           isList = true;
         } else if (this.peekWord() === 'json') {
@@ -1636,7 +1999,7 @@ class Parser {
           value = this.parseNumberLiteral().value;
         }
         if (word === 'cloud' && isList) {
-          this.fail('cloud lists do not exist in Scratch - only cloud variables', 'use: cloud name = 0;');
+          this.fail('cloud lists do not exist in Scratch - only cloud variables', 'use: cloud name = 0;', 'FR112');
         }
 
         this.skipWS();
@@ -1646,7 +2009,7 @@ class Parser {
           id = this.parseStringLiteral();
         }
         this.tryChar(';');
-        return { type: 'varDecl', name, value, isList, cloud: word === 'cloud', id };
+        return { type: 'varDecl', name, value, isList, cloud: word === 'cloud', id, keep };
       }
       case 'sprite':
       case 'stage': {
@@ -1879,12 +2242,21 @@ class Parser {
             keyedField(fieldKey, { type: 'array', value: [fieldValue] }),
           ]);
         }
-        this.fail(`'${word}' is a reserved word that can't start a statement here`);
+        this.fail(`'${word}' is a reserved word that can't start a statement here`, null, 'FR114');
       }
     }
   }
 
+  scriptInsideBlock() {
+    let wordStart = this.i;
+    while (wordStart > 0 && /[A-Za-z0-9_]/.test(this.s[wordStart - 1])) wordStart--;
+    const err = new ParseError("this '{' is never closed", null, 'FR104');
+    err.resumeAt = wordStart;
+    throw err;
+  }
+
   parseDef() {
+    if (this.depth > 0) this.scriptInsideBlock();
     this.skipWS();
     this.expectChar('@');
     const ident = this.expectIdentifier();
@@ -2009,7 +2381,13 @@ class Parser {
 
   parseBraceBody() {
     this.expectChar('{');
-    const stmts = this.parseStatementList(true);
+    this.depth++;
+    let stmts;
+    try {
+      stmts = this.parseStatementList(true);
+    } finally {
+      this.depth--;
+    }
     this.expectChar('}');
     return stmts;
   }
@@ -2045,16 +2423,19 @@ class Parser {
   }
 
   parseBinaryExpr(minPrec) {
-    return this.parseBinaryFrom(this.parseUnaryExpr(), minPrec);
+    this.skipWS();
+    const start = this.i;
+    return this.parseBinaryFrom(this.parseUnaryExpr(), minPrec, start);
   }
 
-  parseBinaryFrom(left, minPrec) {
+  parseBinaryFrom(left, minPrec, start = null) {
     for (;;) {
       const op = this.peekBinaryOp();
       if (!op || BINARY_OPS[op] < minPrec) break;
       this.i += op.length;
       const right = this.parseBinaryExpr(BINARY_OPS[op] + 1);
       left = combineBinary(left, op, right);
+      if (start != null) markSpan(left, start, this.i);
     }
     return left;
   }
@@ -2070,12 +2451,17 @@ class Parser {
 
   parseUnaryExpr() {
     this.skipWS();
+    const start = this.i;
     if (this.peek() === '!' && this.peek(1) !== '=') {
       this.i++;
       const operand = this.parseUnaryExpr();
-      return { type: 'call', value: makeCall('operator_not', [keyedInput('OPERAND', operand)]) };
+      return markSpan(
+        { type: 'call', value: makeCall('operator_not', [keyedInput('OPERAND', operand)]) },
+        start,
+        this.i
+      );
     }
-    return this.parsePostfixMethods(this.parsePrimary());
+    return markSpan(this.parsePostfixMethods(this.parsePrimary()), start, this.i);
   }
 
   parsePostfixMethods(expr) {
@@ -2117,7 +2503,8 @@ class Parser {
       if (args.length !== m.argc) {
         this.fail(
           `.${name}(...) takes ${m.argc - 1} argument${m.argc === 2 ? '' : 's'} after the receiver`,
-          `stdlib method from import "${m.module}"`
+          `stdlib method from import "${m.module}"`,
+          'FR116'
         );
       }
       expr = {
@@ -2143,7 +2530,11 @@ class Parser {
   parsePrimary() {
     this.skipWS();
     if (this.eof())
-      this.fail('expected a value but reached the end of the file', 'a block above is probably missing its closing }');
+      this.fail(
+        'expected a value but reached the end of the file',
+        'a block above is probably missing its closing }',
+        'FR108'
+      );
     const ch = this.peek();
 
     if (ch === '(') return this.parseParenExpr();
@@ -2158,7 +2549,8 @@ class Parser {
     if (word == null)
       this.fail(
         `expected a value but found ${this.describeHere()}`,
-        'values are numbers, "strings", variable names, vars["..."], lists["..."], or block calls like sensing.timer()'
+        'values are numbers, "strings", variable names, vars["..."], lists["..."], or block calls like sensing.timer()',
+        'FR108'
       );
 
     if (word === 'true') return { type: 'boolean', value: true };
@@ -2224,12 +2616,13 @@ class Parser {
         this.expectChar(']');
       } else {
         const ident = this.expectIdentifier();
-        prop = SPRITE_PROPS[ident];
+        prop = SPRITE_PROPS[ident] || SPRITE_PROPS[camelToSnake(ident)];
         if (!prop) {
-          const near = closestMatch(ident, Object.keys(SPRITE_PROPS));
+          const near = closestMatch(ident, Object.keys(SPRITE_PROPS).map(snakeToCamel));
           this.fail(
             `sprites have no '.${ident}' property${near ? ` - did you mean '.${near}'?` : ''}`,
-            'properties: .x .y .direction .size .volume .costume_number .costume_name .backdrop_number .backdrop_name, or .vars["name"] for that sprite\'s variables'
+            'properties: .x .y .direction .size .volume .costumeNumber .costumeName .backdropNumber .backdropName, or .vars["name"] for that sprite\'s variables',
+            'FR107'
           );
         }
       }
@@ -2266,7 +2659,7 @@ class Parser {
       this.i++;
       const listRef = this.parseExpr();
       if (listRef.type !== 'ident' && listRef.type !== 'list') {
-        this.fail(`${word}(...) needs a list as its first argument (a name or lists["..."])`);
+        this.fail(`${word}(...) needs a list as its first argument (a name or lists["..."])`, null, 'FR106');
       }
       const inputs = [];
       for (const k of keys) {
@@ -2410,7 +2803,8 @@ class Parser {
     if (callee !== word)
       this.fail(
         `'${callee.replace(/_/g, '.')}' looks like a block but has no (arguments)`,
-        `write ${callee.replace(/_/g, '.')}(...) - use () even when there are no arguments`
+        `write ${callee.replace(/_/g, '.')}(...) - use () even when there are no arguments`,
+        'FR105'
       );
 
     return { type: 'ident', name: word };
@@ -2454,7 +2848,8 @@ class Parser {
         const near = closestMatch(method, ['length', 'contains', 'indexof', 'item']);
         this.fail(
           `lists have no '.${method}(...)' reporter${near ? ` - did you mean '.${near}'?` : ''}`,
-          'use function calls instead: get(list, i), item(list, i), hasItem(list, v), indexOf(list, v); lists["x"][i] also reads an item'
+          'use function calls instead: get(list, i), item(list, i), hasItem(list, v), indexOf(list, v); lists["x"][i] also reads an item',
+          'FR106'
         );
       }
     }
@@ -2512,13 +2907,13 @@ class Parser {
       while (!this.eof() && /[0-9]/.test(this.peek())) this.i++;
     }
     const text = this.s.slice(start, this.i);
-    if (!text || text === '-') this.fail(`expected a number but found ${this.describeHere()}`);
+    if (!text || text === '-') this.fail(`expected a number but found ${this.describeHere()}`, null, 'FR108');
     return { type: 'number', value: Number(text), raw: text };
   }
 
   parseStringLiteral() {
     this.skipWS();
-    if (this.peek() !== '"') this.fail(`expected a "quoted string" but found ${this.describeHere()}`);
+    if (this.peek() !== '"') this.fail(`expected a "quoted string" but found ${this.describeHere()}`, null, 'FR100');
 
     if (this.s.startsWith('"""', this.i)) {
       this.i += 3;
@@ -2526,7 +2921,8 @@ class Parser {
       if (end < 0) {
         this.fail(
           'this """ string never closes - missing the ending \'"""\'',
-          'triple-quoted strings are raw: no escapes, closed by """'
+          'triple-quoted strings are raw: no escapes, closed by """',
+          'FR102'
         );
       }
       const result = this.s.slice(this.i, end);
@@ -2539,7 +2935,8 @@ class Parser {
       if (this.peek() === '\n') {
         this.fail(
           "this string never closes - missing the ending '\"' before the end of the line",
-          'strings cannot contain raw line breaks; use \\n for a newline character'
+          'strings cannot contain raw line breaks; use \\n for a newline character',
+          'FR102'
         );
       }
       const ch = this.next();
@@ -2558,7 +2955,8 @@ class Parser {
     if (this.peek() !== '"')
       this.fail(
         "this string never closes - missing the ending '\"'",
-        'strings use double quotes: "like this"; escape inner quotes as \\"'
+        'strings use double quotes: "like this"; escape inner quotes as \\"',
+        'FR102'
       );
     this.i++;
     return result;
@@ -2584,7 +2982,7 @@ class Parser {
         return result;
       }
       if (ch === '\\') {
-        if (this.eof()) this.fail('unterminated template string');
+        if (this.eof()) this.fail('unterminated template string', null, 'FR118');
         const escaped = this.next();
         literal += { n: '\n', t: '\t', r: '\r' }[escaped] ?? escaped;
         continue;
@@ -2599,7 +2997,7 @@ class Parser {
       }
       literal += ch;
     }
-    this.fail('unterminated template string');
+    this.fail('unterminated template string', null, 'FR118');
   }
 
   parseKeyedArgs() {
@@ -2626,7 +3024,8 @@ class Parser {
       if (this.peek() !== ')') {
         this.fail(
           `expected ',' or ')' after an argument but found ${this.describeHere()}`,
-          "arguments look like name: value, separated by commas - did you forget the ':' or a comma?"
+          "arguments look like name: value, separated by commas - did you forget the ':' or a comma?",
+          'FR109'
         );
       }
       break;
@@ -2682,7 +3081,8 @@ class Parser {
     else
       this.fail(
         `expected ':' after the argument name '${key}' but found ${this.describeHere()}`,
-        `arguments look like ${key}: value`
+        `arguments look like ${key}: value`,
+        'FR110'
       );
     const value = this.parseInputValue();
     const sep = forceField || (token === ':' && isLegacyFieldArg(key, value)) ? 'field' : 'input';
@@ -2701,7 +3101,7 @@ class Parser {
 
     const start = this.i;
     while (!this.eof() && /[A-Za-z0-9_]/.test(this.peek())) this.i++;
-    if (this.i === start) this.fail(`expected an argument name but found ${this.describeHere()}`);
+    if (this.i === start) this.fail(`expected an argument name but found ${this.describeHere()}`, null, 'FR100');
     return this.s.slice(start, this.i);
   }
 
@@ -2731,7 +3131,7 @@ class Parser {
         if (depth === 0) return;
       }
     }
-    this.fail(`this ${open === '[' ? 'JSON array' : 'JSON object'} never closes - missing '${close}'`);
+    this.fail(`this ${open === '[' ? 'JSON array' : 'JSON object'} never closes - missing '${close}'`, null, 'FR117');
   }
 }
 
@@ -2750,6 +3150,19 @@ const BINARY_OPCODES = {
   '||': ['operator_or', 'OPERAND1', 'OPERAND2'],
 };
 const NEGATED_OPCODES = { '!=': '==', '<=': '>', '>=': '<' };
+
+function isIdentStart(c) {
+  return (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95;
+}
+
+function isIdentPart(c) {
+  return isIdentStart(c) || (c >= 48 && c <= 57);
+}
+
+function markSpan(node, start, end) {
+  if (node && node.type === 'call' && node.value && !node.value.span) node.value.span = [start, end];
+  return node;
+}
 
 function combineBinary(left, op, right) {
   const negated = NEGATED_OPCODES[op];
@@ -2846,3 +3259,22 @@ function toFieldValueNode(e) {
 }
 
 export { BRANCH_SUBSTACK_OPCODES, LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS };
+
+export const ALIAS_TABLES = {
+  SIMPLE_ALIASES,
+  UNARY_ALIASES,
+  FIELD_ALIASES,
+  UNARY_FIELD_ALIASES,
+  MENU_ALIASES,
+  FUNC_SUGAR,
+  LIST_CMD_FN,
+  LIST_RPT_FN,
+  UNARY_SUGAR,
+  REPORTER_NULLARY,
+  REPORTER_FIELD,
+  REPORTER_MENU_SUGAR,
+  REPORTER_FUNC_SUGAR,
+  SPRITE_PROPS,
+};
+
+export { snakeToCamel };

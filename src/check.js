@@ -2,9 +2,25 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch, closestMatch } from './parse.js';
 import { checkFractch } from './lint.js';
+import { DIAGNOSTIC_CODES } from './diagnostics.js';
 import { LIST_METHOD_OPS } from './buildBlocks.js';
 import { KNOWN_OPCODES, MENU_OPCODES, VALIDATED_NAMESPACES } from './knownOpcodes.js';
 import { STDLIB_METHODS, STDLIB_MODULE_META } from './stdlib/index.js';
+
+function problem(code, file, line, col, message, hint) {
+  return {
+    severity: DIAGNOSTIC_CODES[code]?.severity || 'error',
+    code,
+    file,
+    line,
+    col,
+    column: col,
+    endLine: line,
+    endColumn: col,
+    message,
+    hint,
+  };
+}
 
 export async function checkProject({ buildDir, fs: fsLike }) {
   const vfs = toPromiseFs(fsLike);
@@ -15,6 +31,8 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       files: 0,
       problems: [
         {
+          severity: 'error',
+          code: 'FR309',
           file: '.',
           line: 0,
           col: 0,
@@ -30,6 +48,8 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       files: 0,
       problems: [
         {
+          severity: 'error',
+          code: 'FR309',
           file: '.',
           line: 0,
           col: 0,
@@ -46,6 +66,8 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       files: 0,
       problems: [
         {
+          severity: 'error',
+          code: 'FR309',
           file: '.',
           line: 0,
           col: 0,
@@ -71,9 +93,10 @@ export async function checkProject({ buildDir, fs: fsLike }) {
     return perTarget.get(name);
   };
 
-  const push = (file, line, col, message, hint = null) => problems.push({ file, line, col, message, hint });
-  const pushFatal = (file, line, col, message, hint = null) =>
-    problems.push({ file, line, col, message, hint, fatal: true });
+  const push = (code, file, line, col, message, hint = null) =>
+    problems.push(problem(code, file, line, col, message, hint));
+  const pushFatal = (code, file, line, col, message, hint = null) =>
+    problems.push({ ...problem(code, file, line, col, message, hint), fatal: true });
 
   for (const fPath of files) {
     const rel = path.relative(buildDir, fPath);
@@ -82,24 +105,31 @@ export async function checkProject({ buildDir, fs: fsLike }) {
     try {
       text = String(await vfs.readFile(fPath, 'utf8'));
     } catch (e) {
-      pushFatal(rel, 0, 0, `unreadable: ${e.message}`);
+      pushFatal('FR311', rel, 0, 0, `unreadable: ${e.message}`);
       continue;
     }
     sources.set(rel, text);
 
     for (const e of checkFractch(text)) {
-      pushFatal(rel, e.line, e.col, e.message.replace(/ \(line \d+, col \d+\)$/, ''));
+      pushFatal('FR119', rel, e.line, e.col, e.message.replace(/ \(line \d+, col \d+\)$/, ''));
     }
 
     let parsed;
     try {
       parsed = parseFractch(text);
     } catch (e) {
-      pushFatal(rel, 0, 0, `parse failed: ${e.message}`, e.hint || null);
+      pushFatal('FR100', rel, 0, 0, `parse failed: ${e.message}`, e.hint || null);
       continue;
     }
     for (const err of parsed.errors || []) {
-      pushFatal(rel, err.line, err.col ?? 0, `skipped unparsable statement: ${err.message}`, err.hint || null);
+      pushFatal(
+        err.code || 'FR100',
+        rel,
+        err.line,
+        err.col ?? 0,
+        `skipped unparsable statement: ${err.message}`,
+        err.hint || null
+      );
     }
 
     const st = targetState(target);
@@ -117,6 +147,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       if (!fileRel) continue;
       if (!(await vfs.exists(abs))) {
         push(
+          'FR301',
           rel,
           decl.line ?? 0,
           0,
@@ -138,6 +169,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           const methods = [...pkgMeta.defs].map((d) => d.slice(pkgMeta.defPrefix.length));
           const near = closestMatch(u.method, methods, 3);
           push(
+            'FR215',
             u.file,
             u.line,
             0,
@@ -156,6 +188,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       if (isList && !LIST_METHOD_OPS[u.method]) {
         const near = closestMatch(u.method, Object.keys(LIST_METHOD_OPS), 3);
         push(
+          'FR214',
           u.file,
           u.line,
           0,
@@ -165,6 +198,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       } else if (isVar && !isList && !STDLIB_METHODS[u.method] && u.method !== 'letter') {
         const near = closestMatch(u.method, Object.keys(STDLIB_METHODS), 3);
         push(
+          'FR216',
           u.file,
           u.line,
           0,
@@ -178,6 +212,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       if (!def) {
         const near = closestMatch(c.ident, [...st.defs.keys()], 3);
         push(
+          'FR208',
           c.file,
           c.line ?? 0,
           0,
@@ -188,6 +223,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       }
       if (c.argCount !== def.paramCount) {
         push(
+          'FR209',
           c.file,
           c.line ?? 0,
           0,
@@ -220,6 +256,7 @@ function checkOpcodeUse(opcode, line, file, stmt, push) {
   if (!KNOWN_OPCODES.has(opcode)) {
     if (opcode === BARE_VALUE_OPCODE) {
       push(
+        'FR203',
         file,
         line,
         0,
@@ -237,6 +274,7 @@ function checkOpcodeUse(opcode, line, file, stmt, push) {
       : closestMatch(opcode, [...KNOWN_OPCODES], 3);
     const suggestion = near ? `, did you mean '${ns ? `${ns}.${near}` : dottedOpcode(near)}'?` : '';
     push(
+      'FR201',
       file,
       line,
       0,
@@ -247,6 +285,7 @@ function checkOpcodeUse(opcode, line, file, stmt, push) {
   }
   if (stmt && MENU_OPCODES.has(opcode)) {
     push(
+      'FR202',
       file,
       line,
       0,
@@ -262,6 +301,7 @@ function collectScriptFacts(nodes, file, st, locals, push, stmt = true) {
     if (node.type === 'localDecl') {
       if (locals.has(node.name)) {
         push(
+          'FR210',
           file,
           node.line ?? 0,
           0,
@@ -277,6 +317,7 @@ function collectScriptFacts(nodes, file, st, locals, push, stmt = true) {
       if (st.defs.has(node.ident)) {
         const first = st.defs.get(node.ident);
         push(
+          'FR211',
           file,
           node.line ?? 0,
           0,
@@ -338,6 +379,7 @@ function checkDuplicateAssets(assets, file, push) {
       const name = String(d.name ?? '');
       if (seen.has(name)) {
         push(
+          'FR302',
           file,
           d.line ?? 0,
           0,

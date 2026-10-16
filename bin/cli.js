@@ -17,6 +17,14 @@ import {
   writeExtensions,
 } from '../src/index.js';
 import { runPackage } from '../src/packageCmd.js';
+import { formatDiagnostic } from '../src/diagnostics.js';
+
+function printDiagnostics(diagnostics, verbose = false) {
+  for (const d of diagnostics || []) {
+    if (d.severity === 'info' && !verbose) continue;
+    (d.severity === 'info' ? console.log : console.warn)(`[fractch] ${formatDiagnostic(d)}`);
+  }
+}
 
 const USAGE =
   'Usage:\n' +
@@ -116,8 +124,10 @@ async function runFmt(dir, verbose) {
       `[fractch] ${problems.length} problem${problems.length === 1 ? ' above does' : 's above do'} not block formatting; run 'fractch check' for details`
     );
   }
-  const { manifest } = await buildProjectFromBuildDir({ buildDir, verbose, prune: false });
-  const result = await convertProject(manifest, { outDir: buildDir, verbose });
+  const built = await buildProjectFromBuildDir({ buildDir, prune: false });
+  printDiagnostics(built.diagnostics, verbose);
+  const result = await convertProject(built.manifest, { outDir: buildDir, verbose });
+  printDiagnostics(result.diagnostics, verbose);
   console.log(
     `[fractch] fmt: rewrote ${result.filesWritten} file${result.filesWritten === 1 ? '' : 's'} in ${buildDir}`
   );
@@ -137,7 +147,8 @@ async function runWatch(dir, outSb3, verbose, onPacked) {
     packing = true;
     const started = Date.now();
     try {
-      await packSb3({ buildDir, outSb3: target, verbose });
+      const packed = await packSb3({ buildDir, outSb3: target });
+      printDiagnostics(packed.diagnostics, verbose);
       console.log(`[fractch] ${reason}: packed ${path.basename(target)} in ${Date.now() - started}ms`);
       if (onPacked) onPacked(target);
     } catch (e) {
@@ -213,7 +224,8 @@ async function runRun(dir, editorFlagValue) {
 
   const rebuildManifest = async (reason) => {
     const started = Date.now();
-    const { manifest, assetFiles } = await buildProjectFromBuildDir({ buildDir });
+    const { manifest, assetFiles, diagnostics } = await buildProjectFromBuildDir({ buildDir });
+    printDiagnostics(diagnostics);
     latestProjectJson = JSON.stringify(manifest);
     latestAssetFiles = assetFiles || new Map();
     version++;
@@ -430,8 +442,9 @@ async function runClone(url, dir, verbose) {
   );
 
   const result = await convertProject(manifest, { outDir, verbose });
-  writeAssets({ readFile: (md5ext) => blobs.get(md5ext) }, manifest, outDir, { verbose });
-  await writeExtensions(manifest, outDir, { verbose });
+  printDiagnostics(result.diagnostics, verbose);
+  writeAssets({ readFile: (md5ext) => blobs.get(md5ext) }, manifest, outDir);
+  await writeExtensions(manifest, outDir);
 
   const rel = path.relative(process.cwd(), outDir) || '.';
   console.log(`[fractch] wrote ${result.filesWritten} files + ${blobs.size} assets to ${rel}`);
@@ -538,12 +551,12 @@ function runNew(dir) {
     const verbose = argv.verbose;
     const originIdx = rawArgs.indexOf('--origin');
     if (argv.pack) {
-      await packSb3({
+      const packed = await packSb3({
         buildDir: path.resolve(argv.out),
         outSb3: path.resolve(argv.outSb3 || path.join(process.cwd(), 'out.sb3')),
         originSb3: originIdx >= 0 ? path.resolve(rawArgs[originIdx + 1]) : undefined,
-        verbose,
       });
+      printDiagnostics(packed.diagnostics, verbose);
       process.exit(0);
     }
 
@@ -554,6 +567,7 @@ function runNew(dir) {
     }
     if (verbose) console.log(`Reading sb3: ${sb3Path}`);
     const result = await unpackSb3({ input: sb3Path, outDir: path.resolve(argv.out), verbose });
+    printDiagnostics(result.diagnostics, verbose);
     if (verbose) console.log(`Wrote ${result.filesWritten} files to ${argv.out}`);
   } catch (e) {
     console.error(e.message);

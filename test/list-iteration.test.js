@@ -6,22 +6,27 @@ import path from 'node:path';
 import AdmZip from 'adm-zip';
 import { buildProjectFromBuildDir } from '../src/pack.js';
 import { convertProject } from '../src/convert.js';
-import { unpackSb3 } from '../src/index.js';
+import { packSb3, unpackSb3 } from '../src/index.js';
 import { verifyRoundtrip } from '../src/roundtripDiff.js';
 
 test('the order fulfilment SB3 emits readable list traversal and preserves every block', async (t) => {
-  const sb3 = path.resolve('examples/order-fulfilment.sb3');
-  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-orders-'));
   t.after(() => fs.rmSync(out, { recursive: true, force: true }));
+  let sb3 = path.resolve('examples/order-fulfilment.sb3');
+  if (!fs.existsSync(sb3)) {
+    sb3 = path.join(out, 'order-fulfilment.sb3');
+    await packSb3({ buildDir: path.resolve('examples/order-fulfilment'), outSb3: sb3 });
+  }
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  const unpacked = path.join(out, 'unpacked');
 
-  await unpackSb3({ input: sb3, outDir: out });
-  const source = fs.readFileSync(path.join(out, 'Stage', 'main.fractch'), 'utf8');
+  await unpackSb3({ input: sb3, outDir: unpacked });
+  const source = fs.readFileSync(path.join(unpacked, 'Stage', 'main.fractch'), 'utf8');
   assert.match(source, /for order in orders using position \{/);
   assert.match(source, /for order in ready \{/);
   assert.match(source, /\/\/ Example: for order in orders/);
 
-  const roundtrip = await verifyRoundtrip({ project, buildDir: out, fs });
+  const roundtrip = await verifyRoundtrip({ project, buildDir: unpacked, fs });
   assert.deepEqual(roundtrip.failures, []);
   assert.equal(roundtrip.ok, roundtrip.total);
 });

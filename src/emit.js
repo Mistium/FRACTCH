@@ -1,14 +1,9 @@
 import {
-  stringifyBlockCall,
-  stringifyFields,
-  stringifyInputs,
-  setContext,
-  renderBody,
+  createStringifier,
   commentDeclLine,
   withAttachedComments,
   isSimpleAttachedComment,
   lineCommentText,
-  inputValueText,
 } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
@@ -173,19 +168,19 @@ function numOr(v, dflt) {
 
 const BARE_VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-function varNameToken(name) {
+export function varNameToken(name) {
   const s = String(name ?? '');
   return BARE_VAR_NAME.test(s) ? s : JSON.stringify(s);
 }
 
-function varValueText(v) {
+export function varValueText(v) {
   if (typeof v === 'number' && Number.isFinite(v)) return String(v);
   if (typeof v === 'boolean') return v ? 'true' : 'false';
   if (Array.isArray(v) || (v !== null && typeof v === 'object')) return `json(${JSON.stringify(v)})`;
   return JSON.stringify(String(v ?? ''));
 }
 
-function watchDeclLine(w) {
+export function watchDeclLine(w) {
   const head = w.opcode
     ? `watch ${w.opcode}${watchParamsText(w.params)}`
     : `watch ${w.isList ? 'list' : 'var'} ${JSON.stringify(String(w.name ?? ''))}`;
@@ -210,11 +205,11 @@ function watchParamsText(params) {
   return `(${entries.map(([k, v]) => `${k}: ${JSON.stringify(String(v ?? ''))}`).join(', ')})`;
 }
 
-function emitScriptBody({ script, subgraph, context, cfg = {} }) {
+export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
   const { topBlockId, hatOpcode } = script;
 
   const scriptContext = { ...context, declaredLocals: new Set() };
-  setContext(scriptContext);
+  const S = createStringifier(scriptContext);
   context = scriptContext;
 
   let body;
@@ -225,21 +220,21 @@ function emitScriptBody({ script, subgraph, context, cfg = {} }) {
     if (info) {
       const scopeParamNames = new Map(info.params.map((p) => [p.name, p.ident]));
       const scopeParamKinds = new Map(info.params.map((p) => [p.name, p.kind || 's']));
-      setContext({ ...context, scopeParamNames, scopeParamKinds });
+      S.setContext({ ...context, scopeParamNames, scopeParamKinds });
     }
-    let inner = subgraph[topBlockId]?.next ? renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
+    let inner = subgraph[topBlockId]?.next ? S.renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
     inner = prependOwnComments(context, topBlockId, inner);
     const at = atText(subgraph[topBlockId]);
     body = inner ? `${sig}${at} {\n${indentBlock(inner)}\n}` : `${sig}${at} {}`;
   } else {
     const top = subgraph[topBlockId];
-    const sugar = top ? whenSugarFor(top, context, subgraph) : null;
+    const sugar = top ? whenSugarFor(top, context, subgraph, S) : null;
     if (sugar) {
-      let rest = top.next ? renderBody(subgraph, top.next, cfg) : '';
+      let rest = top.next ? S.renderBody(subgraph, top.next, cfg) : '';
       rest = prependOwnComments(context, topBlockId, rest);
       body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
-      const inner = renderFallbackBody(subgraph, topBlockId, cfg, context);
+      const inner = renderFallbackBody(subgraph, topBlockId, cfg, context, S);
       body = `script${atText(top)} {\n${indentBlock(inner)}\n}`;
     }
   }
@@ -302,16 +297,20 @@ function linearize(subgraph, topId) {
   return arr;
 }
 
-function renderFallbackBody(subgraph, topId, cfg, context) {
+function renderFallbackBody(subgraph, topId, cfg, context, S) {
   const ids = linearizeIds(subgraph, topId);
   const lines = ids.map((id, index) => {
     const block = subgraph[id];
     const line =
       index === 0 && needsExplicitTopOpcode(block)
-        ? stringifyRawBlockCall(block, subgraph)
-        : stringifyBlockCall(block, subgraph, id, false, cfg);
+        ? S.mark(id, stringifyRawBlockCall(block, subgraph, S))
+        : S.stringifyBlockCall(block, subgraph, id, false, cfg);
     return withAttachedComments(line, context?.blockComments?.get(id));
   });
+  const last = ids.length ? subgraph[ids[ids.length - 1]] : null;
+  if (last && typeof last.next === 'string' && !subgraph[last.next]) {
+    lines.push(`danglingNext(${JSON.stringify(last.next)});`);
+  }
   return lines.join('\n');
 }
 
@@ -338,10 +337,10 @@ function needsExplicitTopOpcode(block) {
   return block && ['argument_reporter_boolean', 'data_variable'].includes(block.opcode);
 }
 
-function stringifyRawBlockCall(block, subgraph) {
+function stringifyRawBlockCall(block, subgraph, S) {
   const argParts = [];
-  const inputsStr = stringifyInputs(block, subgraph, true);
-  const fieldsStr = stringifyFields(block);
+  const inputsStr = S.stringifyInputs(block, subgraph, true);
+  const fieldsStr = S.stringifyFields(block);
   if (inputsStr) argParts.push(inputsStr);
   if (fieldsStr) argParts.push(fieldsStr);
   if (block.mutation) argParts.push(`mutation: ${JSON.stringify(block.mutation)}`);
@@ -420,7 +419,7 @@ function defSignature(defBlock, subgraph, context) {
   return `def @${info.ident}(${params})${codeLit}${warpLit}${returnsLit}${colorLit}`;
 }
 
-function atText(block) {
+export function atText(block) {
   if (!block || !block.topLevel) return '';
   return ` at ${Math.round(block.x ?? 0)},${Math.round(block.y ?? 0)}`;
 }
@@ -431,14 +430,14 @@ function nameToken(name) {
   return BARE_NAME_RE.test(name) && name !== 'at' ? name : JSON.stringify(name);
 }
 
-function whenSugarFor(block, context, subgraph) {
+function whenSugarFor(block, context, subgraph, S) {
   const op = block.opcode;
   const fields = block.fields || {};
   const inputs = Object.keys(block.inputs || {});
   if (op === 'event_whengreaterthan' && !block.mutation && inputs.length === 1 && inputs[0] === 'VALUE') {
     const menu = String(fields.WHENGREATERTHANMENU?.[0] ?? '').toLowerCase();
     if (menu === 'loudness' || menu === 'timer') {
-      return `${menu} > ${inputValueText(block.inputs.VALUE, subgraph, 'VALUE')}`;
+      return `${menu} > ${S.inputValueText(block.inputs.VALUE, subgraph, 'VALUE')}`;
     }
   }
   if (inputs.length || block.mutation) return null;
@@ -465,7 +464,7 @@ function whenSugarFor(block, context, subgraph) {
   return null;
 }
 
-function indentBlock(str, spaces = 2) {
+export function indentBlock(str, spaces = 2) {
   if (!str) return '';
   const pad = ' '.repeat(spaces);
   let inRaw = false;

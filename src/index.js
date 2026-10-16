@@ -7,6 +7,7 @@ import { writeExtensions as writeExtensionsCore } from './extensions.js';
 import { packFromBuildDir } from './packSb3.js';
 import { checkProject as checkProjectCore } from './check.js';
 import { writeAssets } from './assets.js';
+import { diagnostic } from './diagnostics.js';
 
 export async function convertProject(projectJson, opts = {}) {
   return convertProjectCore(projectJson, { fs: nodeFs, ...opts });
@@ -31,13 +32,19 @@ export async function unpackSb3({ input, outDir, verbose = false }) {
   const projectJson = JSON.parse(zip.readAsText(entry));
 
   const result = await convertProject(projectJson, { outDir, verbose, config: readCwdConfig() });
-  writeAssets(zip, projectJson, outDir, { verbose });
-  await writeExtensions(projectJson, outDir, { verbose });
+  const assets = writeAssets(zip, projectJson, outDir);
+  for (const md5ext of assets.missing) {
+    result.diagnostics.push(diagnostic('FR301', `asset ${md5ext} is missing from the sb3`, { severity: 'warning' }));
+  }
+  const extensions = await writeExtensions(projectJson, outDir);
+  for (const file of extensions.files) {
+    result.diagnostics.push(diagnostic('FR308', `extracted ${file}`, { severity: 'info' }));
+  }
   return result;
 }
 
-export async function packSb3({ buildDir, outSb3, originSb3, verbose = false }) {
-  return packFromBuildDir({ buildDir, outSb3, originSb3, verbose });
+export async function packSb3({ buildDir, outSb3, originSb3 }) {
+  return packFromBuildDir({ buildDir, outSb3, originSb3 });
 }
 
 function readCwdConfig() {
@@ -59,4 +66,17 @@ export { parseFractch, preprocess } from './parse.js';
 export { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode } from './buildBlocks.js';
 export { checkFractch, assertValidFractch, FractchSyntaxError } from './lint.js';
 export { emitScriptFile, emitMultiScriptFile, emitIndex, emitTargetIndex } from './emit.js';
-export { stringifyBlockCall, renderBody, setContext } from './stringify.js';
+export { stringifyBlockCall, renderBody, createStringifier } from './stringify.js';
+export {
+  emitTarget,
+  buildTarget,
+  toReplaceChange,
+  findInSourceMap,
+  alignScripts,
+  compareScripts,
+  defaultUid,
+} from './target.js';
+export { DIAGNOSTIC_CODES, diagnostic, formatDiagnostic, hasErrors, makeLineIndex } from './diagnostics.js';
+export { MEMBERSHIP_MAGIC, readMembership, membershipText, commentText, splitCommentText } from './membership.js';
+export { normalizeSignatures, normalizeOpcodeTable, signatureHash } from './signatures.js';
+export { languageReference, referenceWithDocs } from './reference.js';

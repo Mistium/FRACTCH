@@ -134,7 +134,7 @@ export function checkFractch(text) {
       else if (top.ch !== pairs[ch])
         errors.push(
           new FractchSyntaxError(
-            `mismatched '${ch}' — expected close of '${top.ch}' from line ${top.line}`,
+            `mismatched '${ch}', expected close of '${top.ch}' from line ${top.line}`,
             pos.line,
             pos.col
           )

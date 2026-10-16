@@ -2,14 +2,22 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { emitMultiScriptFile, emitTargetPrelude, targetDirNames } from './emit.js';
 import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
-import { decodeFileStemFromComment, decodeFileStemFromTopId } from './fileMarkers.js';
-import { STDLIB_MODULES, STDLIB_STEM_PREFIX } from './stdlib/index.js';
+import { decodeFileStemFromComment } from './fileMarkers.js';
+import { STDLIB_MODULES } from './stdlib/index.js';
+import { commentText, isMembershipComment, readMembership } from './membership.js';
+import { diagnostic } from './diagnostics.js';
 
 export async function convertProject(projectJson, { outDir, fs: fsLike, config = {}, verbose = false } = {}) {
   const vfs = toPromiseFs(fsLike);
   await vfs.mkdirp(outDir);
-  const targets = projectJson.targets || [];
+  const degenerateCounts = new Map();
+  const targets = (projectJson.targets || []).map((t) => {
+    const { target: normalized, degenerate } = normalizeTargetBlocks(t);
+    if (degenerate) degenerateCounts.set(normalized, degenerate);
+    return normalized;
+  });
   const files = [];
+  const diagnostics = [];
 
   const broadcastMap = new Map();
   const proceduresMap = new Map();
@@ -66,7 +74,9 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     const varMap = new Map([...stageVarMap, ...nameIdMap(target.variables)]);
     const listMap = new Map([...stageListMap, ...nameIdMap(target.lists)]);
 
-    const { workspaceComments, blockComments, fileMarkers } = routeComments(target);
+    const { workspaceComments, blockComments } = routeComments(target);
+    const membership = readMembership(target);
+    for (const d of membership.diagnostics) diagnostics.push(diagnostic(d.code, d.message, { file: targetDir }));
     const prelude = emitTargetPrelude({
       projectJson,
       target,
@@ -84,19 +94,14 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     }
 
     const allBlocks = target.blocks || {};
-    let degenerateTuples = 0;
-    for (const b of Object.values(allBlocks)) {
-      if (!b || typeof b !== 'object' || Array.isArray(b)) continue;
-      for (const [key, tuple] of Object.entries(b.inputs || {})) {
-        if (Array.isArray(tuple) && tuple[0] === 3 && tuple[1] == null && tuple.length > 2 && tuple[2] != null) {
-          b.inputs[key] = [1, tuple[2]];
-          degenerateTuples++;
-        }
-      }
-    }
+    const degenerateTuples = degenerateCounts.get(target) || 0;
     if (degenerateTuples) {
-      console.warn(
-        `[convert] ${target.name}: normalized ${degenerateTuples} empty obscured input(s) to their visible shadow`
+      diagnostics.push(
+        diagnostic(
+          'FR306',
+          `${target.name}: normalized ${degenerateTuples} empty obscured input(s) to their visible shadow`,
+          { file: targetDir }
+        )
       );
     }
     let droppedShadows = 0;
@@ -117,8 +122,12 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       subgraphs.set(id, subgraph);
     }
     if (droppedShadows) {
-      console.warn(
-        `[convert] ${target.name}: dropped ${droppedShadows} floating shadow block(s) left behind by editor corruption; they were never visible and are not emitted`
+      diagnostics.push(
+        diagnostic(
+          'FR305',
+          `${target.name}: dropped ${droppedShadows} floating shadow block(s) left behind by editor corruption; they were never visible and are not emitted`,
+          { file: targetDir }
+        )
       );
     }
 
@@ -136,15 +145,12 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
 
       const procLabel =
         hatOpcode === 'procedures_definition' ? procedureDefsByTarget.get(target.name)?.get(topBlockId) || null : null;
-      const markerStem = fileMarkers.get(topBlockId) || decodeFileStemFromTopId(topBlockId);
-
-      if (markerStem && markerStem.startsWith(STDLIB_STEM_PREFIX)) {
-        const moduleId = markerStem.slice(STDLIB_STEM_PREFIX.length);
-        if (STDLIB_MODULES[moduleId]) {
-          stdlibModules.add(moduleId);
-          continue;
-        }
+      const entry = membership.entryFor(topBlockId);
+      if (entry.module && STDLIB_MODULES[entry.module]) {
+        stdlibModules.add(entry.module);
+        continue;
       }
+      const markerStem = entry.region || null;
       const groupKey = markerStem || 'main';
       if (!groups.has(groupKey)) groups.set(groupKey, []);
       if (!filenameForGroup.has(groupKey)) {
@@ -190,12 +196,57 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     }
   }
 
-  if (verbose) console.log(`[convert] ${files.length} script files across ${targets.length} targets`);
+  if (verbose) {
+    diagnostics.push(
+      diagnostic('FR308', `${files.length} script files across ${targets.length} targets`, { severity: 'info' })
+    );
+  }
 
   return {
+    diagnostics,
     filesWritten: files.length,
     manifest: manifestWithoutBlocks(projectJson),
     indexContent: '',
+  };
+}
+
+export function normalizeTargetBlocks(target) {
+  const blocks = target?.blocks;
+  if (!blocks || typeof blocks !== 'object') return { target, degenerate: 0 };
+  let changed = null;
+  let degenerate = 0;
+  for (const [id, b] of Object.entries(blocks)) {
+    if (Array.isArray(b)) {
+      if (b[0] !== 12 && b[0] !== 13) continue;
+      changed = changed || { ...blocks };
+      changed[id] = topLevelPrimitiveBlock(b);
+      continue;
+    }
+    if (!b || typeof b !== 'object') continue;
+    for (const [key, tuple] of Object.entries(b.inputs || {})) {
+      if (Array.isArray(tuple) && tuple[0] === 3 && tuple[1] == null && tuple.length > 2 && tuple[2] != null) {
+        changed = changed || { ...blocks };
+        const cur = changed[id];
+        changed[id] = { ...cur, inputs: { ...cur.inputs, [key]: [1, tuple[2]] } };
+        degenerate++;
+      }
+    }
+  }
+  return { target: changed ? { ...target, blocks: changed } : target, degenerate };
+}
+
+export function topLevelPrimitiveBlock(b) {
+  const isList = b[0] === 13;
+  return {
+    opcode: isList ? 'data_listcontents' : 'data_variable',
+    next: null,
+    parent: null,
+    inputs: {},
+    fields: { [isList ? 'LIST' : 'VARIABLE']: [b[1], b[2] ?? null] },
+    shadow: false,
+    topLevel: true,
+    x: b[3] ?? 0,
+    y: b[4] ?? 0,
   };
 }
 
@@ -212,7 +263,7 @@ function manifestWithoutBlocks(projectJson) {
   };
 }
 
-function routeMonitors(projectJson, targets) {
+export function routeMonitors(projectJson, targets) {
   const stageTarget = targets.find((t) => t.isStage);
   const byName = new Map(targets.map((t) => [t.name, t]));
   const out = new Map();
@@ -281,14 +332,15 @@ function routeComments(target) {
   const blocks = target.blocks || {};
   for (const c of Object.values(target.comments || {})) {
     if (!c || typeof c !== 'object') continue;
-    const markerStem = decodeFileStemFromComment(c.text);
+    if (isMembershipComment(c)) continue;
+    const markerStem = decodeFileStemFromComment(commentText(c));
     if (markerStem && c.blockId && blocks[c.blockId]) {
       const anchor = statementAnchor(blocks, c.blockId);
       if (anchor) fileMarkers.set(anchor, markerStem);
       continue;
     }
     const decl = {
-      text: String(c.text ?? ''),
+      text: commentText(c),
       x: c.x ?? 0,
       y: c.y ?? 0,
       width: c.width ?? 200,

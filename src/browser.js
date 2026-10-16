@@ -8,5 +8,18 @@ export { parseFractch, preprocess } from './parse.js';
 export { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode } from './buildBlocks.js';
 export { checkFractch, assertValidFractch, FractchSyntaxError } from './lint.js';
 export { emitScriptFile, emitMultiScriptFile, emitIndex, emitTargetIndex, targetAssetFiles } from './emit.js';
-export { stringifyBlockCall, renderBody, setContext } from './stringify.js';
+export { stringifyBlockCall, renderBody, createStringifier } from './stringify.js';
 export { md5hex } from './md5.js';
+export {
+  emitTarget,
+  buildTarget,
+  toReplaceChange,
+  findInSourceMap,
+  alignScripts,
+  compareScripts,
+  defaultUid,
+} from './target.js';
+export { DIAGNOSTIC_CODES, diagnostic, formatDiagnostic, hasErrors, makeLineIndex } from './diagnostics.js';
+export { MEMBERSHIP_MAGIC, readMembership, membershipText, commentText, splitCommentText } from './membership.js';
+export { normalizeSignatures, normalizeOpcodeTable, signatureHash } from './signatures.js';
+export { languageReference, referenceWithDocs } from './reference.js';

@@ -9,7 +9,7 @@ pack    (text -> sb3):  pack.js -> parse.js -> buildBlocks.js -> packSb3.js
 
 ## The core invariant
 
-**The DSL text is the only copy of the project.** No raw JSON snapshot exists anywhere — no headers with block data and no `manifest.json` at all. Blocks, sprite/stage properties, variable and list values, extension registrations, watchers, comments, and platform meta are all reconstructed by reparsing the text (a `manifest.json`, if one exists in an old build dir, still loads for back-compat). Any change to emission (`emit.js` / `stringify.js`) needs a matching change in parsing (`parse.js` / `buildBlocks.js`) or the round trip silently degrades.
+**The DSL text is the only copy of the project.** No raw JSON snapshot exists anywhere: no headers with block data and no `manifest.json` at all. Blocks, sprite/stage properties, variable and list values, extension registrations, watchers, comments, and platform meta are all reconstructed by reparsing the text (a `manifest.json`, if one exists in an old build dir, still loads for back-compat). Any change to emission (`emit.js` / `stringify.js`) needs a matching change in parsing (`parse.js` / `buildBlocks.js`) or the round trip silently degrades.
 
 The check for this is `scripts/check-roundtrip.mjs`: it parses every generated file, rebuilds its blocks, and walks the rebuilt tree against the original subgraph (paired by position, not id). It must pass 100% after touching either side. `npm test` and `npm run selftest` only bound against wholesale loss.
 
@@ -25,8 +25,13 @@ The check for this is `scripts/check-roundtrip.mjs`: it parses every generated f
 | `src/buildBlocks.js` | call tree → Scratch block JSON; ids, shadows, mutations, locals; two-phase manifest merge |
 | `src/pack.js` | browser-safe pack core: file scanning, index allow-lists, per-script locals, asset resolution (md5 hashing), unused-asset pruning |
 | `src/packSb3.js` | Node zip wrapper: writes the `.sb3`, copies referenced assets, preserves non-asset origin extras |
-| `src/fileMarkers.js` | reversible top-block-id markers that remember which extra `.fractch` file a script came from |
-| `src/fsAdapter.js`, `src/pathUtils.js`, `src/md5.js` | dependency-injected fs, posix paths, pure-JS md5 — keep the core free of Node built-ins |
+| `src/fileMarkers.js` | 0.9 file markers (top id prefixes, hat comments), read for old projects only |
+| `src/membership.js` | the per-target membership map comment, `text` + `extraText` joining and splitting, reserved comments |
+| `src/target.js` | `emitTarget` / `buildTarget`: one target, no disk, live VM form, id reuse, lock check, validation, round trip |
+| `src/signatures.js` | extension `getInfo` signatures and the injected core opcode table |
+| `src/diagnostics.js` | diagnostic codes and positions; the core never prints |
+| `src/reference.js` | language reference generated from the parser's alias tables |
+| `src/fsAdapter.js`, `src/pathUtils.js`, `src/md5.js` | dependency-injected fs, posix paths, pure-JS md5; keep the core free of Node built-ins |
 | `src/index.js` / `src/browser.js` | Node entry (defaults `fs`, adds zip I/O) / browser entry (core only) |
 
 ## Name resolution (the subtle part)
@@ -45,9 +50,9 @@ Everything is resolved by name at pack time:
 
 - Reporter-style custom block calls need `mutation.return` or Blockly builds a statement shape that can't connect into value slots.
 - Argument reporters in a def body are real blocks (`shadow: false`, tuple code 2); only the prototype's copies are shadows.
-- Branch bodies must not mark their first block `topLevel` — the editor renders duplicates and dies on duplicate ids.
+- Branch bodies must not mark their first block `topLevel`: the editor renders duplicates and dies on duplicate ids.
 - `control_stop` needs `mutation.hasnext` derived from the stop option.
-- Visible menu shadows must round-trip (they carry the argument value); *obscured* shadows (hidden behind a plugged reporter) can be dropped — the editor regenerates them on load.
+- Visible menu shadows must round-trip (they carry the argument value); *obscured* shadows (hidden behind a plugged reporter) can be dropped, since the editor regenerates them on load.
 - Variable/list dropdown fields want their ids resolved, not null.
 
 ## Deliberate quirks (don't "fix")
@@ -56,3 +61,7 @@ Everything is resolved by name at pack time:
 - Unknown text is never silently eaten: the parser records skipped statements with line numbers, and pack prints them.
 - `index.fractch` files are optional; when present, imports are the authoritative pack list and unimported targets (and their assets) are pruned.
 - Numeric text literals emit bare only when the number grammar re-reads the identical characters (`.25`, `007` survive verbatim).
+
+## Per-target builds (Code mode)
+
+`buildTarget` starts from empty blocks. It pairs every script of the new text with a live script (exact text first, then the most similar script of the same kind between the same neighbours), builds a candidate with temporary ids, aligns it with the live script (statement chains by structural fingerprint, then by opcode), carries what text can't express (obscured shadows under reporters, literal shadow types, empty inputs, stale call inputs, prototype defaults, odd tuple codes), and compares. Structurally equal scripts keep the live objects; others get the aligned old ids and fresh ids for the rest. In live form, left-nested chains of the same extendable operator are collapsed exactly like scratch-vm's loader. `stringify.js` keeps no module state: `createStringifier(context)` returns an emitter bound to one context, and source ranges come from control-character marks stripped after assembly.

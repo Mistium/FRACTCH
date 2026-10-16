@@ -2,28 +2,26 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode, listMethodCall } from './buildBlocks.js';
-import { assertValidFractch } from './lint.js';
-import { cleanRelStem, commentMarkerForFileStem, idSafeSuffix, markerPrefixForFileStem } from './fileMarkers.js';
-import {
-  STDLIB_MODULES,
-  STDLIB_METHODS,
-  STDLIB_STEM_PREFIX,
-  resolveStdlibModules,
-  resolvePackageMethod,
-} from './stdlib/index.js';
+import { checkFractch } from './lint.js';
+import { cleanRelStem } from './fileMarkers.js';
+import { diagnostic } from './diagnostics.js';
+import { MEMBERSHIP_COMMENT_ID, membershipText, splitCommentText } from './membership.js';
+import { STDLIB_MODULES, STDLIB_METHODS, resolveStdlibModules, resolvePackageMethod } from './stdlib/index.js';
 import { md5hex } from './md5.js';
 
 export const BLANK_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><rect width="100%" height="100%" fill="white"/></svg>';
 export const BLANK_SVG_ID = 'c3d7ff782edb43ba0e0a79849362613c';
 
-export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose = false, prune = true }) {
+export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = true }) {
   const vfs = toPromiseFs(fsLike);
+  const diagnostics = [];
+  const report = (code, message, extra = {}) => diagnostics.push(diagnostic(code, message, extra));
   const manifestPath = path.join(buildDir, 'manifest.json');
   const hasManifest = await vfs.exists(manifestPath);
   let manifest = hasManifest ? JSON.parse(await vfs.readFile(manifestPath, 'utf8')) : null;
 
-  const { files: scriptFiles, fromIndex } = await collectScriptFiles(vfs, buildDir, manifest, verbose);
+  const { files: scriptFiles, fromIndex } = await collectScriptFiles(vfs, buildDir, manifest, report);
   if (!manifest) manifest = synthesizeManifest(scriptFiles);
   ensureTargetsForScripts(manifest, scriptFiles);
   if (fromIndex) pruneManifestToScriptTargets(manifest, scriptFiles);
@@ -55,17 +53,49 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
     const manifestName = manifestTarget.name;
     totalScripts++;
 
+    const fileRel = path.relative(buildDir, fPath);
     try {
-      assertValidFractch(content, fPath);
       const parsed = parseFractch(content);
+      const errorLines = new Set();
       for (const err of parsed.errors || []) {
-        console.warn(
-          `[fractch] ${fPath}:${err.line}${err.col ? ':' + err.col : ''}: skipped unparsable statement: ${err.message}`
-        );
-        if (err.hint) console.warn(`[fractch]   hint: ${err.hint}`);
+        errorLines.add(err.line);
+        report(err.code || 'FR100', `skipped unparsable statement: ${err.message}`, {
+          file: fileRel,
+          hint: err.hint,
+          line: err.line,
+          column: err.col,
+          endLine: err.endLine,
+          endColumn: err.endColumn,
+          from: err.from,
+          to: err.to,
+        });
+      }
+      for (const err of checkFractch(content)) {
+        if (errorLines.has(err.line)) continue;
+        report('FR119', err.message.replace(/ \(line \d+, col \d+\)$/, ''), {
+          file: fileRel,
+          line: err.line,
+          column: err.col,
+        });
+      }
+      for (const locked of parsed.lockedScripts || []) {
+        report('FR121', `locked script "${locked.id}" can only be carried by the editor; it was left out of the pack`, {
+          file: fileRel,
+          line: locked.line,
+          severity: 'warning',
+        });
       }
       if (!targets.has(manifestName)) targets.set(manifestName, { name: manifestName, stacks: [] });
-      await applyParsedAssets(vfs, buildDir, manifestTarget, parsed.assets, targetDir, assetFiles, assetSeenForTarget);
+      await applyParsedAssets(
+        vfs,
+        buildDir,
+        manifestTarget,
+        parsed.assets,
+        targetDir,
+        assetFiles,
+        assetSeenForTarget,
+        (code, message, extra) => report(code, message, { file: fileRel, ...extra })
+      );
       await applyUses(manifest, parsed.uses, vfs, buildDir);
       if (!cloudAliasMaps.has(manifestName)) cloudAliasMaps.set(manifestName, new Map());
       applyVarDecls(manifest, manifestTarget, parsed.varDecls, cloudAliasMaps.get(manifestName));
@@ -85,7 +115,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
           width: c.width ?? 200,
           height: c.height ?? 200,
           minimized: !!c.minimized,
-          text: String(c.text ?? ''),
+          ...splitCommentText(c.text),
         };
       }
       if (parsed.platform) {
@@ -97,8 +127,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         ? parsed.scripts
         : [{ kind: 'implicit', calls: parsed.calls, x: null, y: null }];
       const sourceStem = cleanRelStem(sourceRel);
-      const fileMarkerPrefix = sourceStem && sourceStem !== 'main' ? markerPrefixForFileStem(sourceStem) : null;
-      const fileMarkerComment = commentMarkerForFileStem(sourceStem);
+      const fileRegion = sourceStem && sourceStem !== 'main' ? sourceStem : null;
       fileScripts.forEach((s, i) => {
         targets.get(manifestName).stacks.push({
           hatOpcode: s.kind === 'implicit' && i === 0 ? headerInfo?.hatOpcode || inferredHat : null,
@@ -106,8 +135,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
           topBlockId: i === 0 ? headerInfo?.topBlockId : null,
           x: s.x ?? (i === 0 ? (headerInfo?.x ?? null) : null),
           y: s.y ?? (i === 0 ? (headerInfo?.y ?? null) : null),
-          fileMarkerPrefix,
-          fileMarkerComment,
+          membership: { region: s.region || fileRegion, module: null },
         });
         registerProcDefs(procArgMaps, identToProccode, procMetaMaps, manifestName, s.calls);
       });
@@ -131,7 +159,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       }
       parsedScripts++;
     } catch (e) {
-      if (verbose) console.warn(`Skip unparsable file: ${fPath}: ${e.message}`);
+      report('FR311', `could not read ${fileRel}: ${e.message}`, { file: fileRel });
       continue;
     }
   }
@@ -143,8 +171,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
     collectNamesIntoManifest(target, calls, cloudAliases, stageTarget);
   }
 
-  resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps);
-  injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, identToProccode, procMetaMaps });
+  resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps, report);
+  injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, identToProccode, procMetaMaps, report });
 
   const globalIdentToProccode = new Map();
   const globalProcArgs = new Map();
@@ -176,6 +204,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
     const identToProccodeForTarget = withGlobalFallback(globalIdentToProccode, identToProccode.get(name));
     const procMetaForTarget = withGlobalFallback(globalProcMeta, procMetaMaps.get(name));
     const localTags = computeLocalTags(data.stacks);
+    const membershipEntries = new Map();
     for (let stackI = 0; stackI < data.stacks.length; stackI++) {
       const s = data.stacks[stackI];
 
@@ -204,28 +233,13 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
         idGen: sharedIdGen,
         commentsOut,
       });
-      let { blocks, topId } = built;
-      if (topId && s.fileMarkerPrefix) {
-        const markedTopId = uniqueBlockId(blocks, `${s.fileMarkerPrefix}${idSafeSuffix(topId)}`);
-        renameBlockId(blocks, topId, markedTopId);
-        for (const c of commentsOut) if (c.blockId === topId) c.blockId = markedTopId;
-        topId = markedTopId;
-      }
+      const { blocks, topId } = built;
       if (topId && blocks[topId] && blocks[topId].topLevel) {
         blocks[topId].x = s.x ?? (stackIndex % 5) * 500;
         blocks[topId].y = s.y ?? Math.floor(stackIndex / 5) * 700;
       }
-      if (s.fileMarkerComment && topId) {
-        const hat = blocks[topId];
-        commentsOut.push({
-          text: s.fileMarkerComment,
-          blockId: topId,
-          x: (hat?.x ?? 0) + 250,
-          y: hat?.y ?? 0,
-          width: 20,
-          height: 20,
-          minimized: true,
-        });
+      if (topId && blocks[topId] && blocks[topId].topLevel && s.membership) {
+        membershipEntries.set(topId, s.membership);
       }
       if (commentsOut.length && manifestTarget) {
         if (!manifestTarget.comments) manifestTarget.comments = {};
@@ -238,7 +252,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
             width: c.width ?? 200,
             height: c.height ?? 200,
             minimized: !!c.minimized,
-            text: String(c.text ?? ''),
+            ...splitCommentText(c.text),
           };
           if (c.blockId && blocks[c.blockId]) blocks[c.blockId].comment = cid;
         }
@@ -246,19 +260,32 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       stackIndex++;
       scripts.push({ oldTopId: s.topBlockId || null, blocks, newTopId: topId });
     }
+    if (manifestTarget && [...membershipEntries.values()].some((e) => e.region || e.module)) {
+      if (!manifestTarget.comments) manifestTarget.comments = {};
+      const cid = uniqueCommentId(manifestTarget.comments, MEMBERSHIP_COMMENT_ID);
+      manifestTarget.comments[cid] = {
+        blockId: null,
+        x: 0,
+        y: 0,
+        width: 200,
+        height: 200,
+        minimized: true,
+        ...splitCommentText(membershipText(membershipEntries)),
+      };
+    }
     builtTargets.push({ name, scripts });
   }
 
   const newManifest = mergeIntoManifest(manifest, builtTargets);
   validateSb3InputPrimitives(newManifest);
   autoRegisterExtensions(newManifest);
-  applyWatchDecls(newManifest, watchDecls, renamePlans);
+  applyWatchDecls(newManifest, watchDecls, renamePlans, report);
   for (const [oldName, newName] of renamePlans) {
     const t = (newManifest.targets || []).find((x) => x.name === oldName);
     if (t && !(newManifest.targets || []).some((x) => x.name === newName)) t.name = newName;
   }
 
-  if (prune) pruneUnusedAssets(newManifest, verbose);
+  if (prune) pruneUnusedAssets(newManifest, report);
   for (const t of newManifest.targets || []) {
     if (!Array.isArray(t.costumes) || t.costumes.length === 0) {
       t.costumes = [defaultCostume(!!t.isStage)];
@@ -268,7 +295,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, verbose =
       if (block && typeof block === 'object' && !Array.isArray(block)) delete block.id;
     }
   }
-  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles };
+  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles, diagnostics };
 }
 
 function validateSb3InputPrimitives(manifest) {
@@ -310,7 +337,7 @@ function validateInputTuple(tuple, targetName, blockId, opcode, inputKey) {
   }
 }
 
-function applyWatchDecls(manifest, watchDecls, renamePlans) {
+function applyWatchDecls(manifest, watchDecls, renamePlans, report) {
   if (!watchDecls.length) return;
   if (!Array.isArray(manifest.monitors)) manifest.monitors = [];
   const stage = (manifest.targets || []).find((t) => t.isStage);
@@ -357,8 +384,10 @@ function applyWatchDecls(manifest, watchDecls, renamePlans) {
         null;
     }
     if (!id) {
-      console.warn(
-        `[fractch] watch ${decl.isList ? 'list' : 'var'} ${JSON.stringify(decl.name)}: no such ${decl.isList ? 'list' : 'variable'}, skipped`
+      report(
+        'FR303',
+        `watch ${decl.isList ? 'list' : 'var'} ${JSON.stringify(decl.name)}: no such ${decl.isList ? 'list' : 'variable'}, skipped`,
+        { line: decl.line }
       );
       continue;
     }
@@ -477,6 +506,16 @@ function applyVarDecls(manifest, target, decls, cloudAliases) {
   for (const d of decls || []) {
     const owner = d.cloud ? (manifest.targets || []).find((t) => t.isStage) || target : target;
     if (!owner) continue;
+    if (d.keep) {
+      const has = (dict) =>
+        Object.entries(dict || {}).some(([id, e]) => id === d.id || (Array.isArray(e) && e[0] === d.name));
+      if (!has(owner.lists) && !has(owner.variables)) {
+        if (!owner.lists) owner.lists = {};
+        if (d.id) owner.lists[d.id] = [d.name, []];
+        else ensureDictEntry(owner.lists, d.name, [d.name, []]);
+      }
+      continue;
+    }
     if (d.isList) {
       const id = d.id || ensureDictEntry(owner.lists, d.name, [d.name, d.value]);
       if (id) owner.lists[id] = [d.name, d.value];
@@ -513,7 +552,7 @@ const BACKDROP_MENU_OPCODES = new Set(['looks_backdrops']);
 const SOUND_MENU_OPCODES = new Set(['sound_sounds_menu']);
 const BACKDROP_SPECIALS = new Set(['next backdrop', 'previous backdrop', 'random backdrop']);
 
-function pruneUnusedAssets(manifest, verbose) {
+function pruneUnusedAssets(manifest, report) {
   const targets = manifest.targets || [];
   let stageAll = false;
   const stageRefs = new Set();
@@ -607,7 +646,7 @@ function pruneUnusedAssets(manifest, verbose) {
       const kept = costumes.filter((c, i) => i === currentIdx || costumeRefs.has(String(c.name)));
       if (kept.length !== costumes.length) {
         t.currentCostume = kept.indexOf(costumes[currentIdx]);
-        if (verbose) console.log(`[pack] ${t.name}: removed ${costumes.length - kept.length} unused costume(s)`);
+        report('FR304', `${t.name}: removed ${costumes.length - kept.length} unused costume(s)`);
         t.costumes = kept;
       }
     }
@@ -615,14 +654,14 @@ function pruneUnusedAssets(manifest, verbose) {
     if (!st.allSounds && sounds.length) {
       const kept = sounds.filter((s) => st.soundRefs.has(String(s.name)));
       if (kept.length !== sounds.length) {
-        if (verbose) console.log(`[pack] ${t.name}: removed ${sounds.length - kept.length} unused sound(s)`);
+        report('FR304', `${t.name}: removed ${sounds.length - kept.length} unused sound(s)`);
         t.sounds = kept;
       }
     }
   }
 }
 
-async function collectScriptFiles(vfs, buildDir, manifest, verbose) {
+async function collectScriptFiles(vfs, buildDir, manifest, report) {
   const fromIndex = await collectScriptFilesFromIndexes(vfs, buildDir);
   const usedIndex = fromIndex.length > 0;
   const files = usedIndex ? fromIndex : await scanScriptFiles(vfs, buildDir, manifest);
@@ -634,7 +673,7 @@ async function collectScriptFiles(vfs, buildDir, manifest, verbose) {
     seen.add(key);
     const head = await readScriptHead(vfs, buildDir, file.fPath);
     if (head.ignored) {
-      if (verbose) console.log(`[pack] Ignoring ${path.relative(buildDir, file.fPath)}`);
+      report('FR308', `ignoring ${path.relative(buildDir, file.fPath)}`, { file: path.relative(buildDir, file.fPath) });
       continue;
     }
     unique.push({ ...file, headerTarget: head.target });
@@ -854,7 +893,7 @@ function defaultCostume(isStage) {
   };
 }
 
-async function applyParsedAssets(vfs, buildDir, target, assets, targetDir, assetFiles, seenTargets) {
+async function applyParsedAssets(vfs, buildDir, target, assets, targetDir, assetFiles, seenTargets, report) {
   if (!target || !assets) return;
   const hasAssets = assets.costumes?.length || 0 || assets.sounds?.length || 0;
   if (!hasAssets) return;
@@ -864,7 +903,7 @@ async function applyParsedAssets(vfs, buildDir, target, assets, targetDir, asset
     seenTargets.add(target.name);
   }
   for (const decl of assets.costumes || []) {
-    const resolved = await resolveAssetDecl(vfs, buildDir, targetDir, decl, 'costume');
+    const resolved = await resolveAssetDecl(vfs, buildDir, targetDir, decl, 'costume', report);
     if (!resolved) continue;
     target.costumes.push({
       name: String(decl.name ?? ''),
@@ -879,7 +918,7 @@ async function applyParsedAssets(vfs, buildDir, target, assets, targetDir, asset
     assetFiles.set(resolved.md5ext, resolved.sourceRel);
   }
   for (const decl of assets.sounds || []) {
-    const resolved = await resolveAssetDecl(vfs, buildDir, targetDir, decl, 'sound');
+    const resolved = await resolveAssetDecl(vfs, buildDir, targetDir, decl, 'sound', report);
     if (!resolved) continue;
     const sound = {
       name: String(decl.name ?? ''),
@@ -895,23 +934,23 @@ async function applyParsedAssets(vfs, buildDir, target, assets, targetDir, asset
   }
 }
 
-async function resolveAssetDecl(vfs, buildDir, targetDir, decl, kind) {
+async function resolveAssetDecl(vfs, buildDir, targetDir, decl, kind, report) {
   const file = String(decl.file || '');
   const ext = (file.split('.').pop() || '').toLowerCase();
   if (!file || !ext || file === `.${ext}`) {
-    console.warn(`[fractch] ${kind} "${decl.name}": missing or extension-less file path, skipped`);
+    report('FR301', `${kind} "${decl.name}": missing or extension-less file path, skipped`, { line: decl.line });
     return null;
   }
   const sourceRel = assetSourceRel(targetDir, file);
   if (!sourceRel) {
-    console.warn(`[fractch] ${kind} "${decl.name}": invalid file path ${file}, skipped`);
+    report('FR301', `${kind} "${decl.name}": invalid file path ${file}, skipped`, { line: decl.line });
     return null;
   }
   let bytes;
   try {
     bytes = await vfs.readFile(path.join(buildDir, sourceRel));
   } catch {
-    console.warn(`[fractch] ${kind} "${decl.name}": file not found: ${sourceRel}, skipped`);
+    report('FR301', `${kind} "${decl.name}": file not found: ${sourceRel}, skipped`, { line: decl.line });
     return null;
   }
   const assetId = md5hex(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
@@ -927,7 +966,7 @@ function assetSourceRel(targetDir, file) {
   return path.join(targetDir, ...parts);
 }
 
-function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
+export function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
   const vars = new Set();
   const lists = new Set();
   const broadcasts = new Set();
@@ -1055,31 +1094,7 @@ function ensureDictEntry(dict, name, value) {
   return finalId;
 }
 
-function uniqueBlockId(blocks, preferred) {
-  let id = preferred;
-  let n = 1;
-  while (Object.prototype.hasOwnProperty.call(blocks, id)) id = `${preferred}_${++n}`;
-  return id;
-}
-
-function renameBlockId(blocks, oldId, newId) {
-  if (!oldId || !newId || oldId === newId || !blocks[oldId]) return;
-  blocks[newId] = { ...blocks[oldId], id: newId };
-  delete blocks[oldId];
-  for (const block of Object.values(blocks)) {
-    if (!block || typeof block !== 'object') continue;
-    if (block.next === oldId) block.next = newId;
-    if (block.parent === oldId) block.parent = newId;
-    for (const tuple of Object.values(block.inputs || {})) {
-      if (!Array.isArray(tuple)) continue;
-      for (let i = 1; i < tuple.length; i++) {
-        if (tuple[i] === oldId) tuple[i] = newId;
-      }
-    }
-  }
-}
-
-function stackBaseName(s) {
+export function stackBaseName(s) {
   const c0 = s.calls?.[0];
   if (c0?.type === 'procDef') return c0.ident;
   const hat = s.hatOpcode || (c0?.callee?.type === 'opcode' ? c0.callee.name : null);
@@ -1123,7 +1138,7 @@ export function collectLocalDeclNames(calls, out = new Set()) {
   return out;
 }
 
-function resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps = new Map()) {
+export function resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps = new Map(), report = () => {}) {
   for (const [name, data] of targets) {
     const manifestTarget = (manifest.targets || []).find((t) => t.name === name);
     const nsMap = importNsMaps.get(name) || {};
@@ -1141,12 +1156,12 @@ function resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps = n
       if (s.calls.length === 1 && s.calls[0].type === 'procDef') {
         for (const p of s.calls[0].params || []) scopeNames.add(p.ident);
       }
-      rewriteIdentOrMethod(s.calls, scopeNames, listNames, nsMap);
+      rewriteIdentOrMethod(s.calls, scopeNames, listNames, nsMap, report);
     }
   }
 }
 
-function rewriteIdentOrMethod(calls, scopeNames, listNames = new Set(), nsMap = {}) {
+export function rewriteIdentOrMethod(calls, scopeNames, listNames = new Set(), nsMap = {}, report = () => {}) {
   const visitValue = (v) => {
     if (!v || typeof v !== 'object') return;
     if (v.type === 'call') v.value = visitCall(v.value);
@@ -1177,8 +1192,10 @@ function rewriteIdentOrMethod(calls, scopeNames, listNames = new Set(), nsMap = 
         if (pkg.ident) {
           call.callee = { type: 'procedureCall', name: pkg.ident, line: call.callee.line };
         } else {
-          console.warn(
-            `[fractch] package '${ident}' has no function '.${method}(...)' - packed as extension opcode ${ident}_${method}; run 'fractch check' for details`
+          report(
+            'FR312',
+            `package '${ident}' has no function '.${method}(...)' - packed as extension opcode ${ident}_${method}; run 'fractch check' for details`,
+            { line: call.callee.line }
           );
           call.callee = { type: 'opcode', name: `${ident}_${method}` };
         }
@@ -1201,12 +1218,16 @@ function rewriteIdentOrMethod(calls, scopeNames, listNames = new Set(), nsMap = 
         ];
       } else {
         if (listNames.has(ident)) {
-          console.warn(
-            `[fractch] list '${ident}' has no method '.${method}(...)' - packed as extension opcode ${ident}_${method}; run 'fractch check' for details`
+          report(
+            'FR214',
+            `list '${ident}' has no method '.${method}(...)' - packed as extension opcode ${ident}_${method}; run 'fractch check' for details`,
+            { line: call.callee.line, severity: 'warning' }
           );
         } else if (scopeNames.has(ident)) {
-          console.warn(
-            `[fractch] '${ident}' is a variable with no method '.${method}(...)' - packed as extension opcode ${ident}_${method}; run 'fractch check' for details`
+          report(
+            'FR216',
+            `'${ident}' is a variable with no method '.${method}(...)' - packed as extension opcode ${ident}_${method}; run 'fractch check' for details`,
+            { line: call.callee.line, severity: 'warning' }
           );
         }
         call.callee = { type: 'opcode', name: `${ident}_${method}` };
@@ -1217,50 +1238,28 @@ function rewriteIdentOrMethod(calls, scopeNames, listNames = new Set(), nsMap = 
   for (let i = 0; i < calls.length; i++) calls[i] = visitCall(calls[i]);
 }
 
-function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, identToProccode, procMetaMaps }) {
+function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, identToProccode, procMetaMaps, report }) {
   for (const [name, data] of targets) {
     const modules = resolveStdlibModules([...(stdlibImports.get(name) || [])]);
     if (!modules.length) continue;
 
-    const registry = new Map();
-    for (const moduleId of modules) {
-      const parsed = parseFractch(STDLIB_MODULES[moduleId].source, { attachLineComments: false });
-      for (const err of parsed.errors || []) {
-        console.warn(`[fractch] stdlib ${moduleId}: skipped unparsable statement: ${err.message}`);
-      }
-      const markerStem = STDLIB_STEM_PREFIX + moduleId;
-      const marker = markerPrefixForFileStem(markerStem);
-      const markerComment = commentMarkerForFileStem(markerStem);
-      for (const s of parsed.scripts || []) {
-        const ident = s.calls[0]?.type === 'procDef' ? s.calls[0].ident : null;
-        if (ident && !registry.has(ident))
-          registry.set(ident, { calls: s.calls, marker, markerComment, x: s.x, y: s.y });
-      }
-    }
-    const known = new Set(registry.keys());
-
-    const used = new Set();
-    const queue = [];
-    for (const s of data.stacks) collectProcCallIdents(s.calls, known, queue);
-    while (queue.length) {
-      const ident = queue.shift();
-      if (used.has(ident) || !registry.has(ident)) continue;
-      used.add(ident);
-      collectProcCallIdents(registry.get(ident).calls, known, queue);
-    }
+    const registry = stdlibRegistry(modules, report);
+    const used = stdlibUsed(
+      data.stacks.map((st) => st.calls),
+      registry
+    );
 
     const injectedCalls = [];
     for (const ident of used) {
       if (identToProccode.get(name)?.has(ident)) continue;
-      const { calls, marker, markerComment, x, y } = registry.get(ident);
+      const { calls, moduleId, x, y } = registry.get(ident);
       data.stacks.push({
         hatOpcode: null,
         calls,
         topBlockId: null,
         x: x ?? null,
         y: y ?? null,
-        fileMarkerPrefix: marker,
-        fileMarkerComment: markerComment,
+        membership: { region: null, module: moduleId },
       });
       registerProcDefs(procArgMaps, identToProccode, procMetaMaps, name, calls);
       injectedCalls.push(...calls);
@@ -1271,6 +1270,35 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
       if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedCalls, null, stageTarget);
     }
   }
+}
+
+export function stdlibRegistry(modules, report = () => {}) {
+  const registry = new Map();
+  for (const moduleId of modules) {
+    const parsed = parseFractch(STDLIB_MODULES[moduleId].source, { attachLineComments: false });
+    for (const err of parsed.errors || []) {
+      report('FR310', `stdlib ${moduleId}: skipped unparsable statement: ${err.message}`);
+    }
+    for (const sc of parsed.scripts || []) {
+      const ident = sc.calls[0]?.type === 'procDef' ? sc.calls[0].ident : null;
+      if (ident && !registry.has(ident)) registry.set(ident, { calls: sc.calls, moduleId, x: sc.x, y: sc.y });
+    }
+  }
+  return registry;
+}
+
+export function stdlibUsed(callLists, registry) {
+  const known = new Set(registry.keys());
+  const used = new Set();
+  const queue = [];
+  for (const calls of callLists) collectProcCallIdents(calls, known, queue);
+  while (queue.length) {
+    const ident = queue.shift();
+    if (used.has(ident) || !registry.has(ident)) continue;
+    used.add(ident);
+    collectProcCallIdents(registry.get(ident).calls, known, queue);
+  }
+  return used;
 }
 
 function collectProcCallIdents(calls, known, out) {
@@ -1301,7 +1329,7 @@ function collectProcCallIdents(calls, known, out) {
   for (const c of calls || []) visitCall(c);
 }
 
-function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName, calls) {
+export function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName, calls) {
   if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
   const procDef = calls[0];
   const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
@@ -1321,7 +1349,7 @@ function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName
     metaMap.set(proccode, { warp: procDef.warp, customcolor: procDef.customcolor, returns: procDef.returns });
 }
 
-function buildNameIdMap(dict) {
+export function buildNameIdMap(dict) {
   const map = new Map();
   for (const [id, entry] of Object.entries(dict || {})) {
     const name = Array.isArray(entry) ? entry[0] : entry;

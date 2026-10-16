@@ -92,10 +92,9 @@ test('file structure survives editor block ID regeneration', async () => {
     fs.writeFileSync(path.join(dir, 'Stage', 'systems', 'ui.fractch'), 'when clicked {\n  hide;\n}\n');
     const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
     const target = manifest.targets.find((item) => item.isStage);
-    const marker = Object.values(target.comments).find((comment) => String(comment.text).includes('fractch:file'));
-    const markerHat = target.blocks[marker.blockId];
-    assert.strictEqual(marker.x, markerHat.x + 250);
-    assert.strictEqual(marker.y, markerHat.y);
+    assert.ok(!Object.values(target.comments).some((comment) => String(comment.text).includes('fractch:file')));
+    const map = Object.values(target.comments).find((comment) => String(comment.text).startsWith('_fractch_map_'));
+    assert.strictEqual(map.blockId, null);
     const ids = Object.keys(target.blocks);
     const renamed = new Map(ids.map((id, i) => [id, `editor-${i}`]));
     target.blocks = Object.fromEntries(
@@ -113,6 +112,8 @@ test('file structure survives editor block ID regeneration', async () => {
     for (const comment of Object.values(target.comments || {})) {
       if (renamed.has(comment.blockId)) comment.blockId = renamed.get(comment.blockId);
     }
+    for (const id of renamed.keys())
+      map.text = map.text.split(JSON.stringify(id)).join(JSON.stringify(renamed.get(id)));
     const out = path.join(dir, 'out');
     const { convertProject } = await import('../src/convert.js');
     await convertProject(manifest, { outDir: out, fs });

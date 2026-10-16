@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { targetAssetFiles, targetDirNames } from './emit.js';
 
-export function writeAssets(zip, projectJson, outDir, { verbose = false } = {}) {
+export function writeAssets(zip, projectJson, outDir) {
+  const missing = [];
   let count = 0;
   let costumes = 0;
   let sounds = 0;
@@ -16,14 +17,13 @@ export function writeAssets(zip, projectJson, outDir, { verbose = false } = {}) 
       if (data) {
         fs.writeFileSync(path.join(tDir, ...rel.split('/')), data);
         count++;
-      } else if (verbose) {
-        console.warn(`[assets] missing ${md5ext} in sb3`);
+      } else {
+        missing.push(md5ext);
       }
     }
     costumes += (t.costumes || []).length;
     sounds += (t.sounds || []).length;
   }
 
-  if (verbose) console.log(`[assets] ${count} files, ${costumes} costumes, ${sounds} sounds`);
-  return { assets: count, costumes, sounds };
+  return { assets: count, costumes, sounds, missing };
 }

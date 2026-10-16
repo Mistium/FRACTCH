@@ -1,8 +1,8 @@
 # Syntax Reference
 
-A `.fractch` file holds any number of scripts plus asset declarations. Two comment styles: `// line` **attaches** to the block on the line directly below it (or, when it trails code, to that line's block) and round-trips as a Scratch block comment; `/* block */` is pure formatting and never attaches. Use `//` for notes you want in the project, `/* */` for notes you don't. Semicolons are optional. Generated files may start with a `/** ... */` header comment carrying routing metadata — it is optional and never contains block data.
+A `.fractch` file holds any number of scripts plus asset declarations. Two comment styles: `// line` **attaches** to the block on the line directly below it (or, when it trails code, to that line's block) and round-trips as a Scratch block comment; `/* block */` is pure formatting and never attaches. Use `//` for notes you want in the project, `/* */` for notes you don't. Semicolons are optional. Generated files may start with a `/** ... */` header comment carrying routing metadata; it is optional and never contains block data.
 
-Strings are `"double-quoted"` with `\" \\ \n \t \r` escapes, or `"""raw triple-quoted"""` — raw strings run to the next `"""` with real newlines and no escape processing (emitted automatically for values containing newlines).
+Strings are `"double-quoted"` with `\" \\ \n \t \r` escapes, or `"""raw triple-quoted"""`; raw strings run to the next `"""` with real newlines and no escape processing (emitted automatically for values containing newlines).
 
 ## Scripts
 
@@ -20,6 +20,20 @@ script at 100,200 {         // a top-level stack with no hat
 }
 ```
 
+Scripts can be grouped into regions. A region is a named group that decides which file a script lives in when the project is stored as a folder of `.fractch` files (git trees use one file per region). A script outside any region belongs to `main`.
+
+```txt
+region "Enemies" {
+  when broadcast spawn at 400,0 {
+    clone "Enemy";
+  }
+}
+```
+
+Regions only hold whole scripts and can't be nested. Membership is stored in one hidden comment per sprite whose text starts with `_fractch_map_`; it never appears in the text.
+
+The editor writes `locked script "<top block id>";` for a script it could not show as text. The line keeps that script exactly as it is; delete the line to delete the script.
+
 `when` sugar:
 
 | Form | Scratch hat |
@@ -34,7 +48,7 @@ script at 100,200 {         // a top-level stack with no hat
 
 ## Project declarations
 
-Everything a project needs is declarable in code — no manifest required:
+Everything a project needs is declarable in code, no manifest required:
 
 ```txt
 use "pen";                                        // register an extension
@@ -47,6 +61,8 @@ stage tempo 90 volume 80 video off transparency 0 tts "en";   // in the Stage's 
 var score = 0;                                    // this target's variable + initial value
 var "Fancy // Name" = "";                         // quoted for non-identifier names
 var highscores = ["alice", "bob"];                // a list with initial items
+var levels = keep;                                // keep the list's current contents (the editor
+                                                  // writes this for lists over 100 items or 4 KB)
 var temp = "" id "xK3...";                        // explicit id: several vars/lists may share a
                                                   // display name (converted projects only)
 cloud total_plays = 0;                            // cloud variable (stage-owned, "☁ " prefixed;
@@ -60,7 +76,8 @@ comment "hello" at 50,50 size 350x170;            // workspace comment
 
 - `use` registers an extension id (plus its source URL for custom extensions). Extensions are also auto-detected from opcodes (`mistsutils.patchcommand(...)` registers `mistsutils`), so `use` is mainly for attaching URLs.
 - `sprite` takes an optional quoted display name (folder names are sanitized copies) and attributes: `at x,y`, `size`, `direction`, `visible`/`hidden`, `draggable`, `rotation "all around"|"left-right"|"don't rotate"`, `volume`, `layer`, `costume n` (current costume index). `stage` takes `tempo`, `volume`, `video on|off|"on-flipped"`, `transparency`, `tts "lang"`, `costume n`. A costume declaration can carry `current` instead of the index form.
-- `var` in a sprite's file makes a for-this-sprite-only variable; in the Stage's file it's global. Variables also spring into existence on first assignment (value 0) — `var` is for initial values and lists.
+- `var` in a sprite's file makes a for-this-sprite-only variable; in the Stage's file it's global. Assigning to an undeclared name still creates a variable (value 0) and reports it, with a "Declare var" quick fix; reading a name that was never declared is an error in the editor.
+- `var x = keep;` keeps whatever the list (or variable) holds right now. Editing a `var` line's value sets the variable when the code is applied; an unedited line leaves the live value alone.
 - `watch` declares a stage-monitor for a variable or list of this target: `at x,y`, `size WxH`, `large`/`slider`, `range min,max`, `continuous` (non-discrete slider), `hidden`/`visible`. Converted projects may carry `sprite "name"`/`id "..."` attributes to preserve watchers of since-deleted sprites verbatim.
 - `comment` at the top level of a file is a workspace comment; inside a script body it attaches to the preceding statement's block (or to the hat when it's the first line). Attributes: `at x,y`, `size WxH`, `minimized`, and `for "blockId"` (converted projects only: reproduces a comment whose anchor block no longer exists). A `//` comment is the sugar for the common case: it emits `comment` under the hood, and a block comment with default position/size (no `at`/`size`/`minimized`/`for`) re-emits as a `//` line above its block. Positioned or minimized comments keep the explicit `comment "..."` form.
 - `platform` sets `meta.platform` in the packed project (MistWarp writes this).
@@ -81,7 +98,7 @@ temp += 1;                  // variable (local_1_temp), invisible to other scrip
 
 ## Lists
 
-Lists are referred to by bare name — the function/`.length` syntax is what makes
+Lists are referred to by bare name: the function/`.length` syntax is what makes
 it a list operation, so no `lists["name"]` is needed (that form stays available
 for names that aren't identifiers):
 
@@ -89,14 +106,14 @@ for names that aren't identifiers):
 append(inv, v);       delete(inv, i);      insert(inv, i, v);
 replace(inv, i, v);   clear(inv);          showList(inv);   hideList(inv);
 
-item(inv, i)          // the i-th item (1-based)
+item(inv, i)          // the i-th item (1-based); get(inv, i) is the same
 inv.length            hasItem(inv, v)      indexOf(inv, v)
 lists["inv"]          // the whole-list contents reporter
 ```
 
 Because the syntax carries the type, a variable and a list may share a name with
 no ambiguity: `inv` is the variable, `append(inv, x)` / `inv.length` are the
-list. `length(x)` and `contains(a, b)` stay the *string* operators — list length
+list. `length(x)` and `contains(a, b)` stay the *string* operators; list length
 is `inv.length` and membership is `hasItem(inv, v)`. The legacy
 `lists["inv"].add(v)` / `.length` / `[i]` method forms still parse but re-emit as
 the function forms. Packages and their namespaces are in [packages.md](packages.md).
@@ -115,21 +132,25 @@ if score >= 10 && !sensing.mousedown() {
 }
 ```
 
-Functions: `length(s)`, `contains(a, b)`, `random(from, to)`, `round(n)`, and the math ops `abs floor ceiling sqrt sin cos tan asin acos atan ln log exp exp10`. `not(x)` parses too, but `!x` / `!=` / `<=` / `>=` are preferred. The letter-of-string reporter is a method: `s.letter(i)` (1-based); the legacy `letter(i, s)` function form still parses but re-emits as `s.letter(i)`.
+Chains of the same operator such as `a + b + c` or `x ++ y ++ z` are one block in MistWarp (a variadic operator); the text writes them as a chain and the editor builds them back as one block. `+ - * / % ++ && ||` all chain this way.
+
+Functions: `length(s)`, `contains(a, b)`, `random(from, to)`, `clamp(n, min, max)`, `round(n)`, `min(...)`, `max(...)`, and the math ops `abs floor ceiling sqrt sin cos tan asin acos atan ln log exp exp10`. `pi()` and `newline()` are the MistWarp constant blocks.
+
+Reporters with no inputs are written as calls: `xPosition() yPosition() direction() size() volume() costumes() answer() timer() loudness() mouseX() mouseY() mouseDown() username() daysSince2000()`, `costumeNumber() costumeName() backdropNumber() backdropName()`, `currentYear() currentMonth() currentDate() currentDayOfWeek() currentHour() currentMinute() currentSecond()`. Menu reporters: `touching("Sprite") touchingMouse() touchingEdge() distanceTo("Sprite") distanceToMouse() keyPressed("space") touchingColor(c) colorTouchingColor(a, b)`. `not(x)` parses too, but `!x` / `!=` / `<=` / `>=` are preferred. The letter-of-string reporter is a method: `s.letter(i)` (1-based); the legacy `letter(i, s)` function form still parses but re-emits as `s.letter(i)`.
 
 Another sprite's state reads like the list syntax (this is `sensing_of` under the hood):
 
 ```txt
 sprites["Player"].x            sprites["Player"].y           sprites["Player"].direction
 sprites["Player"].size         sprites["Player"].volume
-sprites["Player"].costume_number   sprites["Player"].costume_name
-sprites["_stage_"].backdrop_number sprites["_stage_"].backdrop_name
+sprites["Player"].costumeNumber    sprites["Player"].costumeName
+sprites["_stage_"].backdropNumber  sprites["_stage_"].backdropName
 sprites["Player"].vars["hp"]   // that sprite's variable
 ```
 
 `true` and `false` are usable anywhere a boolean block fits (they pack as `0 == 0` / `0 == 1`).
 
-Array (and object) literals in expression position are JSON text sugar: `[1, 2, "three"]` packs as the plain string `[1,2,"three"]` — the shape the JSON helper blocks and the stdlib consume. Emission re-sugars any string input holding canonical JSON array/object text. (Legacy raw primitive tuples like `[10, "x"]` — 2–3 entries, type-code first, string second — still pass through verbatim.)
+Array (and object) literals in expression position are JSON text sugar: `[1, 2, "three"]` packs as the plain string `[1,2,"three"]`, the shape the JSON helper blocks and the stdlib consume. Emission re-sugars any string input holding canonical JSON array/object text. (Legacy raw primitive tuples like `[10, "x"]` (2 to 3 entries, type code first, string second) still pass through verbatim.)
 
 ## Standard library
 
@@ -145,7 +166,7 @@ when flag {
 }
 ```
 
-Modules are written in fractch itself with vanilla blocks only (reporter custom blocks need TurboWarp/MistWarp `return`; no extensions). At pack time the imported module's `def`s are injected into the target (deduped — a def the target declares itself wins) and marked so converting the `.sb3` folds them back into the `import` line. Using a method without the import auto-injects its module; the import line is for explicitness. Library bodies are pinned: editor edits to injected defs are replaced by the bundled source on the next convert+pack.
+Modules are written in fractch itself with vanilla blocks only (reporter custom blocks need TurboWarp/MistWarp `return`; no extensions). At pack time the imported module's `def`s are injected into the target (deduped: a def the target declares itself wins) and marked so converting the `.sb3` folds them back into the `import` line. Using a method without the import auto-injects its module; the import line is for explicitness. Library bodies are pinned: editor edits to injected defs are replaced by the bundled source on the next convert+pack.
 
 Methods: `split`/`join` (`fractch/strings`), `item`/`count`/`push` (`fractch/json`). `value.method(...)` on a bare identifier resolves at pack time: if a variable/local/param of that name exists it's a method call, otherwise it's the extension opcode (`mistsutils.item(C: 1, ...)` keeps working; keyed args always mean an opcode call, and raw `ns_method(...)` is the explicit escape hatch). Scratch caveat: string comparison is case-insensitive, so `split` matches its delimiter case-insensitively.
 
@@ -161,31 +182,39 @@ for value in items { }   // iterate over a declared list
 for value in items using index { } // also expose its 1-based index
 for ch of message { } // length + letter lookup, with ch reused as counter
 for ch of message using index { } // separate 1-based counter
-until c { }              while c { }          wait n;          wait_until c;
+until c { }              while c { }          wait n;          waitUntil c;
 switch v { case x { } case y fallthrough { } default { } }
-stop all;   stop other_scripts_in_sprite;
+stop all;   stop otherScriptsInSprite;
 return;                  // stop this script (works in any script)
 return v;                // reporter custom-block return
-broadcast Name;          broadcast_wait Name;
+broadcast Name;          broadcastWait Name;
 ```
 
 Aliases (each is exactly one Scratch block):
 
 ```txt
 say e;          say e for n;      think e;      think e for n;    ask e;
-move n;         turn n;           turn_left n;  point n;          goto x, y;
-pointTowardsXY x, y;              pointTowardsXYFrom x, y, fromX, fromY;
-set_x n;  set_y n;  change_x n;  change_y n;  set_size n;  change_size n;
-set_effect ghost to 50;   change_effect brightness by 25;   clear_effects;
-costume "name";  next_costume;   backdrop "name";  next_backdrop;
-clone;  clone "sprite";  delete_clone;
-go_front;  go_back;  go_forward n;  go_backward n;
-show;  hide;  reset_timer;  pen_up;  pen_down;  pen_clear;  stamp;
+move n;         turn n;           turnLeft n;   point n;          gotoXY x, y;
+goto "Sprite";  gotoMouse;        gotoRandom;   glideXY s, x, y;  glideTo s, "Sprite";
+glide s to "Sprite";              glide s to x, y;
+pointTowards "Sprite";            pointTowardsXY x, y;              pointTowardsXYFrom x, y, fromX, fromY;
+setX n;  setY n;  changeX n;  changeY n;  setSize n;  changeSize n;   ifOnEdgeBounce;
+setEffect ghost to 50;   changeEffect brightness by 25;   clearEffects;
+costume "name";  nextCostume;   backdrop "name";  backdropAndWait "name";  nextBackdrop;
+clone;  clone "sprite";  deleteClone;
+goFront;  goBack;  goForward n;  goBackward n;
+show;  hide;  resetTimer;
+playSound "pop";  playSoundUntilDone "pop";  stopAllSounds;  clearSoundEffects;
+setSoundEffect pitch to 10;  changeSoundEffect pitch by 10;  setVolume n;  changeVolume n;
+setRotationStyle "left-right";  setDragMode "draggable";  showVariable score;  hideVariable score;
+penUp;  penDown;  penClear;  stamp;  setPenColor c;  setPenSize n;  changePenSize n;
 ```
+
+The emitted spelling is camelCase. The older snake_case spellings (`set_x`, `go_front`, `glide_to`, `play_sound`, `wait_until`, ...) still parse, so old files keep working, but they are never written.
 
 ## Every other block: generic calls
 
-Any block — extensions included — is a call named by its opcode, with the first underscore written as a dot:
+Any block, extensions included, is a call named by its opcode, with the first underscore written as a dot:
 
 ```txt
 motion.changexby(DX: 10);                          // opcode motion_changexby
@@ -193,11 +222,22 @@ mistsutils.patchcommand("console.log(1)");         // extension blocks work the 
 mistsutils.replaceall(C: text, A: "a", B: "b");    // keyed form for non-A,B,C input names
 ```
 
-- Positional arguments map to input names by order: `A`, `B`, `C`, ... — the near-universal extension convention. Blocks whose real input names differ (or that carry fields/mutations) use the keyed form; the converter picks automatically.
+- Positional arguments map to input names by order: `A`, `B`, `C`, ..., the near-universal extension convention. Blocks whose real input names differ (or that carry fields/mutations) use the keyed form; the converter picks automatically.
 - One exception keeps menus unambiguous: an *inline* call with a single plain-string argument (`ns.op("text")` inside a value slot) means a menu shadow, so single-string-input reporters keep their `A:` label there. As a statement, `mistsutils.patchcommand("...")` is always the positional input form.
 - `name: value` arguments are Scratch **inputs** (may nest reporters).
 - `field name: value` arguments are Scratch **fields** (dropdowns, variable/list/broadcast pickers). Dropdown values are plain strings: `field EFFECT: "COLOR"`. The `field` keyword may be omitted when the key + value shape already identify one: `VARIABLE: var("x")`, `LIST: list("x")`, `BROADCAST_OPTION: broadcast("x")`.
 - Extension "C-blocks" take braces after the call: `ext.myloop(N: 3) { ... }`.
+
+### Extension calls with signatures
+
+In the MistWarp editor the loaded extensions' `getInfo()` is known, and extension calls use it:
+
+- positional arguments follow the block's argument order: `myext.add(1, 2)` fills the first and second argument, whatever their names are
+- argument names match exactly first; a different case is accepted when it folds to exactly one argument of that block
+- a string for a menu argument becomes the menu's value, both for dropdown menus and for menus that accept reporters
+- a reporter or boolean used as a statement, or a command used as a value, is an error
+
+The editor writes the positional form when every argument is present in order. Without signatures (the CLI, git trees, extensions that aren't loaded) the rules above this section apply and the keyed form is used.
 
 ### Dropdown menus inside inputs
 
@@ -208,7 +248,7 @@ sensing.keypressed(KEY_OPTION: sensing.keyoptions("space"));
 sound.play(SOUND_MENU: sound.sounds_menu("pop"));
 ```
 
-When the menu's field name differs from the input name, spell it out: `shadow ext.menu_thing(field other_key: "x")`. A reporter plugged over a menu just replaces it — the editor regenerates the hidden default on load.
+When the menu's field name differs from the input name, spell it out: `shadow ext.menu_thing(field other_key: "x")`. A reporter plugged over a menu just replaces it; the editor regenerates the hidden default on load.
 
 ## Custom blocks
 
@@ -235,6 +275,6 @@ sound "pop" file "assets/pop.wav";
 
 ## Escape hatches you'll see in converted projects
 
-- `dangling_next("id");` — preserves a broken forward reference from a corrupted project rather than dropping it.
-- `reporter() ?? menu("x")` — obsolete obscured-shadow form; still parses, no longer emitted.
-- `key= value` legacy input separator and raw `opcode_names` — still parse.
+- `danglingNext("id");` preserves a broken forward reference from a corrupted project rather than dropping it.
+- `reporter() ?? menu("x")` is an obsolete obscured-shadow form; still parses, no longer emitted.
+- `key= value` legacy input separator and raw `opcode_names` still parse.

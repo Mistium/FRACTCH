@@ -455,7 +455,8 @@ test('infix expressions parse without mandatory parens, left-associative', () =>
   assert.strictEqual(sub.args[0].value.value.callee.name, 'operator_subtract');
 
   const oldStyle = parseFractch('vars["r"] = ((a - b) - c);\n').calls[0].args[1].value.value;
-  assert.deepStrictEqual(oldStyle, sub);
+  const withoutSpans = (v) => JSON.parse(JSON.stringify(v, (key, value) => (key === 'span' ? undefined : value)));
+  assert.deepStrictEqual(withoutSpans(oldStyle), withoutSpans(sub));
 });
 
 test('negated comparisons desugar to not() wrapping the opposite operator', () => {
@@ -1000,7 +1001,7 @@ test('single-string inline extension call stays a menu shadow, keyed form a repo
 
 test('else-if chains desugar to nested if_else and re-sugar on stringify', async () => {
   const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
-  const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
+  const { stringifyBlockCall } = await import('../src/stringify.js');
   const sugared = 'if a > 1 {\n  say 1;\n} else if a > 2 {\n  say 2;\n} else {\n  say 3;\n}\n';
   const nested = 'if a > 1 {\n  say 1;\n} else {\n  if a > 2 {\n    say 2;\n  } else {\n    say 3;\n  }\n}\n';
   const shape = (text) => {
@@ -1015,7 +1016,6 @@ test('else-if chains desugar to nested if_else and re-sugar on stringify', async
 
   const parsed = parseFractch(sugared);
   const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
-  setContext({});
   const text = stringifyBlockCall(blocks[topId], blocks, topId, false);
   assert.ok(text.includes('} else if '), `expected re-sugared else-if, got:\n${text}`);
   assert.strictEqual((text.match(/} else \{/g) || []).length, 1, 'final plain else must stay braced');
@@ -1037,7 +1037,7 @@ test('else-if packs as Scratch-compatible nested if in else branch', async () =>
 
 test('triple-quoted raw strings parse, emit, and round-trip', async () => {
   const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
-  const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
+  const { stringifyBlockCall } = await import('../src/stringify.js');
   const { checkFractch } = await import('../src/lint.js');
 
   const text = 'mistsutils.patchcommand("""const a = 1;\nconst b = "two";\nrun(a, b);""");\n';
@@ -1048,7 +1048,6 @@ test('triple-quoted raw strings parse, emit, and round-trip', async () => {
   assert.strictEqual(arg.value.value, 'const a = 1;\nconst b = "two";\nrun(a, b);');
 
   const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
-  setContext({});
   const out = stringifyBlockCall(blocks[topId], blocks, topId, false);
   assert.ok(out.includes('"""const a = 1;\nconst b = "two";\nrun(a, b);"""'), `raw form missing:\n${out}`);
   const reparsed = parseFractch(`${out}\n`);
@@ -1062,14 +1061,13 @@ test('triple-quoted raw strings parse, emit, and round-trip', async () => {
 
 test('orphan argument reporters round-trip via arg("name") statement sugar', async () => {
   const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
-  const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
+  const { stringifyBlockCall } = await import('../src/stringify.js');
   const parsed = parseFractch('arg("Max-Scroll-Y");\n');
   assert.strictEqual(parsed.errors.length, 0);
   const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
   const node = blocks[topId];
   assert.strictEqual(node.opcode, 'argument_reporter_string_number');
   assert.strictEqual(node.fields.VALUE[0], 'Max-Scroll-Y');
-  setContext({});
   assert.strictEqual(stringifyBlockCall(node, blocks, topId, false), 'arg("Max-Scroll-Y");');
 });
 
@@ -1094,12 +1092,11 @@ test('duplicate-named variables and lists survive pack via id declarations', asy
 
 test('array literals pack as JSON strings and re-sugar on emission', async () => {
   const { buildBlocksFromCalls } = await import('../src/buildBlocks.js');
-  const { stringifyBlockCall, setContext } = await import('../src/stringify.js');
+  const { stringifyBlockCall } = await import('../src/stringify.js');
   const parsed = parseFractch('mistsutils.patchreporter([1,2,"three"]);\n');
   assert.strictEqual(parsed.errors.length, 0);
   const { topId, blocks } = buildBlocksFromCalls(parsed.calls, {});
   assert.deepStrictEqual(blocks[topId].inputs.A, [1, [10, '[1,2,"three"]']]);
-  setContext({});
   const out = stringifyBlockCall(blocks[topId], blocks, topId, false);
   assert.strictEqual(out, 'mistsutils.patchreporter([1,2,"three"]);');
 
@@ -1256,9 +1253,13 @@ test('list-based json package injects a shared return-stack and folds to import'
     blocks.some((b) => b.opcode === 'mistsutils_item'),
     'keyed extension call was hijacked'
   );
+  const membership = Object.values(stage.comments).find((c) => String(c.text).startsWith('_fractch_map_'));
+  assert.ok(membership, 'package defs missing the membership map');
+  const modules = JSON.parse(membership.text.slice('_fractch_map_'.length)).modules;
+  assert.strictEqual(Object.values(modules).filter((m) => m === 'fractch/json').length, 3);
   assert.ok(
-    Object.keys(stage.blocks).some((k) => k.startsWith('fractch_h')),
-    'package defs missing file markers'
+    !Object.keys(stage.blocks).some((k) => k.startsWith('fractch_h')),
+    'pack must not write legacy id-prefix markers'
   );
 
   const outDir = path.join(dir, 'back');

@@ -3,19 +3,21 @@ import path from 'path';
 import AdmZip from 'adm-zip';
 import { buildProjectFromBuildDir, deepEqual, BLANK_SVG, BLANK_SVG_ID } from './pack.js';
 import { writeCompressedZip } from './writeZip.js';
+import { diagnostic } from './diagnostics.js';
 
-export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = false, fs: fsLike = fs }) {
+export async function packFromBuildDir({ buildDir, outSb3, originSb3, fs: fsLike = fs }) {
   const {
     manifest: newManifest,
     hasManifest,
     totalScripts,
     parsedScripts,
     assetFiles,
+    diagnostics,
   } = await buildProjectFromBuildDir({
     buildDir,
     fs: fsLike,
-    verbose,
   });
+  const info = (message) => diagnostics.push(diagnostic('FR308', message, { severity: 'info' }));
 
   const zip = new AdmZip();
   const origin = originSb3 ? path.resolve(originSb3) : hasManifest ? findOriginSb3() : null;
@@ -25,7 +27,7 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = 
     if (origin) {
       const originProject = JSON.parse(new AdmZip(origin).readAsText('project.json'));
       if (deepEqual(originProject, newManifest)) {
-        if (verbose) console.log(`[pack] Reconstructed project.json matches origin exactly -> writing original bytes`);
+        info('reconstructed project.json matches the origin exactly, writing the original bytes');
         const srcZip = new AdmZip(origin);
         const entry = srcZip.getEntry('project.json');
         if (entry) {
@@ -42,10 +44,7 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = 
   }
   if (!wroteProject) {
     const text = JSON.stringify(newManifest);
-    if (verbose)
-      console.log(
-        `[pack] Writing rebuilt project.json (${text.length} bytes); ${parsedScripts}/${totalScripts} scripts parsed`
-      );
+    info(`wrote rebuilt project.json (${text.length} bytes); ${parsedScripts}/${totalScripts} script files parsed`);
     zip.addFile('project.json', Buffer.from(text));
   }
 
@@ -73,7 +72,8 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, verbose = 
     data: zip.readFile(entry) || Buffer.alloc(0),
   }));
   writeCompressedZip(outSb3, entries);
-  if (verbose) console.log(`Wrote ${outSb3}`);
+  info(`wrote ${outSb3}`);
+  return { diagnostics };
 }
 
 function assetNamesForManifest(manifest) {
