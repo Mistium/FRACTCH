@@ -882,3 +882,26 @@ test('pack returns diagnostics instead of skipping a file with a bracket error',
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('empty conditions stay empty in live rebuilds', async () => {
+  const { ctx, cat } = await catContext();
+  const emitted = emitTarget(ctx, cat.id);
+  const edited = emitted.text
+    .replace('  say x;\n', '  if null {\n    say x;\n  }\n')
+    .replace('  local t = 1;\n', '  if hp > 1 {\n    hide;\n  }\n  local t = 1;\n');
+  const first = buildTarget(ctx, cat.id, edited, { previous: emitted });
+  assert.deepEqual(errors(first), []);
+  const conditions = (result) =>
+    Object.values(result.target.blocks)
+      .filter((b) => b.opcode === 'control_if')
+      .map((b) => b.inputs.CONDITION?.[0] ?? null)
+      .filter((code) => code !== 2);
+  assert.deepEqual(conditions(first), [null]);
+
+  const next = applyResult(ctx, cat.id, first);
+  const second = emitTarget(next, cat.id);
+  assert.equal((second.text.match(/if null \{/g) || []).length, 1);
+  const cleared = buildTarget(next, cat.id, second.text.replace('if hp > 1 {', 'if null {'), { previous: second });
+  assert.deepEqual(errors(cleared), []);
+  assert.deepEqual(conditions(cleared), [null, null]);
+});

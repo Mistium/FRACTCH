@@ -1067,6 +1067,14 @@ function removeCandidateSubgraph(cand, id) {
   for (const sid of Object.keys(collectBlocksSubgraph(cand.blocks, id))) delete cand.blocks[sid];
 }
 
+function dropNullInputs(cand) {
+  for (const block of Object.values(cand.blocks)) {
+    for (const [name, tuple] of Object.entries(block.inputs || {})) {
+      if (cand.nullInputs.has(tuple)) delete block.inputs[name];
+    }
+  }
+}
+
 function carryFromOld(cand, old, map) {
   for (const [n, o] of map) {
     const nb = cand.blocks[n];
@@ -2227,9 +2235,11 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
     const { cand, s, pairedTop, entry } = item;
     validateCandidate(cand, s);
     if (pairedTop) {
-      const old = { blocks: view.blocks, top: pairedTop };
       cand.map = alignScripts(view.blocks, pairedTop, cand.blocks, cand.top);
-      carryFromOld(cand, old, cand.map);
+      carryFromOld(cand, { blocks: view.blocks, top: pairedTop }, cand.map);
+    }
+    dropNullInputs(cand);
+    if (pairedTop) {
       const diff = compareScripts(
         { blocks: view.blocks, top: pairedTop, comments: oldComments },
         { blocks: cand.blocks, top: cand.top, comments: candidateComments(cand) },
