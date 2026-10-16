@@ -144,9 +144,13 @@ def @fractch_json_get_keys(JSON) warp {
 
 def @fractch_json_get_from(Key, JSON) warp {
   @fractch_json_get_data(JSON);
-  local i = 0;
-  until i > lists["!json:stack"].length / 2 || lists["!json:stack"][i] == Key {
-    i += 1;
+  local i = 1;
+  until i > lists["!json:stack"].length || lists["!json:stack"][i] == Key {
+    i += 2;
+  }
+  if i > lists["!json:stack"].length {
+    vars["!json:return"] = "";
+    return "";
   }
   vars["!json:return"] = lists["!json:stack"][i + 1];
   if letter(1, vars["!json:return"]) ++ letter(length(vars["!json:return"]), vars["!json:return"]) == "\"\"" {
