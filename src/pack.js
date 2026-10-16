@@ -1379,6 +1379,10 @@ function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
 }
 
+export function unescapeHeader(s) {
+  return s.replace(/\\(.)/g, (_, c) => ({ n: '\n', r: '\r' })[c] ?? c);
+}
+
 function parseHeaderInfo(text) {
   try {
     if (!String(text || '').startsWith('/**')) return null;
@@ -1389,7 +1393,7 @@ function parseHeaderInfo(text) {
     const map = new Map();
     for (const line of lines) {
       const m = /\*\s*([^:]+):\s*(.*)$/.exec(line.trim());
-      if (m) map.set(m[1].trim(), m[2].trim());
+      if (m) map.set(m[1].trim(), unescapeHeader(m[2].trim()));
     }
     const pos = /^(-?\d+),(-?\d+)$/.exec(map.get('pos') || '');
     return {
