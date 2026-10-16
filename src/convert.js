@@ -210,6 +210,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
   return {
     diagnostics,
     filesWritten: files.length,
+    writtenFiles: files.map((f) => f.filePath),
     manifest: manifestWithoutBlocks(projectJson),
     indexContent: '',
   };

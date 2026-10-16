@@ -77,6 +77,20 @@ test('sprites named like reserved folders survive', async (t) => {
   assert.deepEqual(manifest.targets.map((x) => x.name).sort(), ['Stage', 'assets', 'extensions']);
 });
 
+test('fmt carries assets to their canonical paths and removes moved files', async (t) => {
+  const dir = writeFiles(tempDir(t), {
+    'Stage/main.fractch': 'costume "bg" file "./art/bg.svg";\nwhen flag { say 1; }\n',
+    'Stage/art/bg.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/>',
+    'Player/main.fractch': 'sprite "Hero";\nwhen flag { say 2; }\n',
+  });
+  execFileSync(process.execPath, [cli, 'fmt', dir], { stdio: 'pipe' });
+  assert.ok(fs.existsSync(path.join(dir, 'Stage', 'assets', 'bg.svg')));
+  assert.ok(fs.existsSync(path.join(dir, 'Hero', 'main.fractch')));
+  assert.ok(!fs.existsSync(path.join(dir, 'Player', 'main.fractch')));
+  const { problems } = await checkProject({ buildDir: dir, fs });
+  assert.deepEqual(problems, []);
+});
+
 test('check skips files pack ignores and flags root-level files', async (t) => {
   const dir = writeFiles(tempDir(t), {
     'Stage/main.fractch': 'when flag { say 1; }\n',

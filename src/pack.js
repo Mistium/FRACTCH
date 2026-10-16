@@ -42,6 +42,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   let commentSeq = 0;
   let totalScripts = 0;
   let parsedScripts = 0;
+  const parsedFiles = [];
 
   for (const scriptFile of scriptFiles) {
     const { fPath, targetDir, hatDir, sourceRel } = scriptFile;
@@ -161,6 +162,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
         }
       }
       parsedScripts++;
+      parsedFiles.push(fPath);
     } catch (e) {
       report('FR311', `could not read ${fileRel}: ${e.message}`, { file: fileRel });
       continue;
@@ -299,7 +301,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       if (block && typeof block === 'object' && !Array.isArray(block)) delete block.id;
     }
   }
-  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles, diagnostics };
+  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, parsedFiles, assetFiles, diagnostics };
 }
 
 function validateSb3InputPrimitives(manifest) {
@@ -985,8 +987,8 @@ function assetSourceRel(targetDir, file) {
   const rel = String(file || '')
     .replace(/\\/g, '/')
     .replace(/^\/+/, '');
-  const parts = rel.split('/').filter(Boolean);
-  if (!parts.length || parts.some((p) => p === '.' || p === '..' || p.startsWith('.'))) return null;
+  const parts = rel.split('/').filter((p) => p && p !== '.');
+  if (!parts.length || parts.some((p) => p.startsWith('.'))) return null;
   return path.join(targetDir, ...parts);
 }
 

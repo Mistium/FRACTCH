@@ -15,9 +15,12 @@ import {
   convertProject,
   writeAssets,
   writeExtensions,
+  BLANK_SVG,
+  BLANK_SVG_ID,
 } from '../src/index.js';
 import { runPackage } from '../src/packageCmd.js';
 import { formatDiagnostic } from '../src/diagnostics.js';
+import { targetAssetFiles, targetDirNames } from '../src/emit.js';
 
 function printDiagnostics(diagnostics, verbose = false) {
   for (const d of diagnostics || []) {
@@ -137,10 +140,42 @@ async function runFmt(dir, verbose) {
   }
   const built = await buildProjectFromBuildDir({ buildDir, prune: false });
   printDiagnostics(built.diagnostics, verbose);
+  const assetCopies = [];
+  const dirNames = targetDirNames(built.manifest.targets || []);
+  for (const target of built.manifest.targets || []) {
+    for (const [md5ext, rel] of targetAssetFiles(target)) {
+      const sourceRel = built.assetFiles.get(md5ext);
+      const data = sourceRel
+        ? fs.readFileSync(path.join(buildDir, sourceRel))
+        : md5ext === `${BLANK_SVG_ID}.svg`
+          ? Buffer.from(BLANK_SVG)
+          : null;
+      if (data) assetCopies.push({ dest: path.join(buildDir, dirNames.get(target), ...rel.split('/')), data });
+    }
+  }
   const result = await convertProject(built.manifest, { outDir: buildDir, verbose });
   printDiagnostics(result.diagnostics, verbose);
+  let assetsCopied = 0;
+  for (const { dest, data } of assetCopies) {
+    if (fs.existsSync(dest) && fs.readFileSync(dest).equals(data)) continue;
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, data);
+    assetsCopied++;
+  }
+  const fileKey = (f) => {
+    const st = fs.statSync(f, { bigint: true });
+    return `${st.dev}:${st.ino}`;
+  };
+  const written = new Set(result.writtenFiles.map(fileKey));
+  const moved = built.parsedFiles.filter((f) => fs.existsSync(f) && !written.has(fileKey(f)));
+  for (const f of moved) fs.unlinkSync(f);
+  const extra = [
+    moved.length && `removed ${moved.length} file${moved.length === 1 ? '' : 's'} that moved`,
+    assetsCopied && `copied ${assetsCopied} asset${assetsCopied === 1 ? '' : 's'}`,
+  ].filter(Boolean);
   console.log(
-    `[fractch] fmt: rewrote ${result.filesWritten} file${result.filesWritten === 1 ? '' : 's'} in ${buildDir}`
+    `[fractch] fmt: rewrote ${result.filesWritten} file${result.filesWritten === 1 ? '' : 's'} in ${buildDir}` +
+      (extra.length ? ` (${extra.join(', ')})` : '')
   );
 }
 
