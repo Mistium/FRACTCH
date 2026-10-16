@@ -55,6 +55,21 @@ test('extension C-blocks keep every branch position', async (t) => {
   assert.deepEqual(Object.keys(tri.inputs).sort(), ['SUBSTACK2', 'SUBSTACK3']);
 });
 
+test('loose variable and list reporters in compact form survive convert', async (t) => {
+  const project = projectOf(
+    stageTarget(
+      { v: [12, 'score', 'g1', 800, 900], l: [13, 'inv', 'l1', 850, 950] },
+      { variables: { g1: ['score', 0] }, lists: { l1: ['inv', []] } }
+    )
+  );
+  const { manifest } = await roundTrip(t, project);
+  const loose = blocksOf(manifest).map((b) => [b.opcode, b.x, b.y]);
+  assert.deepEqual(loose.sort(), [
+    ['data_listcontents', 850, 950],
+    ['data_variable', 800, 900],
+  ]);
+});
+
 test('sprite order and chained renames survive', async (t) => {
   const names = ['Zeta', 'Alpha', 'Mid'];
   const project = projectOf(stageTarget(), ...names.map((n, i) => spriteTarget(n, {}, { layerOrder: i + 1 })));
@@ -123,6 +138,16 @@ test('the CLI refuses a missing project dir and accepts flags before word syntax
   assert.ok(fs.existsSync(path.join(dir, 'second.sb3')));
   runCli('from', 'first.sb3', '--out', 'unpacked');
   assert.ok(fs.existsSync(path.join(dir, 'unpacked', 'Stage', 'main.fractch')));
+});
+
+test('a file with a syntax error is reported, not silently dropped', async (t) => {
+  const dir = writeFiles(tempDir(t), { 'Stage/main.fractch': 'when flag {\n  say ("hi";\n}\n' });
+  const { diagnostics } = await buildProjectFromBuildDir({ buildDir: dir, prune: false });
+  assert.ok(
+    diagnostics.some(
+      (d) => d.severity === 'error' && d.file === 'Stage/main.fractch' && /skipped unparsable/.test(d.message)
+    )
+  );
 });
 
 test('roundtrip verification still passes for the regression fixtures', async (t) => {
