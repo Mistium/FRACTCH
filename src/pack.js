@@ -970,10 +970,11 @@ export function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
   const vars = new Set();
   const lists = new Set();
   const broadcasts = new Set();
+  const definiteVars = new Set();
   for (const calls of scripts) {
     const scriptVars = new Set();
     const explicitVars = new Set();
-    collectNames(calls, { vars: scriptVars, lists, broadcasts, explicitVars });
+    collectNames(calls, { vars: scriptVars, lists, broadcasts, definiteVars, explicitVars });
     for (const local of collectLocalDeclNames(calls)) scriptVars.delete(local);
     for (const name of [...scriptVars, ...explicitVars]) vars.add(name);
   }
@@ -986,7 +987,8 @@ export function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
     ...(stage ? Object.values(stage.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)) : []),
   ]);
   const iterationVars = new Set();
-  for (const spec of collectListIterations(scripts.flat())) {
+  const specs = scripts.flatMap((calls) => collectListIterations(calls, [], collectLocalDeclNames(calls)));
+  for (const spec of specs) {
     if (!spec.forced && !listNames.has(spec.listName)) continue;
     lists.add(spec.listName);
     listNames.add(spec.listName);
@@ -998,7 +1000,7 @@ export function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
   const globalVarNames = globals ? buildNameIdMap(globals.variables) : null;
   const globalListNames = globals ? buildNameIdMap(globals.lists) : null;
   for (const name of vars) {
-    if (listNames.has(name) && !iterationVars.has(name)) continue;
+    if (listNames.has(name) && !iterationVars.has(name) && !definiteVars.has(name)) continue;
     if (globalVarNames && globalVarNames.has(name)) continue;
     ensureDictEntry(target.variables, name, [name, 0]);
   }
@@ -1011,11 +1013,13 @@ export function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
   for (const name of broadcasts) ensureDictEntry(broadcastOwner.broadcasts, name, name);
 }
 
-function collectListIterations(nodes, found = []) {
+function collectListIterations(nodes, found = [], scalars = new Set()) {
   for (const node of nodes || []) {
-    if (node?.listIteration) found.push(node.listIteration);
-    if (node?.type === 'procDef') collectListIterations(node.body, found);
-    for (const arg of node?.args || []) if (arg.kind === 'branch') collectListIterations(arg.body, found);
+    const spec = node?.listIteration;
+    if (spec && (spec.forced || !scalars.has(spec.listName))) found.push(spec);
+    if (node?.type === 'procDef')
+      collectListIterations(node.body, found, new Set([...scalars, ...(node.params || []).map((p) => p.ident)]));
+    for (const arg of node?.args || []) if (arg.kind === 'branch') collectListIterations(arg.body, found, scalars);
   }
   return found;
 }
@@ -1053,6 +1057,7 @@ function collectNamesFromNode(node, out) {
     if (arg.sep === 'field') {
       if (arg.key === 'VARIABLE') {
         collectFieldName(arg.value, out.vars);
+        collectFieldName(arg.value, out.definiteVars);
         if (arg.value?.type !== 'ident') collectFieldName(arg.value, out.explicitVars);
       }
       if (arg.key === 'LIST') collectFieldName(arg.value, out.lists);
@@ -1068,6 +1073,7 @@ function collectNamesFromValue(value, out) {
   if (!value) return;
   if (value.type === 'var') {
     out.vars.add(value.name);
+    out.definiteVars?.add(value.name);
     out.explicitVars?.add(value.name);
   } else if (value.type === 'list') out.lists.add(value.name);
   else if (value.type === 'broadcast') out.broadcasts.add(value.name);

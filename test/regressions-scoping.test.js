@@ -91,3 +91,13 @@ test('variable fields keep their id when the name alone would bind elsewhere', a
     ['dup', 'g4'],
   ]);
 });
+
+test('for i in X counts when X is a parameter, local, or vars["X"]', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch':
+      'var items = ["a", "b"];\n' +
+      'def @Count(items) { for i in items { say i; } }\n' +
+      'when flag { local items = 3; for j in items { say j; } for k in vars["items"] { say k; } }\n',
+  });
+  assert.equal(blocksOf(manifest).filter((b) => b.opcode === 'data_itemoflist').length, 0);
+});

@@ -97,6 +97,7 @@ export function buildBlocksFromCalls(calls, opts = {}) {
 function expandListIteration(call, ctx) {
   const spec = call?.listIteration;
   if (!spec || (!spec.forced && !ctx.listMap?.has(spec.listName))) return call;
+  if (!spec.forced && (ctx.scopeParams?.has(spec.listName) || ctx.localVars?.has(spec.listName))) return call;
   const field = (key, name, type) => ({
     kind: 'keyed',
     sep: 'field',

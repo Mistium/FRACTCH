@@ -2066,7 +2066,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
         return;
       }
       if (v.type === 'var' && v.id == null) {
-        if (declared(v.name) || scope.has(v.name)) return;
+        if (varMap.has(v.name) || implicitVars.has(v.name)) return;
         report('FR212', `variable ${JSON.stringify(v.name)} is not declared`, {
           ...at(v.span || stmtSpan),
           fix: declareFix(v.name),
@@ -2096,7 +2096,8 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
       }
       if (node.type !== 'call') return;
       const spec = node.listIteration;
-      if (spec && (spec.forced || listMap.has(spec.listName))) {
+      const iterates = spec && (spec.forced || (listMap.has(spec.listName) && !scalars.has(spec.listName)));
+      if (iterates) {
         for (const name of [spec.valueName, spec.indexName]) {
           if (scope.has(name) || declared(name)) continue;
           if (name === spec.valueName) {
@@ -2109,7 +2110,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
           implicitVars.add(name);
         }
       }
-      if (spec) {
+      if (iterates) {
         scope.add(spec.valueName);
         scope.add(spec.indexName);
       }
@@ -2154,6 +2155,8 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
         visitValue(a.value, scope, span);
       }
     };
+    const scalars = collectLocalDeclNames(s.calls);
+    for (const st of s.calls) if (st?.type === 'procDef') for (const p of st.params || []) scalars.add(p.ident);
     const scope = new Set();
     for (const st of s.calls) visitCall(st, scope, spanOfCall(st) || s.span);
   };
