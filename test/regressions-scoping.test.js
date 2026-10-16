@@ -92,6 +92,20 @@ test('variable fields keep their id when the name alone would bind elsewhere', a
   ]);
 });
 
+test('generated ids are unique across variables, lists and broadcasts', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch': 'var "a b" = 1;\nwhen flag { inv = 5; append(inv, "x"); go = 1; broadcast go; }\n',
+    'Spr/main.fractch': 'sprite "Spr";\nvar a_b = 2;\n',
+  });
+  const ids = manifest.targets.flatMap((x) =>
+    [x.variables, x.lists, x.broadcasts].flatMap((d) => Object.keys(d || {}))
+  );
+  assert.equal(new Set(ids).size, ids.length, `duplicate ids: ${ids}`);
+  const stage = manifest.targets.find((x) => x.isStage);
+  assert.ok(Object.values(stage.variables).some(([n]) => n === 'inv'));
+  assert.ok(Object.values(stage.lists).some(([n]) => n === 'inv'));
+});
+
 test('for i in X counts when X is a parameter, local, or vars["X"]', async (t) => {
   const manifest = await pack(t, {
     'Stage/main.fractch':
