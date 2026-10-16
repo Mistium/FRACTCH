@@ -222,7 +222,8 @@ export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
       const scopeParamKinds = new Map(info.params.map((p) => [p.name, p.kind || 's']));
       S.setContext({ ...context, scopeParamNames, scopeParamKinds });
     }
-    const inner = subgraph[topBlockId]?.next ? S.renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
+    const next = subgraph[topBlockId]?.next;
+    const inner = next ? S.renderBody(subgraph, next, cfg, { trailFirstComments: true }) : '';
     const own = ownComments(context, topBlockId, inner);
     const at = atText(subgraph[topBlockId]);
     if (own.body) body = `${sig}${at} ${own.brace}\n${indentBlock(own.body)}\n}`;

@@ -332,11 +332,17 @@ export function lineCommentText(c) {
   return text ? `// ${text}` : '//';
 }
 
-export function withAttachedComments(line, attached) {
+export function withAttachedComments(line, attached, { trailing = false } = {}) {
   if (!attached?.length) return line;
   const before = [];
   const after = [];
   for (const c of attached) (isSimpleAttachedComment(c) ? before : after).push(c);
+  if (trailing) {
+    const onLine = before.shift();
+    after.unshift(...before);
+    before.length = 0;
+    if (onLine) line += ` ${lineCommentText(onLine)}`;
+  }
   let out = '';
   if (before.length) out += before.map(lineCommentText).join('\n') + '\n';
   out += line;
@@ -1326,10 +1332,12 @@ export function createStringifier(context = {}) {
     return kv.join(', ');
   }
 
-  function renderBody(subgraph, topId, cfg) {
+  function renderBody(subgraph, topId, cfg, { trailFirstComments = false } = {}) {
     const { ids, danglingId } = linearizeWithIds(subgraph, topId);
-    const lines = ids.map((cid) =>
-      withAttachedComments(stringifyBlockCall(subgraph[cid], subgraph, cid, false, cfg), CTX.blockComments?.get(cid))
+    const lines = ids.map((cid, index) =>
+      withAttachedComments(stringifyBlockCall(subgraph[cid], subgraph, cid, false, cfg), CTX.blockComments?.get(cid), {
+        trailing: trailFirstComments && index === 0,
+      })
     );
     if (danglingId) lines.push(`danglingNext(${JSON.stringify(danglingId)});`);
     return lines.join('\n');

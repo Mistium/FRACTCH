@@ -690,10 +690,8 @@ function buildProcDefScript(procDef, ids, ctx) {
 
   let leadingComments = 0;
   while (procDef.body[leadingComments]?.type === 'commentDecl') leadingComments++;
-  const leading = procDef.body.slice(0, leadingComments);
-  const attachesBelow = (c) => c.anchor === 'next' && !c.forId;
-  const hatComments = leading.filter((c) => !attachesBelow(c));
-  const bodyCalls = [...leading.filter(attachesBelow), ...procDef.body.slice(leadingComments)];
+  const hatComments = procDef.body.slice(0, leadingComments);
+  const bodyCalls = procDef.body.slice(leadingComments);
   if (ctx.commentsOut) {
     for (const c of hatComments) ctx.commentsOut.push({ ...c, blockId: c.forId || defId });
   }
