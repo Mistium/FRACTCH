@@ -1,7 +1,14 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch } from './parse.js';
-import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode, listMethodCall } from './buildBlocks.js';
+import {
+  buildBlocksFromCalls,
+  mergeIntoManifest,
+  IdGen,
+  synthesizeProccode,
+  listMethodCall,
+  scriptProcDef,
+} from './buildBlocks.js';
 import { checkFractch } from './lint.js';
 import { cleanRelStem } from './fileMarkers.js';
 import { diagnostic } from './diagnostics.js';
@@ -1095,8 +1102,9 @@ function ensureDictEntry(dict, name, value) {
 }
 
 export function stackBaseName(s) {
+  const procDef = scriptProcDef(s.calls);
+  if (procDef) return procDef.ident;
   const c0 = s.calls?.[0];
-  if (c0?.type === 'procDef') return c0.ident;
   const hat = s.hatOpcode || (c0?.callee?.type === 'opcode' ? c0.callee.name : null);
   if (hat) return String(hat).replace(/^event_when|^control_/, '');
   return 'script';
@@ -1153,9 +1161,7 @@ export function resolveMethodAmbiguity(targets, manifest, stageTarget, importNsM
     for (const s of data.stacks) {
       const scopeNames = new Set(globalNames);
       for (const n of collectLocalDeclNames(s.calls)) scopeNames.add(n);
-      if (s.calls.length === 1 && s.calls[0].type === 'procDef') {
-        for (const p of s.calls[0].params || []) scopeNames.add(p.ident);
-      }
+      for (const p of scriptProcDef(s.calls)?.params || []) scopeNames.add(p.ident);
       rewriteIdentOrMethod(s.calls, scopeNames, listNames, nsMap, report);
     }
   }
@@ -1330,8 +1336,8 @@ function collectProcCallIdents(calls, known, out) {
 }
 
 export function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName, calls) {
-  if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
-  const procDef = calls[0];
+  const procDef = scriptProcDef(calls);
+  if (!procDef) return;
   const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
   if (!procArgMaps.has(targetName)) procArgMaps.set(targetName, new Map());
   if (!identToProccode.has(targetName)) identToProccode.set(targetName, new Map());

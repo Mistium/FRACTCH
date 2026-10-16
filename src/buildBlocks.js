@@ -1,12 +1,18 @@
 import { STDLIB_METHODS } from './stdlib/index.js';
 
+export function scriptProcDef(calls) {
+  const procDefs = (calls || []).filter((c) => c.type === 'procDef');
+  if (procDefs.length !== 1 || !calls.every((c) => c.type === 'procDef' || c.type === 'commentDecl')) return null;
+  return procDefs[0];
+}
+
 export function buildBlocksFromCalls(calls, opts = {}) {
   const { hatOpcode, idGen, nested = false, ...ctx } = opts;
   const ids = idGen || new IdGen();
 
-  const procDefs = calls.filter((c) => c.type === 'procDef');
-  if (procDefs.length === 1 && calls.every((c) => c.type === 'procDef' || c.type === 'commentDecl')) {
-    const result = buildProcDefScript(procDefs[0], ids, ctx);
+  const procDef = scriptProcDef(calls);
+  if (procDef) {
+    const result = buildProcDefScript(procDef, ids, ctx);
     if (ctx.commentsOut) {
       for (const c of calls) {
         if (c.type === 'commentDecl') ctx.commentsOut.push({ ...c, blockId: c.forId || result.topId });

@@ -98,3 +98,12 @@ test('a """ inside a comment does not shift raw-string indentation', async (t) =
   const says = blocksOf(manifest).filter((b) => b.opcode === 'looks_say');
   assert.deepEqual(says.map((b) => b.inputs.MESSAGE[1][1]).sort(), ['hi', 'line1\nline2']);
 });
+
+test('a // comment above a def keeps its calls bound to it', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch': '// greets\ndef @greet(who) warp { say who; }\nwhen flag { @greet("bob"); }\n',
+  });
+  const call = blocksOf(manifest).find((b) => b.opcode === 'procedures_call');
+  assert.equal(call.mutation.proccode, 'greet %s');
+  assert.equal(call.mutation.warp, 'true');
+});
