@@ -321,6 +321,7 @@ export function isSimpleAttachedComment(c) {
     !c.minimized &&
     !c.forId &&
     !text.includes('\n') &&
+    !text.includes('"""') &&
     !hasMarkChar(text) &&
     text === text.trim()
   );
@@ -1444,14 +1445,16 @@ export function createStringifier(context = {}) {
     if (parts[0].literal === '' || parts.some((part, index) => index > 0 && part.literal === '')) return null;
     if (parts.some((part, index) => index > 0 && part.literal !== undefined && parts[index - 1].literal !== undefined))
       return null;
-    const escape = (value) =>
-      value
+    const escape = (value) => {
+      const text = value
         .replaceAll('\\', '\\\\')
         .replaceAll('`', '\\`')
         .replaceAll('${', '\\${')
         .replaceAll('\n', '\\n')
         .replaceAll('\r', '\\r')
         .replaceAll('\t', '\\t');
+      return text.includes('"""') ? text.replaceAll('"', '\\"') : text;
+    };
     return {
       text:
         '`' +

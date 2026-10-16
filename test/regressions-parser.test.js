@@ -77,3 +77,24 @@ test('comments attach to hats, the brace owner, and the line below', async (t) =
   const back = (await roundTrip(t, project)).manifest.targets[0];
   assert.equal(back.blocks[Object.values(back.comments)[0].blockId].opcode, 'event_whenflagclicked');
 });
+
+test('a """ inside a comment does not shift raw-string indentation', async (t) => {
+  const project = projectOf(
+    stageTarget(
+      {
+        h: flag('f'),
+        f: stmt('control_forever', 'h', { SUBSTACK: [2, 's1'] }),
+        s1: { ...stmt('looks_say', 'f', { MESSAGE: [1, [10, 'hi']] }, {}, 's2'), comment: 'c1' },
+        s2: stmt('looks_say', 's1', { MESSAGE: [1, [10, 'line1\nline2']] }),
+      },
+      {
+        comments: {
+          c1: { blockId: 's1', x: 0, y: 0, width: 200, height: 200, minimized: false, text: 'use """ here' },
+        },
+      }
+    )
+  );
+  const { manifest } = await roundTrip(t, project);
+  const says = blocksOf(manifest).filter((b) => b.opcode === 'looks_say');
+  assert.deepEqual(says.map((b) => b.inputs.MESSAGE[1][1]).sort(), ['hi', 'line1\nline2']);
+});
