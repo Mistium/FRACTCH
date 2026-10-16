@@ -2400,14 +2400,11 @@ class Parser {
       const call = e.value;
 
       if (call.callee.type === 'opcode' || call.callee.type === 'identOrMethod') {
-        const substackKeys = ['SUBSTACK', 'SUBSTACK2'];
-        let si = 0;
-        while (si < substackKeys.length) {
+        for (let si = 0; ; si++) {
           this.skipWS();
           if (this.peek() !== '{') break;
           const body = this.parseBraceBody();
-          call.args.push(branchArg('substack', body, substackKeys[si]));
-          si++;
+          call.args.push(branchArg('substack', body, si ? `SUBSTACK${si + 1}` : 'SUBSTACK'));
         }
       }
       return call;

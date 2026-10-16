@@ -14,6 +14,8 @@ import {
   spriteTarget,
   projectOf,
   flag,
+  stmt,
+  blocksOf,
   cli,
 } from './helpers/regressions.js';
 
@@ -36,6 +38,20 @@ test('pruning keeps assets reached by index, specials, or switch-and-wait', asyn
   });
   const { manifest } = await buildProjectFromBuildDir({ buildDir: dir });
   for (const target of manifest.targets) assert.equal(target.costumes.length, 3, target.name);
+});
+
+test('extension C-blocks keep every branch position', async (t) => {
+  const project = projectOf(
+    stageTarget({
+      h: flag('x'),
+      x: stmt('myext_tri', 'h', { SUBSTACK2: [2, 'b'], SUBSTACK3: [2, 'c'] }),
+      b: stmt('looks_say', 'x', { MESSAGE: [1, [10, 'two']] }),
+      c: stmt('looks_say', 'x', { MESSAGE: [1, [10, 'three']] }),
+    })
+  );
+  const { manifest } = await roundTrip(t, project);
+  const tri = blocksOf(manifest).find((b) => b.opcode === 'myext_tri');
+  assert.deepEqual(Object.keys(tri.inputs).sort(), ['SUBSTACK2', 'SUBSTACK3']);
 });
 
 test('sprite order and chained renames survive', async (t) => {

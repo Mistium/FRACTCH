@@ -728,9 +728,7 @@ export function createStringifier(context = {}) {
       ? `${opName}(${argParts.join(', ')})`
       : `raw(${JSON.stringify(String(opcode))}${argParts.length ? `, ${argParts.join(', ')}` : ''})`;
 
-    const substackKeys = Object.keys(block.inputs || {})
-      .filter((k) => k.startsWith('SUBSTACK'))
-      .sort();
+    const substackKeys = branchKeys(block.inputs);
     if (substackKeys.length) {
       const branches = substackKeys.map((k) => `${branch(block, k, subgraph)}`).join(' ');
       return `${call} ${branches}`;
@@ -780,9 +778,7 @@ export function createStringifier(context = {}) {
       }
       parts.push(inputValueText(tuple, subgraph, arg.name));
     }
-    const substackKeys = Object.keys(inputs)
-      .filter((k) => k.startsWith('SUBSTACK'))
-      .sort();
+    const substackKeys = branchKeys(inputs);
     const call = `${opName}(${parts.join(', ')})`;
     if (!substackKeys.length) return call;
     return `${call} ${substackKeys.map((k) => branch(block, k, subgraph)).join(' ')}`;
@@ -1332,6 +1328,15 @@ export function createStringifier(context = {}) {
     );
     if (danglingId) lines.push(`danglingNext(${JSON.stringify(danglingId)});`);
     return lines.join('\n');
+  }
+
+  function branchKeys(inputs) {
+    const positions = Object.keys(inputs || {})
+      .map((k) => /^SUBSTACK(\d*)$/.exec(k))
+      .filter(Boolean)
+      .map((m) => (m[1] ? Number(m[1]) : 1));
+    if (!positions.length) return [];
+    return Array.from({ length: Math.max(...positions) }, (_, i) => (i ? `SUBSTACK${i + 1}` : 'SUBSTACK'));
   }
 
   function branch(block, key, subgraph) {
