@@ -510,6 +510,10 @@ export function createStringifier(context = {}) {
     CTX.marks && text && typeof id === 'string' && !hasMarkChar(id) ? `\u0001${id}\u0002${text}\u0003` : text;
   const ownedLocal = (name) => (CTX.ownedLocals ? (CTX.ownedLocals.get(String(name)) ?? null) : localBareName(name));
   const shadowedByLocal = (name) => !!CTX.localBareNames?.has(String(name));
+  const variableNeedsId = (field) => {
+    const id = Array.isArray(field) ? field[1] : undefined;
+    return id != null && !!CTX.varMap && CTX.varMap.get(String(field[0] ?? '')) !== id;
+  };
 
   function stringifyBlockCall(block, subgraph, id, inline = false, cfg = {}) {
     return mark(id, stringifyBlockCallInner(block, subgraph, id, inline, cfg));
@@ -615,7 +619,11 @@ export function createStringifier(context = {}) {
       return `${header} {\n${indent(thenBody)}\n}`;
     }
 
-    if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
+    if (
+      (opcode === 'data_setvariableto' || opcode === 'data_changevariableby') &&
+      !inline &&
+      (ownedLocal(block.fields?.VARIABLE?.[0] ?? '') || !variableNeedsId(block.fields?.VARIABLE))
+    ) {
       const varName = String(block.fields?.VARIABLE?.[0] ?? '');
       const local = ownedLocal(varName);
       const appendValue =
@@ -698,6 +706,9 @@ export function createStringifier(context = {}) {
       let name;
       if (typeof childId === 'string' && subgraph[childId]) {
         name = inputValueText(tuple, subgraph, 'BROADCAST_INPUT');
+      } else if (Array.isArray(childId) && (childId[0] === 12 || childId[0] === 13)) {
+        name = getInputExpr(tuple, subgraph);
+        if (childId[0] === 12 && BARE_NAME.test(name)) name = `vars[${JSON.stringify(String(childId[1] ?? ''))}]`;
       } else {
         const raw = Array.isArray(childId) ? String(childId[1] ?? '') : '';
         name = BARE_NAME.test(raw) && !RESERVED_WORDS.has(raw) ? raw : JSON.stringify(raw);
@@ -1226,7 +1237,8 @@ export function createStringifier(context = {}) {
       (op === 'data_showvariable' || op === 'data_hidevariable') &&
       !inputKeys.length &&
       fieldKeys.length === 1 &&
-      fieldKeys[0] === 'VARIABLE'
+      fieldKeys[0] === 'VARIABLE' &&
+      !variableNeedsId(fields.VARIABLE)
     ) {
       const name = String(fields.VARIABLE[0] ?? '');
       const kw = op === 'data_showvariable' ? 'showVariable' : 'hideVariable';

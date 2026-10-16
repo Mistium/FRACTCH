@@ -14,6 +14,22 @@ import {
   blocksOf,
 } from './helpers/regressions.js';
 
+test('broadcasting a variable stays a variable reporter', async (t) => {
+  const project = projectOf(
+    stageTarget(
+      {
+        h: flag('b'),
+        b: stmt('event_broadcast', 'h', { BROADCAST_INPUT: [3, [12, 'score', 'vS'], [11, 'go', 'bGo']] }),
+      },
+      { variables: { vS: ['score', 'go'] }, broadcasts: { bGo: 'go' } }
+    )
+  );
+  const { texts, manifest } = await roundTrip(t, project);
+  assert.match(texts['Stage/main.fractch'], /broadcast vars\["score"\];/);
+  const b = blocksOf(manifest).find((x) => x.opcode === 'event_broadcast');
+  assert.deepEqual(b.inputs.BROADCAST_INPUT[1], [12, 'score', 'vS']);
+});
+
 test('a local is scoped to its script on both pack and convert', async (t) => {
   const manifest = await pack(t, {
     'Spr/main.fractch': 'sprite "Spr";\nwhen flag { local x = 1; say x; }\nwhen clicked { x = 2; say x; }\n',
@@ -49,4 +65,29 @@ test('a global shadowed by a local of the same name is written vars["..."]', asy
     texts['Stage/main.fractch'],
     /local temp = 1;\n\s*vars\["temp"\] = 2;\n\s*temp \+= 1;\n\s*say vars\["temp"\];/
   );
+});
+
+test('variable fields keep their id when the name alone would bind elsewhere', async (t) => {
+  const project = projectOf(
+    stageTarget({}, { variables: { g1: ['score', 0], g3: ['dup', 1], g4: ['dup', 2] } }),
+    spriteTarget(
+      'Spr',
+      {
+        h: flag('a'),
+        a: stmt('data_setvariableto', 'h', { VALUE: [1, [10, '5']] }, { VARIABLE: ['score', 'g1'] }, 'b'),
+        b: stmt('data_changevariableby', 'a', { VALUE: [1, [4, '1']] }, { VARIABLE: ['dup', 'g4'] }, 'c'),
+        c: stmt('data_showvariable', 'b', {}, { VARIABLE: ['dup', 'g4'] }),
+      },
+      { variables: { v1: ['score', 'mine'] } }
+    )
+  );
+  const { manifest } = await roundTrip(t, project);
+  const fields = blocksOf(manifest, 'Spr')
+    .filter((b) => b.fields.VARIABLE)
+    .map((b) => b.fields.VARIABLE);
+  assert.deepEqual(fields, [
+    ['score', 'g1'],
+    ['dup', 'g4'],
+    ['dup', 'g4'],
+  ]);
 });
