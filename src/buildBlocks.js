@@ -197,7 +197,9 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       opcode: 'data_setvariableto',
       next: null,
       parent: null,
-      inputs: { VALUE: valueToInput(call.value, ids, blocks, ctx, nodeId, 'VALUE') },
+      inputs: isEmptyInput(call.value, ctx)
+        ? {}
+        : { VALUE: valueToInput(call.value, ids, blocks, ctx, nodeId, 'VALUE') },
       fields: { VARIABLE: [mangled, (ctx.varMap && ctx.varMap.get(mangled)) || null] },
       mutation: undefined,
     };
@@ -265,6 +267,7 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
         continue;
       }
       const keyName = String.fromCharCode(65 + posIndex++);
+      if (isEmptyInput(a.value, ctx) || isEmptyBooleanText(opcode, keyName, a.value)) continue;
       node.inputs[keyName] = valueToInput(a.value, ids, blocks, ctx, nodeId, keyName);
     } else if (a.kind === 'keyed') {
       let keyName = a.key;
@@ -310,6 +313,7 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
           (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') &&
           a.value?.type === 'string';
         const value = isBroadcastRef ? { type: 'broadcast', name: a.value.value, id: null } : a.value;
+        if (isEmptyInput(value, ctx) || isEmptyBooleanText(opcode, keyName, value)) continue;
         node.inputs[keyName] = valueToInput(value, ids, blocks, ctx, nodeId, keyName);
       }
     } else if (a.kind === 'branch') {
@@ -337,6 +341,25 @@ function buildShadowRef(sh, ids, blocks, ctx, parentId, inputKey) {
   }
   const tuple = valueToInput(sh, ids, blocks, ctx, parentId, inputKey);
   return tuple[1];
+}
+
+function isEmptyInput(val, ctx) {
+  return (!val || val.type === 'null') && !ctx?.nullInputs;
+}
+
+const BOOLEAN_SLOTS = {
+  control_if: /^CONDITION$/,
+  control_if_else: /^CONDITION$/,
+  control_wait_until: /^CONDITION$/,
+  control_repeat_until: /^CONDITION$/,
+  control_while: /^CONDITION$/,
+  operator_not: /^OPERAND$/,
+  operator_and: /^OPERAND\d+$/,
+  operator_or: /^OPERAND\d+$/,
+};
+
+function isEmptyBooleanText(opcode, key, val) {
+  return val?.type === 'string' && val.value === '' && !!BOOLEAN_SLOTS[opcode]?.test(key);
 }
 
 function varInput(primitive) {
@@ -385,6 +408,7 @@ function applySignatureArg(node, arg, value, ids, blocks, ctx, nodeId) {
     node.inputs[arg.name] = [1, childId];
     return;
   }
+  if (isEmptyInput(value, ctx) || isEmptyBooleanText(node.opcode, arg.name, value)) return;
   node.inputs[arg.name] = valueToInput(value, ids, blocks, ctx, nodeId, arg.name);
 }
 
