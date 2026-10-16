@@ -8,8 +8,10 @@ export class FractchSyntaxError extends Error {
 }
 
 function stripHeader(text) {
-  const s = String(text || '');
-  if (s.startsWith('/**')) {
+  const raw = String(text || '');
+  const bom = raw.startsWith('\uFEFF') ? 1 : 0;
+  const s = bom ? ` ${raw.slice(1)}` : raw;
+  if (s.startsWith('/**', bom)) {
     const end = s.indexOf('*/');
     if (end >= 0) return s.slice(0, end + 2).replace(/[^\n]/g, ' ') + s.slice(end + 2);
   }

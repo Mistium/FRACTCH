@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkFractch } from '../src/lint.js';
+import { parseFractch } from '../src/parse.js';
 
 test('lint reports the same lines and 1-based columns as the parser, past a header', () => {
   const src = '/**\n * target: Stage\n * targetId: \n */\nwhen flag {\n  foo];\n}\n';
@@ -13,4 +14,10 @@ test('lint accepts nested templates and quotes inside interpolations', () => {
   assert.deepEqual(checkFractch("say `Hello ${`${name}'s turn`}`;"), []);
   assert.deepEqual(checkFractch('say `${contains(v, "`")}x`;'), []);
   assert.match(checkFractch('say `a${b')[0].message, /unterminated template/);
+});
+
+test('a UTF-8 BOM does not break parsing', () => {
+  const parsed = parseFractch('\uFEFFwhen flag {\r\n  say "s";\r\n}\r\n');
+  assert.deepEqual(parsed.errors, []);
+  assert.deepEqual(checkFractch('\uFEFFwhen flag { say 1; }'), []);
 });
