@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildProjectFromBuildDir, checkProject } from '../src/index.js';
+import { buildProjectFromBuildDir, convertProject, checkProject } from '../src/index.js';
 import { join } from '../src/pathUtils.js';
+import { verifyRoundtrip } from '../src/roundtripDiff.js';
 import {
   tempDir,
   writeFiles,
@@ -122,4 +123,45 @@ test('the CLI refuses a missing project dir and accepts flags before word syntax
   assert.ok(fs.existsSync(path.join(dir, 'second.sb3')));
   runCli('from', 'first.sb3', '--out', 'unpacked');
   assert.ok(fs.existsSync(path.join(dir, 'unpacked', 'Stage', 'main.fractch')));
+});
+
+test('roundtrip verification still passes for the regression fixtures', async (t) => {
+  const project = projectOf(
+    stageTarget(
+      { h: flag('s'), s: stmt('looks_say', 'h', { MESSAGE: [1, [10, 'hi']] }) },
+      { variables: { g1: ['score', 0] } }
+    )
+  );
+  const { out } = await roundTrip(t, project);
+  const result = await verifyRoundtrip({ project, buildDir: out, fs });
+  assert.deepEqual(result.failures, []);
+});
+
+test('verifyRoundtrip pairs scripts across files and checks reference kinds', async (t) => {
+  const say = (parent, message) => stmt('looks_say', parent, { MESSAGE: message });
+  const project = projectOf(
+    stageTarget(
+      {
+        h1: flag('s1'),
+        s1: say('h1', [1, [10, 'one']]),
+        h2: { ...flag('s2'), y: 300 },
+        s2: say('h2', [3, [12, 'score', 'v'], [10, '']]),
+      },
+      { variables: { v: ['score', 0] } }
+    )
+  );
+  const out = tempDir(t);
+  await convertProject(structuredClone(project), { outDir: out });
+  const main = path.join(out, 'Stage', 'main.fractch');
+  const moved = path.join(out, 'Stage', 'a.fractch');
+  // Move the second script into a file that sorts before main.fractch.
+  const text = fs.readFileSync(main, 'utf8');
+  const second = /when flag at 0,300 \{\n {2}say score;\n\}\n/;
+  fs.writeFileSync(moved, text.match(second)[0]);
+  fs.writeFileSync(main, text.replace(second, ''));
+  assert.deepEqual((await verifyRoundtrip({ project, buildDir: out, fs })).failures, []);
+
+  fs.writeFileSync(moved, fs.readFileSync(moved, 'utf8').replace('say score;', 'say "score";'));
+  const { failures } = await verifyRoundtrip({ project, buildDir: out, fs });
+  assert.match(failures[0].err, /reference kind/);
 });
