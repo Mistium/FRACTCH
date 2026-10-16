@@ -222,17 +222,17 @@ export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
       const scopeParamKinds = new Map(info.params.map((p) => [p.name, p.kind || 's']));
       S.setContext({ ...context, scopeParamNames, scopeParamKinds });
     }
-    let inner = subgraph[topBlockId]?.next ? S.renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
-    inner = prependOwnComments(context, topBlockId, inner);
+    const inner = subgraph[topBlockId]?.next ? S.renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
+    const own = ownComments(context, topBlockId, inner);
     const at = atText(subgraph[topBlockId]);
-    body = inner ? `${sig}${at} {\n${indentBlock(inner)}\n}` : `${sig}${at} {}`;
+    if (own.body) body = `${sig}${at} ${own.brace}\n${indentBlock(own.body)}\n}`;
+    else body = own.brace === '{' ? `${sig}${at} {}` : `${sig}${at} ${own.brace}\n}`;
   } else {
     const top = subgraph[topBlockId];
     const sugar = top ? whenSugarFor(top, context, subgraph, S) : null;
     if (sugar) {
-      let rest = top.next ? S.renderBody(subgraph, top.next, cfg) : '';
-      rest = prependOwnComments(context, topBlockId, rest);
-      body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
+      const own = ownComments(context, topBlockId, top.next ? S.renderBody(subgraph, top.next, cfg) : '');
+      body = `when ${sugar}${atText(top)} ${own.brace}\n${indentBlock(own.body)}\n}`;
     } else {
       const inner = renderFallbackBody(subgraph, topBlockId, cfg, context, S);
       body = `script${atText(top)} {\n${indentBlock(inner)}\n}`;
@@ -314,11 +314,14 @@ function renderFallbackBody(subgraph, topId, cfg, context, S) {
   return lines.join('\n');
 }
 
-function prependOwnComments(context, topBlockId, bodyText) {
-  const own = context?.blockComments?.get(topBlockId);
-  if (!own?.length) return bodyText;
-  const lines = own.map((c) => (isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c))).join('\n');
-  return bodyText ? `${lines}\n${bodyText}` : lines;
+function ownComments(context, topBlockId, bodyText) {
+  const own = context?.blockComments?.get(topBlockId) || [];
+  const onBrace = own.find(isSimpleAttachedComment);
+  const lines = own.filter((c) => c !== onBrace).map(commentDeclLine);
+  return {
+    brace: onBrace ? `{ ${lineCommentText(onBrace)}` : '{',
+    body: [...lines, bodyText].filter(Boolean).join('\n'),
+  };
 }
 
 function linearizeIds(subgraph, topId) {

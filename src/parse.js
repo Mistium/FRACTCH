@@ -721,9 +721,10 @@ class Parser {
     return true;
   }
 
-  drainLineComments(out, { havePrev }) {
-    if (!this.pendingLineComments.length) return;
-    for (const c of this.pendingLineComments) {
+  drainLineComments(out, { havePrev, comments = null }) {
+    const pending = comments ?? this.pendingLineComments;
+    if (!pending.length) return;
+    for (const c of pending) {
       out.push({
         type: 'commentDecl',
         text: c.text,
@@ -739,7 +740,7 @@ class Parser {
         line: this.lineAt(c.start),
       });
     }
-    this.pendingLineComments = [];
+    if (!comments) this.pendingLineComments = [];
   }
 
   eof() {
@@ -2410,6 +2411,14 @@ class Parser {
 
   parseBraceBody() {
     this.expectChar('{');
+    const braceLine = this.lineAt(this.i - 1);
+    this.skipWS();
+    const enclosing = [];
+    this.pendingLineComments = this.pendingLineComments.filter((c) => {
+      if (c.anchor !== 'prev' || this.lineAt(c.start) !== braceLine) return true;
+      enclosing.push(c);
+      return false;
+    });
     this.depth++;
     let stmts;
     try {
@@ -2418,7 +2427,10 @@ class Parser {
       this.depth--;
     }
     this.expectChar('}');
-    return stmts;
+    const comments = [];
+    this.drainLineComments(comments, { havePrev: true, comments: enclosing });
+    for (const c of comments) c.anchor = 'enclosing';
+    return [...comments, ...stmts];
   }
 
   parseExprStatementHead() {

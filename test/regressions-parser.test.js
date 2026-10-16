@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkFractch } from '../src/lint.js';
 import { parseFractch } from '../src/parse.js';
-import { roundTrip, stageTarget, spriteTarget, projectOf, flag, stmt, blocksOf } from './helpers/regressions.js';
+import { pack, roundTrip, stageTarget, spriteTarget, projectOf, flag, stmt, blocksOf } from './helpers/regressions.js';
 
 test('lint reports the same lines and 1-based columns as the parser, past a header', () => {
   const src = '/**\n * target: Stage\n * targetId: \n */\nwhen flag {\n  foo];\n}\n';
@@ -54,4 +54,26 @@ test('a sprite name with */ cannot end the header comment', async (t) => {
   const sprite = manifest.targets.find((x) => !x.isStage);
   assert.equal(sprite.name, 'x */ when flag { say 1; } /*');
   assert.equal(Object.keys(sprite.blocks).length, 2);
+});
+
+test('comments attach to hats, the brace owner, and the line below', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch':
+      'when flag { // on hat\n  repeat 3 { // on repeat\n    say 1;\n  }\n}\n' +
+      'def @f() {\n  // on first say\n  say 2;\n}\n',
+  });
+  const st = manifest.targets[0];
+  const on = (text) => st.blocks[Object.values(st.comments).find((c) => c.text === text).blockId].opcode;
+  assert.equal(on('on hat'), 'event_whenflagclicked');
+  assert.equal(on('on repeat'), 'control_repeat');
+  assert.equal(on('on first say'), 'looks_say');
+
+  const project = projectOf(
+    stageTarget(
+      { h: { ...flag('s'), comment: 'c1' }, s: stmt('looks_say', 'h', { MESSAGE: [1, [10, 'hi']] }) },
+      { comments: { c1: { blockId: 'h', x: 0, y: 0, width: 200, height: 200, minimized: false, text: 'note' } } }
+    )
+  );
+  const back = (await roundTrip(t, project)).manifest.targets[0];
+  assert.equal(back.blocks[Object.values(back.comments)[0].blockId].opcode, 'event_whenflagclicked');
 });
