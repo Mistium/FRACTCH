@@ -4,8 +4,11 @@ import AdmZip from 'adm-zip';
 import { buildProjectFromBuildDir, deepEqual, BLANK_SVG, BLANK_SVG_ID } from './pack.js';
 import { writeCompressedZip } from './writeZip.js';
 import { diagnostic } from './diagnostics.js';
+import { toPromiseFs } from './fsAdapter.js';
 
 export async function packFromBuildDir({ buildDir, outSb3, originSb3, fs: fsLike = fs }) {
+  if (!(await toPromiseFs(fsLike).isDirectory(buildDir))) throw new Error(`project directory not found: ${buildDir}`);
+  if (originSb3 && !fs.existsSync(path.resolve(originSb3))) throw new Error(`origin .sb3 not found: ${originSb3}`);
   const {
     manifest: newManifest,
     hasManifest,

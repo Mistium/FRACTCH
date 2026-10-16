@@ -44,14 +44,21 @@ const USAGE =
   '  fractch --input <sb3> --out <dir>       flag form (same as `from ... to ...`)';
 
 const rawArgs = hideBin(process.argv);
-const words = [];
-for (let i = 0; i < rawArgs.length; i++) {
-  if (rawArgs[i] === '--editor' || rawArgs[i] === '--origin') {
-    i++;
-    continue;
+const VALUE_FLAGS = new Set(['--editor', '--origin', '--input', '-i', '--out', '-o', '--outSb3']);
+
+function splitArgs(args) {
+  const flags = [];
+  const words = [];
+  for (let i = 0; i < args.length; i++) {
+    if (VALUE_FLAGS.has(args[i])) {
+      flags.push(args[i]);
+      if (i + 1 < args.length) flags.push(args[++i]);
+    } else (args[i].startsWith('-') ? flags : words).push(args[i]);
   }
-  if (!rawArgs[i].startsWith('-')) words.push(rawArgs[i]);
+  return { flags, words };
 }
+
+const { words } = splitArgs(rawArgs);
 const command = ['new', 'clone', 'check', 'fmt', 'watch', 'run', 'package'].includes(words[0]) ? words[0] : null;
 
 const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
@@ -59,16 +66,20 @@ const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
 const WATCHED_FILE_RE = /\.(fractch|json|svg|png|jpg|jpeg|gif|wav|mp3)$/i;
 
 function translateWordSyntax(args) {
-  const flags = [];
-  const words = [];
-  for (const a of args) (a.startsWith('-') ? flags : words).push(a);
+  const { flags, words } = splitArgs(args);
   if (!words.length) return args;
 
   if (words[0] === 'from' && words[1]) {
     const input = words[1];
-    const out =
-      words[2] === 'to' && words[3] ? words[3] : path.join('.', path.basename(input).replace(/\.sb3$/i, '') || 'build');
-    return ['--input', input, '--out', out, ...flags];
+    if (words[2] === 'to' && words[3]) return ['--input', input, '--out', words[3], ...flags];
+    if (flags.some((f) => f === '--out' || f === '-o' || f.startsWith('--out='))) return ['--input', input, ...flags];
+    return [
+      '--input',
+      input,
+      '--out',
+      path.join('.', path.basename(input).replace(/\.sb3$/i, '') || 'build'),
+      ...flags,
+    ];
   }
 
   const sb3At = words[0] === 'to' ? 1 : 0;
