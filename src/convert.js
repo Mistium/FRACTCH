@@ -177,7 +177,15 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       const content = emitMultiScriptFile({
         target,
         entries,
-        context: { broadcastMap, proceduresMap, procByCode, varMap, listMap, broadcastNameToId, blockComments },
+        context: {
+          broadcastMap,
+          proceduresMap,
+          procByCode: procByCodeForTarget(procByCode, target),
+          varMap,
+          listMap,
+          broadcastNameToId,
+          blockComments,
+        },
         cfg: config,
         includeAssets: groupKey === 'main',
         prelude: groupKey === 'main' ? finalPrelude : '',
@@ -407,60 +415,66 @@ export function cleanIdent(label) {
   return id || 'proc';
 }
 
+function prototypeParams(b) {
+  const proccode = b.mutation.proccode;
+  let ids = [];
+  let names = [];
+  try {
+    ids = JSON.parse(b.mutation?.argumentids || '[]');
+  } catch {
+    ids = [];
+  }
+  try {
+    names = JSON.parse(b.mutation?.argumentnames || '[]');
+  } catch {
+    names = [];
+  }
+
+  const seenIdents = new Map();
+  const kinds = (proccode.match(/%[snb]/g) || []).map((t) => t[1]);
+  return ids.map((id, i) => {
+    const name = names[i] ?? `arg${i}`;
+    const base = cleanIdent(name);
+    const count = seenIdents.get(base) || 0;
+    seenIdents.set(base, count + 1);
+    const ident = count === 0 ? base : `${base}_${count + 1}`;
+    return { id, ident, name, kind: kinds[i] === 'b' ? 'b' : 's' };
+  });
+}
+
 export function buildProcByCode(targets) {
   const map = new Map();
 
   const usedProcIdents = new Set();
   const prototypes = [];
-  const seenCodes = new Set();
+  const paramsByCode = new Map();
   for (const target of targets) {
     const blocks = target.blocks || {};
     for (const b of Object.values(blocks)) {
       if (!b || b.opcode !== 'procedures_prototype') continue;
       const proccode = b.mutation?.proccode;
-      if (!proccode || seenCodes.has(proccode)) continue;
-      seenCodes.add(proccode);
-      prototypes.push(b);
+      if (!proccode) continue;
+      if (!paramsByCode.has(proccode)) {
+        paramsByCode.set(proccode, new Map());
+        prototypes.push(b);
+      }
+      const byTarget = paramsByCode.get(proccode);
+      if (!byTarget.has(target)) byTarget.set(target, prototypeParams(b));
     }
   }
   prototypes.sort((a, b) =>
     a.mutation.proccode < b.mutation.proccode ? -1 : a.mutation.proccode > b.mutation.proccode ? 1 : 0
   );
-  {
-    for (const b of prototypes) {
-      const proccode = b.mutation.proccode;
-      let ids = [];
-      let names = [];
-      try {
-        ids = JSON.parse(b.mutation?.argumentids || '[]');
-      } catch {
-        ids = [];
-      }
-      try {
-        names = JSON.parse(b.mutation?.argumentnames || '[]');
-      } catch {
-        names = [];
-      }
+  for (const b of prototypes) {
+    const proccode = b.mutation.proccode;
+    let base = cleanIdent(proccode);
+    let ident = base;
+    let n = 1;
+    while (usedProcIdents.has(ident)) ident = `${base}_${++n}`;
+    usedProcIdents.add(ident);
 
-      const seenIdents = new Map();
-      const kinds = (proccode.match(/%[snb]/g) || []).map((t) => t[1]);
-      const params = ids.map((id, i) => {
-        const name = names[i] ?? `arg${i}`;
-        const base = cleanIdent(name);
-        const count = seenIdents.get(base) || 0;
-        seenIdents.set(base, count + 1);
-        const ident = count === 0 ? base : `${base}_${count + 1}`;
-        return { id, ident, name, kind: kinds[i] === 'b' ? 'b' : 's' };
-      });
-
-      let base = cleanIdent(proccode);
-      let ident = base;
-      let n = 1;
-      while (usedProcIdents.has(ident)) ident = `${base}_${++n}`;
-      usedProcIdents.add(ident);
-
-      map.set(proccode, { ident, params, label: proccode });
-    }
+    const paramsByTarget = paramsByCode.get(proccode);
+    map.set(proccode, { ident, params: paramsByTarget.values().next().value, label: proccode, paramsByTarget });
   }
 
   for (const target of targets) {
@@ -471,4 +485,13 @@ export function buildProcByCode(targets) {
     }
   }
   return map;
+}
+
+export function procByCodeForTarget(procByCode, target) {
+  const out = new Map();
+  for (const [code, info] of procByCode) {
+    const own = info.paramsByTarget?.get(target);
+    out.set(code, own && own !== info.params ? { ...info, params: own } : info);
+  }
+  return out;
 }

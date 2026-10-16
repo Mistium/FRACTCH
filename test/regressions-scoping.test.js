@@ -126,3 +126,42 @@ test('cloud variables are reachable by bare name from any target', async (t) => 
   assert.deepEqual(manifest.targets.find((x) => x.name === 'Spr').variables, {});
   assert.equal(manifest.monitors.length, 1);
 });
+
+test('sprites keep their own parameter names for a shared proccode', async (t) => {
+  const def = (arg) => ({
+    d: {
+      opcode: 'procedures_definition',
+      next: 's',
+      parent: null,
+      inputs: { custom_block: [1, 'p'] },
+      fields: {},
+      shadow: false,
+      topLevel: true,
+      x: 0,
+      y: 0,
+    },
+    p: {
+      opcode: 'procedures_prototype',
+      next: null,
+      parent: 'd',
+      inputs: {},
+      fields: {},
+      shadow: true,
+      topLevel: false,
+      mutation: {
+        tagName: 'mutation',
+        children: [],
+        proccode: 'foo %s',
+        argumentids: '["a1"]',
+        argumentnames: JSON.stringify([arg]),
+        argumentdefaults: '[""]',
+        warp: 'false',
+      },
+    },
+    s: stmt('looks_say', 'd', { MESSAGE: [3, 'r', [10, '']] }),
+    r: stmt('argument_reporter_string_number', 's', {}, { VALUE: [arg, null] }),
+  });
+  const project = projectOf(stageTarget(), spriteTarget('A', def('a')), spriteTarget('B', def('b'), { layerOrder: 2 }));
+  const { texts } = await roundTrip(t, project);
+  assert.match(texts['B/main.fractch'], /def @foo\(b\)[^{]*\{\n\s*say b;/);
+});
