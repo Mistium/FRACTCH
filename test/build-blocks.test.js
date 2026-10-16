@@ -24,3 +24,15 @@ test('empty inputs written as null are left out instead of becoming text', () =>
   assert.ok(notIf.inputs.CONDITION);
   assert.deepStrictEqual(byOpcode('operator_not')[0].inputs, {});
 });
+
+test('empty text in a boolean slot is dropped, so projects saved with it load again', () => {
+  const source = 'if "" {\n  stop all;\n}\nwait_until "";\nif not("") {}\nif "" && "" {}\nsay "";\n';
+  const { blocks } = buildBlocksFromCalls(parseFractch(source).calls);
+  const byOpcode = (opcode) => Object.values(blocks).filter((b) => b.opcode === opcode);
+
+  assert.strictEqual(byOpcode('control_wait_until')[0].inputs.CONDITION, undefined);
+  assert.deepStrictEqual(byOpcode('operator_not')[0].inputs, {});
+  assert.deepStrictEqual(byOpcode('operator_and')[0].inputs, {});
+  assert.strictEqual(byOpcode('control_if').filter((b) => b.inputs.CONDITION === undefined).length, 1);
+  assert.deepStrictEqual(byOpcode('looks_say')[0].inputs.MESSAGE, [1, [10, '']]);
+});

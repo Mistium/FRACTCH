@@ -905,3 +905,76 @@ test('empty conditions stay empty in live rebuilds', async () => {
   assert.deepEqual(errors(cleared), []);
   assert.deepEqual(conditions(cleared), [null, null]);
 });
+
+function shadowContext(blocks) {
+  const sprite = {
+    isStage: false,
+    name: 'S',
+    variables: {},
+    lists: {},
+    broadcasts: {},
+    blocks,
+    comments: {},
+    currentCostume: 0,
+    costumes: [],
+    sounds: [],
+    volume: 100,
+    layerOrder: 1,
+    visible: true,
+    x: 0,
+    y: 0,
+    size: 100,
+    direction: 90,
+    draggable: false,
+    rotationStyle: 'all around',
+  };
+  const stage = { ...sprite, isStage: true, name: 'Stage', blocks: {}, layerOrder: 0 };
+  const ctx = liveContext({ targets: [stage, sprite], monitors: [], extensions: ['pen'], meta: { semver: '3.0.0' } });
+  return { ctx, id: ctx.targets.find((t) => t.name === 'S').id };
+}
+
+const stackBlock = (opcode, inputs, extra) => ({
+  opcode,
+  next: null,
+  parent: null,
+  inputs,
+  fields: {},
+  shadow: false,
+  topLevel: false,
+  ...extra,
+});
+
+test('the opcode table does not turn null inputs into typed empty literals', () => {
+  const { ctx, id } = shadowContext({
+    hat: stackBlock('event_whenflagclicked', {}, { next: 'pen', topLevel: true, x: 0, y: 0 }),
+    pen: stackBlock('pen_setPenColorToColor', { COLOR: [1, null] }, { parent: 'hat' }),
+  });
+  const opcodes = {
+    opcodes: {
+      motion_movesteps: { inputs: { STEPS: { shadow: 'math_number' } } },
+      pen_setPenColorToColor: { inputs: { COLOR: { shadow: 'colour_picker' } } },
+    },
+  };
+  const emitted = emitTarget(ctx, id, { opcodes });
+  const text = `${emitted.text.replace(/\}\s*$/, '  say 1;\n}\n')}\nwhen flag {\n  motion_movesteps(STEPS: null);\n  pen_setPenColorToColor(COLOR: null);\n}\n`;
+  const built = buildTarget(ctx, id, text, { previous: emitted, opcodes });
+  assert.deepEqual(errors(built), []);
+  const pens = Object.values(built.target.blocks).filter((b) => b.opcode === 'pen_setPenColorToColor');
+  assert.deepEqual(pens.map((b) => b.inputs.COLOR ?? null).sort(), [[1, null], null]);
+  const move = Object.values(built.target.blocks).find((b) => b.opcode === 'motion_movesteps');
+  assert.deepEqual(move.inputs, {});
+});
+
+test('replacing a reporter with null falls back to its shadow', () => {
+  const { ctx, id } = shadowContext({
+    hat: stackBlock('event_whenflagclicked', {}, { next: 'say', topLevel: true, x: 0, y: 0 }),
+    say: stackBlock('looks_say', { MESSAGE: [3, 'add', [10, 'hello']] }, { parent: 'hat' }),
+    add: stackBlock('operator_add', { NUM1: [1, [4, '1']], NUM2: [1, [4, '2']] }, { parent: 'say' }),
+  });
+  const emitted = emitTarget(ctx, id);
+  const built = buildTarget(ctx, id, emitted.text.replace('say 1 + 2;', 'say null;'), { previous: emitted });
+  assert.deepEqual(errors(built), []);
+  const say = Object.values(built.target.blocks).find((b) => b.opcode === 'looks_say');
+  assert.deepEqual(say.inputs.MESSAGE, [1, [10, 'hello']]);
+  assert.ok(!Object.values(built.target.blocks).some((b) => b.opcode === 'operator_add'));
+});

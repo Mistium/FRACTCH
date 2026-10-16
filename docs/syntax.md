@@ -150,6 +150,8 @@ sprites["Player"].vars["hp"]   // that sprite's variable
 
 `true` and `false` are usable anywhere a boolean block fits (they pack as `0 == 0` / `0 == 1`).
 
+`null` is an empty input slot, such as the condition of `if null { ... }` or the slot in `not(null)`. It packs as no input at all, the same as a slot you left empty in the editor. Use `""` when you want empty text. Empty text in a boolean slot (`if "" { ... }`) is packed as an empty slot too, because Scratch can't put text there.
+
 Array (and object) literals in expression position are JSON text sugar: `[1, 2, "three"]` packs as the plain string `[1,2,"three"]`, the shape the JSON helper blocks and the stdlib consume. Emission re-sugars any string input holding canonical JSON array/object text. (Legacy raw primitive tuples like `[10, "x"]` (2 to 3 entries, type code first, string second) still pass through verbatim.)
 
 ## Standard library

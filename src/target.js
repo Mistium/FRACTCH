@@ -1091,6 +1091,10 @@ function carryFromOld(cand, old, map) {
           const copy = cloneTuple(ot);
           if (typeof copy[2] === 'string') copyShadow(cand, old, copy[2], n);
           nb.inputs[name] = copy;
+        } else if (ot[0] === 3 && ot[2] != null) {
+          const shadow = cloneTuple([1, ot[2]]);
+          if (typeof shadow[1] === 'string') copyShadow(cand, old, shadow[1], n);
+          nb.inputs[name] = shadow;
         }
         continue;
       }
@@ -1207,14 +1211,14 @@ function carryFromOld(cand, old, map) {
   }
 }
 
-function applyShadowTypes(blocks, table) {
+function applyShadowTypes(blocks, table, nullInputs) {
   if (!table.provided) return;
   for (const b of Object.values(blocks)) {
     const shadows = table.byOpcode.get(b.opcode)?.shadows;
     if (!shadows) continue;
     for (const [k, t] of Object.entries(b.inputs || {})) {
       const code = shadowTypeCode(shadows[k]);
-      if (code == null || !Array.isArray(t) || t[0] !== 1 || !Array.isArray(t[1])) continue;
+      if (code == null || !Array.isArray(t) || t[0] !== 1 || !Array.isArray(t[1]) || nullInputs.has(t)) continue;
       const lit = t[1];
       if (lit[0] < 4 || lit[0] > 10 || lit[0] === code) continue;
       if (code === 10 || code === 9 || numericText(lit[1])) b.inputs[k] = [1, [code, lit[1]]];
@@ -1727,7 +1731,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
       }
     }
     if (live) collapseOperators(blocks);
-    applyShadowTypes(blocks, table);
+    applyShadowTypes(blocks, table, nullInputs);
     return {
       top,
       blocks,
