@@ -36,3 +36,8 @@ test('JSON escapes the emitter writes (\\u, \\b, \\f) parse back', async (t) => 
   const say = blocksOf(manifest).find((b) => b.opcode === 'looks_say');
   assert.equal(say.inputs.MESSAGE[1][1], value);
 });
+
+test('a script body cannot hold top-level declarations', () => {
+  const { errors } = parseFractch('when flag { var x = 1; say x; }');
+  assert.match(errors[0].message, /'var' only works at the top level/);
+});

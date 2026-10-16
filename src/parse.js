@@ -427,6 +427,16 @@ const RECOVERY_STOP_WORDS = new Set([
   'platform',
 ]);
 
+const TOP_LEVEL_ONLY = new Set([
+  'useDecl',
+  'varDecl',
+  'watchDecl',
+  'platformDecl',
+  'spriteDecl',
+  'assetDecl',
+  'lockedScript',
+]);
+
 const NON_ATTACHABLE_TOP = new Set([
   'useDecl',
   'importDecl',
@@ -883,6 +893,10 @@ class Parser {
             alias = this.expectIdentifier('for the import namespace');
           }
           this.tryChar(';');
+          if (this.depth > 0) {
+            this.errors.push(this.topLevelOnlyError(word, stmtStart));
+            continue;
+          }
           stmts.push({ type: 'importDecl', id, alias, line: this.lineAt(stmtStart), span: [stmtStart, this.i] });
           haveRealPrev = true;
           implicitStart = -1;
@@ -895,6 +909,10 @@ class Parser {
       const save = this.snapshot();
       try {
         const stmt = this.parseStatement();
+        if (stmt && this.depth > 0 && TOP_LEVEL_ONLY.has(stmt.type)) {
+          this.errors.push(this.topLevelOnlyError(word, stmtStart));
+          continue;
+        }
         if (stmt) {
           if (typeof stmt === 'object' && !stmt.span) stmt.span = [stmtStart, this.i];
           if (scriptLevel && IMPLICIT_TOP_TYPES.has(stmt.type)) {
@@ -945,6 +963,16 @@ class Parser {
       this.skipToEOL();
     }
     return stmts;
+  }
+
+  topLevelOnlyError(word, from) {
+    return this.makeError(
+      `'${word}' only works at the top level of a file, not inside a script`,
+      'move it out of the { } block',
+      'FR114',
+      from,
+      this.i
+    );
   }
 
   makeError(message, hint, code, from, to) {
