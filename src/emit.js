@@ -25,7 +25,7 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
 }
 
 export function targetDirNames(targets) {
-  const used = new Set();
+  const used = new Set(['assets', 'extensions']);
   const map = new Map();
   for (const t of targets || []) {
     const base = String(t?.name ?? '').replace(/[^a-zA-Z0-9-_]/g, '_') || 'target';
@@ -85,7 +85,7 @@ function numText(n) {
   return Number.isFinite(v) ? String(v) : '0';
 }
 
-export function emitTargetPrelude({ projectJson, target, monitors = [], workspaceComments = [] }) {
+export function emitTargetPrelude({ projectJson, target, monitors = [], workspaceComments = [], order = null }) {
   const lines = [];
 
   if (target.isStage) {
@@ -127,6 +127,7 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
       attrs.push(`rotation ${JSON.stringify(String(target.rotationStyle))}`);
     if (numOr(target.volume, 100) !== 100) attrs.push(`volume ${numText(target.volume)}`);
     if (target.layerOrder != null) attrs.push(`layer ${numText(target.layerOrder)}`);
+    if (order != null) attrs.push(`order ${order}`);
     lines.push(`sprite ${attrs.join(' ')};`);
   }
 

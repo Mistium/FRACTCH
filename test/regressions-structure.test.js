@@ -5,7 +5,40 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { checkProject } from '../src/index.js';
 import { join } from '../src/pathUtils.js';
-import { tempDir, writeFiles, pack, flag, cli } from './helpers/regressions.js';
+import {
+  tempDir,
+  writeFiles,
+  pack,
+  roundTrip,
+  stageTarget,
+  spriteTarget,
+  projectOf,
+  flag,
+  cli,
+} from './helpers/regressions.js';
+
+test('sprite order and chained renames survive', async (t) => {
+  const names = ['Zeta', 'Alpha', 'Mid'];
+  const project = projectOf(stageTarget(), ...names.map((n, i) => spriteTarget(n, {}, { layerOrder: i + 1 })));
+  const { manifest } = await roundTrip(t, project);
+  assert.deepEqual(
+    manifest.targets.map((x) => x.name),
+    ['Stage', ...names]
+  );
+
+  const renamed = await pack(t, {
+    'Stage/main.fractch': '',
+    'A/main.fractch': 'sprite "B";\n',
+    'B/main.fractch': 'sprite "C";\n',
+  });
+  assert.deepEqual(renamed.targets.map((x) => x.name).sort(), ['B', 'C', 'Stage']);
+});
+
+test('sprites named like reserved folders survive', async (t) => {
+  const project = projectOf(stageTarget(), spriteTarget('assets'), spriteTarget('extensions', {}, { layerOrder: 2 }));
+  const { manifest } = await roundTrip(t, project);
+  assert.deepEqual(manifest.targets.map((x) => x.name).sort(), ['Stage', 'assets', 'extensions']);
+});
 
 test('check skips files pack ignores and flags root-level files', async (t) => {
   const dir = writeFiles(tempDir(t), {

@@ -38,6 +38,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   const stdlibImports = new Map();
   const importNsMaps = new Map();
   const renamePlans = new Map();
+  const spriteOrders = new Map();
   let commentSeq = 0;
   let totalScripts = 0;
   let parsedScripts = 0;
@@ -100,6 +101,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       if (!cloudAliasMaps.has(manifestName)) cloudAliasMaps.set(manifestName, new Map());
       applyVarDecls(manifest, manifestTarget, parsed.varDecls, cloudAliasMaps.get(manifestName));
       applySpriteProps(manifestTarget, parsed.spriteProps);
+      if (parsed.spriteProps?.order != null && !manifestTarget.isStage)
+        spriteOrders.set(manifestName, parsed.spriteProps.order);
 
       if (parsed.spriteProps?.name && !hasManifest && parsed.spriteProps.name !== manifestName) {
         renamePlans.set(manifestName, parsed.spriteProps.name);
@@ -280,10 +283,11 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   validateSb3InputPrimitives(newManifest);
   autoRegisterExtensions(newManifest);
   applyWatchDecls(newManifest, watchDecls, renamePlans, report);
-  for (const [oldName, newName] of renamePlans) {
-    const t = (newManifest.targets || []).find((x) => x.name === oldName);
-    if (t && !(newManifest.targets || []).some((x) => x.name === newName)) t.name = newName;
-  }
+  applySpriteOrder(newManifest, spriteOrders);
+  const finalNames = new Map((newManifest.targets || []).map((t) => [t, renamePlans.get(t.name) ?? t.name]));
+  const nameCounts = new Map();
+  for (const name of finalNames.values()) nameCounts.set(name, (nameCounts.get(name) || 0) + 1);
+  for (const [t, name] of finalNames) if (nameCounts.get(name) === 1) t.name = name;
 
   if (prune) pruneUnusedAssets(newManifest, report);
   for (const t of newManifest.targets || []) {
@@ -527,6 +531,15 @@ function applyVarDecls(manifest, target, decls, cloudAliases) {
       if (d.cloud && cloudAliases) cloudAliases.set(d.name, name);
     }
   }
+}
+
+function applySpriteOrder(manifest, spriteOrders) {
+  if (!spriteOrders.size || !Array.isArray(manifest.targets)) return;
+  const rank = (t) => (t.isStage ? -Infinity : (spriteOrders.get(t.name) ?? Infinity));
+  manifest.targets = manifest.targets
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => rank(a.t) - rank(b.t) || a.i - b.i)
+    .map(({ t }) => t);
 }
 
 function applySpriteProps(target, props) {
@@ -1360,7 +1373,7 @@ export function buildNameIdMap(dict) {
 
 async function safeListDir(vfs, dir) {
   try {
-    return await vfs.readdir(dir);
+    return (await vfs.readdir(dir)).slice().sort();
   } catch {
     return [];
   }
