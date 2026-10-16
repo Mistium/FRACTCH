@@ -2942,13 +2942,7 @@ class Parser {
       }
       const ch = this.next();
       if (ch === '\\') {
-        const nx = this.next();
-        if (nx === '"') result += '"';
-        else if (nx === '\\') result += '\\';
-        else if (nx === 'n') result += '\n';
-        else if (nx === 't') result += '\t';
-        else if (nx === 'r') result += '\r';
-        else result += nx;
+        result += this.readEscape();
       } else {
         result += ch;
       }
@@ -2961,6 +2955,18 @@ class Parser {
       );
     this.i++;
     return result;
+  }
+
+  readEscape() {
+    const nx = this.next();
+    const simple = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f' }[nx];
+    if (simple) return simple;
+    if (nx === 'u' && /^[0-9a-fA-F]{4}$/.test(this.s.slice(this.i, this.i + 4))) {
+      const code = parseInt(this.s.slice(this.i, this.i + 4), 16);
+      this.i += 4;
+      return String.fromCharCode(code);
+    }
+    return nx ?? '';
   }
 
   parseTemplateLiteral() {
@@ -2984,8 +2990,7 @@ class Parser {
       }
       if (ch === '\\') {
         if (this.eof()) this.fail('unterminated template string', null, 'FR118');
-        const escaped = this.next();
-        literal += { n: '\n', t: '\t', r: '\r' }[escaped] ?? escaped;
+        literal += this.readEscape();
         continue;
       }
       if (ch === '$' && this.peek() === '{') {
