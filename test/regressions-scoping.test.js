@@ -115,3 +115,14 @@ test('for i in X counts when X is a parameter, local, or vars["X"]', async (t) =
   });
   assert.equal(blocksOf(manifest).filter((b) => b.opcode === 'data_itemoflist').length, 0);
 });
+
+test('cloud variables are reachable by bare name from any target', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch': 'cloud plays = 0;\nwatch var "plays" at 5,5;\n',
+    'Spr/main.fractch': 'sprite "Spr";\nwhen flag { plays += 1; }\n',
+  });
+  const change = blocksOf(manifest, 'Spr').find((b) => b.opcode === 'data_changevariableby');
+  assert.equal(change.fields.VARIABLE[0], '☁ plays');
+  assert.deepEqual(manifest.targets.find((x) => x.name === 'Spr').variables, {});
+  assert.equal(manifest.monitors.length, 1);
+});

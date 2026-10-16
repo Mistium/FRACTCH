@@ -1513,9 +1513,11 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
 
   const cloudAliases = new Map();
   const stageVars = target.isStage ? outVariables : stage?.variables || {};
+  const ownVarNames = target.isStage ? new Map() : nameIdMap(outVariables);
   for (const entry of Object.values(stageVars)) {
     if (Array.isArray(entry) && entry[2] === true && String(entry[0]).startsWith('☁ ')) {
-      cloudAliases.set(String(entry[0]).slice(2), String(entry[0]));
+      const bare = String(entry[0]).slice(2);
+      if (!ownVarNames.has(bare)) cloudAliases.set(bare, String(entry[0]));
     }
   }
   const varMap = new Map([...(target.isStage ? [] : nameIdMap(stage?.variables)), ...nameIdMap(outVariables)]);
