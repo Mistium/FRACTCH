@@ -142,7 +142,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       if (!hasManifest)
         nameCollections.push({
           target: manifestTarget,
-          calls: parsed.calls,
+          scripts: fileScripts.map((s) => s.calls),
           cloudAliases: cloudAliasMaps.get(manifestName),
         });
       for (const imp of parsed.imports || []) {
@@ -167,8 +167,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   const stageTarget = (manifest.targets || []).find((t) => t.isStage);
 
   nameCollections.sort((a, b) => (b.target.isStage ? 1 : 0) - (a.target.isStage ? 1 : 0));
-  for (const { target, calls, cloudAliases } of nameCollections) {
-    collectNamesIntoManifest(target, calls, cloudAliases, stageTarget);
+  for (const { target, scripts, cloudAliases } of nameCollections) {
+    collectNamesIntoManifest(target, scripts, cloudAliases, stageTarget);
   }
 
   resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps, report);
@@ -966,12 +966,17 @@ function assetSourceRel(targetDir, file) {
   return path.join(targetDir, ...parts);
 }
 
-export function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
+export function collectNamesIntoManifest(target, scripts, cloudAliases, stage) {
   const vars = new Set();
   const lists = new Set();
   const broadcasts = new Set();
-  collectNames(calls, { vars, lists, broadcasts });
-  for (const local of collectLocalDeclNames(calls)) vars.delete(local);
+  for (const calls of scripts) {
+    const scriptVars = new Set();
+    const explicitVars = new Set();
+    collectNames(calls, { vars: scriptVars, lists, broadcasts, explicitVars });
+    for (const local of collectLocalDeclNames(calls)) scriptVars.delete(local);
+    for (const name of [...scriptVars, ...explicitVars]) vars.add(name);
+  }
   if (cloudAliases) for (const bare of cloudAliases.keys()) vars.delete(bare);
   const globals = stage && stage !== target ? stage : null;
 
@@ -981,7 +986,7 @@ export function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
     ...(stage ? Object.values(stage.lists || {}).map((e) => (Array.isArray(e) ? e[0] : null)) : []),
   ]);
   const iterationVars = new Set();
-  for (const spec of collectListIterations(calls)) {
+  for (const spec of collectListIterations(scripts.flat())) {
     if (!spec.forced && !listNames.has(spec.listName)) continue;
     lists.add(spec.listName);
     listNames.add(spec.listName);
@@ -1023,7 +1028,7 @@ function collectNamesFromNode(node, out) {
   if (!node) return;
   if (node.type === 'procDef') {
     const bodyVars = new Set();
-    collectNames(node.body, { vars: bodyVars, lists: out.lists, broadcasts: out.broadcasts });
+    collectNames(node.body, { ...out, vars: bodyVars });
     for (const p of node.params || []) bodyVars.delete(p.ident);
     for (const v of bodyVars) out.vars.add(v);
     return;
@@ -1046,7 +1051,10 @@ function collectNamesFromNode(node, out) {
     }
     if (arg.kind !== 'keyed') continue;
     if (arg.sep === 'field') {
-      if (arg.key === 'VARIABLE') collectFieldName(arg.value, out.vars);
+      if (arg.key === 'VARIABLE') {
+        collectFieldName(arg.value, out.vars);
+        if (arg.value?.type !== 'ident') collectFieldName(arg.value, out.explicitVars);
+      }
       if (arg.key === 'LIST') collectFieldName(arg.value, out.lists);
       if (arg.key === 'BROADCAST_OPTION') collectFieldName(arg.value, out.broadcasts);
       continue;
@@ -1058,15 +1066,17 @@ function collectNamesFromNode(node, out) {
 
 function collectNamesFromValue(value, out) {
   if (!value) return;
-  if (value.type === 'var') out.vars.add(value.name);
-  else if (value.type === 'list') out.lists.add(value.name);
+  if (value.type === 'var') {
+    out.vars.add(value.name);
+    out.explicitVars?.add(value.name);
+  } else if (value.type === 'list') out.lists.add(value.name);
   else if (value.type === 'broadcast') out.broadcasts.add(value.name);
   else if (value.type === 'ident') out.vars.add(value.name);
   else if (value.type === 'call') collectNamesFromNode(value.value, out);
 }
 
 function collectFieldName(value, set) {
-  if (!value) return;
+  if (!value || !set) return;
   if (value.type === 'array' && typeof value.value?.[0] === 'string') set.add(value.value[0]);
   else if (value.type === 'string') set.add(value.value);
   else if (value.type === 'ident') set.add(value.name);
@@ -1249,7 +1259,7 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
       registry
     );
 
-    const injectedCalls = [];
+    const injectedScripts = [];
     for (const ident of used) {
       if (identToProccode.get(name)?.has(ident)) continue;
       const { calls, moduleId, x, y } = registry.get(ident);
@@ -1262,12 +1272,12 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
         membership: { region: null, module: moduleId },
       });
       registerProcDefs(procArgMaps, identToProccode, procMetaMaps, name, calls);
-      injectedCalls.push(...calls);
+      injectedScripts.push(calls);
     }
-    if (injectedCalls.length) {
+    if (injectedScripts.length) {
       const manifestTarget = (manifest.targets || []).find((t) => t.name === name);
       const stageTarget = (manifest.targets || []).find((t) => t.isStage);
-      if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedCalls, null, stageTarget);
+      if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedScripts, null, stageTarget);
     }
   }
 }

@@ -2133,6 +2133,19 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
           }
           continue;
         }
+        if (a.kind === 'keyed' && a.sep === 'field' && a.key === 'VARIABLE' && a.value?.type === 'array') {
+          const [name, id] = a.value.value || [];
+          if (typeof name !== 'string' || id != null || varMap.has(name) || implicitVars.has(name)) continue;
+          if (assignOpcodes.has(opcode)) {
+            report('FR213', `assigning creates a new variable ${JSON.stringify(name)}`, {
+              ...at(span),
+              hint: 'declare it at the top of the file to make the intent explicit',
+              fix: declareFix(name),
+            });
+            implicitVars.add(name);
+          }
+          continue;
+        }
         if (a.kind === 'keyed' && a.sep === 'field' && a.key === 'LIST' && a.value?.type === 'list') {
           if (!listMap.has(a.value.name) && !scope.has(a.value.name)) implicitLists.add(a.value.name);
           continue;
