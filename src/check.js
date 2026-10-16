@@ -60,18 +60,33 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       sources,
     };
   }
-  const files = await collectFractchFiles(vfs, buildDir);
+  const strays = [];
+  const files = await collectFractchFiles(vfs, buildDir, [], strays);
+  for (const stray of strays) {
+    problems.push({
+      ...problem(
+        'FR308',
+        path.relative(buildDir, stray),
+        0,
+        0,
+        'pack ignores .fractch files at the project root',
+        'move it into a target folder such as Stage/'
+      ),
+      severity: 'warning',
+    });
+  }
   if (files.length === 0) {
     return {
       files: 0,
       problems: [
+        ...problems,
         {
           severity: 'error',
           code: 'FR309',
           file: '.',
           line: 0,
           col: 0,
-          message: 'project contains no .fractch files',
+          message: 'project contains no .fractch files in target folders',
           hint: 'add a target script such as Stage/main.fractch',
         },
       ],
@@ -392,7 +407,7 @@ function checkDuplicateAssets(assets, file, push) {
   }
 }
 
-async function collectFractchFiles(vfs, dir, out = []) {
+async function collectFractchFiles(vfs, dir, out = [], strays = [], depth = 0) {
   let entries;
   try {
     entries = await vfs.readdir(dir);
@@ -403,9 +418,20 @@ async function collectFractchFiles(vfs, dir, out = []) {
     if (e.startsWith('.')) continue;
     const p = path.join(dir, e);
     if (await vfs.isDirectory(p)) {
-      if (e === 'assets' || e === 'extensions') continue;
-      await collectFractchFiles(vfs, p, out);
-    } else if (e.endsWith('.fractch')) {
+      if (depth === 0 && (e === 'assets' || e === 'extensions')) continue;
+      await collectFractchFiles(vfs, p, out, strays, depth + 1);
+    } else if (e.endsWith('.fractch') && !e.endsWith('.ignore.fractch')) {
+      if (depth === 0) {
+        if (e !== 'index.fractch') strays.push(p);
+        continue;
+      }
+      let head = '';
+      try {
+        head = String(await vfs.readFile(p, 'utf8')).slice(0, 512);
+      } catch {
+        head = '';
+      }
+      if (/\bfractch:ignore\b/.test(head)) continue;
       out.push(p);
     }
   }
