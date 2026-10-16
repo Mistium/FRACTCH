@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { checkProject } from '../src/index.js';
+import { buildProjectFromBuildDir, checkProject } from '../src/index.js';
 import { join } from '../src/pathUtils.js';
 import {
   tempDir,
@@ -16,6 +16,27 @@ import {
   flag,
   cli,
 } from './helpers/regressions.js';
+
+test('pruning keeps assets reached by index, specials, or switch-and-wait', async (t) => {
+  const svg = (c) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect fill="${c}" width="2" height="2"/></svg>`;
+  const dir = writeFiles(tempDir(t), {
+    'Stage/main.fractch':
+      'costume "bg1" file "a.svg";\ncostume "bg2" file "b.svg";\ncostume "bg3" file "c.svg";\n' +
+      'when flag { looks.switchbackdroptoandwait(BACKDROP: "bg" ++ 3); }\n',
+    'Stage/a.svg': svg('red'),
+    'Stage/b.svg': svg('green'),
+    'Stage/c.svg': svg('blue'),
+    'Spr/main.fractch':
+      'sprite "Spr";\ncostume "a" file "a.svg";\ncostume "b" file "b.svg";\ncostume "c" file "c.svg";\n' +
+      'when flag { costume 3; }\n',
+    'Spr/a.svg': svg('red'),
+    'Spr/b.svg': svg('green'),
+    'Spr/c.svg': svg('blue'),
+  });
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir });
+  for (const target of manifest.targets) assert.equal(target.costumes.length, 3, target.name);
+});
 
 test('sprite order and chained renames survive', async (t) => {
   const names = ['Zeta', 'Alpha', 'Mid'];

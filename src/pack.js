@@ -564,6 +564,14 @@ const COSTUME_MENU_OPCODES = new Set(['looks_costume']);
 const BACKDROP_MENU_OPCODES = new Set(['looks_backdrops']);
 const SOUND_MENU_OPCODES = new Set(['sound_sounds_menu']);
 const BACKDROP_SPECIALS = new Set(['next backdrop', 'previous backdrop', 'random backdrop']);
+const COSTUME_SPECIALS = new Set(['next costume', 'previous costume', 'random costume']);
+const SWITCH_COSTUME_OPCODES = new Set(['looks_switchcostumeto']);
+const SWITCH_BACKDROP_OPCODES = new Set(['looks_switchbackdropto', 'looks_switchbackdroptoandwait']);
+const indexLike = (v) => /^\s*[-+]?(\d+\.?\d*|\.\d+)\s*$/.test(String(v));
+const reachesAll = (refs, assets, specials) => {
+  const names = new Set(assets.map((a) => String(a.name)));
+  return [...refs].some((r) => specials.has(r) || (indexLike(r) && !names.has(r)));
+};
 
 function pruneUnusedAssets(manifest, report) {
   const targets = manifest.targets || [];
@@ -610,8 +618,8 @@ function pruneUnusedAssets(manifest, report) {
           }
         }
 
-        if (b.opcode === 'looks_switchcostumeto' || b.opcode === 'looks_switchbackdropto') {
-          const isBackdrop = b.opcode === 'looks_switchbackdropto';
+        if (SWITCH_COSTUME_OPCODES.has(b.opcode) || SWITCH_BACKDROP_OPCODES.has(b.opcode)) {
+          const isBackdrop = SWITCH_BACKDROP_OPCODES.has(b.opcode);
           if (
             activeId &&
             !ids.some(
@@ -651,9 +659,12 @@ function pruneUnusedAssets(manifest, report) {
   for (const t of targets) {
     const st = perTarget.get(t);
     if (!st) continue;
-    const keepAllCostumes = st.all || (t.isStage && stageAll);
     const costumeRefs = t.isStage ? new Set([...st.refs, ...stageRefs]) : st.refs;
     const costumes = t.costumes || [];
+    const keepAllCostumes =
+      st.all ||
+      (t.isStage && stageAll) ||
+      reachesAll(costumeRefs, costumes, t.isStage ? BACKDROP_SPECIALS : COSTUME_SPECIALS);
     const currentIdx = Math.min(Math.max(t.currentCostume ?? 0, 0), Math.max(costumes.length - 1, 0));
     if (!keepAllCostumes && costumes.length) {
       const kept = costumes.filter((c, i) => i === currentIdx || costumeRefs.has(String(c.name)));
@@ -664,7 +675,7 @@ function pruneUnusedAssets(manifest, report) {
       }
     }
     const sounds = t.sounds || [];
-    if (!st.allSounds && sounds.length) {
+    if (!st.allSounds && !reachesAll(st.soundRefs, sounds, new Set()) && sounds.length) {
       const kept = sounds.filter((s) => st.soundRefs.has(String(s.name)));
       if (kept.length !== sounds.length) {
         report('FR304', `${t.name}: removed ${sounds.length - kept.length} unused sound(s)`);
