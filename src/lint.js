@@ -11,7 +11,7 @@ function stripHeader(text) {
   const s = String(text || '');
   if (s.startsWith('/**')) {
     const end = s.indexOf('*/');
-    if (end >= 0) return ' '.repeat(end + 2) + s.slice(end + 2);
+    if (end >= 0) return s.slice(0, end + 2).replace(/[^\n]/g, ' ') + s.slice(end + 2);
   }
   return s;
 }
@@ -25,7 +25,7 @@ export function checkFractch(text) {
   let col = 0;
   let i = 0;
 
-  const at = () => ({ line, col });
+  const at = () => ({ line, col: col + 1 });
   const adv = () => {
     const ch = src[i++];
     if (ch === '\n') {
@@ -35,6 +35,23 @@ export function checkFractch(text) {
       col++;
     }
     return ch;
+  };
+
+  const scanTemplate = (start) => {
+    while (i < src.length) {
+      const c = adv();
+      if (c === '\\') {
+        if (i < src.length) adv();
+        continue;
+      }
+      if (c === '`') return;
+      if (c === '$' && src[i] === '{') {
+        stack.push({ ch: '${', ...at(), template: start });
+        adv();
+        return;
+      }
+    }
+    errors.push(new FractchSyntaxError('unterminated template string', start.line, start.col));
   };
 
   while (i < src.length) {
@@ -105,25 +122,19 @@ export function checkFractch(text) {
     if (ch === '`') {
       const start = at();
       adv();
-      let closed = false;
-      while (i < src.length) {
-        const c = adv();
-        if (c === '\\') {
-          if (i < src.length) adv();
-          continue;
-        }
-        if (c === '`') {
-          closed = true;
-          break;
-        }
-      }
-      if (!closed) errors.push(new FractchSyntaxError('unterminated template string', start.line, start.col));
+      scanTemplate(start);
       continue;
     }
 
     if (ch === '(' || ch === '[' || ch === '{') {
       stack.push({ ch, ...at() });
       adv();
+      continue;
+    }
+
+    if (ch === '}' && stack[stack.length - 1]?.ch === '${') {
+      adv();
+      scanTemplate(stack.pop().template);
       continue;
     }
 
@@ -146,7 +157,11 @@ export function checkFractch(text) {
     adv();
   }
 
-  for (const open of stack) errors.push(new FractchSyntaxError(`unclosed '${open.ch}'`, open.line, open.col));
+  for (const open of stack) {
+    if (open.ch === '${')
+      errors.push(new FractchSyntaxError('unterminated template string', open.template.line, open.template.col));
+    else errors.push(new FractchSyntaxError(`unclosed '${open.ch}'`, open.line, open.col));
+  }
 
   return errors;
 }
