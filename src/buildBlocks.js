@@ -1,4 +1,5 @@
 import { STDLIB_METHODS } from './stdlib/index.js';
+import { BUILTIN_SIGNATURES } from './signatures.js';
 
 export function buildBlocksFromCalls(calls, opts = {}) {
   const { hatOpcode, idGen, nested = false, ...ctx } = opts;
@@ -331,6 +332,12 @@ function buildNode(call, ids, blocks, ctx, nodeId) {
       }
     }
   }
+  if (sig?.builtin && call.args.every((a) => a.kind === 'positional')) {
+    for (const arg of sig.args) {
+      if (arg.kind === 'field' && arg.default !== undefined && !node.fields[arg.name])
+        node.fields[arg.name] = [arg.default];
+    }
+  }
   return node;
 }
 
@@ -373,7 +380,7 @@ function nullInput(ctx) {
 }
 
 function signatureFor(ctx, opcode) {
-  return ctx?.signatures?.get(opcode) || null;
+  return ctx?.signatures?.get(opcode) || BUILTIN_SIGNATURES.get(opcode) || null;
 }
 
 function resolveSignatureKey(sig, key) {
@@ -459,6 +466,7 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       const positional =
         callNode.callee.type === 'opcode' &&
         !signatureFor(ctx, callNode.callee.name)?.extension &&
+        !signatureFor(ctx, callNode.callee.name)?.builtin &&
         callNode.args.length === 1 &&
         callNode.args[0].kind === 'positional' &&
         callNode.args[0].value?.type === 'string' &&

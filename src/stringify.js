@@ -1,6 +1,7 @@
 import { LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS } from './parse.js';
 
 import { STDLIB_PROCCODE_TO_METHOD, STDLIB_DEF_TO_PACKAGE } from './stdlib/index.js';
+import { BUILTIN_SIGNATURES } from './signatures.js';
 
 export function hasMarkChar(text) {
   const s = String(text);
@@ -739,7 +740,7 @@ export function createStringifier(context = {}) {
   }
 
   function trySignatureCall(block, subgraph) {
-    const sig = CTX.signatures?.get(block.opcode);
+    const sig = CTX.signatures?.get(block.opcode) || BUILTIN_SIGNATURES.get(block.opcode);
     if (!sig || sig.core || sig.menu || block.mutation) return null;
     const opName = formatOpcodeName(block.opcode);
     if (!opName) return null;
@@ -749,13 +750,16 @@ export function createStringifier(context = {}) {
     const fieldKeys = Object.keys(fields);
     if (inputKeys.length + fieldKeys.length !== sig.args.length) return null;
     const parts = [];
+    const defaults = [];
     for (const arg of sig.args) {
       if (arg.kind === 'field') {
         const v = fields[arg.name];
         if (!Array.isArray(v) || typeof v[0] !== 'string' || (v.length > 1 && v[1] != null)) return null;
         parts.push(JSON.stringify(v[0]));
+        defaults.push(arg.default !== undefined && v[0] === arg.default);
         continue;
       }
+      defaults.push(false);
       const tuple = inputs[arg.name];
       if (!Array.isArray(tuple) || tuple.length < 2) return null;
       if (arg.menuOpcode) {
@@ -779,6 +783,10 @@ export function createStringifier(context = {}) {
         if (!child) return null;
       }
       parts.push(inputValueText(tuple, subgraph, arg.name));
+    }
+    while (defaults.length && defaults[defaults.length - 1]) {
+      defaults.pop();
+      parts.pop();
     }
     const substackKeys = Object.keys(inputs)
       .filter((k) => k.startsWith('SUBSTACK'))
