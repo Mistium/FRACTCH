@@ -241,6 +241,25 @@ In the MistWarp editor the loaded extensions' `getInfo()` is known, and extensio
 
 The editor writes the positional form when every argument is present in order. Without signatures (the CLI, git trees, extensions that aren't loaded) the rules above this section apply and the keyed form is used.
 
+### Project assets
+
+MistWarp's project asset blocks have a built-in signature, so they always use the positional form. The asset name comes first, and a trailing dropdown left at its default is omitted:
+
+```txt
+say assets.get("data/level1.txt");         // text of the asset
+say assets.get("logo.png", "size");        // text, data uri, base64, url, size, format or folder
+assets.set("save.json", "{}");             // as text; add "base64" or "url" for the other formats
+assets.load("logo.png");                   // as a costume; "sound" loads it as a sound
+if assets.check("logo.png", "is loaded") { assets.unload("logo.png"); }
+say assets.byte("data.bin", 1);
+say assets.infolder("data");
+say assets.allnames();
+assets.delete("old.txt");
+assets.unloadall();
+```
+
+The keyed form (`assets.get(ASSET: assets.menu("a.txt"), field PROPERTY: "text")`) still builds.
+
 ### Dropdown menus inside inputs
 
 A menu shadow block is a call with one positional argument; its field takes the name of the enclosing input:

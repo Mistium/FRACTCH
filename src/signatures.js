@@ -203,3 +203,31 @@ export function signatureHash(extensions) {
   }
   return h.toString(16).padStart(8, '0');
 }
+
+const assetArg = { name: 'ASSET', kind: 'input', type: 'string', menuOpcode: 'assets_menu', menuField: 'ASSET' };
+const fieldArg = (name, values) => ({ name, kind: 'field', values, default: values[0] });
+const inputArg = (name, type = 'string') => ({ name, kind: 'input', type, menuOpcode: null, menuField: null });
+
+const BUILTIN_SIGNATURE_LIST = [
+  ['assets_load', 'command', [assetArg, fieldArg('KIND', ['costume', 'sound'])]],
+  ['assets_unload', 'command', [assetArg]],
+  ['assets_unloadall', 'command', []],
+  [
+    'assets_get',
+    'reporter',
+    [assetArg, fieldArg('PROPERTY', ['text', 'data uri', 'base64', 'url', 'size', 'format', 'folder'])],
+  ],
+  ['assets_byte', 'reporter', [assetArg, inputArg('INDEX', 'number')]],
+  ['assets_check', 'Boolean', [assetArg, fieldArg('STATE', ['exists', 'is loaded'])]],
+  ['assets_set', 'command', [assetArg, inputArg('VALUE'), fieldArg('FORMAT', ['text', 'base64', 'url'])]],
+  ['assets_delete', 'command', [assetArg]],
+  ['assets_allnames', 'reporter', []],
+  ['assets_infolder', 'reporter', [inputArg('FOLDER')]],
+];
+
+export const BUILTIN_SIGNATURES = new Map(
+  BUILTIN_SIGNATURE_LIST.map(([opcode, blockType, args]) => [
+    opcode,
+    { opcode, label: opcode.replace('_', '.'), blockType, args, branches: 0, builtin: true },
+  ])
+);

@@ -28,6 +28,7 @@ import { STDLIB_MODULES, STDLIB_METHODS, resolveStdlibModules } from './stdlib/i
 import { diagnostic, makeLineIndex, rangeExtra } from './diagnostics.js';
 import { KNOWN_OPCODES, MENU_OPCODES, VALIDATED_NAMESPACES } from './knownOpcodes.js';
 import {
+  BUILTIN_SIGNATURES,
   coreSignature,
   isStatementType,
   isValueType,
@@ -1389,7 +1390,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
   const signatures = new Map(sigs.byOpcode);
   for (const [opcode, entry] of table.byOpcode) {
     if (signatures.has(opcode)) continue;
-    const sig = coreSignature(entry);
+    const sig = BUILTIN_SIGNATURES.get(opcode) || coreSignature(entry);
     if (sig) signatures.set(opcode, sig);
   }
   const previous =
