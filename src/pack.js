@@ -1063,6 +1063,10 @@ function collectNamesFromValue(value, out) {
   else if (value.type === 'broadcast') out.broadcasts.add(value.name);
   else if (value.type === 'ident') out.vars.add(value.name);
   else if (value.type === 'call') collectNamesFromNode(value.value, out);
+  else if (value.type === 'obscured') {
+    collectNamesFromValue(value.active, out);
+    collectNamesFromValue(value.shadow, out);
+  }
 }
 
 function collectFieldName(value, set) {
@@ -1077,6 +1081,7 @@ function collectBroadcastInputName(value, set) {
   if (!value) return;
   if (value.type === 'string') set.add(value.value);
   else if (value.type === 'broadcast') set.add(value.name);
+  else if (value.type === 'obscured') collectBroadcastInputName(value.shadow, set);
 }
 
 function ensureDictEntry(dict, name, value) {

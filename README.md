@@ -140,7 +140,7 @@ node scripts/check-roundtrip.mjs [origin.sb3] [buildDir]
 
 `check-roundtrip` does a deep structural diff of every rebuilt script against the original and must stay at 100%. Repacked projects load and run in Scratch and TurboWarp.
 
-One cosmetic gap remains by design: the default text hidden behind an already-plugged-in reporter is not preserved. It has no effect on execution, and the editor regenerates the menu shadows itself.
+Values hidden behind a plugged-in reporter are kept too: the text writes them as `(reporter ?? value)` when they differ from the palette default (see [Syntax](docs/syntax.md#values-hidden-under-a-reporter)).
 
 ## Documentation
 

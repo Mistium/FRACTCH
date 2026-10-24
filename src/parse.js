@@ -287,6 +287,8 @@ const REPORTER_FUNC_SUGAR = {
   colorTouchingColor: ['sensing_coloristouchingcolor', ['COLOR', 'COLOR2']],
 };
 
+const BRANCH_LABEL = /^(SUBSTACK[A-Za-z0-9_]*)[ \t]*(?=\{)/;
+
 const BRANCH_SUBSTACK_OPCODES = new Set([
   'control_forever',
   'control_switch',
@@ -2392,20 +2394,38 @@ class Parser {
     return stmts;
   }
 
+  parseLooseReporterCall() {
+    const save = this.i;
+    this.i++;
+    const inner = this.parseExpr();
+    this.skipWS();
+    if (this.tryChar(')') && inner.type === 'call' && inner.value.callee.type === 'procedureCall') {
+      this.skipWS();
+      if (this.eof() || this.peek() === ';' || this.peek() === '}' || this.lineAt(save) !== this.lineAt(this.i)) {
+        inner.value.asExpression = true;
+        return inner.value;
+      }
+    }
+    this.restore(save);
+    return null;
+  }
+
   parseExprStatementHead() {
+    this.skipWS();
+    const loose = this.peek() === '(' ? this.parseLooseReporterCall() : null;
+    if (loose) return loose;
     const e = this.parseExpr();
     if (e.type === 'call') {
       const call = e.value;
 
       if (call.callee.type === 'opcode' || call.callee.type === 'identOrMethod') {
-        const substackKeys = ['SUBSTACK', 'SUBSTACK2'];
-        let si = 0;
-        while (si < substackKeys.length) {
+        for (let si = 0; ; si++) {
           this.skipWS();
-          if (this.peek() !== '{') break;
+          const label = BRANCH_LABEL.exec(this.s.slice(this.i, this.i + 200));
+          if (label) this.i += label[0].length;
+          else if (this.peek() !== '{') break;
           const body = this.parseBraceBody();
-          call.args.push(branchArg('substack', body, substackKeys[si]));
-          si++;
+          call.args.push(branchArg('substack', body, label ? label[1] : si === 0 ? 'SUBSTACK' : `SUBSTACK${si + 1}`));
         }
       }
       return call;
@@ -2887,7 +2907,7 @@ class Parser {
 
   parseParenExpr() {
     this.expectChar('(');
-    const e = this.parseExpr();
+    const e = this.parseInputValue();
     this.skipWS();
     this.expectChar(')');
     return e;

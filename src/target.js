@@ -2,6 +2,7 @@ import { parseFractch, closestMatch, STATEMENT_KEYWORDS } from './parse.js';
 import { buildBlocksFromCalls, collapseOperators, IdGen, synthesizeProccode } from './buildBlocks.js';
 import { emitScriptBody, varNameToken, varValueText, watchDeclLine, indentBlock } from './emit.js';
 import { commentDeclLine, EXTENDABLE_OPERATORS } from './stringify.js';
+import { hiddenShadowToWrite, sameHiddenShadow } from './shadowDefaults.js';
 import { buildProcByCode, routeMonitors, topLevelPrimitiveBlock } from './convert.js';
 import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
 import {
@@ -1068,6 +1069,24 @@ function removeCandidateSubgraph(cand, id) {
   for (const sid of Object.keys(collectBlocksSubgraph(cand.blocks, id))) delete cand.blocks[sid];
 }
 
+function holdsHiddenValue(entry) {
+  if (entry == null) return false;
+  if (Array.isArray(entry)) return !(entry[0] >= 4 && entry[0] <= 10 && String(entry[1] ?? '') === '');
+  const block = entry.blocks && typeof entry.id === 'string' ? entry.blocks[entry.id] : entry;
+  if (!block || typeof block !== 'object' || !PRIMITIVE_OPCODES[block.opcode]) return true;
+  if (Object.keys(block.inputs || {}).length) return true;
+  const values = Object.values(block.fields || {});
+  return !(values.length === 1 && String((Array.isArray(values[0]) ? values[0][0] : values[0]) ?? '') === '');
+}
+
+function dropCandidateShadow(cand, id) {
+  if (typeof id !== 'string' || !cand.blocks[id] || cand.carried.has(id)) return;
+  for (const sid of Object.keys(collectBlocksSubgraph(cand.blocks, id))) {
+    delete cand.blocks[sid];
+    cand.map.delete(sid);
+  }
+}
+
 function dropNullInputs(cand) {
   for (const block of Object.values(cand.blocks)) {
     for (const [name, tuple] of Object.entries(block.inputs || {})) {
@@ -1103,6 +1122,9 @@ function carryFromOld(cand, old, map) {
       const newActiveBlock = typeof nt[1] === 'string' && !cand.blocks[nt[1]]?.shadow;
       const newActiveVar = Array.isArray(nt[1]) && (nt[1][0] === 12 || nt[1][0] === 13);
       if (newActiveBlock || newActiveVar) {
+        const written = hiddenShadowToWrite(nb, name, nt, cand.blocks);
+        if (!sameHiddenShadow(written, hiddenShadowToWrite(ob, name, ot, old.blocks))) continue;
+        if (nt[0] === 3) dropCandidateShadow(cand, nt[2]);
         let shadow;
         if (ot[0] === 3) shadow = ot[2];
         else if (ot[0] === 1 && (typeof ot[1] !== 'string' || old.blocks[ot[1]]?.shadow)) shadow = ot[1];
@@ -1812,7 +1834,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
         const sameCount = oldBlock && String(oldBlock.mutation?.itemcount) === String(nb.mutation.itemcount);
         if (oldObs && sameCount) outObscured[fid] = oldObs;
       }
-      if (oldId && view.obscured[oldId]?.some((x) => x != null)) {
+      if (oldId && view.obscured[oldId]?.some(holdsHiddenValue)) {
         const sameCount = oldBlock && String(oldBlock.mutation?.itemcount) === String(nb.mutation?.itemcount);
         if (!sameCount || nb.opcode !== oldBlock.opcode) {
           report('FR221', 'This edit would lose hidden operator values', {
@@ -1826,7 +1848,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
     }
     for (const oldOp of Object.keys(view.obscured)) {
       if (!pairedTop || !liveByTop.get(pairedTop)?.subgraph[oldOp]) continue;
-      if (![...cand.map.values()].includes(oldOp) && view.obscured[oldOp].some((x) => x != null)) {
+      if (![...cand.map.values()].includes(oldOp) && view.obscured[oldOp].some(holdsHiddenValue)) {
         report('FR221', 'This edit would lose hidden operator values', {
           ...at(cand.spansOut.get(cand.top)),
           hint: 'an operator that holds hidden values is no longer matched by this text; edit it in Blocks mode instead',
