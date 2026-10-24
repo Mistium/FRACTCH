@@ -359,7 +359,7 @@ function formatOpcodeName(opcode) {
 }
 
 function escapeHeader(s) {
-  return String(s).replace(/\*/g, '\\*');
+  return String(s).replace(/[\\*\n\r]|(?<=\*)\//g, (c) => ({ '\n': '\\n', '\r': '\\r' })[c] ?? `\\${c}`);
 }
 
 function deriveImports(blocksArr, context) {

@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { checkFractch } from '../src/lint.js';
 import { parseFractch } from '../src/parse.js';
+import { verifyRoundtrip } from '../src/roundtripDiff.js';
 import { compareProjects } from './helpers/fidelity.js';
 import { blocksOf, flag, pack, projectOf, roundTrip, spriteTarget, stageTarget, stmt } from './helpers/regressions.js';
 
@@ -198,4 +200,26 @@ test('variable fields keep their id when the name alone would bind elsewhere', a
     ['dup', 'g4'],
     ['dup', 'g4'],
   ]);
+});
+
+test('a sprite name with */ cannot end the header comment', async (t) => {
+  const names = ['x */ when flag { say 1; } /*', 'a\\b*c', 'two\nlines'];
+  const project = projectOf(
+    stageTarget(),
+    ...names.map((name, i) =>
+      spriteTarget(
+        name,
+        { h: flag('s'), s: stmt('looks_say', 'h', { MESSAGE: [1, [10, 'hi']] }) },
+        { layerOrder: i + 1 }
+      )
+    )
+  );
+  const { manifest, out } = await roundTrip(t, project);
+  for (const name of names) {
+    const sprite = manifest.targets.find((x) => x.name === name);
+    assert.ok(sprite, name);
+    assert.equal(Object.keys(sprite.blocks).length, 2, name);
+  }
+  const result = await verifyRoundtrip({ project, buildDir: out, fs });
+  assert.deepEqual(result.failures, []);
 });

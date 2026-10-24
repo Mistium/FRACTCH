@@ -4,7 +4,7 @@ import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, IdGen } from './buildBlocks.js';
 import { buildProcByCode } from './convert.js';
 import { groupTopLevelScripts } from './graph.js';
-import { collectLocalDeclNames } from './pack.js';
+import { collectLocalDeclNames, unescapeHeader } from './pack.js';
 
 function localVarsInOriginal(calls, blocks, rootId) {
   const names = collectLocalDeclNames(calls);
@@ -190,7 +190,7 @@ function parseHeader(text) {
   const map = new Map();
   for (const line of head.split(/\r?\n/)) {
     const m = /\*\s*([^:]+):\s*(.*)$/.exec(line.trim());
-    if (m) map.set(m[1].trim(), m[2].trim());
+    if (m) map.set(m[1].trim(), unescapeHeader(m[2].trim()));
   }
   return { target: map.get('target'), topBlockId: map.get('topBlockId'), hatOpcode: map.get('hatOpcode') };
 }
