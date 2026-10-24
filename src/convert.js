@@ -2,7 +2,7 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { emitMultiScriptFile, emitTargetPrelude, targetDirNames } from './emit.js';
 import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
-import { decodeFileStemFromComment } from './fileMarkers.js';
+import { cleanRelStem, decodeFileStemFromComment } from './fileMarkers.js';
 import { STDLIB_MODULES } from './stdlib/index.js';
 import { commentText, isMembershipComment, readMembership } from './membership.js';
 import { diagnostic } from './diagnostics.js';
@@ -150,7 +150,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
         stdlibModules.add(entry.module);
         continue;
       }
-      const markerStem = entry.region || null;
+      const markerStem = cleanRelStem(entry.region);
       const groupKey = markerStem || 'main';
       if (!groups.has(groupKey)) groups.set(groupKey, []);
       if (!filenameForGroup.has(groupKey)) {
