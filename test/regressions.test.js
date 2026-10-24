@@ -96,3 +96,21 @@ test('a loose 0 = 0 reporter stays an operator block', async (t) => {
   const { manifest } = await roundTrip(t, project);
   assert.deepEqual(compareProjects(project, manifest), []);
 });
+
+test('broadcasting a variable or list stays a reporter', async (t) => {
+  for (const [active, hidden, text] of [
+    [[12, 'score', 'vS'], [11, 'go', 'bGo'], /broadcast \(score \?\? broadcast\("go"\)\);/],
+    [[12, 'score', 'vS'], [10, ''], /broadcast vars\["score"\];/],
+    [[13, 'inv', 'lI'], [11, 'go', 'bGo'], /broadcast \(lists\["inv"\] \?\? broadcast\("go"\)\);/],
+  ]) {
+    const project = projectOf(
+      stageTarget(
+        { h: flag('b'), b: stmt('event_broadcast', 'h', { BROADCAST_INPUT: [3, active, hidden] }) },
+        { variables: { vS: ['score', 'go'] }, lists: { lI: ['inv', []] }, broadcasts: { bGo: 'go' } }
+      )
+    );
+    const { texts, manifest } = await roundTrip(t, project);
+    assert.match(texts['Stage/main.fractch'], text);
+    assert.deepEqual(compareProjects(project, manifest), []);
+  }
+});

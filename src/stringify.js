@@ -693,6 +693,10 @@ export function createStringifier(context = {}) {
       let name;
       if (typeof childId === 'string' && subgraph[childId]) {
         name = inputValueText(tuple, subgraph, 'BROADCAST_INPUT');
+      } else if (Array.isArray(childId) && (childId[0] === 12 || childId[0] === 13)) {
+        name = inputValueText(tuple, subgraph, 'BROADCAST_INPUT');
+        if (BARE_NAME.test(name))
+          name = `${childId[0] === 12 ? 'vars' : 'lists'}[${JSON.stringify(String(childId[1] ?? ''))}]`;
       } else {
         const raw = Array.isArray(childId) ? String(childId[1] ?? '') : '';
         name = BARE_NAME.test(raw) && !RESERVED_WORDS.has(raw) ? raw : JSON.stringify(raw);
