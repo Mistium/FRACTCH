@@ -311,3 +311,10 @@ test('pathUtils keeps UNC prefixes but not doubled root slashes', () => {
   assert.equal(join('/', 'tmp'), '/tmp');
   assert.equal(join('/a', 'b'), '/a/b');
 });
+
+test('a header written before escaping still names a sprite with a backslash', async () => {
+  const { unescapeHeader } = await import('../src/pack.js');
+  assert.equal(unescapeHeader('\\o/'), '\\o/');
+  assert.equal(unescapeHeader('a\\*\\/b'), 'a*/b');
+  assert.equal(unescapeHeader('x\\ny\\\\z'), 'x\ny\\z');
+});

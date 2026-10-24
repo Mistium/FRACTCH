@@ -1421,7 +1421,7 @@ function sanitize(name) {
 }
 
 export function unescapeHeader(s) {
-  return s.replace(/\\(.)/g, (_, c) => ({ n: '\n', r: '\r' })[c] ?? c);
+  return s.replace(/\\([\\*/nr])/g, (_, c) => ({ n: '\n', r: '\r' })[c] ?? c);
 }
 
 function parseHeaderInfo(text) {
