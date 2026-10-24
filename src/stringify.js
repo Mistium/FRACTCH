@@ -20,6 +20,20 @@ export function localBareName(name) {
   return m ? m[1] : null;
 }
 
+export function scriptLocalScope(subgraph) {
+  const ownedLocals = new Map();
+  const localBareNames = new Set();
+  for (const b of Object.values(subgraph || {})) {
+    if (!b || Array.isArray(b) || b.opcode !== 'data_setvariableto') continue;
+    const name = String(b.fields?.VARIABLE?.[0] ?? '');
+    const bare = localBareName(name);
+    if (!bare || ownedLocals.has(name) || localBareNames.has(bare) || !bareNameOk(bare)) continue;
+    ownedLocals.set(name, bare);
+    localBareNames.add(bare);
+  }
+  return { ownedLocals, localBareNames };
+}
+
 const PREC = {
   '||': 1,
   '&&': 2,
@@ -501,6 +515,17 @@ function isEmptyBooleanInput(tuple) {
 
 export function createStringifier(context = {}) {
   let CTX = context || {};
+  const ownedLocal = (name) => (CTX.ownedLocals ? (CTX.ownedLocals.get(String(name)) ?? null) : localBareName(name));
+  const shadowedByLocal = (name) => !!CTX.localBareNames?.has(String(name));
+  let forDepth = 0;
+  const inForBody = (render) => {
+    forDepth++;
+    try {
+      return render();
+    } finally {
+      forDepth--;
+    }
+  };
   const mark = (id, text) =>
     CTX.marks && text && typeof id === 'string' && !hasMarkChar(id) ? `\u0001${id}\u0002${text}\u0003` : text;
 
@@ -565,7 +590,7 @@ export function createStringifier(context = {}) {
 
     if (opcode === 'data_variable') {
       const name = block.fields?.VARIABLE?.[0] ?? '';
-      const local = localBareName(name);
+      const local = ownedLocal(name);
       if (local && inline) return local;
 
       if (!inline) return `${JSON.stringify(String(name))};`;
@@ -612,7 +637,7 @@ export function createStringifier(context = {}) {
 
     if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
       const varName = String(block.fields?.VARIABLE?.[0] ?? '');
-      const local = localBareName(varName);
+      const local = ownedLocal(varName);
       const appendValue =
         opcode === 'data_setvariableto' && !(local && !CTX.declaredLocals?.has(local))
           ? tryConcatAssignment(block, subgraph)
@@ -626,7 +651,7 @@ export function createStringifier(context = {}) {
         }
         return `${local} ${op} ${value};`;
       }
-      if (bareNameOk(varName)) return `${varName} ${op} ${value};`;
+      if (bareNameOk(varName) && !shadowedByLocal(varName)) return `${varName} ${op} ${value};`;
       return `vars[${JSON.stringify(varName)}] ${op} ${value};`;
     }
 
@@ -1078,10 +1103,10 @@ export function createStringifier(context = {}) {
     const v = block.fields.VARIABLE;
     const name = String(v?.[0] ?? '');
     const id = v.length > 1 ? v[1] : undefined;
-    if (!bareNameOk(name)) return null;
+    if (!bareNameOk(name) || shadowedByLocal(name)) return null;
     if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) return null;
     const count = getInputExpr(block.inputs.VALUE, subgraph);
-    return `for ${name} in ${count} ${branch(block, 'SUBSTACK', subgraph)}`;
+    return `for ${name} in ${count} ${inForBody(() => branch(block, 'SUBSTACK', subgraph))}`;
   }
 
   function tryListIteration(block, subgraph) {
@@ -1116,10 +1141,10 @@ export function createStringifier(context = {}) {
     if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
     if (indexInput[2] != null && indexInput[2] !== indexId) return null;
     if ([block.inputs.VALUE, first.inputs.VALUE, item.inputs.INDEX].some((t) => hiddenShadow(t, subgraph))) return null;
-    const hidden = indexName === `!local_for0_${valueName}`;
+    const hidden = indexName === `!local_for${forDepth}_${valueName}`;
     if (indexName.startsWith('!local_') && first.next && referencesVariable(subgraph, first.next, indexName))
       return null;
-    const rest = first.next ? renderBody(subgraph, first.next) : '';
+    const rest = first.next ? inForBody(() => renderBody(subgraph, first.next)) : '';
     const indexText = bareNameOk(indexName) ? indexName : JSON.stringify(indexName);
     const head = hidden
       ? `for ${valueName} in ${listArgText(listName)}`
@@ -1196,7 +1221,7 @@ export function createStringifier(context = {}) {
     if (swallowed.some((t) => hiddenShadow(t, subgraph)) || hiddenShadow(length.inputs.STRING, subgraph)) return null;
     const receiver = getInputExpr(length.inputs.STRING, subgraph);
     if (!bareNameOk(receiver) && !/^vars\[".*"\]$/.test(receiver)) return null;
-    const rest = first.next ? renderBody(subgraph, first.next) : '';
+    const rest = first.next ? inForBody(() => renderBody(subgraph, first.next)) : '';
     const indexText = indexName === valueName ? '' : ` using ${indexName}`;
     return `for ${valueName} of ${receiver}${indexText} {\n${indent(rest)}\n}`;
   }
@@ -1438,7 +1463,7 @@ export function createStringifier(context = {}) {
           }
           case 12: {
             const name = String(value ?? '');
-            const local = localBareName(name);
+            const local = ownedLocal(name);
             if (local) return local;
             const id = payload.length > 2 && payload[2] != null ? String(payload[2]) : undefined;
             if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) {
@@ -1447,7 +1472,7 @@ export function createStringifier(context = {}) {
             const shadowedByParam =
               CTX.scopeParamNames &&
               (CTX.scopeParamNames.has(name) || [...CTX.scopeParamNames.values()].includes(name));
-            if (!shadowedByParam && bareNameOk(name)) return name;
+            if (!shadowedByParam && !shadowedByLocal(name) && bareNameOk(name)) return name;
             return `vars[${JSON.stringify(name)}]`;
           }
           case 13: {

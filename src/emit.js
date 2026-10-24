@@ -4,6 +4,7 @@ import {
   withAttachedComments,
   isSimpleAttachedComment,
   lineCommentText,
+  scriptLocalScope,
 } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
 
@@ -209,7 +210,7 @@ function watchParamsText(params) {
 export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
   const { topBlockId, hatOpcode } = script;
 
-  const scriptContext = { ...context, declaredLocals: new Set() };
+  const scriptContext = { ...context, declaredLocals: new Set(), ...scriptLocalScope(subgraph) };
   const S = createStringifier(scriptContext);
   context = scriptContext;
 

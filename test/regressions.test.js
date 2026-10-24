@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { checkFractch } from '../src/lint.js';
 import { parseFractch } from '../src/parse.js';
 import { compareProjects } from './helpers/fidelity.js';
-import { blocksOf, flag, pack, projectOf, roundTrip, stageTarget, stmt } from './helpers/regressions.js';
+import { blocksOf, flag, pack, projectOf, roundTrip, spriteTarget, stageTarget, stmt } from './helpers/regressions.js';
 
 test('lint reports the same lines and 1-based columns as the parser, past a header', () => {
   const src = '/**\n * target: Stage\n * targetId: \n */\nwhen flag {\n  foo];\n}\n';
@@ -113,4 +113,63 @@ test('broadcasting a variable or list stays a reporter', async (t) => {
     assert.match(texts['Stage/main.fractch'], text);
     assert.deepEqual(compareProjects(project, manifest), []);
   }
+});
+
+test('a local is scoped to its script on both pack and convert', async (t) => {
+  const manifest = await pack(t, {
+    'Spr/main.fractch': 'sprite "Spr";\nwhen flag { local x = 1; say x; }\nwhen clicked { x = 2; say x; }\n',
+  });
+  const sets = blocksOf(manifest, 'Spr').filter((b) => b.opcode === 'data_setvariableto');
+  assert.deepEqual(sets.map((b) => b.fields.VARIABLE[0]).sort(), ['!local_f_x', 'x']);
+
+  const project = projectOf(
+    stageTarget(),
+    spriteTarget(
+      'Spr',
+      {
+        h: flag('a'),
+        a: stmt('data_setvariableto', 'h', { VALUE: [1, [10, 'q']] }, { VARIABLE: ['!local_flagclicked_x', 'L1'] }),
+        h2: { ...flag('c'), y: 300 },
+        c: stmt('looks_say', 'h2', { MESSAGE: [3, [12, '!local_flagclicked_x', 'L1'], [10, '']] }),
+      },
+      { variables: { L1: ['!local_flagclicked_x', 0], G: ['temp', 5] } }
+    )
+  );
+  const { texts, manifest: back } = await roundTrip(t, project);
+  assert.match(texts['Spr/main.fractch'], /say vars\["!local_flagclicked_x"\];/);
+  assert.deepEqual(compareProjects(project, back), []);
+});
+
+test('a global shadowed by a local of the same name is written vars["..."]', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch':
+      'var temp = 5;\nwhen flag {\n  local temp = 1;\n  vars["temp"] = 2;\n  temp += 1;\n  say vars["temp"];\n}\n',
+  });
+  const { texts, manifest: back } = await roundTrip(t, manifest);
+  assert.match(
+    texts['Stage/main.fractch'],
+    /local temp = 1;\n\s*vars\["temp"\] = 2;\n\s*temp \+= 1;\n\s*say vars\["temp"\];/
+  );
+  assert.deepEqual(compareProjects(manifest, back), []);
+});
+
+test('numbered local tags never collide with another script tag', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch':
+      'when flag { local x = 1; }\nwhen flag { local x = 2; }\ndef @flagclicked2() { local x = 3; }\n',
+  });
+  const names = blocksOf(manifest)
+    .filter((b) => b.opcode === 'data_setvariableto')
+    .map((b) => b.fields.VARIABLE[0]);
+  assert.equal(new Set(names).size, 3, names.join(', '));
+});
+
+test('nested list loops keep their hidden counters at every depth', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch':
+      'var a = [1, 2];\nvar b = [3];\nwhen flag {\n  for x in a {\n    for i in 2 {\n      for y in b {\n        say y;\n      }\n    }\n  }\n}\n',
+  });
+  const { texts, manifest: back } = await roundTrip(t, manifest);
+  assert.match(texts['Stage/main.fractch'], /for x in a \{\n\s*for i in 2 \{\n\s*for y in b \{\n/);
+  assert.deepEqual(compareProjects(manifest, back), []);
 });
