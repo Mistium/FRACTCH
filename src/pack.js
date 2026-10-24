@@ -1402,7 +1402,8 @@ function sanitize(name) {
 
 function parseHeaderInfo(text) {
   try {
-    if (!String(text || '').startsWith('/**')) return null;
+    text = String(text || '').replace(/^\uFEFF/, '');
+    if (!text.startsWith('/**')) return null;
     const headStart = text.indexOf('/**');
     const headEnd = text.indexOf('*/', headStart + 3);
     const head = headStart >= 0 && headEnd > headStart ? text.slice(headStart, headEnd) : text;

@@ -375,11 +375,11 @@ test('lint follows nested template strings', () => {
   }
   assert.deepEqual(
     checkFractch('`a${x`').map((e) => e.message),
-    ['unterminated template string (line 1, col 0)']
+    ['unterminated template string (line 1, col 1)']
   );
   assert.deepEqual(
     checkFractch('say `a${x').map((e) => e.message),
-    ['unterminated template string (line 1, col 4)']
+    ['unterminated template string (line 1, col 5)']
   );
 });
 
