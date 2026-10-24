@@ -9,6 +9,7 @@ import {
   buildNameIdMap,
   collectLocalDeclNames,
   registerProcDefs,
+  stackProcDef,
   rewriteIdentOrMethod,
   stackBaseName,
   stdlibRegistry,
@@ -1639,7 +1640,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
   for (const s of textScripts) {
     const names = new Set(scopeNames);
     for (const n of collectLocalDeclNames(s.calls)) names.add(n);
-    if (s.calls.length && s.calls[0].type === 'procDef') for (const p of s.calls[0].params || []) names.add(p.ident);
+    for (const p of stackProcDef(s.calls)?.params || []) names.add(p.ident);
     rewriteIdentOrMethod(s.calls, names, listNames, nsMap, (code, message, extra) =>
       report(code, message, { line: extra?.line ?? 1, severity: extra?.severity })
     );

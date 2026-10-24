@@ -33,6 +33,8 @@ export function buildBlocksFromCalls(calls, opts = {}) {
       if (ctx.commentsOut) {
         if (call.anchor === 'next' && !call.forId) {
           pendingNextComments.push({ ...call, blockId: null });
+        } else if (call.anchor === 'enclosing' && !call.forId && ctx.enclosingId) {
+          ctx.commentsOut.push({ ...call, blockId: ctx.enclosingId });
         } else {
           const entry = { ...call, blockId: call.forId || lastId };
           ctx.commentsOut.push(entry);
@@ -399,6 +401,7 @@ function buildNodeInputs(call, ids, blocks, ctx, nodeId) {
         idGen: ids,
         nested: true,
         asExpression: false,
+        enclosingId: nodeId,
       });
       Object.assign(blocks, sub);
       if (topId) {

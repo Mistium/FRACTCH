@@ -154,7 +154,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       if (!hasManifest)
         nameCollections.push({
           target: manifestTarget,
-          calls: parsed.calls,
+          scripts: fileScripts.map((script) => script.calls),
           cloudAliases: cloudAliasMaps.get(manifestName),
         });
       for (const imp of parsed.imports || []) {
@@ -179,8 +179,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   const stageTarget = (manifest.targets || []).find((t) => t.isStage);
 
   nameCollections.sort((a, b) => (b.target.isStage ? 1 : 0) - (a.target.isStage ? 1 : 0));
-  for (const { target, calls, cloudAliases } of nameCollections) {
-    collectNamesIntoManifest(target, calls, cloudAliases, stageTarget);
+  for (const { target, scripts, cloudAliases } of nameCollections) {
+    collectNamesIntoManifest(target, scripts, cloudAliases, stageTarget, manifest);
   }
 
   resolveMethodAmbiguity(targets, manifest, stageTarget, importNsMaps, report);
@@ -227,7 +227,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
         localVars = localVars || new Map();
         for (const n of localNames) {
           const mangled = `!local_${localTags[stackI]}_${n}`;
-          const id = ensureDictEntry(manifestTarget?.variables || {}, mangled, [mangled, 0]);
+          const id = ensureDictEntry(manifestTarget?.variables || {}, mangled, [mangled, 0], manifest);
           if (id) varMap.set(mangled, id);
           localVars.set(n, mangled);
         }
@@ -528,17 +528,17 @@ function applyVarDecls(manifest, target, decls, cloudAliases) {
       if (!has(owner.lists) && !has(owner.variables)) {
         if (!owner.lists) owner.lists = {};
         if (d.id) owner.lists[d.id] = [d.name, []];
-        else ensureDictEntry(owner.lists, d.name, [d.name, []]);
+        else ensureDictEntry(owner.lists, d.name, [d.name, []], manifest);
       }
       continue;
     }
     if (d.isList) {
-      const id = d.id || ensureDictEntry(owner.lists, d.name, [d.name, d.value]);
+      const id = d.id || ensureDictEntry(owner.lists, d.name, [d.name, d.value], manifest);
       if (id) owner.lists[id] = [d.name, d.value];
     } else {
       const name = d.cloud && !String(d.name).startsWith('\u2601 ') ? `\u2601 ${d.name}` : d.name;
       const entry = d.cloud ? [name, d.value, true] : [name, d.value];
-      const id = d.id || ensureDictEntry(owner.variables, name, entry);
+      const id = d.id || ensureDictEntry(owner.variables, name, entry, manifest);
       if (id) owner.variables[id] = entry;
       if (d.cloud && cloudAliases) cloudAliases.set(d.name, name);
     }
@@ -982,12 +982,18 @@ function assetSourceRel(targetDir, file) {
   return path.join(targetDir, ...parts);
 }
 
-export function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
+export function collectNamesIntoManifest(target, scripts, cloudAliases, stage, manifest = null) {
   const vars = new Set();
   const lists = new Set();
   const broadcasts = new Set();
-  collectNames(calls, { vars, lists, broadcasts });
-  for (const local of collectLocalDeclNames(calls)) vars.delete(local);
+  const definiteVars = new Set();
+  for (const scriptCalls of scripts) {
+    const scriptVars = new Set();
+    collectNames(scriptCalls, { vars: scriptVars, lists, broadcasts, definiteVars });
+    for (const local of collectLocalDeclNames(scriptCalls)) scriptVars.delete(local);
+    for (const name of scriptVars) vars.add(name);
+  }
+  const calls = scripts.flat();
   if (cloudAliases) for (const bare of cloudAliases.keys()) vars.delete(bare);
   const globals = stage && stage !== target ? stage : null;
 
@@ -1009,17 +1015,17 @@ export function collectNamesIntoManifest(target, calls, cloudAliases, stage) {
   const globalVarNames = globals ? buildNameIdMap(globals.variables) : null;
   const globalListNames = globals ? buildNameIdMap(globals.lists) : null;
   for (const name of vars) {
-    if (listNames.has(name) && !iterationVars.has(name)) continue;
+    if (listNames.has(name) && !iterationVars.has(name) && !definiteVars.has(name)) continue;
     if (globalVarNames && globalVarNames.has(name)) continue;
-    ensureDictEntry(target.variables, name, [name, 0]);
+    ensureDictEntry(target.variables, name, [name, 0], manifest);
   }
   for (const name of lists) {
     if (globalListNames && globalListNames.has(name)) continue;
-    ensureDictEntry(target.lists, name, [name, []]);
+    ensureDictEntry(target.lists, name, [name, []], manifest);
   }
 
   const broadcastOwner = stage || target;
-  for (const name of broadcasts) ensureDictEntry(broadcastOwner.broadcasts, name, name);
+  for (const name of broadcasts) ensureDictEntry(broadcastOwner.broadcasts, name, name, manifest);
 }
 
 function collectListIterations(nodes, found = []) {
@@ -1062,7 +1068,10 @@ function collectNamesFromNode(node, out) {
     }
     if (arg.kind !== 'keyed') continue;
     if (arg.sep === 'field') {
-      if (arg.key === 'VARIABLE') collectFieldName(arg.value, out.vars);
+      if (arg.key === 'VARIABLE') {
+        collectFieldName(arg.value, out.vars);
+        if (out.definiteVars) collectFieldName(arg.value, out.definiteVars);
+      }
       if (arg.key === 'LIST') collectFieldName(arg.value, out.lists);
       if (arg.key === 'BROADCAST_OPTION') collectFieldName(arg.value, out.broadcasts);
       continue;
@@ -1074,8 +1083,10 @@ function collectNamesFromNode(node, out) {
 
 function collectNamesFromValue(value, out) {
   if (!value) return;
-  if (value.type === 'var') out.vars.add(value.name);
-  else if (value.type === 'list') out.lists.add(value.name);
+  if (value.type === 'var') {
+    out.vars.add(value.name);
+    out.definiteVars?.add(value.name);
+  } else if (value.type === 'list') out.lists.add(value.name);
   else if (value.type === 'broadcast') out.broadcasts.add(value.name);
   else if (value.type === 'ident') out.vars.add(value.name);
   else if (value.type === 'call') collectNamesFromNode(value.value, out);
@@ -1100,24 +1111,29 @@ function collectBroadcastInputName(value, set) {
   else if (value.type === 'obscured') collectBroadcastInputName(value.shadow, set);
 }
 
-function ensureDictEntry(dict, name, value) {
-  if (!dict || !name) return null;
+function ensureDictEntry(dict, name, value, manifest = null) {
+  if (!dict || name == null) return null;
   for (const [key, entry] of Object.entries(dict)) {
     const existing = Array.isArray(entry) ? entry[0] : entry;
     if (existing === name) return key;
   }
+  const has = (d, id) => !!d && Object.prototype.hasOwnProperty.call(d, id);
+  const taken = (id) =>
+    has(dict, id) ||
+    (manifest?.targets || []).some((t) => has(t.variables, id) || has(t.lists, id) || has(t.broadcasts, id));
   let id = sanitize(name) || 'item';
   if (!/^[A-Za-z_]/.test(id)) id = `_${id}`;
   let n = 1;
   let finalId = id;
-  while (Object.prototype.hasOwnProperty.call(dict, finalId)) finalId = `${id}_${++n}`;
+  while (taken(finalId)) finalId = `${id}_${++n}`;
   dict[finalId] = value;
   return finalId;
 }
 
 export function stackBaseName(s) {
-  const c0 = s.calls?.[0];
-  if (c0?.type === 'procDef') return c0.ident;
+  const def = stackProcDef(s.calls);
+  if (def) return def.ident;
+  const c0 = s.calls?.find((c) => c?.type !== 'commentDecl');
   const hat = s.hatOpcode || (c0?.callee?.type === 'opcode' ? c0.callee.name : null);
   if (hat) return String(hat).replace(/^event_when|^control_/, '');
   return 'script';
@@ -1132,11 +1148,12 @@ function computeLocalTags(stacks) {
     }
     return name;
   });
-  const seen = new Map();
+  const used = new Set();
   return prefixes.map((t) => {
-    const n = (seen.get(t) || 0) + 1;
-    seen.set(t, n);
-    return n === 1 ? t : `${t}${n}`;
+    let tag = t;
+    for (let n = 2; used.has(tag); n++) tag = `${t}${n}`;
+    used.add(tag);
+    return tag;
   });
 }
 
@@ -1174,9 +1191,7 @@ export function resolveMethodAmbiguity(targets, manifest, stageTarget, importNsM
     for (const s of data.stacks) {
       const scopeNames = new Set(globalNames);
       for (const n of collectLocalDeclNames(s.calls)) scopeNames.add(n);
-      if (s.calls.length === 1 && s.calls[0].type === 'procDef') {
-        for (const p of s.calls[0].params || []) scopeNames.add(p.ident);
-      }
+      for (const p of stackProcDef(s.calls)?.params || []) scopeNames.add(p.ident);
       rewriteIdentOrMethod(s.calls, scopeNames, listNames, nsMap, report);
     }
   }
@@ -1270,7 +1285,7 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
       registry
     );
 
-    const injectedCalls = [];
+    const injectedScripts = [];
     for (const ident of used) {
       if (identToProccode.get(name)?.has(ident)) continue;
       const { calls, moduleId, x, y } = registry.get(ident);
@@ -1283,12 +1298,12 @@ function injectStdlibModules({ targets, manifest, stdlibImports, procArgMaps, id
         membership: { region: null, module: moduleId },
       });
       registerProcDefs(procArgMaps, identToProccode, procMetaMaps, name, calls);
-      injectedCalls.push(...calls);
+      injectedScripts.push(calls);
     }
-    if (injectedCalls.length) {
+    if (injectedScripts.length) {
       const manifestTarget = (manifest.targets || []).find((t) => t.name === name);
       const stageTarget = (manifest.targets || []).find((t) => t.isStage);
-      if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedCalls, null, stageTarget);
+      if (manifestTarget) collectNamesIntoManifest(manifestTarget, injectedScripts, null, stageTarget, manifest);
     }
   }
 }
@@ -1301,7 +1316,7 @@ export function stdlibRegistry(modules, report = () => {}) {
       report('FR310', `stdlib ${moduleId}: skipped unparsable statement: ${err.message}`);
     }
     for (const sc of parsed.scripts || []) {
-      const ident = sc.calls[0]?.type === 'procDef' ? sc.calls[0].ident : null;
+      const ident = stackProcDef(sc.calls)?.ident ?? null;
       if (ident && !registry.has(ident)) registry.set(ident, { calls: sc.calls, moduleId, x: sc.x, y: sc.y });
     }
   }
@@ -1350,9 +1365,14 @@ function collectProcCallIdents(calls, known, out) {
   for (const c of calls || []) visitCall(c);
 }
 
+export function stackProcDef(calls) {
+  const real = (calls || []).filter((c) => c?.type !== 'commentDecl');
+  return real.length === 1 && real[0].type === 'procDef' ? real[0] : null;
+}
+
 export function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName, calls) {
-  if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
-  const procDef = calls[0];
+  const procDef = stackProcDef(calls);
+  if (!procDef) return;
   const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
   if (!procArgMaps.has(targetName)) procArgMaps.set(targetName, new Map());
   if (!identToProccode.has(targetName)) identToProccode.set(targetName, new Map());
@@ -1400,9 +1420,14 @@ function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9-_]/g, '_');
 }
 
+export function unescapeHeader(s) {
+  return s.replace(/\\([\\*/nr])/g, (_, c) => ({ n: '\n', r: '\r' })[c] ?? c);
+}
+
 function parseHeaderInfo(text) {
   try {
-    if (!String(text || '').startsWith('/**')) return null;
+    text = String(text || '').replace(/^\uFEFF/, '');
+    if (!text.startsWith('/**')) return null;
     const headStart = text.indexOf('/**');
     const headEnd = text.indexOf('*/', headStart + 3);
     const head = headStart >= 0 && headEnd > headStart ? text.slice(headStart, headEnd) : text;
@@ -1410,7 +1435,7 @@ function parseHeaderInfo(text) {
     const map = new Map();
     for (const line of lines) {
       const m = /\*\s*([^:]+):\s*(.*)$/.exec(line.trim());
-      if (m) map.set(m[1].trim(), m[2].trim());
+      if (m) map.set(m[1].trim(), unescapeHeader(m[2].trim()));
     }
     const pos = /^(-?\d+),(-?\d+)$/.exec(map.get('pos') || '');
     return {

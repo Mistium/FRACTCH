@@ -444,6 +444,20 @@ const LEGACY_FIELD_KEYS = new Set([
 ]);
 
 const IMPLICIT_TOP_TYPES = new Set(['call', 'localDecl', 'danglingNext']);
+const TOP_LEVEL_ONLY_TYPES = new Set([
+  'useDecl',
+  'importDecl',
+  'varDecl',
+  'watchDecl',
+  'platformDecl',
+  'spriteDecl',
+  'assetDecl',
+  'procDef',
+  'whenScript',
+  'chainScript',
+  'lockedScript',
+  'regionDecl',
+]);
 const RECOVERY_HAT_WORDS = new Set(['when', 'def', 'script', 'region', 'locked']);
 const RECOVERY_STOP_WORDS = new Set([
   'when',
@@ -646,7 +660,7 @@ export function preprocess(text) {
 }
 
 function stripHeader(text) {
-  const s = String(text || '');
+  const s = String(text || '').replace(/^\uFEFF/, '');
   if (s.startsWith('/**')) {
     const end = s.indexOf('*/');
 
@@ -746,9 +760,10 @@ class Parser {
     return true;
   }
 
-  drainLineComments(out, { havePrev }) {
-    if (!this.pendingLineComments.length) return;
-    for (const c of this.pendingLineComments) {
+  drainLineComments(out, { havePrev, comments = null }) {
+    const pending = comments ?? this.pendingLineComments;
+    if (!pending.length) return;
+    for (const c of pending) {
       out.push({
         type: 'commentDecl',
         text: c.text,
@@ -764,7 +779,7 @@ class Parser {
         line: this.lineAt(c.start),
       });
     }
-    this.pendingLineComments = [];
+    if (!comments) this.pendingLineComments = [];
   }
 
   eof() {
@@ -938,6 +953,18 @@ class Parser {
             'remove the ?? part: Scratch keeps no value under a boolean',
             'FR122'
           );
+        }
+        if (stmt && stopAtBrace && !scriptLevel && TOP_LEVEL_ONLY_TYPES.has(stmt.type)) {
+          this.errors.push(
+            this.makeError(
+              `'${word}' only works at the top level of a file, not inside a script`,
+              'move it out of the { } block',
+              'FR124',
+              stmtStart,
+              this.i
+            )
+          );
+          continue;
         }
         if (stmt) {
           if (typeof stmt === 'object' && !stmt.span) stmt.span = [stmtStart, this.i];
@@ -2426,6 +2453,14 @@ class Parser {
 
   parseBraceBody() {
     this.expectChar('{');
+    const braceLine = this.lineAt(this.i - 1);
+    this.skipWS();
+    const enclosing = [];
+    this.pendingLineComments = this.pendingLineComments.filter((c) => {
+      if (c.anchor !== 'prev' || this.lineAt(c.start) !== braceLine) return true;
+      enclosing.push(c);
+      return false;
+    });
     this.depth++;
     let stmts;
     try {
@@ -2434,7 +2469,11 @@ class Parser {
       this.depth--;
     }
     this.expectChar('}');
-    return stmts;
+    if (!enclosing.length) return stmts;
+    const comments = [];
+    this.drainLineComments(comments, { havePrev: true, comments: enclosing });
+    for (const c of comments) c.anchor = 'enclosing';
+    return [...comments, ...stmts];
   }
 
   parseLooseReporterCall() {
@@ -3025,7 +3064,7 @@ class Parser {
           'FR102'
         );
       }
-      const result = this.s.slice(this.i, end);
+      const result = this.s.slice(this.i, end).replace(/\r\n/g, '\n');
       this.i = end + 3;
       return result;
     }
@@ -3041,13 +3080,7 @@ class Parser {
       }
       const ch = this.next();
       if (ch === '\\') {
-        const nx = this.next();
-        if (nx === '"') result += '"';
-        else if (nx === '\\') result += '\\';
-        else if (nx === 'n') result += '\n';
-        else if (nx === 't') result += '\t';
-        else if (nx === 'r') result += '\r';
-        else result += nx;
+        result += this.readEscape();
       } else {
         result += ch;
       }
@@ -3060,6 +3093,18 @@ class Parser {
       );
     this.i++;
     return result;
+  }
+
+  readEscape() {
+    const nx = this.next();
+    const simple = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f' }[nx];
+    if (simple) return simple;
+    if (nx === 'u' && /^[0-9a-fA-F]{4}$/.test(this.s.slice(this.i, this.i + 4))) {
+      const code = parseInt(this.s.slice(this.i, this.i + 4), 16);
+      this.i += 4;
+      return String.fromCharCode(code);
+    }
+    return nx ?? '';
   }
 
   parseTemplateLiteral() {
@@ -3083,8 +3128,7 @@ class Parser {
       }
       if (ch === '\\') {
         if (this.eof()) this.fail('unterminated template string', null, 'FR118');
-        const escaped = this.next();
-        literal += { n: '\n', t: '\t', r: '\r' }[escaped] ?? escaped;
+        literal += this.readEscape();
         continue;
       }
       if (ch === '$' && this.peek() === '{') {

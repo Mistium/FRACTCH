@@ -20,6 +20,20 @@ export function localBareName(name) {
   return m ? m[1] : null;
 }
 
+export function scriptLocalScope(subgraph) {
+  const ownedLocals = new Map();
+  const localBareNames = new Set();
+  for (const b of Object.values(subgraph || {})) {
+    if (!b || Array.isArray(b) || b.opcode !== 'data_setvariableto') continue;
+    const name = String(b.fields?.VARIABLE?.[0] ?? '');
+    const bare = localBareName(name);
+    if (!bare || ownedLocals.has(name) || localBareNames.has(bare) || !bareNameOk(bare)) continue;
+    ownedLocals.set(name, bare);
+    localBareNames.add(bare);
+  }
+  return { ownedLocals, localBareNames };
+}
+
 const PREC = {
   '||': 1,
   '&&': 2,
@@ -322,7 +336,8 @@ export function isSimpleAttachedComment(c) {
     (c.height ?? 200) === 200 &&
     !c.minimized &&
     !c.forId &&
-    !text.includes('\n') &&
+    !/[\n\r]/.test(text) &&
+    !text.includes('"""') &&
     !hasMarkChar(text) &&
     text === text.trim()
   );
@@ -500,6 +515,21 @@ function isEmptyBooleanInput(tuple) {
 
 export function createStringifier(context = {}) {
   let CTX = context || {};
+  const ownedLocal = (name) => (CTX.ownedLocals ? (CTX.ownedLocals.get(String(name)) ?? null) : localBareName(name));
+  const shadowedByLocal = (name) => !!CTX.localBareNames?.has(String(name));
+  const variableNeedsId = (field) => {
+    const id = Array.isArray(field) ? field[1] : undefined;
+    return id != null && !!CTX.varMap && CTX.varMap.get(String(field[0] ?? '')) !== id;
+  };
+  let forDepth = 0;
+  const inForBody = (render) => {
+    forDepth++;
+    try {
+      return render();
+    } finally {
+      forDepth--;
+    }
+  };
   const mark = (id, text) =>
     CTX.marks && text && typeof id === 'string' && !hasMarkChar(id) ? `\u0001${id}\u0002${text}\u0003` : text;
 
@@ -564,7 +594,7 @@ export function createStringifier(context = {}) {
 
     if (opcode === 'data_variable') {
       const name = block.fields?.VARIABLE?.[0] ?? '';
-      const local = localBareName(name);
+      const local = ownedLocal(name);
       if (local && inline) return local;
 
       if (!inline) return `${JSON.stringify(String(name))};`;
@@ -609,9 +639,13 @@ export function createStringifier(context = {}) {
       return `${header} {\n${indent(thenBody)}\n}`;
     }
 
-    if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
+    if (
+      (opcode === 'data_setvariableto' || opcode === 'data_changevariableby') &&
+      !inline &&
+      (ownedLocal(block.fields?.VARIABLE?.[0] ?? '') || !variableNeedsId(block.fields?.VARIABLE))
+    ) {
       const varName = String(block.fields?.VARIABLE?.[0] ?? '');
-      const local = localBareName(varName);
+      const local = ownedLocal(varName);
       const appendValue =
         opcode === 'data_setvariableto' && !(local && !CTX.declaredLocals?.has(local))
           ? tryConcatAssignment(block, subgraph)
@@ -625,7 +659,7 @@ export function createStringifier(context = {}) {
         }
         return `${local} ${op} ${value};`;
       }
-      if (bareNameOk(varName)) return `${varName} ${op} ${value};`;
+      if (bareNameOk(varName) && !shadowedByLocal(varName)) return `${varName} ${op} ${value};`;
       return `vars[${JSON.stringify(varName)}] ${op} ${value};`;
     }
 
@@ -682,7 +716,7 @@ export function createStringifier(context = {}) {
       const bare = { all: 'all', 'other scripts in sprite': 'otherScriptsInSprite' }[opt];
       return `stop ${bare ?? JSON.stringify(opt)};`;
     }
-    if ((opcode === 'procedures_return' || opcode === 'control_return') && block.inputs?.VALUE) {
+    if (opcode === 'procedures_return' && block.inputs?.VALUE) {
       return `return ${inputValueText(block.inputs.VALUE, subgraph, 'VALUE')};`;
     }
     if (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') {
@@ -692,6 +726,10 @@ export function createStringifier(context = {}) {
       let name;
       if (typeof childId === 'string' && subgraph[childId]) {
         name = inputValueText(tuple, subgraph, 'BROADCAST_INPUT');
+      } else if (Array.isArray(childId) && (childId[0] === 12 || childId[0] === 13)) {
+        name = inputValueText(tuple, subgraph, 'BROADCAST_INPUT');
+        if (BARE_NAME.test(name))
+          name = `${childId[0] === 12 ? 'vars' : 'lists'}[${JSON.stringify(String(childId[1] ?? ''))}]`;
       } else {
         const raw = Array.isArray(childId) ? String(childId[1] ?? '') : '';
         name = BARE_NAME.test(raw) && !RESERVED_WORDS.has(raw) ? raw : JSON.stringify(raw);
@@ -707,7 +745,10 @@ export function createStringifier(context = {}) {
 
     const opExpr = tryOperatorInfo(block, subgraph);
     if (opExpr) {
-      return inline ? opExpr.text : opExpr.text + ';';
+      if (inline) return opExpr.text;
+      if (opExpr.text === 'true') return '0 == 0;';
+      if (opExpr.text === 'false') return '0 == 1;';
+      return opExpr.text + ';';
     }
 
     const rep = tryReporterInfo(block, subgraph);
@@ -1070,10 +1111,10 @@ export function createStringifier(context = {}) {
     const v = block.fields.VARIABLE;
     const name = String(v?.[0] ?? '');
     const id = v.length > 1 ? v[1] : undefined;
-    if (!bareNameOk(name)) return null;
+    if (!bareNameOk(name) || shadowedByLocal(name)) return null;
     if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) return null;
     const count = getInputExpr(block.inputs.VALUE, subgraph);
-    return `for ${name} in ${count} ${branch(block, 'SUBSTACK', subgraph)}`;
+    return `for ${name} in ${count} ${inForBody(() => branch(block, 'SUBSTACK', subgraph))}`;
   }
 
   function tryListIteration(block, subgraph) {
@@ -1108,10 +1149,10 @@ export function createStringifier(context = {}) {
     if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
     if (indexInput[2] != null && indexInput[2] !== indexId) return null;
     if ([block.inputs.VALUE, first.inputs.VALUE, item.inputs.INDEX].some((t) => hiddenShadow(t, subgraph))) return null;
-    const hidden = indexName === `!local_for0_${valueName}`;
+    const hidden = indexName === `!local_for${forDepth}_${valueName}`;
     if (indexName.startsWith('!local_') && first.next && referencesVariable(subgraph, first.next, indexName))
       return null;
-    const rest = first.next ? renderBody(subgraph, first.next) : '';
+    const rest = first.next ? inForBody(() => renderBody(subgraph, first.next)) : '';
     const indexText = bareNameOk(indexName) ? indexName : JSON.stringify(indexName);
     const head = hidden
       ? `for ${valueName} in ${listArgText(listName)}`
@@ -1188,7 +1229,7 @@ export function createStringifier(context = {}) {
     if (swallowed.some((t) => hiddenShadow(t, subgraph)) || hiddenShadow(length.inputs.STRING, subgraph)) return null;
     const receiver = getInputExpr(length.inputs.STRING, subgraph);
     if (!bareNameOk(receiver) && !/^vars\[".*"\]$/.test(receiver)) return null;
-    const rest = first.next ? renderBody(subgraph, first.next) : '';
+    const rest = first.next ? inForBody(() => renderBody(subgraph, first.next)) : '';
     const indexText = indexName === valueName ? '' : ` using ${indexName}`;
     return `for ${valueName} of ${receiver}${indexText} {\n${indent(rest)}\n}`;
   }
@@ -1257,7 +1298,8 @@ export function createStringifier(context = {}) {
       (op === 'data_showvariable' || op === 'data_hidevariable') &&
       !inputKeys.length &&
       fieldKeys.length === 1 &&
-      fieldKeys[0] === 'VARIABLE'
+      fieldKeys[0] === 'VARIABLE' &&
+      !variableNeedsId(fields.VARIABLE)
     ) {
       const name = String(fields.VARIABLE[0] ?? '');
       const kw = op === 'data_showvariable' ? 'showVariable' : 'hideVariable';
@@ -1430,7 +1472,7 @@ export function createStringifier(context = {}) {
           }
           case 12: {
             const name = String(value ?? '');
-            const local = localBareName(name);
+            const local = ownedLocal(name);
             if (local) return local;
             const id = payload.length > 2 && payload[2] != null ? String(payload[2]) : undefined;
             if (id != null && !(CTX.varMap && CTX.varMap.get(name) === id)) {
@@ -1439,7 +1481,7 @@ export function createStringifier(context = {}) {
             const shadowedByParam =
               CTX.scopeParamNames &&
               (CTX.scopeParamNames.has(name) || [...CTX.scopeParamNames.values()].includes(name));
-            if (!shadowedByParam && bareNameOk(name)) return name;
+            if (!shadowedByParam && !shadowedByLocal(name) && bareNameOk(name)) return name;
             return `vars[${JSON.stringify(name)}]`;
           }
           case 13: {
@@ -1500,14 +1542,16 @@ export function createStringifier(context = {}) {
     if (parts[0].literal === '' || parts.some((part, index) => index > 0 && part.literal === '')) return null;
     if (parts.some((part, index) => index > 0 && part.literal !== undefined && parts[index - 1].literal !== undefined))
       return null;
-    const escape = (value) =>
-      value
+    const escape = (value) => {
+      const text = value
         .replaceAll('\\', '\\\\')
         .replaceAll('`', '\\`')
         .replaceAll('${', '\\${')
         .replaceAll('\n', '\\n')
         .replaceAll('\r', '\\r')
         .replaceAll('\t', '\\t');
+      return text.includes('"""') ? text.replaceAll('"', '\\"') : text;
+    };
     return {
       text:
         '`' +

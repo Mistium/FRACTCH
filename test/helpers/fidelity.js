@@ -39,6 +39,30 @@ function fieldValue(v) {
   return Array.isArray(v) ? String(v[0] ?? '') : String(v ?? '');
 }
 
+let refKey = (kind, name) => name;
+let commentsOn = new Map();
+
+function referenceResolver(project, target) {
+  const keys = new Map();
+  const add = (owner, dict, kind) => {
+    const seen = new Map();
+    for (const [id, entry] of Object.entries(dict || {})) {
+      const name = String(Array.isArray(entry) ? entry[0] : entry);
+      const n = seen.get(name) || 0;
+      seen.set(name, n + 1);
+      keys.set(`${kind}:${id}`, `${owner}:${name}${n ? `#${n}` : ''}`);
+    }
+  };
+  const stage = (project.targets || []).find((t) => t.isStage);
+  add('stage', stage?.variables, 'var');
+  add('stage', stage?.lists, 'list');
+  if (target && target !== stage) {
+    add('sprite', target.variables, 'var');
+    add('sprite', target.lists, 'list');
+  }
+  return (kind, name, id) => keys.get(`${kind}:${id}`) ?? name;
+}
+
 function argumentIds(block) {
   try {
     const ids = JSON.parse(block?.mutation?.argumentids ?? 'null');
@@ -52,8 +76,8 @@ function canonValue(blocks, ref, seen) {
   if (ref == null) return null;
   if (Array.isArray(ref)) {
     if (ref[0] === 11) return `broadcast:${ref[1]}`;
-    if (ref[0] === 12) return `var:${ref[1]}`;
-    if (ref[0] === 13) return `list:${ref[1]}`;
+    if (ref[0] === 12) return `var:${refKey('var', ref[1], ref[2])}`;
+    if (ref[0] === 13) return `list:${refKey('list', ref[1], ref[2])}`;
     return `lit:${ref[1] ?? ''}`;
   }
   const block = blocks[ref];
@@ -77,9 +101,13 @@ function canonBlock(blocks, id, seen) {
   seen.add(id);
   const block = blocks[id];
   const out = { opcode: block.opcode };
+  if (commentsOn.has(id)) out.comments = commentsOn.get(id);
   if (block.shadow && block.opcode !== 'procedures_prototype') out.shadow = true;
   const fields = {};
-  for (const [k, v] of Object.entries(block.fields || {})) fields[k] = fieldValue(v);
+  for (const [k, v] of Object.entries(block.fields || {})) {
+    const kind = { VARIABLE: 'var', LIST: 'list' }[k];
+    fields[k] = kind && Array.isArray(v) ? refKey(kind, fieldValue(v), v[1]) : fieldValue(v);
+  }
   if (Object.keys(fields).length) out.fields = fields;
   const inputs = {};
   const argIds = block.opcode === 'procedures_call' ? argumentIds(block) : null;
@@ -118,7 +146,15 @@ function canonChain(blocks, id, seen) {
   return chain;
 }
 
-export function scriptsOf(target) {
+export function scriptsOf(target, resolve = null) {
+  refKey = resolve || ((kind, name) => name);
+  commentsOn = new Map();
+  for (const c of Object.values(target.comments || {})) {
+    if (!c?.blockId || String(c.text ?? '').startsWith('_fractch_')) continue;
+    if (!commentsOn.has(c.blockId)) commentsOn.set(c.blockId, []);
+    commentsOn.get(c.blockId).push(String(c.text ?? ''));
+  }
+  for (const texts of commentsOn.values()) texts.sort();
   const blocks = target.blocks || {};
   const scripts = [];
   for (const [id, b] of Object.entries(blocks)) {
@@ -132,7 +168,7 @@ export function scriptsOf(target) {
     if (ref && !b.next && !Object.keys(b.inputs || {}).length) {
       scripts.push({
         at: `${Math.round(b.x ?? 0)},${Math.round(b.y ?? 0)}`,
-        chain: [`${ref[1]}:${fieldValue(b.fields?.[ref[0]])}`],
+        chain: [`${ref[1]}:${refKey(ref[1], fieldValue(b.fields?.[ref[0]]), b.fields?.[ref[0]]?.[1])}`],
       });
       continue;
     }
@@ -170,7 +206,9 @@ function compareValue(a, b, where, out) {
 
 // Compares every script of every target, ignoring block ids. A hidden shadow that was empty or missing in the
 // original may come back as the editor default; everything else (opcodes, fields, inputs, obscured shadows,
-// mutations, positions) has to match.
+// mutations, positions) has to match. Variable and list references are compared by the variable they point at
+// (stage or sprite, and which of several same-named ones), not only by name, and block comments have to stay on
+// the same block.
 export function compareProjects(original, rebuilt) {
   const problems = [];
   for (const target of original.targets || []) {
@@ -179,8 +217,8 @@ export function compareProjects(original, rebuilt) {
       problems.push(`${target.name}: target missing`);
       continue;
     }
-    const left = scriptsOf(target);
-    const right = scriptsOf(other);
+    const left = scriptsOf(target, referenceResolver(original, target));
+    const right = scriptsOf(other, referenceResolver(rebuilt, other));
     const rest = [...right];
     for (const script of left) {
       const opcode = script.chain[0]?.opcode ?? script.chain[0];
