@@ -1,3 +1,4 @@
+import { isBooleanInput, isHiddenShadowOpcode } from './shadowDefaults.js';
 import { STDLIB_METHODS } from './stdlib/index.js';
 
 function snakeToCamel(s) {
@@ -286,6 +287,37 @@ const REPORTER_FUNC_SUGAR = {
   touchingColor: ['sensing_touchingcolor', ['COLOR']],
   colorTouchingColor: ['sensing_coloristouchingcolor', ['COLOR', 'COLOR2']],
 };
+
+const HIDDEN_VALUE_TYPES = new Set(['string', 'number', 'json', 'broadcast', 'call']);
+const VISIBLE_LITERAL_TYPES = new Set(['string', 'number', 'json', 'null', 'broadcast']);
+
+function isShadowBlockCall(call) {
+  const callee = call?.callee;
+  if (callee?.type === 'identOrMethod') return isHiddenShadowOpcode(`${callee.ident}_${callee.method}`);
+  return callee?.type === 'opcode' && isHiddenShadowOpcode(callee.name);
+}
+
+function findHiddenInBooleanSlot(node) {
+  const visitValue = (v) => {
+    if (!v || typeof v !== 'object') return null;
+    if (v.type === 'call') return visitCall(v.value);
+    if (v.type === 'obscured') return visitValue(v.active) || visitValue(v.shadow);
+    return null;
+  };
+  const visitCall = (call) => {
+    if (!call || typeof call !== 'object') return null;
+    if (call.type === 'localDecl') return visitValue(call.value);
+    for (const a of call.args || []) {
+      if (a.kind === 'branch') continue;
+      const slot = a.kind === 'keyed' && call.callee?.type === 'opcode' && isBooleanInput(call.callee.name, a.key);
+      if (slot && a.value?.type === 'obscured') return a.value;
+      const found = visitValue(a.value);
+      if (found) return found;
+    }
+    return null;
+  };
+  return visitCall(node);
+}
 
 const BRANCH_LABEL = /^(SUBSTACK[A-Za-z0-9_]*)[ \t]*(?=\{)/;
 
@@ -605,6 +637,7 @@ export function parseFractch(content, { attachLineComments = true } = {}) {
     spriteProps,
     spriteDecls,
     errors: parser.errors,
+    warnings: parser.warnings,
   };
 }
 
@@ -662,6 +695,7 @@ class Parser {
     this.i = 0;
     this.len = text.length;
     this.errors = [];
+    this.warnings = [];
     this.attachLineComments = attachLineComments;
     this.pendingLineComments = [];
     this.seenComments = new Set();
@@ -896,6 +930,15 @@ class Parser {
       const save = this.snapshot();
       try {
         const stmt = this.parseStatement();
+        const hiddenInBoolean = stmt && findHiddenInBooleanSlot(stmt);
+        if (hiddenInBoolean) {
+          this.i = Math.max(save, hiddenInBoolean.at ?? save);
+          this.fail(
+            'a condition slot cannot hide a value under its reporter',
+            'remove the ?? part: Scratch keeps no value under a boolean',
+            'FR122'
+          );
+        }
         if (stmt) {
           if (typeof stmt === 'object' && !stmt.span) stmt.span = [stmtStart, this.i];
           if (scriptLevel && IMPLICIT_TOP_TYPES.has(stmt.type)) {
@@ -2419,13 +2462,28 @@ class Parser {
       const call = e.value;
 
       if (call.callee.type === 'opcode' || call.callee.type === 'identOrMethod') {
+        const used = new Set();
         for (let si = 0; ; si++) {
           this.skipWS();
+          const at = this.i;
           const label = BRANCH_LABEL.exec(this.s.slice(this.i, this.i + 200));
           if (label) this.i += label[0].length;
           else if (this.peek() !== '{') break;
+          const key = label ? label[1] : si === 0 ? 'SUBSTACK' : `SUBSTACK${si + 1}`;
+          if (used.has(key)) {
+            this.warnings.push(
+              this.makeError(
+                `the branch ${key} is given twice, so only the last one is kept`,
+                'give each branch its own input name',
+                'FR123',
+                at,
+                this.i
+              )
+            );
+          }
+          used.add(key);
           const body = this.parseBraceBody();
-          call.args.push(branchArg('substack', body, label ? label[1] : si === 0 ? 'SUBSTACK' : `SUBSTACK${si + 1}`));
+          call.args.push(branchArg('substack', body, key));
         }
       }
       return call;
@@ -2535,14 +2593,36 @@ class Parser {
   }
 
   parseInputValue() {
+    this.skipWS();
+    const start = this.i;
     const v = this.parseExpr();
     this.skipWS();
     if (this.peek() === '?' && this.peek(1) === '?') {
+      const at = this.i;
       this.i += 2;
       this.skipWS();
       if (this.peekWord() === 'shadow') this.tryIdentifier();
       const sh = this.parseExpr();
-      return { type: 'obscured', active: v, shadow: sh };
+      if (!HIDDEN_VALUE_TYPES.has(sh.type) || (sh.type === 'call' && !isShadowBlockCall(sh.value))) {
+        this.fail(
+          'the hidden value after ?? has to be a plain value or a shadow block',
+          'a variable, list, reporter or expression cannot sit under another reporter; use a string or a number',
+          'FR122'
+        );
+      }
+      if (VISIBLE_LITERAL_TYPES.has(v.type)) {
+        this.warnings.push(
+          this.makeError(
+            'nothing is hidden under a plain value, so the part after ?? is ignored',
+            'only a reporter or variable can hide a value under it',
+            'FR123',
+            start,
+            this.i
+          )
+        );
+        return v;
+      }
+      return { type: 'obscured', active: v, shadow: sh, at };
     }
     return v;
   }

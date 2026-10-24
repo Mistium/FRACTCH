@@ -39,6 +39,8 @@ The parser never invents scripts. When a statement can't be read, everything up 
 | <a id="fr119"></a>FR119 | error | Unbalanced bracket | Bracket balance problem found by the lint pass (`(`, `[` or `{`). |
 | <a id="fr120"></a>FR120 | error | Region in the wrong place | `region` is only allowed at the top level of a file, around whole scripts. |
 | <a id="fr121"></a>FR121 | error | Invalid locked script line | A `locked script` line names a script that does not exist, or is used outside the editor. |
+| <a id="fr122"></a>FR122 | error | Invalid hidden value | The part after `??` is not a plain value or a shadow block (for example a variable or an expression), or it sits in a boolean slot, which never holds a hidden value. |
+| <a id="fr123"></a>FR123 | warning | Text with no effect | Part of the text is ignored: `??` after a plain value, a branch label used twice, or a loose `(@reporter());` call that isn't alone in its script. |
 | <a id="fr201"></a>FR201 | error | Unknown block | Unknown block opcode, with the closest known one. Unknown opcodes load as red blocks. |
 | <a id="fr202"></a>FR202 | error | Menu used as a statement | A dropdown menu block written on its own. Menus only work inside another block's input. |
 | <a id="fr203"></a>FR203 | error | Value used as a statement | A line that is only a value. Show it with `say`, or store it with `name = ...`. |

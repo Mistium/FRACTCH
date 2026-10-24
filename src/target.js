@@ -1451,6 +1451,19 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
       })
     );
   }
+  for (const w of parsed.warnings || []) {
+    diagnostics.push(
+      diagnostic(w.code, w.message, {
+        hint: w.hint,
+        line: w.line,
+        column: w.col,
+        endLine: w.endLine,
+        endColumn: w.endColumn,
+        from: w.from,
+        to: w.to,
+      })
+    );
+  }
   const prevParsed = previous.text === source ? parsed : parseDeclarations(previous.text || '');
   for (const decl of parsed.spriteDecls || []) {
     report(
@@ -2646,9 +2659,10 @@ function collectBroadcastNames(calls) {
         a.kind === 'keyed' &&
         a.key === 'BROADCAST_INPUT' &&
         (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') &&
-        a.value?.type === 'string'
+        (a.value?.type === 'string' || (a.value?.type === 'obscured' && a.value.shadow?.type === 'string'))
       ) {
-        out.add(a.value.value);
+        out.add(a.value.type === 'string' ? a.value.value : a.value.shadow.value);
+        if (a.value.type === 'obscured') visitValue(a.value.active);
         continue;
       }
       visitValue(a.value);

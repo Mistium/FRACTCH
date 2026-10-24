@@ -21,6 +21,8 @@ export const DIAGNOSTIC_CODES = {
   FR119: { severity: 'error', title: 'Unbalanced bracket' },
   FR120: { severity: 'error', title: 'Region in the wrong place' },
   FR121: { severity: 'error', title: 'Invalid locked script line' },
+  FR122: { severity: 'error', title: 'Invalid hidden value' },
+  FR123: { severity: 'warning', title: 'Text with no effect' },
   FR201: { severity: 'error', title: 'Unknown block' },
   FR202: { severity: 'error', title: 'Menu used as a statement' },
   FR203: { severity: 'error', title: 'Value used as a statement' },

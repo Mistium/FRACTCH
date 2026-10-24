@@ -37,6 +37,7 @@ export function checkFractch(text) {
     return ch;
   };
 
+  let unterminated = null;
   const scanTemplate = (start) => {
     while (i < src.length) {
       const c = adv();
@@ -51,7 +52,7 @@ export function checkFractch(text) {
         return;
       }
     }
-    errors.push(new FractchSyntaxError('unterminated template string', start.line, start.col));
+    unterminated ||= start;
   };
 
   while (i < src.length) {
@@ -158,10 +159,10 @@ export function checkFractch(text) {
   }
 
   for (const open of stack) {
-    if (open.ch === '${')
-      errors.push(new FractchSyntaxError('unterminated template string', open.template.line, open.template.col));
-    else errors.push(new FractchSyntaxError(`unclosed '${open.ch}'`, open.line, open.col));
+    if (open.ch !== '${') errors.push(new FractchSyntaxError(`unclosed '${open.ch}'`, open.line, open.col));
   }
+  const outer = stack.find((open) => open.ch === '${')?.template || unterminated;
+  if (outer) errors.push(new FractchSyntaxError('unterminated template string', outer.line, outer.col));
 
   return errors;
 }

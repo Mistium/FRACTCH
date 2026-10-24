@@ -1,6 +1,6 @@
 import { STDLIB_METHODS } from './stdlib/index.js';
 import { BUILTIN_SIGNATURES } from './signatures.js';
-import { impliedShadow, shadowSpec } from './shadowDefaults.js';
+import { impliedShadow, isBooleanInput, shadowSpec } from './shadowDefaults.js';
 
 export function buildBlocksFromCalls(calls, opts = {}) {
   const { hatOpcode, idGen, nested = false, ...ctx } = opts;
@@ -53,6 +53,14 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     if (isFirst) topId = id;
     const loose =
       !!call.asExpression && isFirst && !nested && calls.slice(idx + 1).every((c) => c.type === 'commentDecl');
+    if (call.asExpression && !loose) {
+      ctx.problemsOut?.push({
+        code: 'FR123',
+        span: call.span || null,
+        message: 'a call in parentheses only keeps its reporter shape when it is alone in its script',
+        hint: 'move it into its own script, or remove the parentheses',
+      });
+    }
     const node = buildNode(expandListIteration(call, ctx), ids, blocks, { ...ctx, asExpression: loose }, id);
     if (isFirst && !nested) {
       node.topLevel = true;
@@ -221,6 +229,16 @@ function applyHiddenShadows(node, ids, blocks, ctx) {
     if (!Array.isArray(tuple) || name.startsWith('SUBSTACK')) continue;
     const spec = shadowSpec(node.opcode, name, node.mutation);
     const written = explicitShadows.get(tuple);
+    if (written && isBooleanSlot(node, name, ctx)) {
+      node.inputs[name] = [2, tuple[1]];
+      ctx?.problemsOut?.push({
+        code: 'FR122',
+        span: written.span || null,
+        message: 'a boolean argument cannot hide a value under its reporter',
+        hint: 'remove the ?? part: Scratch keeps no value under a boolean',
+      });
+      continue;
+    }
     if (written) {
       if (spec && (written.type === 'string' || written.type === 'number')) {
         const value = String(written.type === 'number' ? (written.raw ?? written.value) : written.value);
@@ -239,6 +257,12 @@ function applyHiddenShadows(node, ids, blocks, ctx) {
     if (!implied || (isVariable && implied.code === 10 && implied.value === '')) continue;
     node.inputs[name] = [3, active, shadowFromSpec(implied, implied.value, ids, blocks, node.id)];
   }
+}
+
+function isBooleanSlot(node, name, ctx) {
+  if (isBooleanInput(node.opcode, name, node.mutation)) return true;
+  const arg = signatureFor(ctx, node.opcode)?.args?.find((a) => a.name === name);
+  return String(arg?.type || '').toLowerCase() === 'boolean';
 }
 
 function buildNodeInputs(call, ids, blocks, ctx, nodeId) {

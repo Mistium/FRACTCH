@@ -132,6 +132,8 @@ export async function checkProject({ buildDir, fs: fsLike }) {
       );
     }
 
+    for (const w of parsed.warnings || []) push(w.code, rel, w.line, w.col ?? 0, w.message, w.hint || null);
+
     const st = targetState(target);
     for (const d of parsed.varDecls || []) (d.isList ? st.lists : st.vars).add(d.name);
     Object.assign(st.packages, parsed.importNamespaces || {});

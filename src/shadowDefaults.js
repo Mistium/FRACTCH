@@ -81,16 +81,16 @@ export const SHADOW_DEFAULTS = {
   operator_equals: { OPERAND1: text(''), OPERAND2: text('50') },
   operator_round: { NUM: num('') },
   operator_mathop: { NUM: num('') },
-  operator_join: { STRING1: text('apple'), STRING2: text('banana') },
+  operator_join: { STRING1: text('apple '), STRING2: text('banana') },
   operator_letter_of: { LETTER: whole('1'), STRING: text('apple') },
   operator_length: { STRING: text('apple') },
   operator_contains: { STRING1: text('apple'), STRING2: text('a') },
   operator_letters_of: { LETTER1: whole('2'), LETTER2: whole('4'), STRING: text('apple') },
   operator_index_of: { SUBSTRING: text('p'), STRING: text('apple') },
   operator_replace: { SUBSTRING: text('world'), STRING: text('Hello world!'), REPLACE: text('fellow Scratchers') },
-  operator_repeat: { STRING: text('apple'), REPEAT: whole('3') },
+  operator_repeat: { STRING: text('apple '), REPEAT: whole('3') },
   operator_change_case: { STRING: text('apple') },
-  operator_trim: { STRING: text('apple') },
+  operator_trim: { STRING: text('  apple  ') },
   data_setvariableto: { VALUE: text('0') },
   data_changevariableby: { VALUE: num('1') },
   data_addtolist: { ITEM: text('thing') },
@@ -120,17 +120,45 @@ function procArgKinds(proccode) {
   return [...String(proccode ?? '').matchAll(/%([snb])/g)].map((m) => m[1]);
 }
 
+function procArgIndex(mutation, input) {
+  try {
+    const ids = JSON.parse(mutation?.argumentids ?? 'null');
+    return Array.isArray(ids) ? ids.indexOf(input) : -1;
+  } catch {
+    return -1;
+  }
+}
+
+const BOOLEAN_INPUTS = {
+  control_if: /^CONDITION$/,
+  control_if_else: /^CONDITION$/,
+  control_wait_until: /^CONDITION$/,
+  control_repeat_until: /^CONDITION$/,
+  control_while: /^CONDITION$/,
+  operator_not: /^OPERAND$/,
+  operator_and: /^OPERAND\d+$/,
+  operator_or: /^OPERAND\d+$/,
+};
+
+// Boolean slots never hold a value under their reporter.
+export function isBooleanInput(opcode, input, mutation) {
+  if (opcode === 'procedures_call') {
+    const at = procArgIndex(mutation, input);
+    return at >= 0 && procArgKinds(mutation?.proccode)[at] === 'b';
+  }
+  return !!BOOLEAN_INPUTS[opcode]?.test(input);
+}
+
+// Shadow blocks that `??` can name. Reporters and expressions can't be hidden under another reporter.
+export function isHiddenShadowOpcode(opcode) {
+  return typeof opcode === 'string' && !/^(operator|data|procedures|argument)_/.test(opcode);
+}
+
 // The spec for one input: a primitive `{ code, value }`, a menu `{ menu, field, value }`, or null when the
 // input has no known default. `value: null` means the default isn't fixed.
 export function shadowSpec(opcode, input, mutation) {
   if (opcode === 'procedures_call') {
-    let ids = null;
-    try {
-      ids = JSON.parse(mutation?.argumentids ?? 'null');
-    } catch {
-      ids = null;
-    }
-    const at = Array.isArray(ids) ? ids.indexOf(input) : -1;
+    const at = procArgIndex(mutation, input);
     if (at < 0) return null;
     return procArgKinds(mutation?.proccode)[at] === 'b' ? null : text('');
   }
@@ -184,6 +212,7 @@ export function hiddenShadowToWrite(parent, input, tuple, blocks) {
   const activeIsVariable = Array.isArray(active) && (active[0] === 12 || active[0] === 13);
   const activeBlock = typeof active === 'string' ? blocks[active] : null;
   if (!activeIsVariable && !(activeBlock && !Array.isArray(activeBlock) && !activeBlock.shadow)) return null;
+  if (isBooleanInput(parent.opcode, input, parent.mutation)) return null;
   const spec = shadowSpec(parent.opcode, input, parent.mutation);
   const found = shadowValue(tuple[0] === 3 ? tuple[2] : null, blocks);
   if (found.kind === 'missing' || found.kind === 'other') return null;
@@ -193,6 +222,7 @@ export function hiddenShadowToWrite(parent, input, tuple, blocks) {
   if (found.kind === 'menu' && spec?.menu === found.opcode && spec.field === found.field) {
     return { menuValue: found.value };
   }
+  if (!isHiddenShadowOpcode(found.block.opcode)) return null;
   return { block: found.block, id: tuple[2] };
 }
 

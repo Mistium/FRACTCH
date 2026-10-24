@@ -286,7 +286,9 @@ goto (answer() ?? shadow sensing.of_object_menu(field OBJECT: "Cat"));
 
 The hidden value is only written when it differs from what the block has when you take it from the palette. `say (answer() ?? "Hello!")` is written as `say answer();`, and packing puts `"Hello!"` back under the reporter. An empty hidden value, or none at all, is also left out and comes back as the palette default. For a menu, a plain string means the input's usual menu (`looks.costume` for `costume`); any other shadow block is written out in full. Extension blocks, whose palette defaults aren't known outside the editor, write any hidden value under a reporter, empty text included.
 
-Deleting the `?? value` part sets the slot back to the palette default.
+Deleting the `?? value` part sets the slot back to the palette default. Menus whose palette value depends on the project have no default: costumes, backdrops, sounds, assets and broadcasts. Without `??` their slot keeps nothing under the reporter, so it is empty once the reporter is dragged out. The same goes for extension inputs and for slots that have no palette default.
+
+The hidden value is a string, a number, a `broadcast("name")` or a shadow block. A variable, a list or an expression can't be hidden under a reporter, and condition slots (`if`, `until`, `!`, `&&`, `||`, boolean custom block arguments) never hold a hidden value; both are errors. `??` after a plain value, as in `say ("a" ?? "b")`, has nothing to hide under and is ignored with a warning.
 
 ## Custom blocks
 

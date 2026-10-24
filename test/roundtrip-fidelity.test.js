@@ -5,9 +5,12 @@ import os from 'node:os';
 import path from 'node:path';
 import AdmZip from 'adm-zip';
 import { emitTarget, buildTarget } from '../src/target.js';
+import { parseFractch } from '../src/parse.js';
+import { checkFractch } from '../src/lint.js';
+import { buildProjectFromBuildDir } from '../src/pack.js';
 import { compareProjects, convertAndRebuild } from './helpers/fidelity.js';
 import { liveContext } from './helpers/live-context.js';
-import { flag, projectOf, spriteTarget, stageTarget, stmt } from './helpers/regressions.js';
+import { flag, projectOf, spriteTarget, stageTarget, stmt, tempDir, writeFiles } from './helpers/regressions.js';
 
 const reporter = (opcode, parent, inputs = {}, fields = {}) => ({ ...stmt(opcode, parent, inputs, fields) });
 const menuShadow = (opcode, parent, field, value) => ({
@@ -47,13 +50,13 @@ test('a hidden value equal to the palette default is not written and is rebuilt'
       say: stmt('looks_say', 'hat', { MESSAGE: [3, 'answer', [10, 'Hello!']] }, {}, 'join'),
       answer: reporter('sensing_answer', 'say'),
       join: stmt('looks_think', 'say', { MESSAGE: [3, 'j', [10, 'Hmm...']] }),
-      j: reporter('operator_join', 'join', { STRING1: [3, [12, 'x', 'vx'], [10, 'apple']], STRING2: [1, [10, '!']] }),
+      j: reporter('operator_join', 'join', { STRING1: [3, [12, 'x', 'vx'], [10, 'apple ']], STRING2: [1, [10, '!']] }),
     })
   );
   assert.doesNotMatch(text, /\?\?/);
   assert.match(text, /say answer\(\);\n {2}think `\$\{x\}!`;/);
   assert.deepEqual(find(blocks, 'looks_say').inputs.MESSAGE.slice(2), [[10, 'Hello!']]);
-  assert.deepEqual(find(blocks, 'operator_join').inputs.STRING1, [3, [12, 'x', 'vx'], [10, 'apple']]);
+  assert.deepEqual(find(blocks, 'operator_join').inputs.STRING1, [3, [12, 'x', 'vx'], [10, 'apple ']]);
 });
 
 test('an empty or missing hidden value reads as the default, so packed projects keep their text', async () => {
@@ -138,7 +141,10 @@ test('sugar that would swallow a hidden value falls back to plain blocks', async
     sprite({
       hat: flag('set'),
       set: stmt('data_setvariableto', 'hat', { VALUE: [3, 'join', [10, 'kept']] }, { VARIABLE: ['x', 'vx'] }),
-      join: reporter('operator_join', 'set', { STRING1: [3, [12, 'x', 'vx'], [10, 'apple']], STRING2: [1, [10, '!']] }),
+      join: reporter('operator_join', 'set', {
+        STRING1: [3, [12, 'x', 'vx'], [10, 'apple ']],
+        STRING2: [1, [10, '!']],
+      }),
     })
   );
   assert.match(text, /x = \(`\$\{x\}!` \?\? "kept"\);/);
@@ -232,6 +238,149 @@ test('Code mode applies edits to a hidden value and falls back to the default wh
   assert.equal(hidden(emitted.text), 'hi');
   assert.equal(hidden(emitted.text.replace('?? "hi"', '?? "bye"')), 'bye');
   assert.equal(hidden(emitted.text.replace('(answer() ?? "hi")', 'answer()')), 'Hello!');
+});
+
+test('palette defaults match the editor toolbox, trailing spaces included', async () => {
+  const { text, blocks } = await roundTrip(
+    sprite({
+      hat: flag('say'),
+      say: stmt('looks_say', 'hat', { MESSAGE: [3, 'join', [10, 'Hello!']] }, {}, 'think'),
+      join: reporter('operator_join', 'say', { STRING1: [3, 'a1', [10, 'apple ']], STRING2: [1, [10, ' world']] }),
+      a1: reporter('sensing_answer', 'join'),
+      think: stmt('looks_think', 'say', { MESSAGE: [3, 'rep', [10, 'Hmm...']] }),
+      rep: reporter('operator_repeat', 'think', { STRING: [3, 'a2', [10, 'apple ']], REPEAT: [1, [6, '3']] }),
+      a2: reporter('sensing_answer', 'rep'),
+      trimmed: { ...flag('say2'), y: 300 },
+      say2: stmt('looks_say', 'trimmed', { MESSAGE: [3, 'trim', [10, 'Hello!']] }),
+      trim: reporter('operator_trim', 'say2', { STRING: [3, 'a3', [10, '  apple  ']] }),
+      a3: reporter('sensing_answer', 'trim'),
+    })
+  );
+  assert.doesNotMatch(text, /\?\?/);
+  assert.deepEqual(find(blocks, 'operator_join').inputs.STRING1[2], [10, 'apple ']);
+  assert.deepEqual(find(blocks, 'operator_repeat').inputs.STRING[2], [10, 'apple ']);
+  assert.deepEqual(find(blocks, 'operator_trim').inputs.STRING[2], [10, '  apple  ']);
+});
+
+const parseErrors = (text) => parseFractch(text).errors.map((e) => e.code);
+
+test('?? rejects hidden values that are not plain values or shadow blocks', () => {
+  for (const line of [
+    'say (answer() ?? x);',
+    'say (answer() ?? vars["x"]);',
+    'say (answer() ?? 1 + 2);',
+    'say (answer() ?? @f());',
+    'say (answer() ?? true);',
+    'say answer() ?? x;',
+  ]) {
+    assert.deepEqual(parseErrors(`when flag {\n  ${line}\n}\n`), ['FR122'], line);
+  }
+  for (const line of [
+    'say (answer() ?? "a");',
+    'say (answer() ?? -3);',
+    'goto (answer() ?? shadow sensing.of_object_menu(field OBJECT: "Cat"));',
+    'sensing.keypressed(KEY_OPTION: answer() ?? sensing.keyoptions("a"));',
+    'broadcast (answer() ?? broadcast("go"));',
+  ]) {
+    assert.deepEqual(parseErrors(`when flag {\n  ${line}\n}\n`), [], line);
+  }
+});
+
+test('?? in a condition slot is an error', () => {
+  for (const line of [
+    'if (touchingMouse() ?? "x") { }',
+    'waitUntil (mouseDown() ?? "x");',
+    'say !(mouseDown() ?? "x");',
+    'say mouseDown() && (mouseDown() ?? "x");',
+    'control.while(CONDITION: mouseDown() ?? "x") { }',
+  ]) {
+    assert.deepEqual(parseErrors(`when flag {\n  ${line}\n}\n`), ['FR122'], line);
+  }
+});
+
+test('?? after a plain value warns and keeps the visible value', () => {
+  const parsed = parseFractch('when flag {\n  say ("a" ?? "b");\n}\n');
+  assert.deepEqual(parsed.errors, []);
+  assert.deepEqual(
+    parsed.warnings.map((w) => [w.code, w.line]),
+    [['FR123', 2]]
+  );
+  const script = JSON.stringify(parsed.scripts);
+  assert.match(script, /\{"type":"string","value":"a"/);
+  assert.doesNotMatch(script, /"value":"b"/);
+});
+
+test('a hidden value in a boolean custom block argument is dropped with an error', async (t) => {
+  const dir = writeFiles(tempDir(t), {
+    'S/main.fractch': 'def @check(b) "check %b" {\n}\nwhen flag {\n  @check((mouseDown() ?? "x"));\n}\n',
+  });
+  const { manifest, diagnostics } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+  assert.ok(diagnostics.some((d) => d.code === 'FR122'));
+  const call = find(manifest.targets.find((x) => x.name === 'S').blocks, 'procedures_call');
+  const tuple = Object.values(call.inputs)[0];
+  assert.equal(tuple[0], 2);
+  assert.equal(tuple.length, 2);
+});
+
+test('a repeated branch label and a loose call inside a script warn', async (t) => {
+  const parsed = parseFractch('when flag {\n  ext.op() SUBSTACK {\n  } SUBSTACK {\n  }\n}\n');
+  assert.deepEqual(
+    parsed.warnings.map((w) => w.code),
+    ['FR123']
+  );
+  const dir = writeFiles(tempDir(t), {
+    'S/main.fractch': 'def @value() {\n  return 1;\n}\nwhen flag {\n  (@value());\n  say 1;\n}\n',
+  });
+  const { diagnostics } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+  assert.ok(diagnostics.some((d) => d.code === 'FR123'));
+});
+
+test('Code mode creates a broadcast named only as a hidden value', () => {
+  const ctx = liveContext(
+    sprite({
+      hat: flag('say'),
+      say: stmt('looks_say', 'hat', { MESSAGE: [1, [10, 'hi']] }),
+    })
+  );
+  const id = ctx.targets.find((t) => t.name === 'S').id;
+  const emitted = emitTarget(ctx, id);
+  const built = buildTarget(ctx, id, emitted.text.replace('say "hi";', 'broadcast (answer() ?? "brandnew");'), {
+    previous: emitted,
+  });
+  assert.deepEqual(
+    built.diagnostics.filter((d) => d.severity === 'error'),
+    []
+  );
+  assert.ok(built.diagnostics.some((d) => d.code === 'FR222'));
+  const bc = find(built.target.blocks, 'event_broadcast');
+  const hidden = bc.inputs.BROADCAST_INPUT[2];
+  assert.equal(hidden[1], 'brandnew');
+  assert.equal(typeof hidden[2], 'string', `broadcast id in ${JSON.stringify(hidden)}`);
+});
+
+test('lint follows nested template strings', () => {
+  for (const text of [
+    'say `a${`b${c}`}d`;',
+    'say `a${ {} }`;',
+    'say `a${"}"}b`;',
+    'say `a${"`"}b`;',
+    'say `x \\${y`;',
+    'say `${(x ?? "a")}${` #${y}`}`;',
+  ]) {
+    assert.deepEqual(
+      checkFractch(text).map((e) => e.message),
+      [],
+      text
+    );
+  }
+  assert.deepEqual(
+    checkFractch('`a${x`').map((e) => e.message),
+    ['unterminated template string (line 1, col 0)']
+  );
+  assert.deepEqual(
+    checkFractch('say `a${x').map((e) => e.message),
+    ['unterminated template string (line 1, col 4)']
+  );
 });
 
 const fixtureDir =
