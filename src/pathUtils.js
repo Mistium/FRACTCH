@@ -17,6 +17,9 @@ export function normalizePath(p) {
   if (drive) {
     prefix = drive[1] + '/';
     rest = s.slice(drive[1].length + 1);
+  } else if (/^\/\/[^/]/.test(s)) {
+    prefix = '//';
+    rest = s.slice(2);
   } else if (s.startsWith('/')) {
     prefix = '/';
     rest = s.slice(1);
@@ -40,7 +43,7 @@ export function join(...parts) {
   const joined = parts
     .map(norm)
     .filter((p) => p !== '')
-    .join('/');
+    .reduce((acc, p) => (acc === '' ? p : acc.endsWith('/') ? acc + p : `${acc}/${p}`), '');
   return normalizePath(joined);
 }
 

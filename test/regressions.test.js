@@ -1,8 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import { checkFractch } from '../src/lint.js';
+import { md5hex } from '../src/md5.js';
 import { parseFractch } from '../src/parse.js';
+import { join } from '../src/pathUtils.js';
 import { verifyRoundtrip } from '../src/roundtripDiff.js';
 import { buildTarget, emitTarget } from '../src/target.js';
 import { compareProjects } from './helpers/fidelity.js';
@@ -289,4 +292,22 @@ test('generated ids are unique across variables, lists and broadcasts', async (t
   assert.ok(Object.values(stage.variables).some(([n]) => n === 'inv'));
   assert.ok(Object.values(stage.lists).some(([n]) => n === 'inv'));
   assert.ok(Object.values(stage.broadcasts).includes(''));
+});
+
+test('control_return keeps its own opcode', async (t) => {
+  const project = projectOf(stageTarget({ h: flag('r'), r: stmt('control_return', 'h', { VALUE: [1, [10, '5']] }) }));
+  const { manifest } = await roundTrip(t, project);
+  assert.deepEqual(compareProjects(project, manifest), []);
+});
+
+test('md5hex hashes strings as UTF-8 and respects typed-array offsets', () => {
+  assert.equal(md5hex('é'), createHash('md5').update('é').digest('hex'));
+  const bytes = new Uint8Array([0, 1, 2, 3, 4, 5]);
+  assert.equal(md5hex(new DataView(bytes.buffer, 2, 3)), createHash('md5').update(bytes.subarray(2, 5)).digest('hex'));
+});
+
+test('pathUtils keeps UNC prefixes but not doubled root slashes', () => {
+  assert.equal(join('\\\\server\\share\\proj', 'Stage'), '//server/share/proj/Stage');
+  assert.equal(join('/', 'tmp'), '/tmp');
+  assert.equal(join('/a', 'b'), '/a/b');
 });

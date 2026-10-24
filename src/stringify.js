@@ -716,7 +716,7 @@ export function createStringifier(context = {}) {
       const bare = { all: 'all', 'other scripts in sprite': 'otherScriptsInSprite' }[opt];
       return `stop ${bare ?? JSON.stringify(opt)};`;
     }
-    if ((opcode === 'procedures_return' || opcode === 'control_return') && block.inputs?.VALUE) {
+    if (opcode === 'procedures_return' && block.inputs?.VALUE) {
       return `return ${inputValueText(block.inputs.VALUE, subgraph, 'VALUE')};`;
     }
     if (opcode === 'event_broadcast' || opcode === 'event_broadcastandwait') {
