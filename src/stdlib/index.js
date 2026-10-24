@@ -8,10 +8,10 @@ function synthesizeProccode(ident, paramCount) {
   return paramCount ? `${label} ${Array(paramCount).fill('%s').join(' ')}` : label;
 }
 
-export const STDLIB_MODULES = {
+export const STDLIB_MODULES = Object.assign(Object.create(null), {
   'fractch/json': { deps: [], source: JSON_SOURCE },
   'fractch/strings': { deps: [], source: STRINGS_SOURCE },
-};
+});
 
 export const STDLIB_METHODS = {};
 

@@ -237,14 +237,16 @@ test('a collapsed operator keeps its hidden head value through an edit to anothe
   assert.equal(stage.blocks.outer.mutation.itemcount, '3');
   assert.equal(stage.obscuredShadows.outer.length, 1);
   const emitted = emitTarget(ctx, stage.id);
-  assert.match(emitted.text, /say x \+ 2 \+ 5;/);
+  assert.match(emitted.text, /say \(\(x \?\? 1\) \+ 2 \+ 5 \?\? "hi"\);/);
   const built = buildTarget(ctx, stage.id, emitted.text.replace('"before"', '"after"'), { previous: emitted });
   assert.deepEqual(errors(built), []);
   assert.equal(built.changed.length, 1);
   assert.deepEqual(built.obscuredShadows.outer, stage.obscuredShadows.outer);
   assert.equal(built.target.blocks.outer.mutation.itemcount, '3');
 
-  const lossy = buildTarget(ctx, stage.id, emitted.text.replace('x + 2 + 5', 'x + 2'), { previous: emitted });
+  const lossy = buildTarget(ctx, stage.id, emitted.text.replace('(x ?? 1) + 2 + 5', '(x ?? 1) + 2'), {
+    previous: emitted,
+  });
   assert.ok(lossy.diagnostics.some((d) => d.code === 'FR221'));
 });
 
@@ -252,7 +254,7 @@ test('variadic chains typed as text are built collapsed', () => {
   const ctx = liveContext(operatorProject());
   const stage = ctx.targets[0];
   const emitted = emitTarget(ctx, stage.id);
-  const text = emitted.text.replace('say x + 2 + 5;', 'say x + 2 + 5;\n  say 1 ++ 2 ++ 3 ++ 4;');
+  const text = emitted.text.replace('  think "before";', '  say 1 ++ 2 ++ 3 ++ 4;\n  think "before";');
   const built = buildTarget(ctx, stage.id, text, { previous: emitted, verifyRoundTrip: true });
   assert.deepEqual(errors(built), []);
   const join = Object.values(built.target.blocks).find((b) => b.opcode === 'operator_join');
@@ -972,7 +974,9 @@ test('replacing a reporter with null falls back to its shadow', () => {
     add: stackBlock('operator_add', { NUM1: [1, [4, '1']], NUM2: [1, [4, '2']] }, { parent: 'say' }),
   });
   const emitted = emitTarget(ctx, id);
-  const built = buildTarget(ctx, id, emitted.text.replace('say 1 + 2;', 'say null;'), { previous: emitted });
+  const built = buildTarget(ctx, id, emitted.text.replace('say (1 + 2 ?? "hello");', 'say null;'), {
+    previous: emitted,
+  });
   assert.deepEqual(errors(built), []);
   const say = Object.values(built.target.blocks).find((b) => b.opcode === 'looks_say');
   assert.deepEqual(say.inputs.MESSAGE, [1, [10, 'hello']]);

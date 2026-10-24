@@ -1,5 +1,6 @@
 import { STDLIB_METHODS } from './stdlib/index.js';
 import { BUILTIN_SIGNATURES } from './signatures.js';
+import { impliedShadow, isBooleanInput, shadowSpec } from './shadowDefaults.js';
 
 export function buildBlocksFromCalls(calls, opts = {}) {
   const { hatOpcode, idGen, nested = false, ...ctx } = opts;
@@ -50,7 +51,17 @@ export function buildBlocksFromCalls(calls, opts = {}) {
     const id = ids.next();
     const isFirst = topId == null;
     if (isFirst) topId = id;
-    const node = buildNode(expandListIteration(call, ctx), ids, blocks, { ...ctx, asExpression: false }, id);
+    const loose =
+      !!call.asExpression && isFirst && !nested && calls.slice(idx + 1).every((c) => c.type === 'commentDecl');
+    if (call.asExpression && !loose) {
+      ctx.problemsOut?.push({
+        code: 'FR123',
+        span: call.span || null,
+        message: 'a call in parentheses only keeps its reporter shape when it is alone in its script',
+        hint: 'move it into its own script, or remove the parentheses',
+      });
+    }
+    const node = buildNode(expandListIteration(call, ctx), ids, blocks, { ...ctx, asExpression: loose }, id);
     if (isFirst && !nested) {
       node.topLevel = true;
       node.parent = null;
@@ -190,6 +201,71 @@ export function resolveIdentOrMethod(call, ctx) {
 }
 
 function buildNode(call, ids, blocks, ctx, nodeId) {
+  const node = buildNodeInputs(call, ids, blocks, ctx, nodeId);
+  applyHiddenShadows(node, ids, blocks, ctx);
+  return node;
+}
+
+const explicitShadows = new WeakMap();
+
+function shadowFromSpec(spec, value, ids, blocks, parentId) {
+  if (!spec.menu) return [spec.code, String(value)];
+  const id = ids.next();
+  blocks[id] = {
+    id,
+    opcode: spec.menu,
+    next: null,
+    parent: parentId,
+    inputs: {},
+    fields: { [spec.field]: [String(value)] },
+    shadow: true,
+    topLevel: false,
+  };
+  return id;
+}
+
+function applyHiddenShadows(node, ids, blocks, ctx) {
+  for (const [name, tuple] of Object.entries(node.inputs || {})) {
+    if (!Array.isArray(tuple) || name.startsWith('SUBSTACK')) continue;
+    const spec = shadowSpec(node.opcode, name, node.mutation);
+    const written = explicitShadows.get(tuple);
+    if (written && isBooleanSlot(node, name, ctx)) {
+      node.inputs[name] = [2, tuple[1]];
+      ctx?.problemsOut?.push({
+        code: 'FR122',
+        span: written.span || null,
+        message: 'a boolean argument cannot hide a value under its reporter',
+        hint: 'remove the ?? part: Scratch keeps no value under a boolean',
+      });
+      continue;
+    }
+    if (written) {
+      if (spec && (written.type === 'string' || written.type === 'number')) {
+        const value = String(written.type === 'number' ? (written.raw ?? written.value) : written.value);
+        tuple[2] =
+          spec.code === 11
+            ? [11, value, ctx?.broadcastNameToId?.get(value) ?? null]
+            : shadowFromSpec(spec, value, ids, blocks, node.id);
+      }
+      continue;
+    }
+    const active = tuple[1];
+    const isVariable = Array.isArray(active) && (active[0] === 12 || active[0] === 13);
+    const isBlock = tuple[0] === 2 && typeof active === 'string' && blocks[active] && !blocks[active].shadow;
+    if (!isVariable && !isBlock) continue;
+    const implied = impliedShadow(spec, isVariable);
+    if (!implied || (isVariable && implied.code === 10 && implied.value === '')) continue;
+    node.inputs[name] = [3, active, shadowFromSpec(implied, implied.value, ids, blocks, node.id)];
+  }
+}
+
+function isBooleanSlot(node, name, ctx) {
+  if (isBooleanInput(node.opcode, name, node.mutation)) return true;
+  const arg = signatureFor(ctx, node.opcode)?.args?.find((a) => a.name === name);
+  return String(arg?.type || '').toLowerCase() === 'boolean';
+}
+
+function buildNodeInputs(call, ids, blocks, ctx, nodeId) {
   if (ctx.spansOut && call.span) ctx.spansOut.set(nodeId, call.span);
   if (call.type === 'localDecl') {
     const mangled = (ctx.localVars && ctx.localVars.get(call.name)) || call.name;
@@ -426,8 +502,13 @@ function valueToInput(val, ids, blocks, ctx, parentId = null, inputKey = null) {
       return nullInput(ctx);
     case 'obscured': {
       const active = valueToInput(val.active, ids, blocks, ctx, parentId, inputKey);
-      const shadowRef = buildShadowRef(val.shadow, ids, blocks, ctx, parentId, inputKey);
-      return [3, active[1], shadowRef];
+      const plugged =
+        (typeof active[1] === 'string' && blocks[active[1]] && !blocks[active[1]].shadow) ||
+        (Array.isArray(active[1]) && (active[1][0] === 12 || active[1][0] === 13));
+      if (!plugged) return active;
+      const tuple = [3, active[1], buildShadowRef(val.shadow, ids, blocks, ctx, parentId, inputKey)];
+      explicitShadows.set(tuple, val.shadow || { type: 'null' });
+      return tuple;
     }
     case 'number':
       return [1, [4, val.raw ?? String(val.value)]];

@@ -42,6 +42,7 @@ export function cleanRelStem(relStem) {
     .replace(/\.fractch$/i, '')
     .replace(/^\/+|\/+$/g, '');
   if (!raw || raw.startsWith('/') || /^[A-Za-z]:\//.test(raw)) return null;
+  if ([...raw].some((ch) => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)) return null;
   const parts = raw.split('/').filter(Boolean);
   if (!parts.length || parts.some((p) => p === '.' || p === '..' || p.startsWith('.'))) return null;
   return parts.join('/');

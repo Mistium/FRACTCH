@@ -2,6 +2,7 @@ import { LEGACY_FIELD_KEYS, STATEMENT_KEYWORDS } from './parse.js';
 
 import { STDLIB_PROCCODE_TO_METHOD, STDLIB_DEF_TO_PACKAGE } from './stdlib/index.js';
 import { BUILTIN_SIGNATURES } from './signatures.js';
+import { hiddenShadowToWrite } from './shadowDefaults.js';
 
 export function hasMarkChar(text) {
   const s = String(text);
@@ -485,6 +486,12 @@ function binaryInfo(sym, L, R) {
   return { text: `${lt} ${sym} ${rt}`, prec: p };
 }
 
+function branchOrder(key) {
+  const m = /^SUBSTACK(\d*)$/.exec(key);
+  if (!m) return Infinity;
+  return m[1] === '' ? 1 : Number(m[1]);
+}
+
 function isEmptyBooleanInput(tuple) {
   if (!Array.isArray(tuple)) return true;
   const payload = tuple[1];
@@ -549,7 +556,9 @@ export function createStringifier(context = {}) {
           return inline ? call : call + ';';
         }
         const call = `@${info.ident}(${args.join(', ')})`;
-        return inline ? call : call + ';';
+        if (inline) return call;
+        const loose = block.topLevel && !block.next && ['1', '2'].includes(block.mutation?.return);
+        return loose ? `(${call});` : call + ';';
       }
     }
 
@@ -729,13 +738,8 @@ export function createStringifier(context = {}) {
       ? `${opName}(${argParts.join(', ')})`
       : `raw(${JSON.stringify(String(opcode))}${argParts.length ? `, ${argParts.join(', ')}` : ''})`;
 
-    const substackKeys = Object.keys(block.inputs || {})
-      .filter((k) => k.startsWith('SUBSTACK'))
-      .sort();
-    if (substackKeys.length) {
-      const branches = substackKeys.map((k) => `${branch(block, k, subgraph)}`).join(' ');
-      return `${call} ${branches}`;
-    }
+    const branches = branchesText(block, subgraph);
+    if (branches) return `${call} ${branches}`;
     return inline ? call : call + ';';
   }
 
@@ -788,12 +792,9 @@ export function createStringifier(context = {}) {
       defaults.pop();
       parts.pop();
     }
-    const substackKeys = Object.keys(inputs)
-      .filter((k) => k.startsWith('SUBSTACK'))
-      .sort();
     const call = `${opName}(${parts.join(', ')})`;
-    if (!substackKeys.length) return call;
-    return `${call} ${substackKeys.map((k) => branch(block, k, subgraph)).join(' ')}`;
+    const branches = branchesText(block, subgraph);
+    return branches ? `${call} ${branches}` : call;
   }
 
   function tryPositionalArgs(block, subgraph, inline) {
@@ -829,10 +830,44 @@ export function createStringifier(context = {}) {
   function getInputExprInfo(arr, subgraph) {
     if (!Array.isArray(arr) || arr.length < 2) return { text: 'null', prec: ATOM_PREC };
     const payload = arr[1];
+    const hidden = hiddenShadowText(arr, subgraph);
     if (typeof payload === 'string' && subgraph[payload]) {
-      return blockExprInfo(subgraph[payload], subgraph, payload);
+      const info = blockExprInfo(subgraph[payload], subgraph, payload);
+      return hidden == null ? info : { text: `(${info.text} ?? ${hidden})`, prec: ATOM_PREC };
     }
-    return { text: formatLiteral(arr), prec: ATOM_PREC };
+    const text = formatLiteral(arr);
+    return { text: hidden == null ? text : `(${text} ?? ${hidden})`, prec: ATOM_PREC };
+  }
+
+  const inputOwners = new WeakMap();
+
+  function inputOwner(arr, subgraph) {
+    if (!subgraph || typeof subgraph !== 'object') return null;
+    let owners = inputOwners.get(subgraph);
+    if (!owners) {
+      owners = new WeakMap();
+      for (const b of Object.values(subgraph)) {
+        if (!b || typeof b !== 'object' || Array.isArray(b) || !b.inputs) continue;
+        for (const [name, tuple] of Object.entries(b.inputs)) if (Array.isArray(tuple)) owners.set(tuple, [b, name]);
+      }
+      inputOwners.set(subgraph, owners);
+    }
+    return owners.get(arr) || null;
+  }
+
+  function hiddenShadow(arr, subgraph) {
+    if (!Array.isArray(arr) || (arr[0] !== 2 && arr[0] !== 3)) return null;
+    const owner = inputOwner(arr, subgraph);
+    return owner ? hiddenShadowToWrite(owner[0], owner[1], arr, subgraph) : null;
+  }
+
+  function hiddenShadowText(arr, subgraph) {
+    const found = hiddenShadow(arr, subgraph);
+    if (!found) return null;
+    if (found.primitive) return formatLiteral([1, found.primitive]);
+    if (found.menuValue != null) return stringToken(found.menuValue);
+    const owner = inputOwner(arr, subgraph);
+    return shadowBlockText(found.block, subgraph, found.id, owner[1]);
   }
 
   function blockExprInfo(block, subgraph, id) {
@@ -1002,6 +1037,7 @@ export function createStringifier(context = {}) {
     if (keys.length !== 2 || !keys.includes('STRING1') || !keys.includes('STRING2')) return null;
     const first = join.inputs.STRING1?.[1];
     if (!Array.isArray(first) || first[0] !== 12 || first[1] !== name || first[2] !== id) return null;
+    if (hiddenShadow(block.inputs.VALUE, subgraph) || hiddenShadow(join.inputs.STRING1, subgraph)) return null;
     return inputValueText(join.inputs.STRING2, subgraph, 'STRING2');
   }
 
@@ -1071,6 +1107,7 @@ export function createStringifier(context = {}) {
     const indexInput = item.inputs.INDEX?.[1];
     if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
     if (indexInput[2] != null && indexInput[2] !== indexId) return null;
+    if ([block.inputs.VALUE, first.inputs.VALUE, item.inputs.INDEX].some((t) => hiddenShadow(t, subgraph))) return null;
     const hidden = indexName === `!local_for0_${valueName}`;
     if (indexName.startsWith('!local_') && first.next && referencesVariable(subgraph, first.next, indexName))
       return null;
@@ -1147,6 +1184,8 @@ export function createStringifier(context = {}) {
     if (!Array.isArray(indexInput) || indexInput[0] !== 12 || indexInput[1] !== indexName) return null;
     if (indexInput[2] != null && indexInput[2] !== indexId) return null;
     if (!sameStringReceiver(length.inputs.STRING, letter.inputs.STRING, subgraph)) return null;
+    const swallowed = [block.inputs.VALUE, first.inputs.VALUE, letter.inputs.LETTER, letter.inputs.STRING];
+    if (swallowed.some((t) => hiddenShadow(t, subgraph)) || hiddenShadow(length.inputs.STRING, subgraph)) return null;
     const receiver = getInputExpr(length.inputs.STRING, subgraph);
     if (!bareNameOk(receiver) && !/^vars\[".*"\]$/.test(receiver)) return null;
     const rest = first.next ? renderBody(subgraph, first.next) : '';
@@ -1342,6 +1381,14 @@ export function createStringifier(context = {}) {
     return lines.join('\n');
   }
 
+  function branchesText(block, subgraph) {
+    const keys = Object.keys(block.inputs || {})
+      .filter((k) => k.startsWith('SUBSTACK'))
+      .sort((a, b) => branchOrder(a) - branchOrder(b) || (a < b ? -1 : a > b ? 1 : 0));
+    const labelled = keys.some((k, i) => k !== (i === 0 ? 'SUBSTACK' : `SUBSTACK${i + 1}`));
+    return keys.map((k) => `${labelled ? `${k} ` : ''}${branch(block, k, subgraph)}`).join(' ');
+  }
+
   function branch(block, key, subgraph) {
     const arr = block.inputs?.[key];
     const bid = Array.isArray(arr) ? arr[1] : null;
@@ -1431,6 +1478,7 @@ export function createStringifier(context = {}) {
         return false;
       const left = node.inputs.STRING1?.[1];
       if (typeof left === 'string' && subgraph[left]?.opcode === 'operator_join') {
+        if (hiddenShadow(node.inputs.STRING1, subgraph)) return false;
         if (CTX.blockComments?.get(left)?.length || !visit(subgraph[left])) return false;
       } else if (Array.isArray(left) && left[0] === 10) {
         if (hasMarkChar(left[1] ?? '')) return false;

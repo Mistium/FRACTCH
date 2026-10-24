@@ -98,10 +98,11 @@ test('editor-shaped assets blocks emit the short form and build back the same bl
   };
   assert.equal(stringifyBlockCall(blocks.g, blocks, 'g', true), 'assets.get("data/level1.txt")');
   const byte = stringifyBlockCall(blocks.b, blocks, 'b', true);
-  assert.equal(byte, 'assets.byte(assets.allnames(), 2)');
+  assert.equal(byte, 'assets.byte((assets.allnames() ?? "x.bin"), 2)');
   const rebuilt = build(`say ${byte};`).blocks;
   const reporter = Object.values(rebuilt).find((b) => b.opcode === 'assets_byte');
   assert.equal(rebuilt[reporter.inputs.ASSET[1]].opcode, 'assets_allnames');
+  assert.deepEqual(rebuilt[reporter.inputs.ASSET[2]].fields, { ASSET: ['x.bin'] });
   assert.deepEqual(reporter.inputs.INDEX, [1, [4, '2']]);
 });
 

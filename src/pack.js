@@ -70,6 +70,18 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
           to: err.to,
         });
       }
+      for (const w of parsed.warnings || []) {
+        report(w.code, w.message, {
+          file: fileRel,
+          hint: w.hint,
+          line: w.line,
+          column: w.col,
+          endLine: w.endLine,
+          endColumn: w.endColumn,
+          from: w.from,
+          to: w.to,
+        });
+      }
       for (const err of checkFractch(content)) {
         if (errorLines.has(err.line)) continue;
         report('FR119', err.message.replace(/ \(line \d+, col \d+\)$/, ''), {
@@ -221,7 +233,9 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
         }
       }
       const commentsOut = [];
+      const problemsOut = [];
       const built = buildBlocksFromCalls(s.calls, {
+        problemsOut,
         hatOpcode: s.hatOpcode,
         proceduresMapForTarget: procArgsForTarget,
         identToProccode: identToProccodeForTarget,
@@ -233,6 +247,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
         idGen: sharedIdGen,
         commentsOut,
       });
+      for (const p of problemsOut)
+        if (p.code === 'FR122' || p.code === 'FR123') report(p.code, `${name}: ${p.message}`, { hint: p.hint });
       const { blocks, topId } = built;
       if (topId && blocks[topId] && blocks[topId].topLevel) {
         blocks[topId].x = s.x ?? (stackIndex % 5) * 500;
@@ -1063,6 +1079,10 @@ function collectNamesFromValue(value, out) {
   else if (value.type === 'broadcast') out.broadcasts.add(value.name);
   else if (value.type === 'ident') out.vars.add(value.name);
   else if (value.type === 'call') collectNamesFromNode(value.value, out);
+  else if (value.type === 'obscured') {
+    collectNamesFromValue(value.active, out);
+    collectNamesFromValue(value.shadow, out);
+  }
 }
 
 function collectFieldName(value, set) {
@@ -1077,6 +1097,7 @@ function collectBroadcastInputName(value, set) {
   if (!value) return;
   if (value.type === 'string') set.add(value.value);
   else if (value.type === 'broadcast') set.add(value.name);
+  else if (value.type === 'obscured') collectBroadcastInputName(value.shadow, set);
 }
 
 function ensureDictEntry(dict, name, value) {

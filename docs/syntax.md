@@ -228,7 +228,7 @@ mistsutils.replaceall(C: text, A: "a", B: "b");    // keyed form for non-A,B,C i
 - One exception keeps menus unambiguous: an *inline* call with a single plain-string argument (`ns.op("text")` inside a value slot) means a menu shadow, so single-string-input reporters keep their `A:` label there. As a statement, `mistsutils.patchcommand("...")` is always the positional input form.
 - `name: value` arguments are Scratch **inputs** (may nest reporters).
 - `field name: value` arguments are Scratch **fields** (dropdowns, variable/list/broadcast pickers). Dropdown values are plain strings: `field EFFECT: "COLOR"`. The `field` keyword may be omitted when the key + value shape already identify one: `VARIABLE: var("x")`, `LIST: list("x")`, `BROADCAST_OPTION: broadcast("x")`.
-- Extension "C-blocks" take braces after the call: `ext.myloop(N: 3) { ... }`.
+- Extension "C-blocks" take braces after the call: `ext.myloop(N: 3) { ... }`. Several branches follow each other (`ext.ifelse() { ... } { ... }`) and fill `SUBSTACK`, `SUBSTACK2`, `SUBSTACK3`, ... in order. When a block's branch inputs have other names, or one is missing, each brace is labelled with its input name: `ext.conditional(BRANCH: 15) SUBSTACK15 { ... }`.
 
 ### Extension calls with signatures
 
@@ -269,7 +269,26 @@ sensing.keypressed(KEY_OPTION: sensing.keyoptions("space"));
 sound.play(SOUND_MENU: sound.sounds_menu("pop"));
 ```
 
-When the menu's field name differs from the input name, spell it out: `shadow ext.menu_thing(field other_key: "x")`. A reporter plugged over a menu just replaces it; the editor regenerates the hidden default on load.
+When the menu's field name differs from the input name, spell it out: `shadow ext.menu_thing(field other_key: "x")`.
+
+### Values hidden under a reporter
+
+When you drop a reporter or variable into a slot, Scratch keeps the value that was there underneath it, and puts it back when you drag the reporter out. The text writes that hidden value after `??`, in parentheses:
+
+```txt
+say (answer() ?? "Hello there");          // the say block still holds "Hello there"
+costume (costumeName() ?? "walk 2");      // the costume menu under the reporter
+setX (x * 2 ?? -30);
+x = (`${x}!` ?? "kept");
+loops.repeat(TIMES: (@count() ?? 3)) { ... }
+goto (answer() ?? shadow sensing.of_object_menu(field OBJECT: "Cat"));
+```
+
+The hidden value is only written when it differs from what the block has when you take it from the palette. `say (answer() ?? "Hello!")` is written as `say answer();`, and packing puts `"Hello!"` back under the reporter. An empty hidden value, or none at all, is also left out and comes back as the palette default. For a menu, a plain string means the input's usual menu (`looks.costume` for `costume`); any other shadow block is written out in full. Extension blocks, whose palette defaults aren't known outside the editor, write any hidden value under a reporter, empty text included.
+
+Deleting the `?? value` part sets the slot back to the palette default. Menus whose palette value depends on the project have no default: costumes, backdrops, sounds, assets and broadcasts. Without `??` their slot keeps nothing under the reporter, so it is empty once the reporter is dragged out. The same goes for extension inputs and for slots that have no palette default.
+
+The hidden value is a string, a number, a `broadcast("name")` or a shadow block. A variable, a list or an expression can't be hidden under a reporter, and condition slots (`if`, `until`, `!`, `&&`, `||`, boolean custom block arguments) never hold a hidden value; both are errors. `??` after a plain value, as in `say ("a" ?? "b")`, has nothing to hide under and is ignored with a warning.
 
 ## Custom blocks
 
@@ -297,5 +316,6 @@ sound "pop" file "assets/pop.wav";
 ## Escape hatches you'll see in converted projects
 
 - `danglingNext("id");` preserves a broken forward reference from a corrupted project rather than dropping it.
-- `reporter() ?? menu("x")` is an obsolete obscured-shadow form; still parses, no longer emitted.
+- `reporter() ?? value` without parentheses is the older spelling of a hidden value and still parses in any argument position.
+- `(@reporter());` on its own in a `script` is a custom block call that sits loose on the workspace in its reporter shape.
 - `key= value` legacy input separator and raw `opcode_names` still parse.
