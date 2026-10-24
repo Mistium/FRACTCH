@@ -44,7 +44,8 @@ export function targetAssetFiles(target) {
   for (const asset of [...(target.costumes || []), ...(target.sounds || [])]) {
     const md5ext = asset.md5ext || (asset.assetId && `${asset.assetId}.${asset.dataFormat || ''}`);
     if (!md5ext || map.has(md5ext)) continue;
-    const ext = asset.dataFormat || String(md5ext).split('.').pop() || 'dat';
+    const cleanExt = (value) => String(value ?? '').replace(/[^A-Za-z0-9]/g, '');
+    const ext = cleanExt(asset.dataFormat) || cleanExt(String(md5ext).split('.').pop()) || 'dat';
     const base = String(asset.name ?? 'asset').replace(/[^a-zA-Z0-9-_]/g, '_') || 'asset';
     let file = `${base}.${ext}`;
     let n = 2;

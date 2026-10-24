@@ -104,3 +104,22 @@ test('region names from a project cannot write outside the sprite folder', async
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('asset formats from a project cannot steer where asset files are written', async () => {
+  const { targetAssetFiles } = await import('../src/emit.js');
+  const files = targetAssetFiles({
+    costumes: [
+      { name: 'c1', md5ext: 'a.svg', dataFormat: 'svg/../../../escaped' },
+      { name: 'c2', md5ext: 'b.png/../../x' },
+    ],
+    sounds: [{ name: 's', md5ext: 'c.wav', dataFormat: 'wav' }],
+  });
+  assert.deepEqual([...files.values()], ['assets/c1.svgescaped', 'assets/c2.x', 'assets/s.wav']);
+});
+
+test('a module named after an object property is not treated as a standard library module', async () => {
+  const { STDLIB_MODULES } = await import('../src/stdlib/index.js');
+  assert.equal(STDLIB_MODULES.__proto__, undefined);
+  assert.equal(STDLIB_MODULES.constructor, undefined);
+  assert.ok(STDLIB_MODULES['fractch/json']);
+});
