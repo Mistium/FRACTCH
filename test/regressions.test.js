@@ -4,7 +4,9 @@ import fs from 'node:fs';
 import { checkFractch } from '../src/lint.js';
 import { parseFractch } from '../src/parse.js';
 import { verifyRoundtrip } from '../src/roundtripDiff.js';
+import { buildTarget, emitTarget } from '../src/target.js';
 import { compareProjects } from './helpers/fidelity.js';
+import { liveContext } from './helpers/live-context.js';
 import { blocksOf, flag, pack, projectOf, roundTrip, spriteTarget, stageTarget, stmt } from './helpers/regressions.js';
 
 test('lint reports the same lines and 1-based columns as the parser, past a header', () => {
@@ -222,4 +224,53 @@ test('a sprite name with */ cannot end the header comment', async (t) => {
   }
   const result = await verifyRoundtrip({ project, buildDir: out, fs });
   assert.deepEqual(result.failures, []);
+});
+
+test('comments attach to hats, the brace owner, and the line below', async (t) => {
+  const manifest = await pack(t, {
+    'Stage/main.fractch':
+      'when flag { // on hat\n  repeat 3 { // on repeat\n    say 1;\n  }\n  // on think\n  think 2;\n}\n' +
+      'def @f() {\n  // on def\n  say 2;\n}\n',
+  });
+  const st = manifest.targets[0];
+  const on = (text) => st.blocks[Object.values(st.comments).find((c) => c.text === text).blockId].opcode;
+  assert.equal(on('on hat'), 'event_whenflagclicked');
+  assert.equal(on('on repeat'), 'control_repeat');
+  assert.equal(on('on think'), 'looks_think');
+  assert.equal(on('on def'), 'procedures_definition');
+
+  const project = projectOf(
+    stageTarget(
+      { h: { ...flag('s'), comment: 'c1' }, s: stmt('looks_say', 'h', { MESSAGE: [1, [10, 'hi']] }) },
+      { comments: { c1: { blockId: 'h', x: 0, y: 0, width: 200, height: 200, minimized: false, text: 'note' } } }
+    )
+  );
+  const { manifest: back } = await roundTrip(t, project);
+  assert.deepEqual(compareProjects(project, back), []);
+  const ctx = liveContext(project);
+  const id = ctx.targets[0].id;
+  const emitted = emitTarget(ctx, id);
+  const built = buildTarget(ctx, id, emitted.text.replace('"hi"', '"hey"'), { previous: emitted });
+  const [comment] = Object.values(built.target.comments);
+  assert.equal(built.target.blocks[comment.blockId].opcode, 'event_whenflagclicked');
+});
+
+test('a // comment above a def keeps its calls bound to it', async (t) => {
+  const source = '// greets\ndef @greet(who) warp { say who; }\nwhen flag { @greet("bob"); }\n';
+  const manifest = await pack(t, { 'Stage/main.fractch': source });
+  const call = blocksOf(manifest).find((b) => b.opcode === 'procedures_call');
+  assert.equal(call.mutation.proccode, 'greet %s');
+  assert.equal(call.mutation.warp, 'true');
+
+  const ctx = liveContext(projectOf(stageTarget()));
+  const id = ctx.targets[0].id;
+  const built = buildTarget(ctx, id, source, { previous: emitTarget(ctx, id) });
+  assert.deepEqual(
+    built.diagnostics.filter((d) => d.severity === 'error'),
+    []
+  );
+  assert.equal(
+    Object.values(built.target.blocks).find((b) => b.opcode === 'procedures_call').mutation.proccode,
+    'greet %s'
+  );
 });

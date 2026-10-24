@@ -233,7 +233,7 @@ export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
     const sugar = top ? whenSugarFor(top, context, subgraph, S) : null;
     if (sugar) {
       let rest = top.next ? S.renderBody(subgraph, top.next, cfg) : '';
-      rest = prependOwnComments(context, topBlockId, rest);
+      rest = prependOwnComments(context, topBlockId, rest, true);
       body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
       const inner = renderFallbackBody(subgraph, topBlockId, cfg, context, S);
@@ -316,10 +316,12 @@ function renderFallbackBody(subgraph, topId, cfg, context, S) {
   return lines.join('\n');
 }
 
-function prependOwnComments(context, topBlockId, bodyText) {
+function prependOwnComments(context, topBlockId, bodyText, explicit = false) {
   const own = context?.blockComments?.get(topBlockId);
   if (!own?.length) return bodyText;
-  const lines = own.map((c) => (isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c))).join('\n');
+  const lines = own
+    .map((c) => (!explicit && isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c)))
+    .join('\n');
   return bodyText ? `${lines}\n${bodyText}` : lines;
 }
 

@@ -1121,8 +1121,9 @@ function ensureDictEntry(dict, name, value) {
 }
 
 export function stackBaseName(s) {
-  const c0 = s.calls?.[0];
-  if (c0?.type === 'procDef') return c0.ident;
+  const def = stackProcDef(s.calls);
+  if (def) return def.ident;
+  const c0 = s.calls?.find((c) => c?.type !== 'commentDecl');
   const hat = s.hatOpcode || (c0?.callee?.type === 'opcode' ? c0.callee.name : null);
   if (hat) return String(hat).replace(/^event_when|^control_/, '');
   return 'script';
@@ -1180,9 +1181,7 @@ export function resolveMethodAmbiguity(targets, manifest, stageTarget, importNsM
     for (const s of data.stacks) {
       const scopeNames = new Set(globalNames);
       for (const n of collectLocalDeclNames(s.calls)) scopeNames.add(n);
-      if (s.calls.length === 1 && s.calls[0].type === 'procDef') {
-        for (const p of s.calls[0].params || []) scopeNames.add(p.ident);
-      }
+      for (const p of stackProcDef(s.calls)?.params || []) scopeNames.add(p.ident);
       rewriteIdentOrMethod(s.calls, scopeNames, listNames, nsMap, report);
     }
   }
@@ -1307,7 +1306,7 @@ export function stdlibRegistry(modules, report = () => {}) {
       report('FR310', `stdlib ${moduleId}: skipped unparsable statement: ${err.message}`);
     }
     for (const sc of parsed.scripts || []) {
-      const ident = sc.calls[0]?.type === 'procDef' ? sc.calls[0].ident : null;
+      const ident = stackProcDef(sc.calls)?.ident ?? null;
       if (ident && !registry.has(ident)) registry.set(ident, { calls: sc.calls, moduleId, x: sc.x, y: sc.y });
     }
   }
@@ -1356,9 +1355,14 @@ function collectProcCallIdents(calls, known, out) {
   for (const c of calls || []) visitCall(c);
 }
 
+export function stackProcDef(calls) {
+  const real = (calls || []).filter((c) => c?.type !== 'commentDecl');
+  return real.length === 1 && real[0].type === 'procDef' ? real[0] : null;
+}
+
 export function registerProcDefs(procArgMaps, identToProccode, procMetaMaps, targetName, calls) {
-  if (!(calls.length === 1 && calls[0].type === 'procDef')) return;
-  const procDef = calls[0];
+  const procDef = stackProcDef(calls);
+  if (!procDef) return;
   const proccode = procDef.proccode || synthesizeProccode(procDef.ident, procDef.params.length);
   if (!procArgMaps.has(targetName)) procArgMaps.set(targetName, new Map());
   if (!identToProccode.has(targetName)) identToProccode.set(targetName, new Map());

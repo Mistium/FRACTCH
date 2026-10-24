@@ -40,6 +40,7 @@ function fieldValue(v) {
 }
 
 let refKey = (kind, name) => name;
+let commentsOn = new Map();
 
 function referenceResolver(project, target) {
   const keys = new Map();
@@ -100,6 +101,7 @@ function canonBlock(blocks, id, seen) {
   seen.add(id);
   const block = blocks[id];
   const out = { opcode: block.opcode };
+  if (commentsOn.has(id)) out.comments = commentsOn.get(id);
   if (block.shadow && block.opcode !== 'procedures_prototype') out.shadow = true;
   const fields = {};
   for (const [k, v] of Object.entries(block.fields || {})) {
@@ -146,6 +148,13 @@ function canonChain(blocks, id, seen) {
 
 export function scriptsOf(target, resolve = null) {
   refKey = resolve || ((kind, name) => name);
+  commentsOn = new Map();
+  for (const c of Object.values(target.comments || {})) {
+    if (!c?.blockId || String(c.text ?? '').startsWith('_fractch_')) continue;
+    if (!commentsOn.has(c.blockId)) commentsOn.set(c.blockId, []);
+    commentsOn.get(c.blockId).push(String(c.text ?? ''));
+  }
+  for (const texts of commentsOn.values()) texts.sort();
   const blocks = target.blocks || {};
   const scripts = [];
   for (const [id, b] of Object.entries(blocks)) {
@@ -198,7 +207,8 @@ function compareValue(a, b, where, out) {
 // Compares every script of every target, ignoring block ids. A hidden shadow that was empty or missing in the
 // original may come back as the editor default; everything else (opcodes, fields, inputs, obscured shadows,
 // mutations, positions) has to match. Variable and list references are compared by the variable they point at
-// (stage or sprite, and which of several same-named ones), not only by name.
+// (stage or sprite, and which of several same-named ones), not only by name, and block comments have to stay on
+// the same block.
 export function compareProjects(original, rebuilt) {
   const problems = [];
   for (const target of original.targets || []) {
