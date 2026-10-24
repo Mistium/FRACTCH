@@ -123,3 +123,10 @@ test('a module named after an object property is not treated as a standard libra
   assert.equal(STDLIB_MODULES.constructor, undefined);
   assert.ok(STDLIB_MODULES['fractch/json']);
 });
+
+test('region names with control characters fall back to main', async () => {
+  const { cleanRelStem } = await import('../src/fileMarkers.js');
+  assert.equal(cleanRelStem('x\u0000y'), null);
+  assert.equal(cleanRelStem('ok\u001fname'), null);
+  assert.equal(cleanRelStem('systems/ui'), 'systems/ui');
+});
