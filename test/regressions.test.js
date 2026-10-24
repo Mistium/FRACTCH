@@ -173,3 +173,29 @@ test('nested list loops keep their hidden counters at every depth', async (t) =>
   assert.match(texts['Stage/main.fractch'], /for x in a \{\n\s*for i in 2 \{\n\s*for y in b \{\n/);
   assert.deepEqual(compareProjects(manifest, back), []);
 });
+
+test('variable fields keep their id when the name alone would bind elsewhere', async (t) => {
+  const project = projectOf(
+    stageTarget({}, { variables: { g1: ['score', 0], g3: ['dup', 1], g4: ['dup', 2] } }),
+    spriteTarget(
+      'Spr',
+      {
+        h: flag('a'),
+        a: stmt('data_setvariableto', 'h', { VALUE: [1, [10, '5']] }, { VARIABLE: ['score', 'g1'] }, 'b'),
+        b: stmt('data_changevariableby', 'a', { VALUE: [1, [4, '1']] }, { VARIABLE: ['dup', 'g4'] }, 'c'),
+        c: stmt('data_showvariable', 'b', {}, { VARIABLE: ['dup', 'g4'] }),
+      },
+      { variables: { v1: ['score', 'mine'] } }
+    )
+  );
+  const { manifest } = await roundTrip(t, project);
+  assert.deepEqual(compareProjects(project, manifest), []);
+  const fields = blocksOf(manifest, 'Spr')
+    .filter((b) => b.fields.VARIABLE)
+    .map((b) => b.fields.VARIABLE);
+  assert.deepEqual(fields, [
+    ['score', 'g1'],
+    ['dup', 'g4'],
+    ['dup', 'g4'],
+  ]);
+});

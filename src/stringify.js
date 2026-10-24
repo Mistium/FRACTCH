@@ -517,6 +517,10 @@ export function createStringifier(context = {}) {
   let CTX = context || {};
   const ownedLocal = (name) => (CTX.ownedLocals ? (CTX.ownedLocals.get(String(name)) ?? null) : localBareName(name));
   const shadowedByLocal = (name) => !!CTX.localBareNames?.has(String(name));
+  const variableNeedsId = (field) => {
+    const id = Array.isArray(field) ? field[1] : undefined;
+    return id != null && !!CTX.varMap && CTX.varMap.get(String(field[0] ?? '')) !== id;
+  };
   let forDepth = 0;
   const inForBody = (render) => {
     forDepth++;
@@ -635,7 +639,11 @@ export function createStringifier(context = {}) {
       return `${header} {\n${indent(thenBody)}\n}`;
     }
 
-    if ((opcode === 'data_setvariableto' || opcode === 'data_changevariableby') && !inline) {
+    if (
+      (opcode === 'data_setvariableto' || opcode === 'data_changevariableby') &&
+      !inline &&
+      (ownedLocal(block.fields?.VARIABLE?.[0] ?? '') || !variableNeedsId(block.fields?.VARIABLE))
+    ) {
       const varName = String(block.fields?.VARIABLE?.[0] ?? '');
       const local = ownedLocal(varName);
       const appendValue =
@@ -1290,7 +1298,8 @@ export function createStringifier(context = {}) {
       (op === 'data_showvariable' || op === 'data_hidevariable') &&
       !inputKeys.length &&
       fieldKeys.length === 1 &&
-      fieldKeys[0] === 'VARIABLE'
+      fieldKeys[0] === 'VARIABLE' &&
+      !variableNeedsId(fields.VARIABLE)
     ) {
       const name = String(fields.VARIABLE[0] ?? '');
       const kw = op === 'data_showvariable' ? 'showVariable' : 'hideVariable';
