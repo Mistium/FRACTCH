@@ -322,7 +322,8 @@ export function isSimpleAttachedComment(c) {
     (c.height ?? 200) === 200 &&
     !c.minimized &&
     !c.forId &&
-    !text.includes('\n') &&
+    !/[\n\r]/.test(text) &&
+    !text.includes('"""') &&
     !hasMarkChar(text) &&
     text === text.trim()
   );
@@ -707,7 +708,10 @@ export function createStringifier(context = {}) {
 
     const opExpr = tryOperatorInfo(block, subgraph);
     if (opExpr) {
-      return inline ? opExpr.text : opExpr.text + ';';
+      if (inline) return opExpr.text;
+      if (opExpr.text === 'true') return '0 == 0;';
+      if (opExpr.text === 'false') return '0 == 1;';
+      return opExpr.text + ';';
     }
 
     const rep = tryReporterInfo(block, subgraph);
@@ -1500,14 +1504,16 @@ export function createStringifier(context = {}) {
     if (parts[0].literal === '' || parts.some((part, index) => index > 0 && part.literal === '')) return null;
     if (parts.some((part, index) => index > 0 && part.literal !== undefined && parts[index - 1].literal !== undefined))
       return null;
-    const escape = (value) =>
-      value
+    const escape = (value) => {
+      const text = value
         .replaceAll('\\', '\\\\')
         .replaceAll('`', '\\`')
         .replaceAll('${', '\\${')
         .replaceAll('\n', '\\n')
         .replaceAll('\r', '\\r')
         .replaceAll('\t', '\\t');
+      return text.includes('"""') ? text.replaceAll('"', '\\"') : text;
+    };
     return {
       text:
         '`' +
