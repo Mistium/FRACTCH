@@ -961,7 +961,12 @@ test('separate comments written next to each other stay separate', async (t) => 
     .map((c) => c.text)
     .filter((x) => !x.startsWith(MEMBERSHIP_MAGIC))
     .sort();
-  assert.deepEqual(texts, ['four', 'has */ in it', 'hat', 'on reporter', 'on say', 'one', 'two']);
+  assert.deepEqual(texts, ['four', 'has */ in it', 'hat', 'on say\non reporter', 'one', 'two']);
+  const top = parseFractch(text);
+  assert.deepEqual(
+    top.comments.map((c) => c.text),
+    ['one', 'two', 'has */ in it', 'four']
+  );
 });
 
 test('an unclosed /* in Code mode is an error instead of deleting scripts', () => {
@@ -1093,11 +1098,78 @@ test('a comment that has to be explicit does not let its neighbours join', async
   );
   const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
   const st = manifest.targets[0];
+  const parsed = parseFractch(text);
+  assert.deepEqual(
+    parsed.scripts[0].calls.filter((c) => c.type === 'commentDecl').map((c) => c.text),
+    ['h0', 'h2', 'x */ y', 'c0', 'c2', 'x */ z']
+  );
   const on = (text) => st.blocks[st.comments[commentIdByText(st, text)].blockId].opcode;
-  assert.deepEqual(['h0', 'x */ y', 'h2'].map(on), [
-    'event_whenflagclicked',
-    'event_whenflagclicked',
-    'event_whenflagclicked',
-  ]);
-  assert.deepEqual(['c0', 'x */ z', 'c2'].map(on), ['looks_say', 'looks_say', 'looks_say']);
+  assert.equal(on('h0\nh2\nx */ y'), 'event_whenflagclicked');
+  assert.equal(on('c0\nc2\nx */ z'), 'looks_say');
+});
+
+test('comments that land on one block become one comment', async (t) => {
+  const cases = [
+    ['/* a */\n// b\nwhen flag {\n  say 1;\n}\n', 'a\nb', 'event_whenflagclicked'],
+    ['when flag {\n  /* x */\n  // y\n  say 1;\n}\n', 'x\ny', 'looks_say'],
+    ['when flag {\n  // lead\n  say 1; // trail\n}\n', 'lead\ntrail', 'looks_say'],
+    ['when flag {\n  // line\n  say 1;\n  comment "explicit" size 300x150;\n}\n', 'line\nexplicit', 'looks_say'],
+  ];
+  for (const [source, text, opcode] of cases) {
+    const dir = writeFiles(tempDir(t), { 'Stage/main.fractch': source });
+    const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+    const st = manifest.targets[0];
+    const attached = Object.values(st.comments).filter((c) => c.blockId);
+    assert.deepEqual(
+      attached.map((c) => [c.text, st.blocks[c.blockId].opcode]),
+      [[text, opcode]],
+      source
+    );
+    assert.equal(
+      st.blocks[attached[0].blockId].comment,
+      Object.keys(st.comments).find((k) => st.comments[k] === attached[0])
+    );
+
+    const { ctx, id } = freshStage();
+    const first = applyText(ctx, id, source);
+    const target = first.ctx.targets[0];
+    const codeAttached = Object.entries(target.comments).filter(([, c]) => c.blockId);
+    assert.deepEqual(
+      codeAttached.map(([, c]) => [c.text, target.blocks[c.blockId].opcode]),
+      [[text, opcode]],
+      `Code mode: ${source}`
+    );
+    const blocksWithComment = Object.values(target.blocks).filter((b) => b.comment);
+    assert.equal(blocksWithComment.length, 1);
+
+    const emitted = emitTarget(first.ctx, id);
+    const again = buildTarget(first.ctx, id, emitted.text, { previous: emitted });
+    assert.deepEqual(again.changed, [], `stable: ${source}`);
+    assert.strictEqual(again.target.comments[codeAttached[0][0]], codeAttached[0][1]);
+  }
+  const sized = await buildProjectFromBuildDir({
+    buildDir: writeFiles(tempDir(t), {
+      'Stage/main.fractch': 'when flag {\n  // line\n  say 1;\n  comment "explicit" size 300x150 minimized;\n}\n',
+    }),
+    fs,
+    prune: false,
+  });
+  const merged = Object.values(sized.manifest.targets[0].comments).find((c) => c.blockId);
+  assert.deepEqual([merged.width, merged.height, merged.minimized], [300, 150, true]);
+});
+
+test('a merged comment keeps the live comment id and position when its script is edited', () => {
+  const ctx = liveContext(attachedProject());
+  const id = ctx.targets[0].id;
+  const emitted = emitTarget(ctx, id);
+  const text = emitted.text
+    .replace('  // say it\n  say "hi";', '  // say it\n  say "hi"; // and more')
+    .replace('move 10', 'move 20');
+  const built = buildTarget(ctx, id, text, { previous: emitted });
+  assert.deepEqual(errorsOf(built), []);
+  assert.deepEqual(
+    [built.target.comments.n.text, built.target.comments.n.x, built.target.comments.n.y],
+    ['say it\nand more', 412, -37]
+  );
+  assert.equal(Object.values(built.target.comments).filter((c) => c.blockId === 's').length, 1);
 });

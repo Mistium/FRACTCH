@@ -792,6 +792,47 @@ function buildProcDefScript(procDef, ids, ctx) {
   return { topId: defId, blocks };
 }
 
+export function mergeBlockComments(comments) {
+  const out = [];
+  const groups = new Map();
+  (comments || []).forEach((c, index) => {
+    if (!c.blockId) {
+      out.push({ c, index });
+      return;
+    }
+    if (!groups.has(c.blockId)) {
+      const group = [];
+      groups.set(c.blockId, group);
+      out.push({ group, index });
+    }
+    groups.get(c.blockId).push({ c, index });
+  });
+  return out.map(({ c, group }) => {
+    if (c) return c;
+    if (group.length === 1) return group[0].c;
+    const ordered = [...group].sort((a, b) => {
+      const sa = a.c.span?.[0];
+      const sb = b.c.span?.[0];
+      return sa != null && sb != null && sa !== sb ? sa - sb : a.index - b.index;
+    });
+    const list = ordered.map((g) => g.c);
+    const explicit = list.find((c) => !c.fromLineComment) || null;
+    const positioned = list.find((c) => c.positioned) || null;
+    const merged = {
+      ...list[0],
+      text: list.map((c) => String(c.text ?? '')).join('\n'),
+      width: explicit?.width ?? 200,
+      height: explicit?.height ?? 200,
+      minimized: !!explicit?.minimized,
+      positioned: !!positioned,
+      x: positioned ? positioned.x : (list[0].x ?? 0),
+      y: positioned ? positioned.y : (list[0].y ?? 0),
+    };
+    if (!merged.positioned) delete merged.positioned;
+    return merged;
+  });
+}
+
 export class IdGen {
   constructor(prefix = '~') {
     this.n = 0;

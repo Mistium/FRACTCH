@@ -1,5 +1,11 @@
 import { parseFractch, closestMatch, STATEMENT_KEYWORDS } from './parse.js';
-import { buildBlocksFromCalls, collapseOperators, IdGen, synthesizeProccode } from './buildBlocks.js';
+import {
+  buildBlocksFromCalls,
+  collapseOperators,
+  IdGen,
+  mergeBlockComments,
+  synthesizeProccode,
+} from './buildBlocks.js';
 import { emitScriptBody, varNameToken, varValueText, watchDeclLine, indentBlock } from './emit.js';
 import { commentDeclLine, commentRun, EXTENDABLE_OPERATORS, freeCommentText } from './stringify.js';
 import { hiddenShadowToWrite, sameHiddenShadow } from './shadowDefaults.js';
@@ -1820,7 +1826,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
     return {
       top,
       blocks,
-      commentsOut,
+      commentsOut: mergeBlockComments(commentsOut),
       spansOut,
       nullInputs,
       problemsOut,

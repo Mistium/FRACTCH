@@ -1,7 +1,14 @@
 import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch } from './parse.js';
-import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode, listMethodCall } from './buildBlocks.js';
+import {
+  buildBlocksFromCalls,
+  mergeIntoManifest,
+  mergeBlockComments,
+  IdGen,
+  synthesizeProccode,
+  listMethodCall,
+} from './buildBlocks.js';
 import { checkFractch } from './lint.js';
 import { cleanRelStem } from './fileMarkers.js';
 import { commentSlotY, scriptsBottom } from './graph.js';
@@ -281,7 +288,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       }
       if (commentsOut.length && manifestTarget) {
         if (!manifestTarget.comments) manifestTarget.comments = {};
-        for (const c of commentsOut) {
+        for (const c of mergeBlockComments(commentsOut)) {
           const cid = uniqueCommentId(manifestTarget.comments, `~c${++commentSeq}`);
           manifestTarget.comments[cid] = {
             blockId: c.blockId || null,
