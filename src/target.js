@@ -1729,6 +1729,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
   const outPrimitiveIds = {};
   const outObscured = {};
   const outComments = {};
+  const strayComments = [];
   const unchangedScripts = [];
   const changed = [];
   const differences = {};
@@ -1759,6 +1760,19 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
     }
     membershipEntries.set(topId, entry);
     return true;
+  };
+
+  const strayComment = (c) => {
+    report(
+      'FR228',
+      `comment ${JSON.stringify(String(c.text ?? ''))} is for block ${JSON.stringify(String(c.forId || c.blockId))}, which is not in the same script, so it was kept as a workspace comment`,
+      {
+        ...at(c.span),
+        severity: 'warning',
+        hint: 'move the comment into the script that holds the block, or remove its for part',
+      }
+    );
+    return { ...c, forId: null, blockId: null };
   };
 
   const localTagFor = new Map();
@@ -1933,9 +1947,16 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
         }
       }
     }
+    const finalIds = new Set(rename.values());
+    const placed = [];
     for (const c of cand.commentsOut) {
       const anchor = c.blockId ? r(c.blockId) : null;
-      if (anchor && !outBlocks[anchor] && !view.blocks[anchor]) continue;
+      if (anchor && finalIds.has(anchor)) placed.push({ ...c, blockId: anchor });
+      else if (anchor) strayComments.push(strayComment(c));
+      else strayComments.push({ ...c, forId: null, blockId: null });
+    }
+    for (const c of mergeBlockComments(placed)) {
+      const anchor = c.blockId;
       const pool = anchor ? reusableComments.get(anchor) : null;
       const reused = pool?.length ? pool.shift() : null;
       const cid = reused ?? mint(new Set([...Object.keys(target.comments || {}), ...Object.keys(outComments)]));
@@ -1949,7 +1970,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
         minimized: !!c.minimized,
         ...splitCommentText(c.text),
       };
-      if (anchor && outBlocks[anchor]) outBlocks[anchor].comment = cid;
+      if (anchor) outBlocks[anchor].comment = cid;
     }
     const finalTop = rename.get(cand.top);
     membershipEntries.set(finalTop, entry);
@@ -2483,7 +2504,36 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
   for (const [topId, range] of Object.entries(sourceMap.scripts)) {
     anchorItems.push({ kind: 'script', at: range.from, file: 0, region: regionAt(range.from), topId });
   }
-  for (const c of floatingNew) {
+  for (let c of [...floatingNew, ...strayComments]) {
+    if (c.forId && (outBlocks[c.forId] || view.blocks[c.forId])) {
+      if (!builtIds.has(c.forId)) c = strayComment(c);
+    }
+    if (c.forId && builtIds.has(c.forId) && outBlocks[c.forId]) {
+      const block = outBlocks[c.forId];
+      const existing = block.comment && outComments[block.comment];
+      if (existing) {
+        const merged = { ...existing };
+        delete merged.extraText;
+        outComments[block.comment] = Object.assign(
+          merged,
+          splitCommentText(`${commentText(existing)}\n${String(c.text ?? '')}`)
+        );
+      } else {
+        const cid = mint(new Set([...Object.keys(target.comments || {}), ...Object.keys(outComments)]));
+        outComments[cid] = {
+          blockId: c.forId,
+          x: c.positioned ? c.x : null,
+          y: c.positioned ? c.y : null,
+          width: c.width ?? 200,
+          height: c.height ?? 200,
+          minimized: !!c.minimized,
+          ...splitCommentText(c.text),
+        };
+        block.comment = cid;
+        created.comments.push(cid);
+      }
+      continue;
+    }
     const raw = c.span ? source.slice(c.span[0], c.span[1]) : commentDeclLine(c);
     const norm = normalizeLines(raw);
     const textValue = String(c.text ?? '');

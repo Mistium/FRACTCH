@@ -1173,3 +1173,89 @@ test('a merged comment keeps the live comment id and position when its script is
   );
   assert.equal(Object.values(built.target.comments).filter((c) => c.blockId === 's').length, 1);
 });
+
+function twoScriptProject() {
+  const project = attachedProject();
+  Object.assign(project.targets[0].blocks, {
+    k: { ...flag('t'), opcode: 'event_whenkeypressed', fields: { KEY_OPTION: ['space', null] }, y: 400 },
+    t: stmt('looks_think', 'k', { MESSAGE: [1, [10, 'hmm']] }),
+  });
+  return project;
+}
+
+test("a for comment on a block of the same rebuilt script joins that block's comment", () => {
+  const ctx = liveContext(twoScriptProject());
+  const id = ctx.targets[0].id;
+  const emitted = emitTarget(ctx, id);
+  const text = emitted.text.replace('  move 10;', '  move 20;\n  comment "extra" for "s";');
+  const built = buildTarget(ctx, id, text, { previous: emitted });
+  assert.deepEqual(errorsOf(built), []);
+  const onSay = Object.entries(built.target.comments).filter(([, c]) => c.blockId === 's');
+  assert.deepEqual(
+    onSay.map(([cid, c]) => [cid, c.text, c.x, c.y]),
+    [['n', 'say it\nextra', 412, -37]]
+  );
+  assert.equal(built.target.blocks.s.comment, 'n');
+});
+
+test('a top-level for comment joins a rebuilt block and is kept free for an unchanged one', () => {
+  const ctx = liveContext(twoScriptProject());
+  const id = ctx.targets[0].id;
+  const emitted = emitTarget(ctx, id);
+
+  const unchanged = buildTarget(ctx, id, `${emitted.text}\ncomment "free" for "s";\n`, { previous: emitted });
+  assert.deepEqual(errorsOf(unchanged), []);
+  assert.ok(unchanged.diagnostics.some((d) => d.code === 'FR228' && d.severity === 'warning'));
+  assert.equal(Object.values(unchanged.target.comments).filter((c) => c.blockId === 's').length, 1);
+  assert.equal(Object.values(unchanged.target.comments).find((c) => c.text === 'free').blockId, null);
+
+  const rebuilt = buildTarget(ctx, id, `${emitted.text.replace('move 10', 'move 20')}\ncomment "free" for "s";\n`, {
+    previous: emitted,
+  });
+  assert.deepEqual(errorsOf(rebuilt), []);
+  const onSay = Object.values(rebuilt.target.comments).filter((c) => c.blockId === 's');
+  assert.deepEqual(
+    onSay.map((c) => c.text),
+    ['say it\nfree']
+  );
+  assert.ok(!Object.values(rebuilt.target.comments).some((c) => c.text === 'free'));
+});
+
+test('a for comment on a block in another script is kept with a warning', () => {
+  const ctx = liveContext(twoScriptProject());
+  const id = ctx.targets[0].id;
+  const emitted = emitTarget(ctx, id);
+  const text = emitted.text.replace('  move 10;', '  move 20;\n  comment "about think" for "t";');
+  const built = buildTarget(ctx, id, text, { previous: emitted });
+  assert.deepEqual(errorsOf(built), []);
+  const warning = built.diagnostics.find((d) => d.code === 'FR228');
+  assert.ok(warning);
+  assert.equal(warning.severity, 'warning');
+  const kept = Object.values(built.target.comments).find((c) => c.text === 'about think');
+  assert.ok(kept, 'the comment text is kept');
+  assert.equal(kept.blockId, null);
+  assert.strictEqual(built.target.blocks.t, ctx.targets[0].blocks.t);
+  assert.equal(built.target.blocks.t.comment, undefined);
+});
+
+test('pack joins for comments with the comment already on the block', async (t) => {
+  const dir = writeFiles(tempDir(t), {
+    'Stage/main.fractch':
+      'when flag {\n  // on say\n  say 1;\n  think 2;\n}\n\ncomment "free" for "~2";\ncomment "on think" for "~3";\ncomment "gone" for "nowhere";\n',
+  });
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+  const st = manifest.targets[0];
+  const byBlock = (opcode) =>
+    Object.values(st.comments).filter((c) => c.blockId && st.blocks[c.blockId]?.opcode === opcode);
+  assert.deepEqual(
+    byBlock('looks_say').map((c) => c.text),
+    ['on say\nfree']
+  );
+  assert.deepEqual(
+    byBlock('looks_think').map((c) => [c.text, c.x, c.y]),
+    [['on think', null, null]]
+  );
+  const gone = st.comments[commentIdByText(st, 'gone')];
+  assert.equal(gone.blockId, 'nowhere');
+  assert.deepEqual(Object.keys(mapOf(st).comments), [commentIdByText(st, 'gone')]);
+});

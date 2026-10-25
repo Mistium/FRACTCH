@@ -52,6 +52,7 @@ export const DIAGNOSTIC_CODES = {
   FR225: { severity: 'error', title: 'Command used as a value' },
   FR226: { severity: 'error', title: 'Declared twice' },
   FR227: { severity: 'error', title: 'Invalid block structure' },
+  FR228: { severity: 'warning', title: 'Comment kept as a workspace comment' },
   FR301: { severity: 'warning', title: 'Asset file problem' },
   FR302: { severity: 'error', title: 'Duplicate asset name' },
   FR303: { severity: 'warning', title: 'Watcher for a missing variable' },

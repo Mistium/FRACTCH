@@ -70,6 +70,7 @@ The parser never invents scripts. When a statement can't be read, everything up 
 | <a id="fr225"></a>FR225 | error | Command used as a value | A command block used as a value. |
 | <a id="fr226"></a>FR226 | error | Declared twice | The same variable or list is declared twice. |
 | <a id="fr227"></a>FR227 | error | Invalid block structure | Internal consistency check of the built blocks failed. Please report it with the text that caused it. |
+| <a id="fr228"></a>FR228 | warning | Comment kept as a workspace comment | A `comment ... for "<block id>"` names a block that is in another script, which this edit leaves unchanged. The comment is kept as a workspace comment instead of being dropped; move it into the script that holds the block. |
 | <a id="fr301"></a>FR301 | warning | Asset file problem | An asset declaration points at a missing or invalid file; the asset was skipped. |
 | <a id="fr302"></a>FR302 | error | Duplicate asset name | Two costumes or two sounds share a name; Scratch identifies them by name. |
 | <a id="fr303"></a>FR303 | warning | Watcher for a missing variable | A watcher names a variable or list that does not exist; it was skipped. |

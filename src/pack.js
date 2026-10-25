@@ -13,7 +13,13 @@ import { checkFractch } from './lint.js';
 import { cleanRelStem } from './fileMarkers.js';
 import { commentSlotY, scriptsBottom } from './graph.js';
 import { diagnostic } from './diagnostics.js';
-import { MEMBERSHIP_COMMENT_ID, commentBeforeAnchors, membershipText, splitCommentText } from './membership.js';
+import {
+  MEMBERSHIP_COMMENT_ID,
+  commentBeforeAnchors,
+  commentText,
+  membershipText,
+  splitCommentText,
+} from './membership.js';
 import { STDLIB_MODULES, STDLIB_METHODS, resolveStdlibModules, resolvePackageMethod } from './stdlib/index.js';
 import { md5hex } from './md5.js';
 
@@ -50,6 +56,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   let fileSeq = 0;
   const commentAnchors = new Map();
   const commentSlots = new Map();
+  const forComments = new Map();
   let totalScripts = 0;
   let parsedScripts = 0;
 
@@ -133,6 +140,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       const fileRegion = sourceStem && sourceStem !== 'main' ? sourceStem : null;
       if (!commentAnchors.has(manifestName)) commentAnchors.set(manifestName, []);
       if (!commentSlots.has(manifestName)) commentSlots.set(manifestName, []);
+      if (!forComments.has(manifestName)) forComments.set(manifestName, []);
       for (const c of parsed.comments || []) {
         if (!manifestTarget.comments) manifestTarget.comments = {};
         const cid = uniqueCommentId(manifestTarget.comments, `~c${++commentSeq}`);
@@ -146,6 +154,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
           });
         }
         if (!c.positioned) commentSlots.get(manifestName).push({ cid, file: sourceRel, at: c.span?.[0] ?? 0 });
+        if (c.forId) forComments.get(manifestName).push({ cid, positioned: !!c.positioned });
         manifestTarget.comments[cid] = {
           blockId: c.forId || null,
           x: c.x ?? 0,
@@ -305,7 +314,15 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       stackIndex++;
       scripts.push({ oldTopId: s.topBlockId || null, blocks, newTopId: topId });
     }
-    if (manifestTarget) placeUnpositionedComments(manifestTarget, commentSlots.get(name) || [], scripts);
+    if (manifestTarget) {
+      const onBlocks = attachForComments(manifestTarget, forComments.get(name) || [], scripts);
+      const free = (cid) => !onBlocks.has(cid);
+      const slots = (commentSlots.get(name) || []).filter((slot) => free(slot.cid));
+      placeUnpositionedComments(manifestTarget, slots, scripts);
+      for (let i = anchorItems.length - 1; i >= 0; i--) {
+        if (anchorItems[i].kind === 'comment' && !free(anchorItems[i].commentId)) anchorItems.splice(i, 1);
+      }
+    }
     const commentEntries = commentBeforeAnchors(anchorItems);
     if (manifestTarget && (commentEntries.size || [...membershipEntries.values()].some((e) => e.region || e.module))) {
       if (!manifestTarget.comments) manifestTarget.comments = {};
@@ -467,6 +484,35 @@ function applyWatchDecls(manifest, watchDecls, renamePlans, report) {
 function slotFileOrder(a, b) {
   const main = (f) => (f === 'main.fractch' ? 0 : 1);
   return main(a) - main(b) || (a < b ? -1 : a > b ? 1 : 0);
+}
+
+function attachForComments(manifestTarget, entries, scripts) {
+  const onBlocks = new Set();
+  if (!entries.length) return onBlocks;
+  const blocks = Object.assign({}, ...scripts.map((s) => s.blocks));
+  for (const { cid, positioned } of entries) {
+    const c = manifestTarget.comments?.[cid];
+    const block = c?.blockId ? blocks[c.blockId] : null;
+    if (!block) continue;
+    onBlocks.add(cid);
+    const existing = block.comment && manifestTarget.comments[block.comment];
+    if (existing && block.comment !== cid) {
+      const merged = { ...existing };
+      delete merged.extraText;
+      manifestTarget.comments[block.comment] = Object.assign(
+        merged,
+        splitCommentText(`${commentText(existing)}\n${commentText(c)}`)
+      );
+      delete manifestTarget.comments[cid];
+    } else {
+      block.comment = cid;
+      if (!positioned) {
+        c.x = null;
+        c.y = null;
+      }
+    }
+  }
+  return onBlocks;
 }
 
 function placeUnpositionedComments(manifestTarget, slots, scripts) {
