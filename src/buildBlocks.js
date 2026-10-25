@@ -773,8 +773,9 @@ function buildProcDefScript(procDef, ids, ctx) {
 
   let leadingComments = 0;
   while (procDef.body[leadingComments]?.type === 'commentDecl') leadingComments++;
-  const hatComments = procDef.body.slice(0, leadingComments);
-  const bodyCalls = procDef.body.slice(leadingComments);
+  const leading = procDef.body.slice(0, leadingComments);
+  const hatComments = leading.filter((c) => c.anchor !== 'next' || c.forId);
+  const bodyCalls = [...leading.filter((c) => !hatComments.includes(c)), ...procDef.body.slice(leadingComments)];
   if (ctx.commentsOut) {
     for (const c of hatComments) ctx.commentsOut.push({ ...c, blockId: c.forId || defId });
   }
@@ -782,6 +783,7 @@ function buildProcDefScript(procDef, ids, ctx) {
     ...bodyCtx,
     idGen: ids,
     nested: true,
+    enclosingId: defId,
   });
   Object.assign(blocks, bodyBlocks);
   blocks[defId].next = bodyTopId || null;

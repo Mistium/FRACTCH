@@ -653,12 +653,84 @@ test('a tree round trip keeps hat comments above the when line', async (t) => {
   assert.equal(bodyOf(readTree(again)['Stage/main.fractch']).replace(/^costume .*\n\n/m, ''), bodyOf(text));
 });
 
-test('def comments stay as // inside the definition', async (t) => {
-  const dir = writeFiles(tempDir(t), { 'Stage/main.fractch': 'def @f() {\n  // on def\n  say 2;\n}\n' });
+function defProject(comments) {
+  const plain = (text, blockId) => ({ blockId, x: 0, y: 0, width: 200, height: 200, minimized: false, text });
+  const blocks = {
+    d: {
+      opcode: 'procedures_definition',
+      next: 's',
+      parent: null,
+      inputs: { custom_block: [1, 'p'] },
+      fields: {},
+      shadow: false,
+      topLevel: true,
+      x: 0,
+      y: 0,
+    },
+    p: {
+      opcode: 'procedures_prototype',
+      next: null,
+      parent: 'd',
+      inputs: {},
+      fields: {},
+      shadow: true,
+      topLevel: false,
+      mutation: {
+        tagName: 'mutation',
+        children: [],
+        proccode: 'foo',
+        argumentids: '[]',
+        argumentnames: '[]',
+        argumentdefaults: '[]',
+        warp: 'false',
+      },
+    },
+    s: stmt('looks_say', 'd', { MESSAGE: [1, [10, 'hi']] }, {}, 'm'),
+    m: stmt('motion_movesteps', 's', { STEPS: [1, [4, '10']] }),
+  };
+  const out = {};
+  for (const [id, [text, blockId]] of Object.entries(comments)) {
+    out[id] = plain(text, blockId);
+    blocks[blockId].comment = id;
+  }
+  return projectOf(stageTarget(blocks, { comments: out }));
+}
+
+test('custom block comments stay on the define block and on the first statement', async (t) => {
+  const cases = [
+    [{ dc: ['on define', 'd'] }, '// on define\ndef @foo() at 0,0 {\n  say "hi";\n  move 10;\n}\n'],
+    [{ sc: ['on say', 's'] }, 'def @foo() at 0,0 {\n  // on say\n  say "hi";\n  move 10;\n}\n'],
+    [{ dc: ['d', 'd'], sc: ['s', 's'] }, '// d\ndef @foo() at 0,0 {\n  // s\n  say "hi";\n  move 10;\n}\n'],
+  ];
+  for (const [comments, expected] of cases) {
+    const project = defProject(comments);
+    const ctx = liveContext(project);
+    const id = ctx.targets[0].id;
+    const emitted = emitTarget(ctx, id);
+    assert.equal(emitted.text, expected);
+    const edited = buildTarget(ctx, id, emitted.text.replace('move 10', 'move 20'), { previous: emitted });
+    assert.deepEqual(errorsOf(edited), []);
+    for (const [cid, [, blockId]] of Object.entries(comments)) {
+      assert.equal(edited.target.comments[cid].blockId, blockId, `${cid} in Code mode`);
+    }
+
+    const out = tempDir(t);
+    await convertProject(structuredClone(project), { outDir: out, fs });
+    assert.equal(bodyOf(readTree(out)['Stage/main.fractch']), expected);
+    const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
+    const st = manifest.targets[0];
+    for (const [text, blockId] of Object.values(comments)) {
+      const c = st.comments[commentIdByText(st, text)];
+      assert.equal(st.blocks[c.blockId].opcode, project.targets[0].blocks[blockId].opcode, `${text} in a tree`);
+    }
+  }
+});
+
+test('a comment alone in a def body attaches to the define block', async (t) => {
+  const dir = writeFiles(tempDir(t), { 'Stage/main.fractch': 'def @f() {\n  // only\n}\n' });
   const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
-  const out = tempDir(t);
-  await convertProject(manifest, { outDir: out, fs });
-  assert.match(readTree(out)['Stage/main.fractch'], /def @f\(\) at 0,0 \{\n {2}\/\/ on def\n {2}say 2;\n\}/);
+  const st = manifest.targets[0];
+  assert.equal(st.blocks[st.comments[commentIdByText(st, 'only')].blockId].opcode, 'procedures_definition');
 });
 
 function attachedProject(extra = {}) {

@@ -226,16 +226,18 @@ export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
       S.setContext({ ...context, scopeParamNames, scopeParamKinds });
     }
     let inner = subgraph[topBlockId]?.next ? S.renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
-    inner = prependOwnComments(context, topBlockId, inner);
+    const { lines: above, moved } = leadingCommentRun(context?.blockComments?.get(topBlockId));
+    inner = prependComments(moved, inner);
+    const lead = above.map((text) => `${text}\n`).join('');
     const at = atText(subgraph[topBlockId]);
-    body = inner ? `${sig}${at} {\n${indentBlock(inner)}\n}` : `${sig}${at} {}`;
+    body = inner ? `${lead}${sig}${at} {\n${indentBlock(inner)}\n}` : `${lead}${sig}${at} {}`;
   } else {
     const top = subgraph[topBlockId];
     const sugar = top ? whenSugarFor(top, context, subgraph, S) : null;
     if (sugar) {
       let rest = top.next ? S.renderBody(subgraph, top.next, cfg) : '';
       const { lines: above, moved } = leadingCommentRun(context?.blockComments?.get(topBlockId));
-      rest = prependComments(moved, rest, true);
+      rest = prependComments(moved, rest);
       const lead = above.map((text) => `${text}\n`).join('');
       body = `${lead}when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
@@ -319,17 +321,9 @@ function renderFallbackBody(subgraph, topId, cfg, context, S) {
   return lines.join('\n');
 }
 
-function prependOwnComments(context, topBlockId, bodyText, explicit = false) {
-  return prependComments(context?.blockComments?.get(topBlockId), bodyText, explicit);
-}
-
-function prependComments(own, bodyText, explicit = false) {
+function prependComments(own, bodyText) {
   if (!own?.length) return bodyText;
-  const lines = explicit
-    ? own.map((c) => commentDeclLine(c)).join('\n')
-    : commentRun(own, { followedByLineComment: String(bodyText).startsWith('//') })
-        .map((w) => w.text)
-        .join('\n');
+  const lines = own.map((c) => commentDeclLine(c)).join('\n');
   return bodyText ? `${lines}\n${bodyText}` : lines;
 }
 
