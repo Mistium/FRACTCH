@@ -501,6 +501,27 @@ function fillUnmarked(blocks, ids, ranges) {
   }
 }
 
+function orderCommentOnlyRegions(regions, commentEntries) {
+  const names = [...regions.keys()];
+  const scriptRank = new Map(names.filter((n) => regions.get(n).some((it) => it.script)).map((n, i) => [n, i]));
+  if (scriptRank.size === names.length) return;
+  const entries = [...commentEntries.values()];
+  const sortKey = new Map([...scriptRank].map(([n, i]) => [n, [i, entries.length]]));
+  let next = Infinity;
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const region = entries[i].region;
+    if (region == null || !regions.has(region)) continue;
+    if (scriptRank.has(region)) next = scriptRank.get(region);
+    else if (!sortKey.has(region)) sortKey.set(region, [next - 0.5, i]);
+  }
+  const ordered = names
+    .map((n, i) => [n, sortKey.get(n) || [Infinity, entries.length + i]])
+    .sort((a, b) => a[1][0] - b[1][0] || a[1][1] - b[1][1]);
+  const items = new Map(regions);
+  regions.clear();
+  for (const [n] of ordered) regions.set(n, items.get(n));
+}
+
 export function emitTarget(context, targetId, inputOpts = {}) {
   const opts = withContextDefaults(context, inputOpts);
   const target = findTarget(context, targetId);
@@ -566,6 +587,7 @@ export function emitTarget(context, targetId, inputOpts = {}) {
     else list.push(item);
   }
   for (const c of floating) if (!mappedIds.has(c.id)) looseComments.push(c);
+  orderCommentOnlyRegions(regions, membership.comments);
 
   const decls = declarationLines(target);
   const monitors = (

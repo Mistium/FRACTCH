@@ -959,3 +959,35 @@ test('default comment slots go below the bottom of the longest script', async (t
   const codeNote = Object.values(built.target.comments).find((c) => c.text === 'note');
   assert.deepEqual([codeNote.x, codeNote.y], [0, 21 * 48 + 48]);
 });
+
+test('a comment-only region keeps its place when a later region has comments', () => {
+  const source = [
+    'region "a" {',
+    '  when flag {',
+    '    say 1;',
+    '  }',
+    '}',
+    '',
+    'region "notes" {',
+    '  // only notes',
+    '}',
+    '',
+    'region "more" {',
+    '  // more notes',
+    '}',
+    '',
+    'region "b" {',
+    '  // about b',
+    '',
+    '  when key space {',
+    '    say 2;',
+    '  }',
+    '}',
+    '',
+  ].join('\n');
+  const { ctx, id } = freshStage();
+  const first = applyText(ctx, id, source);
+  const emitted = emitTarget(first.ctx, id);
+  assert.equal(emitted.text.replace(/ at -?\d+,-?\d+/g, ''), source);
+  assert.deepEqual(Object.keys(emitted.sourceMap.regions), ['a', 'notes', 'more', 'b']);
+});
