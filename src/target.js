@@ -1764,7 +1764,7 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
 
   const strayComment = (c) => {
     report(
-      'FR228',
+      'FR230',
       `comment ${JSON.stringify(String(c.text ?? ''))} is for block ${JSON.stringify(String(c.forId || c.blockId))}, which is not in the same script, so it was kept as a workspace comment`,
       {
         ...at(c.span),

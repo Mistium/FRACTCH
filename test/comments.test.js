@@ -1205,7 +1205,7 @@ test('a top-level for comment joins a rebuilt block and is kept free for an unch
 
   const unchanged = buildTarget(ctx, id, `${emitted.text}\ncomment "free" for "s";\n`, { previous: emitted });
   assert.deepEqual(errorsOf(unchanged), []);
-  assert.ok(unchanged.diagnostics.some((d) => d.code === 'FR228' && d.severity === 'warning'));
+  assert.ok(unchanged.diagnostics.some((d) => d.code === 'FR230' && d.severity === 'warning'));
   assert.equal(Object.values(unchanged.target.comments).filter((c) => c.blockId === 's').length, 1);
   assert.equal(Object.values(unchanged.target.comments).find((c) => c.text === 'free').blockId, null);
 
@@ -1228,7 +1228,7 @@ test('a for comment on a block in another script is kept with a warning', () => 
   const text = emitted.text.replace('  move 10;', '  move 20;\n  comment "about think" for "t";');
   const built = buildTarget(ctx, id, text, { previous: emitted });
   assert.deepEqual(errorsOf(built), []);
-  const warning = built.diagnostics.find((d) => d.code === 'FR228');
+  const warning = built.diagnostics.find((d) => d.code === 'FR230');
   assert.ok(warning);
   assert.equal(warning.severity, 'warning');
   const kept = Object.values(built.target.comments).find((c) => c.text === 'about think');
