@@ -674,6 +674,7 @@ test('workspace and block comments round-trip', async () => {
   const packed = (manifest.targets || []).find((t) => t.name === 'main');
   const texts = Object.values(packed.comments || {})
     .map((c) => c.text)
+    .filter((t) => !t.startsWith('_fractch_map_'))
     .sort();
   assert.deepStrictEqual(texts, ['attached', 'standalone "note" with\nnewline']);
 });

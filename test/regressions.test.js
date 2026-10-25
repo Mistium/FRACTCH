@@ -233,7 +233,7 @@ test('comments attach to hats, the brace owner, and the line below', async (t) =
   const manifest = await pack(t, {
     'Stage/main.fractch':
       'when flag { // on hat\n  repeat 3 { // on repeat\n    say 1;\n  }\n  // on think\n  think 2;\n}\n' +
-      'def @f() {\n  // on def\n  say 2;\n}\n',
+      '// on def\ndef @f() {\n  say 2;\n}\n',
   });
   const st = manifest.targets[0];
   const on = (text) => st.blocks[Object.values(st.comments).find((c) => c.text === text).blockId].opcode;

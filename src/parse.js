@@ -484,9 +484,11 @@ const NON_ATTACHABLE_TOP = new Set([
   'platformDecl',
   'spriteDecl',
   'assetDecl',
+  'regionDecl',
+  'lockedScript',
 ]);
 
-function mergeLeadingComments(stmts) {
+function mergeLeadingComments(stmts, blankLineBetween) {
   const out = [];
   for (let i = 0; i < stmts.length; i++) {
     const st = stmts[i];
@@ -495,7 +497,8 @@ function mergeLeadingComments(stmts) {
         let j = i + 1;
         while (j < stmts.length && stmts[j].type === 'commentDecl') j++;
         const target = stmts[j];
-        if (target && !NON_ATTACHABLE_TOP.has(target.type)) {
+        const detached = target?.span && st.span && blankLineBetween(st.span[1], target.span[0]);
+        if (target && !detached && !NON_ATTACHABLE_TOP.has(target.type)) {
           (target.leadingComments || (target.leadingComments = [])).push(st);
           continue;
         }
@@ -521,7 +524,7 @@ function withComments(st, ...calls) {
 export function parseFractch(content, { attachLineComments = true } = {}) {
   const text = stripHeader(content);
   const parser = new Parser(text, { attachLineComments });
-  const stmts = mergeLeadingComments(parser.parseStatementList(false));
+  const stmts = mergeLeadingComments(parser.parseStatementList(false), (a, b) => parser.blankLineBetween(a, b));
   const assets = { costumes: [], sounds: [] };
 
   const scripts = [];
@@ -659,14 +662,71 @@ export function preprocess(text) {
   return stripHeader(text);
 }
 
+const HEADER_KEYS = new Set([
+  'target',
+  'targetId',
+  'topBlockId',
+  'hatOpcode',
+  'threadIndex',
+  'pos',
+  'count',
+  'scripts',
+  'dslBodyHash',
+]);
+
+function isFileHeader(body) {
+  const lines = String(body)
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^\s*\*+/, '').trim())
+    .filter(Boolean);
+  if (!lines.length) return false;
+  if (/^fractch index\b/.test(lines[0])) return lines.slice(1).every((l) => HEADER_KEYS.has(headerKey(l)));
+  return lines.some((l) => headerKey(l) === 'target') && lines.every((l) => HEADER_KEYS.has(headerKey(l)));
+}
+
+function headerKey(line) {
+  return /^([A-Za-z]+):(\s|$)/.exec(line)?.[1] ?? null;
+}
+
 function stripHeader(text) {
   const s = String(text || '').replace(/^\uFEFF/, '');
   if (s.startsWith('/**')) {
-    const end = s.indexOf('*/');
+    const end = s.indexOf('*/', 3);
 
-    if (end >= 0) return s.slice(0, end + 2).replace(/[^\n]/g, ' ') + s.slice(end + 2);
+    if (end >= 0 && isFileHeader(s.slice(3, end))) return s.slice(0, end + 2).replace(/[^\n]/g, ' ') + s.slice(end + 2);
   }
   return s;
+}
+
+function indentWidth(line) {
+  return line.length - line.replace(/^[ \t]+/, '').length;
+}
+
+function lineCommentBodies(bodies) {
+  const lines = bodies.map((b) => b.trimEnd());
+  const widths = lines.filter((l) => l).map(indentWidth);
+  const common = widths.length ? Math.min(...widths) : 0;
+  return lines.map((l) => l.slice(common)).join('\n');
+}
+
+export function blockCommentText(body) {
+  let raw = String(body ?? '');
+  if (raw.startsWith('*')) raw = raw.slice(1);
+  if (!/[\r\n]/.test(raw)) return raw.trim();
+  const lines = raw.split(/\r?\n/);
+  const blank = (l) => !l.trim();
+  let first = null;
+  if (blank(lines[0])) lines.shift();
+  else first = lines.shift().trim();
+  if (lines.length && blank(lines[lines.length - 1])) lines.pop();
+  else if (lines.length) lines[lines.length - 1] = lines[lines.length - 1].trimEnd();
+  if (lines.length && lines.every((l) => blank(l) || /^[ \t]*\*/.test(l))) {
+    for (let i = 0; i < lines.length; i++) lines[i] = lines[i].replace(/^[ \t]*\*/, '');
+  }
+  const widths = lines.filter((l) => !blank(l)).map(indentWidth);
+  const common = widths.length ? Math.min(...widths) : 0;
+  const rest = lines.map((l) => l.slice(Math.min(common, indentWidth(l))));
+  return (first != null ? [first, ...rest] : rest).join('\n');
 }
 
 class ParseError extends Error {
@@ -713,6 +773,7 @@ class Parser {
     this.attachLineComments = attachLineComments;
     this.pendingLineComments = [];
     this.seenComments = new Set();
+    this.unclosedComments = new Set();
     this.listForDepth = 0;
     this.depth = 0;
     this.inRegion = false;
@@ -760,10 +821,35 @@ class Parser {
     return true;
   }
 
+  nextLine(from, to) {
+    let newlines = 0;
+    for (let j = from; j < to; j++) {
+      const ch = this.s[j];
+      if (ch === '\n') newlines++;
+      else if (ch !== ' ' && ch !== '\t' && ch !== '\r') return false;
+    }
+    return newlines === 1;
+  }
+
+  blankLineBetween(from, to) {
+    let sawNewline = false;
+    for (let j = from; j < to; j++) {
+      const ch = this.s[j];
+      if (ch === '\n') {
+        if (sawNewline) return true;
+        sawNewline = true;
+      } else if (ch !== ' ' && ch !== '\t' && ch !== '\r') {
+        sawNewline = false;
+      }
+    }
+    return false;
+  }
+
   drainLineComments(out, { havePrev, comments = null }) {
     const pending = comments ?? this.pendingLineComments;
     if (!pending.length) return;
     for (const c of pending) {
+      const anchor = c.anchor === 'prev' && havePrev ? 'prev' : 'next';
       out.push({
         type: 'commentDecl',
         text: c.text,
@@ -774,7 +860,7 @@ class Parser {
         minimized: false,
         forId: null,
         fromLineComment: true,
-        anchor: c.anchor === 'prev' && havePrev ? 'prev' : 'next',
+        anchor,
         span: [c.start, c.end],
         line: this.lineAt(c.start),
       });
@@ -810,17 +896,62 @@ class Parser {
         while (!this.eof() && this.peek() !== '\n') this.i++;
         if (this.attachLineComments && !this.seenComments.has(start)) {
           this.seenComments.add(start);
+          const body = this.s.slice(textStart, this.i);
+          const ownLine = this.lineIsBlankBefore(start);
+          const column = this.colAt(start);
+          const prev = this.pendingLineComments[this.pendingLineComments.length - 1];
+          if (
+            ownLine &&
+            prev?.lines &&
+            prev.anchor === 'next' &&
+            prev.column === column &&
+            this.nextLine(prev.end, start)
+          ) {
+            prev.lines.push(body);
+            prev.end = this.i;
+            prev.text = lineCommentBodies(prev.lines);
+          } else {
+            this.pendingLineComments.push({
+              start,
+              end: this.i,
+              text: lineCommentBodies([body]),
+              anchor: ownLine ? 'next' : 'prev',
+              lines: [body],
+              column,
+            });
+          }
+        }
+      } else if (ch === '/' && this.peek(1) === '*') {
+        const start = this.i;
+        this.i += 2;
+        const textStart = this.i;
+        while (!this.eof() && !(this.peek() === '*' && this.peek(1) === '/')) this.i++;
+        if (this.eof()) {
+          if (!this.unclosedComments.has(start)) {
+            this.unclosedComments.add(start);
+            const err = this.makeError(
+              'this /* comment is never closed',
+              'add */ where the comment ends; everything after the /* is treated as part of the comment',
+              'FR125',
+              start,
+              start + 2
+            );
+            err.region = { from: start, to: this.len };
+            this.errors.push(err);
+          }
+          continue;
+        }
+        const textEnd = this.i;
+        this.i += 2;
+        if (this.attachLineComments && !this.seenComments.has(start)) {
+          this.seenComments.add(start);
           this.pendingLineComments.push({
             start,
             end: this.i,
-            text: this.s.slice(textStart, this.i).trim(),
+            text: blockCommentText(this.s.slice(textStart, textEnd)),
             anchor: this.lineIsBlankBefore(start) ? 'next' : 'prev',
           });
         }
-      } else if (ch === '/' && this.peek(1) === '*') {
-        this.i += 2;
-        while (!this.eof() && !(this.peek() === '*' && this.peek(1) === '/')) this.i++;
-        if (!this.eof()) this.i += 2;
       } else {
         break;
       }
@@ -1688,7 +1819,9 @@ class Parser {
         this.inRegion = true;
         let body;
         try {
-          body = mergeLeadingComments(this.parseStatementList(true, { scriptLevel: true }));
+          body = mergeLeadingComments(this.parseStatementList(true, { scriptLevel: true }), (a, b) =>
+            this.blankLineBetween(a, b)
+          );
         } finally {
           this.inRegion = false;
         }
@@ -2247,6 +2380,7 @@ class Parser {
             const pos = this.tryAt();
             decl.x = pos.x;
             decl.y = pos.y;
+            decl.positioned = true;
           } else if (w === 'size') {
             this.tryIdentifier();
             this.skipWS();

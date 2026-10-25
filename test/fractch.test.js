@@ -512,7 +512,7 @@ test('bare broadcast names and stop options parse to the right blocks', () => {
   assert.strictEqual(quoted[1].args[0].value.value, 'Load Files');
 });
 
-test('/* */ is stripped; // attaches to the neighbouring block', () => {
+test('/* */ and // attach to the neighbouring block', () => {
   const src = '// header note\nwhen flag {\n  say "hi"; /* block { ( */ // greet\n  move 10;\n}\n';
   const { scripts, errors } = parseFractch(src);
   assert.deepStrictEqual(errors, []);
@@ -524,11 +524,11 @@ test('/* */ is stripped; // attaches to the neighbouring block', () => {
   const comments = scripts[0].calls.filter((c) => c.type === 'commentDecl');
   assert.deepStrictEqual(
     comments.map((c) => c.text),
-    ['header note', 'greet']
+    ['header note', 'block { (', 'greet']
   );
   assert.deepStrictEqual(
     comments.map((c) => c.anchor),
-    ['next', 'prev']
+    ['next', 'prev', 'prev']
   );
   assert.strictEqual(checkFractch(src).length, 0, 'lint should ignore // and /* */ contents');
 });

@@ -1,9 +1,10 @@
 import {
   createStringifier,
   commentDeclLine,
+  freeCommentText,
+  commentRun,
+  leadingCommentRun,
   withAttachedComments,
-  isSimpleAttachedComment,
-  lineCommentText,
   scriptLocalScope,
 } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
@@ -21,7 +22,9 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
   const header =
     `/**\n` + ` * target: ${escapeHeader(target.name)}\n` + ` * targetId: ${escapeHeader(target.id ?? '')}\n` + ` */\n`;
   const assets = includeAssets ? emitAssetDecls(target) : '';
-  const bodies = entries.map(({ script, subgraph }) => emitScriptBody({ script, subgraph, context, cfg }));
+  const bodies = entries.map(({ script, subgraph, comment }) =>
+    comment ? freeCommentText(comment) : emitScriptBody({ script, subgraph, context, cfg })
+  );
   return `${header}\n${[prelude, assets, bodies.join('\n\n')].filter(Boolean).join('\n\n')}\n`;
 }
 
@@ -156,9 +159,7 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
     if (line) lines.push(line);
   }
 
-  for (const c of workspaceComments) {
-    lines.push(commentDeclLine(c));
-  }
+  for (const w of commentRun(workspaceComments)) lines.push(w.text);
 
   return lines.join('\n');
 }
@@ -225,16 +226,20 @@ export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
       S.setContext({ ...context, scopeParamNames, scopeParamKinds });
     }
     let inner = subgraph[topBlockId]?.next ? S.renderBody(subgraph, subgraph[topBlockId].next, cfg) : '';
-    inner = prependOwnComments(context, topBlockId, inner);
+    const { lines: above, moved } = leadingCommentRun(context?.blockComments?.get(topBlockId));
+    inner = prependComments(moved, inner);
+    const lead = above.map((text) => `${text}\n`).join('');
     const at = atText(subgraph[topBlockId]);
-    body = inner ? `${sig}${at} {\n${indentBlock(inner)}\n}` : `${sig}${at} {}`;
+    body = inner ? `${lead}${sig}${at} {\n${indentBlock(inner)}\n}` : `${lead}${sig}${at} {}`;
   } else {
     const top = subgraph[topBlockId];
     const sugar = top ? whenSugarFor(top, context, subgraph, S) : null;
     if (sugar) {
       let rest = top.next ? S.renderBody(subgraph, top.next, cfg) : '';
-      rest = prependOwnComments(context, topBlockId, rest, true);
-      body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
+      const { lines: above, moved } = leadingCommentRun(context?.blockComments?.get(topBlockId));
+      rest = prependComments(moved, rest);
+      const lead = above.map((text) => `${text}\n`).join('');
+      body = `${lead}when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
       const inner = renderFallbackBody(subgraph, topBlockId, cfg, context, S);
       body = `script${atText(top)} {\n${indentBlock(inner)}\n}`;
@@ -316,12 +321,9 @@ function renderFallbackBody(subgraph, topId, cfg, context, S) {
   return lines.join('\n');
 }
 
-function prependOwnComments(context, topBlockId, bodyText, explicit = false) {
-  const own = context?.blockComments?.get(topBlockId);
+function prependComments(own, bodyText) {
   if (!own?.length) return bodyText;
-  const lines = own
-    .map((c) => (!explicit && isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c)))
-    .join('\n');
+  const lines = own.map((c) => commentDeclLine(c)).join('\n');
   return bodyText ? `${lines}\n${bodyText}` : lines;
 }
 

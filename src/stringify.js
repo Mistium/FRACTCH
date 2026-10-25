@@ -327,43 +327,76 @@ function linearizeWithIds(subgraph, topId) {
   return { ids: arr, danglingId: null };
 }
 
+export function isPlainCommentText(text) {
+  const s = String(text ?? '');
+  if (s !== s.trim() || s.includes('\r') || s.includes('"""') || hasMarkChar(s)) return false;
+  if (!s.includes('\n')) return true;
+  return !s.includes('*/') && s.split('\n').every((l) => l === l.trimEnd());
+}
+
 export function isSimpleAttachedComment(c) {
-  const text = String(c.text ?? '');
   return (
-    (c.x ?? 0) === 0 &&
-    (c.y ?? 0) === 0 &&
-    (c.width ?? 200) === 200 &&
-    (c.height ?? 200) === 200 &&
-    !c.minimized &&
-    !c.forId &&
-    !/[\n\r]/.test(text) &&
-    !text.includes('"""') &&
-    !hasMarkChar(text) &&
-    text === text.trim()
+    (c.width ?? 200) === 200 && (c.height ?? 200) === 200 && !c.minimized && !c.forId && isPlainCommentText(c.text)
   );
 }
 
 export function lineCommentText(c) {
   const text = String(c.text ?? '');
+  if (text.includes('\n')) return ['/*', ...text.split('\n').map((l) => (l ? ` * ${l}` : ' *')), ' */'].join('\n');
   return text ? `// ${text}` : '//';
+}
+
+export function freeCommentText(c) {
+  return isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c);
+}
+
+export function commentRun(comments, { followedByLineComment = false } = {}) {
+  const out = [];
+  let nextIsLine = followedByLineComment;
+  for (let i = comments.length - 1; i >= 0; i--) {
+    const c = comments[i];
+    const text = String(c.text ?? '');
+    let written;
+    if (!isSimpleAttachedComment(c) || (nextIsLine && !text.includes('\n') && text.includes('*/'))) {
+      written = { comment: c, text: commentDeclLine(c), explicit: true };
+    } else if (nextIsLine && !text.includes('\n')) {
+      written = { comment: c, text: `/* ${text} */`, explicit: false };
+    } else {
+      written = { comment: c, text: lineCommentText(c), explicit: false };
+    }
+    nextIsLine = !written.explicit && written.text.startsWith('//');
+    out.unshift(written);
+  }
+  return out;
+}
+
+export function leadingCommentRun(comments) {
+  let kept = (comments || []).filter((c) => isSimpleAttachedComment(c));
+  const moved = (comments || []).filter((c) => !isSimpleAttachedComment(c));
+  for (;;) {
+    const run = commentRun(kept);
+    const explicit = run.filter((w) => w.explicit).map((w) => w.comment);
+    if (!explicit.length) return { lines: run.map((w) => w.text), moved };
+    kept = kept.filter((c) => !explicit.includes(c));
+    moved.push(...explicit);
+  }
 }
 
 export function withAttachedComments(line, attached) {
   if (!attached?.length) return line;
-  const before = [];
-  const after = [];
-  for (const c of attached) (isSimpleAttachedComment(c) ? before : after).push(c);
+  const { lines: before, moved: after } = leadingCommentRun(attached);
   let out = '';
-  if (before.length) out += before.map(lineCommentText).join('\n') + '\n';
+  if (before.length) out += before.join('\n') + '\n';
   out += line;
-  if (after.length) out += '\n' + after.map(commentDeclLine).join('\n');
+  if (after.length) out += '\n' + after.map((c) => commentDeclLine(c)).join('\n');
   return out;
 }
 
 export function commentDeclLine(c) {
   const parts = [`comment ${JSON.stringify(String(c.text ?? ''))}`];
-  if ((c.x ?? 0) !== 0 || (c.y ?? 0) !== 0) parts.push(`at ${numToken(c.x)},${numToken(c.y)}`);
-  parts.push(`size ${numToken(c.width ?? 200)}x${numToken(c.height ?? 200)}`);
+  if ((c.width ?? 200) !== 200 || (c.height ?? 200) !== 200) {
+    parts.push(`size ${numToken(c.width ?? 200)}x${numToken(c.height ?? 200)}`);
+  }
   if (c.minimized) parts.push('minimized');
   if (c.forId) parts.push(`for ${JSON.stringify(String(c.forId))}`);
   return parts.join(' ') + ';';

@@ -52,10 +52,23 @@ export function parseMembershipText(text) {
   for (const [topId, moduleId] of Object.entries(modules)) {
     if (typeof moduleId === 'string') map.set(topId, { region: null, module: moduleId });
   }
+  map.comments = parseCommentEntries(data.comments);
   return map;
 }
 
-export function membershipText(entries) {
+function parseCommentEntries(raw) {
+  const out = new Map();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [commentId, entry] of Object.entries(raw)) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    const region = typeof entry.region === 'string' && entry.region && entry.region !== 'main' ? entry.region : null;
+    const before = typeof entry.before === 'string' && entry.before ? entry.before : null;
+    out.set(commentId, { region, before });
+  }
+  return out;
+}
+
+export function membershipText(entries, commentEntries = []) {
   const scripts = {};
   const modules = {};
   for (const [topId, entry] of entries) {
@@ -64,7 +77,34 @@ export function membershipText(entries) {
   }
   const data = { version: 1, scripts };
   if (Object.keys(modules).length) data.modules = modules;
+  const comments = {};
+  for (const [commentId, entry] of commentEntries) {
+    const out = {};
+    if (entry?.region && entry.region !== 'main') out.region = entry.region;
+    if (entry?.before) out.before = entry.before;
+    comments[commentId] = out;
+  }
+  if (Object.keys(comments).length) data.comments = comments;
   return MEMBERSHIP_MAGIC + JSON.stringify(data);
+}
+
+export function commentBeforeAnchors(items) {
+  const out = new Map();
+  const sorted = [...items].sort((a, b) => (a.file || 0) - (b.file || 0) || a.at - b.at);
+  for (let i = 0; i < sorted.length; i++) {
+    const item = sorted[i];
+    if (item.kind !== 'comment') continue;
+    let before = null;
+    for (let j = i + 1; j < sorted.length; j++) {
+      const next = sorted[j];
+      if (next.kind === 'script' && next.file === item.file && (next.region ?? null) === (item.region ?? null)) {
+        before = next.topId;
+        break;
+      }
+    }
+    out.set(item.commentId, { region: item.region ?? null, before });
+  }
+  return out;
 }
 
 export function statementAnchor(blocks, id) {
@@ -129,8 +169,13 @@ export function readMembership(target) {
     }
   }
   const authoritative = map != null;
+  const comments = map?.comments || new Map();
   return {
     authoritative,
+    comments,
+    commentEntryFor(commentId) {
+      return comments.get(commentId) || null;
+    },
     commentId: found?.id ?? null,
     hasLegacy,
     diagnostics,
