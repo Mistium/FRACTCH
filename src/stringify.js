@@ -327,25 +327,32 @@ function linearizeWithIds(subgraph, topId) {
   return { ids: arr, danglingId: null };
 }
 
-export function isSimpleAttachedComment(c) {
-  const text = String(c.text ?? '');
+export function isPlainCommentText(text) {
+  const s = String(text ?? '');
+  if (s !== s.trim() || s.includes('\r') || s.includes('"""') || hasMarkChar(s)) return false;
+  if (!s.includes('\n')) return true;
+  return !s.includes('*/') && s.split('\n').every((l) => l === l.trimEnd());
+}
+
+export function isSimpleAttachedComment(c, { ignorePosition = false } = {}) {
   return (
-    (c.x ?? 0) === 0 &&
-    (c.y ?? 0) === 0 &&
+    (ignorePosition || ((c.x ?? 0) === 0 && (c.y ?? 0) === 0)) &&
     (c.width ?? 200) === 200 &&
     (c.height ?? 200) === 200 &&
     !c.minimized &&
     !c.forId &&
-    !/[\n\r]/.test(text) &&
-    !text.includes('"""') &&
-    !hasMarkChar(text) &&
-    text === text.trim()
+    isPlainCommentText(c.text)
   );
 }
 
 export function lineCommentText(c) {
   const text = String(c.text ?? '');
+  if (text.includes('\n')) return ['/*', ...text.split('\n').map((l) => (l ? ` * ${l}` : ' *')), ' */'].join('\n');
   return text ? `// ${text}` : '//';
+}
+
+export function freeCommentText(c, opts) {
+  return isSimpleAttachedComment(c, opts) ? lineCommentText(c) : commentDeclLine(c);
 }
 
 export function withAttachedComments(line, attached) {

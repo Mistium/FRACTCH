@@ -94,7 +94,7 @@ if (!result.diagnostics.some((d) => d.severity === 'error')) {
 
 Returns `{text, sourceMap, lockedScripts}`.
 
-- `text`: `import` lines, the target's `var`/`cloud`/`watch` lines, floating comments, then scripts and regions. Sprite properties, costumes, sounds, `use` lines, reserved comments (`_twconfig_`, `WORKSPACE_BOOKMARKS:`, `_gamepad_`) and the membership map comment are never in it.
+- `text`: `import` lines, the target's `var`/`cloud`/`watch` lines, floating comments that the membership map does not place, then scripts and regions with their free comments. Sprite properties, costumes, sounds, `use` lines, reserved comments (`_twconfig_`, `WORKSPACE_BOOKMARKS:`, `_gamepad_`) and the membership map comment are never in it.
 - `sourceMap`: `{scripts, blocks, comments, declarations, regions}`, each a map from id (or `var:name`/`list:name`, or region name) to `{from, to, line, endLine}`. Blocks that are written as part of a larger form map to their nearest written ancestor (`via`). `findInSourceMap(sourceMap, offset)` gives the innermost entry at an offset.
 - `lockedScripts`: `[{topId, reason, from, to, line, endLine}]` for every script that would not come back structurally equal (the step 0 lock check, which builds the text once). `{lockCheck: false}` skips it. A script that can't be written at all becomes a `locked script "<id>";` line.
 
@@ -115,7 +115,7 @@ Maps a result onto `vm.replaceTargetScripts(targetId, change)`: `{format: 'sb3',
 
 ### Membership map
 
-Which file (region) or stdlib module a script belongs to lives in one comment per target with `blockId: null` whose text is `_fractch_map_` followed by JSON `{version: 1, scripts: {topId: region | "main"}, modules?: {topId: moduleId}}`. Comments longer than 8000 characters are split into `text` plus `extraText`, and every reader joins them. A present map is authoritative; without one, the 0.9 markers (`fractch:file:` hat comments and `fractch_h..._fractch_` top ids) are read. Pack writes the map and no longer writes the old markers.
+Which file (region) or stdlib module a script belongs to lives in one comment per target with `blockId: null` whose text is `_fractch_map_` followed by JSON `{version: 1, scripts: {topId: region | "main"}, modules?: {topId: moduleId}, comments?: {commentId: {region?, before?}}}`. A `comments` entry places a free comment: `region` is omitted for `main`, and `before` is the top block id of the script that follows it in the same file, omitted when the comment ends its file. A comment whose `before` script is gone goes at the end of its file; a comment with no entry goes after the declarations in `main`. Comments longer than 8000 characters are split into `text` plus `extraText`, and every reader joins them. A present map is authoritative; without one, the 0.9 markers (`fractch:file:` hat comments and `fractch_h..._fractch_` top ids) are read. Pack writes the map and no longer writes the old markers.
 
 ### Reference data
 

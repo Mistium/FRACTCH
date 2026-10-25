@@ -1,7 +1,7 @@
 import { parseFractch, closestMatch, STATEMENT_KEYWORDS } from './parse.js';
 import { buildBlocksFromCalls, collapseOperators, IdGen, synthesizeProccode } from './buildBlocks.js';
 import { emitScriptBody, varNameToken, varValueText, watchDeclLine, indentBlock } from './emit.js';
-import { commentDeclLine, EXTENDABLE_OPERATORS } from './stringify.js';
+import { commentDeclLine, EXTENDABLE_OPERATORS, freeCommentText } from './stringify.js';
 import { hiddenShadowToWrite, sameHiddenShadow } from './shadowDefaults.js';
 import { buildProcByCode, routeMonitors, topLevelPrimitiveBlock } from './convert.js';
 import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
@@ -17,6 +17,7 @@ import {
 } from './pack.js';
 import {
   MEMBERSHIP_COMMENT_ID,
+  commentBeforeAnchors,
   commentText,
   isLegacyMarkerComment,
   isMembershipComment,
@@ -547,6 +548,25 @@ export function emitTarget(context, targetId, inputOpts = {}) {
     }
   }
 
+  const floatingById = new Map(floating.map((c) => [c.id, c]));
+  const looseComments = [];
+  const mappedIds = new Set();
+  for (const [id, entry] of membership.comments) {
+    const c = floatingById.get(id);
+    if (!c || mappedIds.has(id)) continue;
+    mappedIds.add(id);
+    let list = main;
+    if (entry.region) {
+      if (!regions.has(entry.region)) regions.set(entry.region, []);
+      list = regions.get(entry.region);
+    }
+    const item = { comment: c, body: freeCommentText(c, { ignorePosition: true }) };
+    const at = entry.before ? list.findIndex((it) => it.script?.topBlockId === entry.before) : -1;
+    if (at >= 0) list.splice(at, 0, item);
+    else list.push(item);
+  }
+  for (const c of floating) if (!mappedIds.has(c.id)) looseComments.push(c);
+
   const decls = declarationLines(target);
   const monitors = (
     routeMonitors({ monitors: contextMonitors(context) }, contextTargets(context)).get(target.name) || []
@@ -570,16 +590,23 @@ export function emitTarget(context, targetId, inputOpts = {}) {
       }
       if (monitors.length) text += (decls.length ? '\n' : '') + monitors.filter(Boolean).join('\n');
     }
-    if (floating.length) {
+    if (looseComments.length) {
       section('');
-      floating.forEach((c, i) => {
+      looseComments.forEach((c, i) => {
         if (i) text += '\n';
-        const line = commentDeclLine(c);
+        const line = freeCommentText(c, { ignorePosition: true });
         sourceMap.comments[c.id] = { from: text.length, to: text.length + line.length };
         text += line;
       });
     }
     const placeScript = (item, prefix) => {
+      if (item.comment) {
+        const body = prefix ? indentBlock(item.body) : item.body;
+        const from = text.length + (body.length - body.trimStart().length);
+        text += body;
+        sourceMap.comments[item.comment.id] = { from, to: text.length };
+        return;
+      }
       if (prefix) {
         const indented = indentBlock(item.body);
         const startOffset = text.length + (indented.length - indented.trimStart().length);
@@ -633,7 +660,7 @@ export function emitTarget(context, targetId, inputOpts = {}) {
       }
     }
     for (const item of [...main, ...[...regions.values()].flat()]) {
-      if (!broken.has(item.script.topBlockId)) continue;
+      if (!item.script || !broken.has(item.script.topBlockId)) continue;
       item.body = `locked script ${JSON.stringify(item.script.topBlockId)};`;
       locked.push({ topId: item.script.topBlockId, reason: 'fractch could not write this script as valid text' });
     }
@@ -2423,9 +2450,17 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
     prevCommentByText.set(id, normalizeLines(String(previous.text).slice(range.from, range.to)));
   }
   const usedComment = new Set();
+  const anchorItems = [];
+  for (const [topId, range] of Object.entries(sourceMap.scripts)) {
+    anchorItems.push({ kind: 'script', at: range.from, file: 0, region: regionAt(range.from), topId });
+  }
   for (const c of floatingNew) {
     const raw = c.span ? source.slice(c.span[0], c.span[1]) : commentDeclLine(c);
     const norm = normalizeLines(raw);
+    const textValue = String(c.text ?? '');
+    const anchorItem = (commentId) => {
+      if (c.span) anchorItems.push({ kind: 'comment', at: c.span[0], file: 0, region: c.region ?? null, commentId });
+    };
     let match = null;
     for (const [id, t] of prevCommentByText) {
       if (!usedComment.has(id) && liveFloating.has(id) && t === norm) {
@@ -2445,17 +2480,36 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
       for (const [id, lc] of liveFloating) {
         if (usedComment.has(id)) continue;
         if (
-          commentText(lc) === String(c.text ?? '') &&
-          Math.round(lc.x ?? 0) === Math.round(fields.x) &&
-          Math.round(lc.y ?? 0) === Math.round(fields.y)
+          commentText(lc) === textValue &&
+          (!c.positioned ||
+            (Math.round(lc.x ?? 0) === Math.round(fields.x) && Math.round(lc.y ?? 0) === Math.round(fields.y)))
         ) {
           match = id;
           break;
         }
       }
     }
+    if (!match && c.span) {
+      const start = oldOffset(c.span[0]);
+      for (const [id, range] of Object.entries(previous.sourceMap?.comments || {})) {
+        if (!usedComment.has(id) && liveFloating.has(id) && range.from === start) {
+          match = id;
+          break;
+        }
+      }
+    }
+    if (match && !c.positioned) {
+      const lc = liveFloating.get(match);
+      fields.x = lc.x ?? 0;
+      fields.y = lc.y ?? 0;
+    } else if (!match && !c.positioned) {
+      fields.x = 0;
+      fields.y = lowestY == null ? newScriptIndex * 200 : lowestY + 200 * (newScriptIndex + 1);
+      newScriptIndex++;
+    }
     if (match) {
       usedComment.add(match);
+      anchorItem(match);
       const lc = liveFloating.get(match);
       const same =
         commentText(lc) === String(c.text ?? '') &&
@@ -2472,20 +2526,23 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
     const cid = mint(new Set([...Object.keys(target.comments || {}), ...Object.keys(outComments)]));
     outComments[cid] = { ...fields, ...splitCommentText(c.text) };
     created.comments.push(cid);
+    anchorItem(cid);
     if (c.span) sourceMap.comments[cid] = { from: c.span[0], to: c.span[1] };
   }
   for (const id of liveFloating.keys()) if (!usedComment.has(id)) removed.comments.push(id);
+  const commentEntries = commentBeforeAnchors(anchorItems);
 
   const membershipIds = new Set(membershipEntries.keys());
   const needsMap =
     membership.authoritative ||
     membership.hasLegacy ||
+    commentEntries.size > 0 ||
     [...membershipEntries.values()].some((e) => e.region || e.module);
   if (needsMap) {
     const ordered = [...membershipEntries].filter(([id]) => membershipIds.has(id) && outBlocks[id]);
     const mapId = membership.commentId || MEMBERSHIP_COMMENT_ID;
     const old = mapId ? target.comments?.[mapId] : null;
-    const textValue = membershipText(ordered);
+    const textValue = membershipText(ordered, commentEntries);
     outComments[mapId] =
       old && commentText(old) === textValue
         ? old

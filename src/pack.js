@@ -5,7 +5,7 @@ import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode, lis
 import { checkFractch } from './lint.js';
 import { cleanRelStem } from './fileMarkers.js';
 import { diagnostic } from './diagnostics.js';
-import { MEMBERSHIP_COMMENT_ID, membershipText, splitCommentText } from './membership.js';
+import { MEMBERSHIP_COMMENT_ID, commentBeforeAnchors, membershipText, splitCommentText } from './membership.js';
 import { STDLIB_MODULES, STDLIB_METHODS, resolveStdlibModules, resolvePackageMethod } from './stdlib/index.js';
 import { md5hex } from './md5.js';
 
@@ -39,6 +39,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   const importNsMaps = new Map();
   const renamePlans = new Map();
   let commentSeq = 0;
+  let fileSeq = 0;
+  const commentAnchors = new Map();
   let totalScripts = 0;
   let parsedScripts = 0;
 
@@ -117,9 +119,22 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
         renamePlans.set(manifestName, parsed.spriteProps.name);
       }
       for (const w of parsed.watches || []) watchDecls.push({ targetName: manifestName, decl: w });
+      const fileIndex = ++fileSeq;
+      const sourceStem = cleanRelStem(sourceRel);
+      const fileRegion = sourceStem && sourceStem !== 'main' ? sourceStem : null;
+      if (!commentAnchors.has(manifestName)) commentAnchors.set(manifestName, []);
       for (const c of parsed.comments || []) {
         if (!manifestTarget.comments) manifestTarget.comments = {};
         const cid = uniqueCommentId(manifestTarget.comments, `~c${++commentSeq}`);
+        if (c.span) {
+          commentAnchors.get(manifestName).push({
+            kind: 'comment',
+            at: c.span[0],
+            file: fileIndex,
+            region: c.region || fileRegion,
+            commentId: cid,
+          });
+        }
         manifestTarget.comments[cid] = {
           blockId: c.forId || null,
           x: c.x ?? 0,
@@ -138,8 +153,6 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       const fileScripts = parsed.scripts?.length
         ? parsed.scripts
         : [{ kind: 'implicit', calls: parsed.calls, x: null, y: null }];
-      const sourceStem = cleanRelStem(sourceRel);
-      const fileRegion = sourceStem && sourceStem !== 'main' ? sourceStem : null;
       fileScripts.forEach((s, i) => {
         targets.get(manifestName).stacks.push({
           hatOpcode: s.kind === 'implicit' && i === 0 ? headerInfo?.hatOpcode || inferredHat : null,
@@ -148,6 +161,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
           x: s.x ?? (i === 0 ? (headerInfo?.x ?? null) : null),
           y: s.y ?? (i === 0 ? (headerInfo?.y ?? null) : null),
           membership: { region: s.region || fileRegion, module: null },
+          anchor: s.span ? { at: s.span[0], file: fileIndex } : null,
         });
         registerProcDefs(procArgMaps, identToProccode, procMetaMaps, manifestName, s.calls);
       });
@@ -217,6 +231,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
     const procMetaForTarget = withGlobalFallback(globalProcMeta, procMetaMaps.get(name));
     const localTags = computeLocalTags(data.stacks);
     const membershipEntries = new Map();
+    const anchorItems = [...(commentAnchors.get(name) || [])];
     for (let stackI = 0; stackI < data.stacks.length; stackI++) {
       const s = data.stacks[stackI];
 
@@ -256,6 +271,9 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       }
       if (topId && blocks[topId] && blocks[topId].topLevel && s.membership) {
         membershipEntries.set(topId, s.membership);
+        if (s.anchor) {
+          anchorItems.push({ kind: 'script', ...s.anchor, region: s.membership.region || null, topId });
+        }
       }
       if (commentsOut.length && manifestTarget) {
         if (!manifestTarget.comments) manifestTarget.comments = {};
@@ -276,7 +294,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       stackIndex++;
       scripts.push({ oldTopId: s.topBlockId || null, blocks, newTopId: topId });
     }
-    if (manifestTarget && [...membershipEntries.values()].some((e) => e.region || e.module)) {
+    const commentEntries = commentBeforeAnchors(anchorItems);
+    if (manifestTarget && (commentEntries.size || [...membershipEntries.values()].some((e) => e.region || e.module))) {
       if (!manifestTarget.comments) manifestTarget.comments = {};
       const cid = uniqueCommentId(manifestTarget.comments, MEMBERSHIP_COMMENT_ID);
       manifestTarget.comments[cid] = {
@@ -286,7 +305,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
         width: 200,
         height: 200,
         minimized: true,
-        ...splitCommentText(membershipText(membershipEntries)),
+        ...splitCommentText(membershipText(membershipEntries, commentEntries)),
       };
     }
     builtTargets.push({ name, scripts });

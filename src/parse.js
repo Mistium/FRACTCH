@@ -484,13 +484,15 @@ const NON_ATTACHABLE_TOP = new Set([
   'platformDecl',
   'spriteDecl',
   'assetDecl',
+  'regionDecl',
+  'lockedScript',
 ]);
 
 function mergeLeadingComments(stmts) {
   const out = [];
   for (let i = 0; i < stmts.length; i++) {
     const st = stmts[i];
-    if (st.type === 'commentDecl' && st.fromLineComment) {
+    if (st.type === 'commentDecl' && st.fromLineComment && !st.detached) {
       if (st.anchor === 'next') {
         let j = i + 1;
         while (j < stmts.length && stmts[j].type === 'commentDecl') j++;
@@ -659,14 +661,62 @@ export function preprocess(text) {
   return stripHeader(text);
 }
 
+const HEADER_KEYS = new Set([
+  'target',
+  'targetId',
+  'topBlockId',
+  'hatOpcode',
+  'threadIndex',
+  'pos',
+  'count',
+  'scripts',
+]);
+
+function isFileHeader(body) {
+  const lines = String(body)
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^\s*\*+/, '').trim())
+    .filter(Boolean);
+  if (!lines.length) return false;
+  return lines.every((l) => {
+    if (/^fractch index\b/.test(l)) return true;
+    const m = /^([A-Za-z]+):(\s|$)/.exec(l);
+    return !!m && HEADER_KEYS.has(m[1]);
+  });
+}
+
 function stripHeader(text) {
   const s = String(text || '').replace(/^\uFEFF/, '');
   if (s.startsWith('/**')) {
-    const end = s.indexOf('*/');
+    const end = s.indexOf('*/', 3);
 
-    if (end >= 0) return s.slice(0, end + 2).replace(/[^\n]/g, ' ') + s.slice(end + 2);
+    if (end >= 0 && isFileHeader(s.slice(3, end))) return s.slice(0, end + 2).replace(/[^\n]/g, ' ') + s.slice(end + 2);
   }
   return s;
+}
+
+function indentWidth(line) {
+  return line.length - line.replace(/^[ \t]+/, '').length;
+}
+
+export function blockCommentText(body) {
+  let raw = String(body ?? '');
+  if (raw.startsWith('*')) raw = raw.slice(1);
+  if (!/[\r\n]/.test(raw)) return raw.trim();
+  const lines = raw.split(/\r?\n/);
+  const blank = (l) => !l.trim();
+  let first = null;
+  if (blank(lines[0])) lines.shift();
+  else first = lines.shift().trim();
+  if (lines.length && blank(lines[lines.length - 1])) lines.pop();
+  else if (lines.length) lines[lines.length - 1] = lines[lines.length - 1].trimEnd();
+  if (lines.length && lines.every((l) => blank(l) || /^[ \t]*\*/.test(l))) {
+    for (let i = 0; i < lines.length; i++) lines[i] = lines[i].replace(/^[ \t]*\*/, '');
+  }
+  const widths = lines.filter((l) => !blank(l)).map(indentWidth);
+  const common = widths.length ? Math.min(...widths) : 0;
+  const rest = lines.map((l) => l.slice(Math.min(common, indentWidth(l))));
+  return (first != null ? [first, ...rest] : rest).join('\n');
 }
 
 class ParseError extends Error {
@@ -760,10 +810,26 @@ class Parser {
     return true;
   }
 
-  drainLineComments(out, { havePrev, comments = null }) {
+  blankLineBetween(from, to) {
+    let sawNewline = false;
+    for (let j = from; j < to; j++) {
+      const ch = this.s[j];
+      if (ch === '\n') {
+        if (sawNewline) return true;
+        sawNewline = true;
+      } else if (ch !== ' ' && ch !== '\t' && ch !== '\r') {
+        sawNewline = false;
+      }
+    }
+    return false;
+  }
+
+  drainLineComments(out, { havePrev, comments = null, detachable = false }) {
     const pending = comments ?? this.pendingLineComments;
     if (!pending.length) return;
     for (const c of pending) {
+      const anchor = c.anchor === 'prev' && havePrev ? 'prev' : 'next';
+      const detached = detachable && anchor === 'next' && this.blankLineBetween(c.end, this.i);
       out.push({
         type: 'commentDecl',
         text: c.text,
@@ -774,7 +840,8 @@ class Parser {
         minimized: false,
         forId: null,
         fromLineComment: true,
-        anchor: c.anchor === 'prev' && havePrev ? 'prev' : 'next',
+        anchor,
+        ...(detached ? { detached: true } : {}),
         span: [c.start, c.end],
         line: this.lineAt(c.start),
       });
@@ -818,9 +885,22 @@ class Parser {
           });
         }
       } else if (ch === '/' && this.peek(1) === '*') {
+        const start = this.i;
         this.i += 2;
+        const textStart = this.i;
         while (!this.eof() && !(this.peek() === '*' && this.peek(1) === '/')) this.i++;
-        if (!this.eof()) this.i += 2;
+        if (this.eof()) continue;
+        const textEnd = this.i;
+        this.i += 2;
+        if (this.attachLineComments && !this.seenComments.has(start)) {
+          this.seenComments.add(start);
+          this.pendingLineComments.push({
+            start,
+            end: this.i,
+            text: blockCommentText(this.s.slice(textStart, textEnd)),
+            anchor: this.lineIsBlankBefore(start) ? 'next' : 'prev',
+          });
+        }
       } else {
         break;
       }
@@ -878,7 +958,7 @@ class Parser {
     let implicitStart = -1;
     for (;;) {
       this.skipWS();
-      this.drainLineComments(stmts, { havePrev: haveRealPrev });
+      this.drainLineComments(stmts, { havePrev: haveRealPrev, detachable: scriptLevel });
       if (this.eof()) break;
       if (this.peek() === '}') {
         if (stopAtBrace) break;
@@ -2247,6 +2327,7 @@ class Parser {
             const pos = this.tryAt();
             decl.x = pos.x;
             decl.y = pos.y;
+            decl.positioned = true;
           } else if (w === 'size') {
             this.tryIdentifier();
             this.skipWS();

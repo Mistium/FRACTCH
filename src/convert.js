@@ -77,11 +77,19 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
     const { workspaceComments, blockComments } = routeComments(target);
     const membership = readMembership(target);
     for (const d of membership.diagnostics) diagnostics.push(diagnostic(d.code, d.message, { file: targetDir }));
+    const workspaceById = new Map(workspaceComments.map((c) => [c.id, c]));
+    const mappedComments = [];
+    for (const [id, entry] of membership.comments) {
+      const c = workspaceById.get(id);
+      if (!c) continue;
+      workspaceById.delete(id);
+      mappedComments.push({ comment: c, entry });
+    }
     const prelude = emitTargetPrelude({
       projectJson,
       target,
       monitors: monitorsByTarget.get(target.name) || [],
-      workspaceComments,
+      workspaceComments: workspaceComments.filter((c) => workspaceById.has(c.id)),
     });
 
     const scripts = groupTopLevelScripts(target);
@@ -160,6 +168,18 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       groups.get(groupKey).push({ script, subgraph, procLabel });
     }
 
+    for (const { comment, entry } of mappedComments) {
+      const groupKey = cleanRelStem(entry.region) || 'main';
+      if (!groups.has(groupKey)) groups.set(groupKey, []);
+      if (!filenameForGroup.has(groupKey)) {
+        filenameForGroup.set(groupKey, uniqueFilename(`${groupKey}.fractch`, usedNames));
+      }
+      const list = groups.get(groupKey);
+      const at = entry.before ? list.findIndex((e) => e.script?.topBlockId === entry.before) : -1;
+      if (at >= 0) list.splice(at, 0, { comment });
+      else list.push({ comment });
+    }
+
     let finalPrelude = prelude;
     if (stdlibModules.size) {
       const importLines = [...stdlibModules].map((m) => `import ${JSON.stringify(m)};`).join('\n');
@@ -185,9 +205,10 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       await vfs.writeFile(filePath, content);
       const rel = `./${targetDir}/${filename}`;
       const procLabels = entries.map((e) => e.procLabel).filter(Boolean);
+      const scriptEntries = entries.filter((e) => e.script);
       files.push({
         target: target.name,
-        hatOpcode: entries.length === 1 ? entries[0].script.hatOpcode || 'nohat' : 'mixed',
+        hatOpcode: scriptEntries.length === 1 ? scriptEntries[0].script.hatOpcode || 'nohat' : 'mixed',
         filePath,
         rel,
         targetRel: `./${filename}`,
@@ -330,7 +351,7 @@ function routeComments(target) {
   const blockComments = new Map();
   const fileMarkers = new Map();
   const blocks = target.blocks || {};
-  for (const c of Object.values(target.comments || {})) {
+  for (const [id, c] of Object.entries(target.comments || {})) {
     if (!c || typeof c !== 'object') continue;
     if (isMembershipComment(c)) continue;
     const markerStem = decodeFileStemFromComment(commentText(c));
@@ -340,6 +361,7 @@ function routeComments(target) {
       continue;
     }
     const decl = {
+      id,
       text: commentText(c),
       x: c.x ?? 0,
       y: c.y ?? 0,

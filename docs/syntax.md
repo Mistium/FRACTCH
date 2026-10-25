@@ -1,6 +1,6 @@
 # Syntax Reference
 
-A `.fractch` file holds any number of scripts plus asset declarations. Two comment styles: `// line` **attaches** to the block on the line directly below it (or, when it trails code, to that line's block) and round-trips as a Scratch block comment; `/* block */` is pure formatting and never attaches. Use `//` for notes you want in the project, `/* */` for notes you don't. Semicolons are optional. Generated files may start with a `/** ... */` header comment carrying routing metadata; it is optional and never contains block data.
+A `.fractch` file holds any number of scripts plus asset declarations. Both comment styles, `// line` and `/* block */`, become Scratch comments. A comment **attaches** to the block on the line directly below it (or, when it trails code, to that line's block). At the top level of a file or region, a comment followed by a blank line, or with nothing after it, stays a free workspace comment and keeps its place between scripts. A `/* */` comment's text drops a blank first and last line, a ` * ` gutter when every line has one, and the common indentation, so `/**` doc comments read naturally. Semicolons are optional. Generated files may start with a `/** ... */` header comment carrying routing metadata (`target:`, `targetId:` and similar keys); it is optional, never contains block data and never becomes a Scratch comment.
 
 Strings are `"double-quoted"` with `\" \\ \n \t \r` escapes, or `"""raw triple-quoted"""`; raw strings run to the next `"""` with real newlines and no escape processing (emitted automatically for values containing newlines).
 
@@ -30,7 +30,7 @@ region "Enemies" {
 }
 ```
 
-Regions only hold whole scripts and can't be nested. Membership is stored in one hidden comment per sprite whose text starts with `_fractch_map_`; it never appears in the text.
+Regions only hold whole scripts and free comments, and can't be nested. Membership is stored in one hidden comment per sprite whose text starts with `_fractch_map_`; it never appears in the text. It also records which file each free comment is in and which script follows it, so comments stay where they were written, and a region holding only comments keeps its file.
 
 The editor writes `locked script "<top block id>";` for a script it could not show as text. The line keeps that script exactly as it is; delete the line to delete the script.
 
@@ -79,7 +79,7 @@ comment "hello" at 50,50 size 350x170;            // workspace comment
 - `var` in a sprite's file makes a for-this-sprite-only variable; in the Stage's file it's global. Assigning to an undeclared name still creates a variable (value 0) and reports it, with a "Declare var" quick fix; reading a name that was never declared is an error in the editor.
 - `var x = keep;` keeps whatever the list (or variable) holds right now. Editing a `var` line's value sets the variable when the code is applied; an unedited line leaves the live value alone.
 - `watch` declares a stage-monitor for a variable or list of this target: `at x,y`, `size WxH`, `large`/`slider`, `range min,max`, `continuous` (non-discrete slider), `hidden`/`visible`. Converted projects may carry `sprite "name"`/`id "..."` attributes to preserve watchers of since-deleted sprites verbatim.
-- `comment` at the top level of a file is a workspace comment; inside a script body it attaches to the preceding statement's block (or to the hat when it's the first line). Attributes: `at x,y`, `size WxH`, `minimized`, and `for "blockId"` (converted projects only: reproduces a comment whose anchor block no longer exists). A `//` comment is the sugar for the common case: it emits `comment` under the hood, and a block comment with default position/size (no `at`/`size`/`minimized`/`for`) re-emits as a `//` line above its block. Positioned or minimized comments keep the explicit `comment "..."` form.
+- `comment` at the top level of a file is a workspace comment; inside a script body it attaches to the preceding statement's block (or to the hat when it's the first line). Attributes: `at x,y`, `size WxH`, `minimized`, and `for "blockId"` (converted projects only: reproduces a comment whose anchor block no longer exists). `//` and `/* */` are the sugar for the common case: they emit `comment` under the hood, and a comment with default position/size (no `at`/`size`/`minimized`/`for`) re-emits as a `//` line when it has one line, or as a `/* */` block when it has several. Positioned or minimized comments, and text containing `*/`, keep the explicit `comment "..."` form. In the editor's Code mode a free comment's position is not written: a `//` or `/* */` free comment keeps the position it has in Blocks mode.
 - `platform` sets `meta.platform` in the packed project (MistWarp writes this).
 
 ## Variables

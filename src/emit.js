@@ -1,6 +1,7 @@
 import {
   createStringifier,
   commentDeclLine,
+  freeCommentText,
   withAttachedComments,
   isSimpleAttachedComment,
   lineCommentText,
@@ -21,7 +22,9 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
   const header =
     `/**\n` + ` * target: ${escapeHeader(target.name)}\n` + ` * targetId: ${escapeHeader(target.id ?? '')}\n` + ` */\n`;
   const assets = includeAssets ? emitAssetDecls(target) : '';
-  const bodies = entries.map(({ script, subgraph }) => emitScriptBody({ script, subgraph, context, cfg }));
+  const bodies = entries.map(({ script, subgraph, comment }) =>
+    comment ? freeCommentText(comment) : emitScriptBody({ script, subgraph, context, cfg })
+  );
   return `${header}\n${[prelude, assets, bodies.join('\n\n')].filter(Boolean).join('\n\n')}\n`;
 }
 
@@ -157,7 +160,7 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
   }
 
   for (const c of workspaceComments) {
-    lines.push(commentDeclLine(c));
+    lines.push(freeCommentText(c));
   }
 
   return lines.join('\n');
