@@ -789,3 +789,99 @@ test('packed attached comments have no position unless the text gives one', asyn
   assert.deepEqual(pos('placed'), [5, 6]);
   assert.deepEqual(pos('free'), [0, 200]);
 });
+
+test('consecutive // lines make one comment', () => {
+  const src = [
+    '// first line',
+    '//   indented',
+    '',
+    '// boss',
+    '// moves',
+    'when key space {',
+    '  say 1; // trailing',
+    '  // above',
+    '  // move',
+    '  move 10;',
+    '  /* block */',
+    '  // line after block',
+    '  think 2;',
+    '}',
+    '',
+  ].join('\n');
+  const parsed = parseFractch(src);
+  assert.deepEqual(parsed.errors, []);
+  assert.deepEqual(
+    parsed.comments.map((c) => c.text),
+    ['first line\n  indented']
+  );
+  assert.deepEqual(
+    parsed.scripts[0].calls.filter((c) => c.type === 'commentDecl').map((c) => [c.text, c.anchor]),
+    [
+      ['boss\nmoves', 'next'],
+      ['trailing', 'prev'],
+      ['above\nmove', 'next'],
+      ['block', 'next'],
+      ['line after block', 'next'],
+    ]
+  );
+});
+
+test('two // lines above a when become one hat comment and write back as /* */', () => {
+  const { ctx, id } = freshStage();
+  const first = applyText(ctx, id, '// a\n// b\nwhen flag {\n  say 1; // trailing\n}\n\n// c\n// d\n\n// e\n');
+  const target = first.ctx.targets[0];
+  const flagTop = topIdByOpcode(target, 'event_whenflagclicked');
+  const byText = (text) => target.comments[commentIdByText(target, text)];
+  assert.equal(byText('a\nb').blockId, flagTop);
+  assert.equal(target.blocks[byText('trailing').blockId].opcode, 'looks_say');
+  assert.equal(byText('c\nd').blockId, null);
+  assert.equal(byText('e').blockId, null);
+  const emitted = emitTarget(first.ctx, id);
+  assert.match(emitted.text, /^\/\*\n \* a\n \* b\n \*\/\nwhen flag at 0,0 \{\n {2}\/\/ trailing\n {2}say 1;\n\}/);
+  assert.match(emitted.text, /\n\/\*\n \* c\n \* d\n \*\/\n\n\/\/ e\n$/);
+});
+
+test('separate comments written next to each other stay separate', async (t) => {
+  const plain = (text, extra = {}) => ({
+    blockId: null,
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 200,
+    minimized: false,
+    text,
+    ...extra,
+  });
+  const project = projectOf(
+    stageTarget(
+      {
+        h: { ...flag('s'), comment: 'h1' },
+        s: { ...stmt('looks_say', 'h', { MESSAGE: [1, [10, 'hi']] }), comment: 'k1' },
+        r: { ...stmt('motion_xposition', 's'), comment: 'k2' },
+      },
+      {
+        comments: {
+          f1: plain('one'),
+          f2: plain('two'),
+          f3: plain('has */ in it'),
+          f4: plain('four'),
+          h1: plain('hat', { blockId: 'h' }),
+          k1: plain('on say', { blockId: 's' }),
+          k2: plain('on reporter', { blockId: 'r' }),
+        },
+      }
+    )
+  );
+  project.targets[0].blocks.s.inputs.MESSAGE = [3, 'r', [10, 'hi']];
+  const out = tempDir(t);
+  await convertProject(structuredClone(project), { outDir: out, fs });
+  const text = bodyOf(readTree(out)['Stage/main.fractch']);
+  assert.match(text, /^\/\* one \*\/\n\/\/ two\ncomment "has \*\/ in it";\n\/\/ four\n/);
+  assert.match(text, /\n {2}\/\* on say \*\/\n {2}\/\/ on reporter\n {2}say /);
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
+  const texts = Object.values(manifest.targets[0].comments)
+    .map((c) => c.text)
+    .filter((x) => !x.startsWith(MEMBERSHIP_MAGIC))
+    .sort();
+  assert.deepEqual(texts, ['four', 'has */ in it', 'hat', 'on reporter', 'on say', 'one', 'two']);
+});

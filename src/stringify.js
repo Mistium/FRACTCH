@@ -350,13 +350,36 @@ export function freeCommentText(c) {
   return isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c);
 }
 
+export function commentRun(comments, { followedByLineComment = false } = {}) {
+  const out = [];
+  let nextIsLine = followedByLineComment;
+  for (let i = comments.length - 1; i >= 0; i--) {
+    const c = comments[i];
+    const text = String(c.text ?? '');
+    let written;
+    if (!isSimpleAttachedComment(c) || (nextIsLine && !text.includes('\n') && text.includes('*/'))) {
+      written = { comment: c, text: commentDeclLine(c), explicit: true };
+    } else if (nextIsLine && !text.includes('\n')) {
+      written = { comment: c, text: `/* ${text} */`, explicit: false };
+    } else {
+      written = { comment: c, text: lineCommentText(c), explicit: false };
+    }
+    nextIsLine = !written.explicit && written.text.startsWith('//');
+    out.unshift(written);
+  }
+  return out;
+}
+
 export function withAttachedComments(line, attached) {
   if (!attached?.length) return line;
-  const before = [];
-  const after = [];
-  for (const c of attached) (isSimpleAttachedComment(c) ? before : after).push(c);
+  const run = commentRun(attached.filter((c) => isSimpleAttachedComment(c)));
+  const before = run.filter((w) => !w.explicit).map((w) => w.text);
+  const after = [
+    ...run.filter((w) => w.explicit).map((w) => w.comment),
+    ...attached.filter((c) => !isSimpleAttachedComment(c)),
+  ];
   let out = '';
-  if (before.length) out += before.map(lineCommentText).join('\n') + '\n';
+  if (before.length) out += before.join('\n') + '\n';
   out += line;
   if (after.length) out += '\n' + after.map((c) => commentDeclLine(c)).join('\n');
   return out;

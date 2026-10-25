@@ -2,9 +2,9 @@ import {
   createStringifier,
   commentDeclLine,
   freeCommentText,
+  commentRun,
   withAttachedComments,
   isSimpleAttachedComment,
-  lineCommentText,
   scriptLocalScope,
 } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
@@ -159,9 +159,7 @@ export function emitTargetPrelude({ projectJson, target, monitors = [], workspac
     if (line) lines.push(line);
   }
 
-  for (const c of workspaceComments) {
-    lines.push(freeCommentText(c));
-  }
+  for (const w of commentRun(workspaceComments)) lines.push(w.text);
 
   return lines.join('\n');
 }
@@ -237,13 +235,13 @@ export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
     if (sugar) {
       let rest = top.next ? S.renderBody(subgraph, top.next, cfg) : '';
       const own = context?.blockComments?.get(topBlockId) || [];
-      const above = own.filter((c) => isSimpleAttachedComment(c));
+      const above = commentRun(own.filter((c) => isSimpleAttachedComment(c))).filter((w) => !w.explicit);
       rest = prependComments(
-        own.filter((c) => !above.includes(c)),
+        own.filter((c) => !above.some((w) => w.comment === c)),
         rest,
         true
       );
-      const lead = above.map((c) => `${lineCommentText(c)}\n`).join('');
+      const lead = above.map((w) => `${w.text}\n`).join('');
       body = `${lead}when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
       const inner = renderFallbackBody(subgraph, topBlockId, cfg, context, S);
@@ -332,9 +330,11 @@ function prependOwnComments(context, topBlockId, bodyText, explicit = false) {
 
 function prependComments(own, bodyText, explicit = false) {
   if (!own?.length) return bodyText;
-  const lines = own
-    .map((c) => (!explicit && isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c)))
-    .join('\n');
+  const lines = explicit
+    ? own.map((c) => commentDeclLine(c)).join('\n')
+    : commentRun(own, { followedByLineComment: String(bodyText).startsWith('//') })
+        .map((w) => w.text)
+        .join('\n');
   return bodyText ? `${lines}\n${bodyText}` : lines;
 }
 

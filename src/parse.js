@@ -700,6 +700,13 @@ function indentWidth(line) {
   return line.length - line.replace(/^[ \t]+/, '').length;
 }
 
+function lineCommentBodies(bodies) {
+  const lines = bodies.map((b) => b.trimEnd());
+  const widths = lines.filter((l) => l).map(indentWidth);
+  const common = widths.length ? Math.min(...widths) : 0;
+  return lines.map((l) => l.slice(common)).join('\n');
+}
+
 export function blockCommentText(body) {
   let raw = String(body ?? '');
   if (raw.startsWith('*')) raw = raw.slice(1);
@@ -811,6 +818,16 @@ class Parser {
     return true;
   }
 
+  nextLine(from, to) {
+    let newlines = 0;
+    for (let j = from; j < to; j++) {
+      const ch = this.s[j];
+      if (ch === '\n') newlines++;
+      else if (ch !== ' ' && ch !== '\t' && ch !== '\r') return false;
+    }
+    return newlines === 1;
+  }
+
   blankLineBetween(from, to) {
     let sawNewline = false;
     for (let j = from; j < to; j++) {
@@ -876,12 +893,30 @@ class Parser {
         while (!this.eof() && this.peek() !== '\n') this.i++;
         if (this.attachLineComments && !this.seenComments.has(start)) {
           this.seenComments.add(start);
-          this.pendingLineComments.push({
-            start,
-            end: this.i,
-            text: this.s.slice(textStart, this.i).trim(),
-            anchor: this.lineIsBlankBefore(start) ? 'next' : 'prev',
-          });
+          const body = this.s.slice(textStart, this.i);
+          const ownLine = this.lineIsBlankBefore(start);
+          const column = this.colAt(start);
+          const prev = this.pendingLineComments[this.pendingLineComments.length - 1];
+          if (
+            ownLine &&
+            prev?.lines &&
+            prev.anchor === 'next' &&
+            prev.column === column &&
+            this.nextLine(prev.end, start)
+          ) {
+            prev.lines.push(body);
+            prev.end = this.i;
+            prev.text = lineCommentBodies(prev.lines);
+          } else {
+            this.pendingLineComments.push({
+              start,
+              end: this.i,
+              text: lineCommentBodies([body]),
+              anchor: ownLine ? 'next' : 'prev',
+              lines: [body],
+              column,
+            });
+          }
         }
       } else if (ch === '/' && this.peek(1) === '*') {
         const start = this.i;

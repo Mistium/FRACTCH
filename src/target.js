@@ -1,7 +1,7 @@
 import { parseFractch, closestMatch, STATEMENT_KEYWORDS } from './parse.js';
 import { buildBlocksFromCalls, collapseOperators, IdGen, synthesizeProccode } from './buildBlocks.js';
 import { emitScriptBody, varNameToken, varValueText, watchDeclLine, indentBlock } from './emit.js';
-import { commentDeclLine, EXTENDABLE_OPERATORS, freeCommentText } from './stringify.js';
+import { commentDeclLine, commentRun, EXTENDABLE_OPERATORS, freeCommentText } from './stringify.js';
 import { hiddenShadowToWrite, sameHiddenShadow } from './shadowDefaults.js';
 import { buildProcByCode, routeMonitors, topLevelPrimitiveBlock } from './convert.js';
 import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
@@ -592,9 +592,8 @@ export function emitTarget(context, targetId, inputOpts = {}) {
     }
     if (looseComments.length) {
       section('');
-      looseComments.forEach((c, i) => {
+      commentRun(looseComments).forEach(({ comment: c, text: line }, i) => {
         if (i) text += '\n';
-        const line = freeCommentText(c);
         sourceMap.comments[c.id] = { from: text.length, to: text.length + line.length };
         text += line;
       });
