@@ -370,14 +370,21 @@ export function commentRun(comments, { followedByLineComment = false } = {}) {
   return out;
 }
 
+export function leadingCommentRun(comments) {
+  let kept = (comments || []).filter((c) => isSimpleAttachedComment(c));
+  const moved = (comments || []).filter((c) => !isSimpleAttachedComment(c));
+  for (;;) {
+    const run = commentRun(kept);
+    const explicit = run.filter((w) => w.explicit).map((w) => w.comment);
+    if (!explicit.length) return { lines: run.map((w) => w.text), moved };
+    kept = kept.filter((c) => !explicit.includes(c));
+    moved.push(...explicit);
+  }
+}
+
 export function withAttachedComments(line, attached) {
   if (!attached?.length) return line;
-  const run = commentRun(attached.filter((c) => isSimpleAttachedComment(c)));
-  const before = run.filter((w) => !w.explicit).map((w) => w.text);
-  const after = [
-    ...run.filter((w) => w.explicit).map((w) => w.comment),
-    ...attached.filter((c) => !isSimpleAttachedComment(c)),
-  ];
+  const { lines: before, moved: after } = leadingCommentRun(attached);
   let out = '';
   if (before.length) out += before.join('\n') + '\n';
   out += line;

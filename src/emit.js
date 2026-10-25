@@ -3,8 +3,8 @@ import {
   commentDeclLine,
   freeCommentText,
   commentRun,
+  leadingCommentRun,
   withAttachedComments,
-  isSimpleAttachedComment,
   scriptLocalScope,
 } from './stringify.js';
 import { synthesizeProccode } from './buildBlocks.js';
@@ -234,14 +234,9 @@ export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
     const sugar = top ? whenSugarFor(top, context, subgraph, S) : null;
     if (sugar) {
       let rest = top.next ? S.renderBody(subgraph, top.next, cfg) : '';
-      const own = context?.blockComments?.get(topBlockId) || [];
-      const above = commentRun(own.filter((c) => isSimpleAttachedComment(c))).filter((w) => !w.explicit);
-      rest = prependComments(
-        own.filter((c) => !above.some((w) => w.comment === c)),
-        rest,
-        true
-      );
-      const lead = above.map((w) => `${w.text}\n`).join('');
+      const { lines: above, moved } = leadingCommentRun(context?.blockComments?.get(topBlockId));
+      rest = prependComments(moved, rest, true);
+      const lead = above.map((text) => `${text}\n`).join('');
       body = `${lead}when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
       const inner = renderFallbackBody(subgraph, topBlockId, cfg, context, S);

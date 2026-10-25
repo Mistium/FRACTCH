@@ -991,3 +991,41 @@ test('a comment-only region keeps its place when a later region has comments', (
   assert.equal(emitted.text.replace(/ at -?\d+,-?\d+/g, ''), source);
   assert.deepEqual(Object.keys(emitted.sourceMap.regions), ['a', 'notes', 'more', 'b']);
 });
+
+test('a comment that has to be explicit does not let its neighbours join', async (t) => {
+  const plain = (text, blockId) => ({ blockId, x: 0, y: 0, width: 200, height: 200, minimized: false, text });
+  const project = projectOf(
+    stageTarget(
+      {
+        h: { ...flag('s'), comment: 'h0' },
+        s: { ...stmt('looks_say', 'h', { MESSAGE: [1, [10, 'hi']] }), comment: 's0' },
+      },
+      {
+        comments: {
+          h0: plain('h0', 'h'),
+          h1: plain('x */ y', 'h'),
+          h2: plain('h2', 'h'),
+          s0: plain('c0', 's'),
+          s1: plain('x */ z', 's'),
+          s2: plain('c2', 's'),
+        },
+      }
+    )
+  );
+  const out = tempDir(t);
+  await convertProject(structuredClone(project), { outDir: out, fs });
+  const text = bodyOf(readTree(out)['Stage/main.fractch']);
+  assert.equal(
+    text,
+    '/* h0 */\n// h2\nwhen flag at 0,0 {\n  comment "x */ y";\n  /* c0 */\n  // c2\n  say "hi";\n  comment "x */ z";\n}\n'
+  );
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
+  const st = manifest.targets[0];
+  const on = (text) => st.blocks[st.comments[commentIdByText(st, text)].blockId].opcode;
+  assert.deepEqual(['h0', 'x */ y', 'h2'].map(on), [
+    'event_whenflagclicked',
+    'event_whenflagclicked',
+    'event_whenflagclicked',
+  ]);
+  assert.deepEqual(['c0', 'x */ z', 'c2'].map(on), ['looks_say', 'looks_say', 'looks_say']);
+});
