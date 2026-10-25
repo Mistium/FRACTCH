@@ -24,6 +24,7 @@ export const DIAGNOSTIC_CODES = {
   FR122: { severity: 'error', title: 'Invalid hidden value' },
   FR123: { severity: 'warning', title: 'Text with no effect' },
   FR124: { severity: 'error', title: 'Declaration inside a script' },
+  FR125: { severity: 'error', title: 'Unclosed block comment' },
   FR201: { severity: 'error', title: 'Unknown block' },
   FR202: { severity: 'error', title: 'Menu used as a statement' },
   FR203: { severity: 'error', title: 'Value used as a statement' },

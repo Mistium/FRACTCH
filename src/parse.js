@@ -671,6 +671,7 @@ const HEADER_KEYS = new Set([
   'pos',
   'count',
   'scripts',
+  'dslBodyHash',
 ]);
 
 function isFileHeader(body) {
@@ -679,11 +680,12 @@ function isFileHeader(body) {
     .map((l) => l.replace(/^\s*\*+/, '').trim())
     .filter(Boolean);
   if (!lines.length) return false;
-  return lines.every((l) => {
-    if (/^fractch index\b/.test(l)) return true;
-    const m = /^([A-Za-z]+):(\s|$)/.exec(l);
-    return !!m && HEADER_KEYS.has(m[1]);
-  });
+  if (/^fractch index\b/.test(lines[0])) return lines.slice(1).every((l) => HEADER_KEYS.has(headerKey(l)));
+  return lines.some((l) => headerKey(l) === 'target') && lines.every((l) => HEADER_KEYS.has(headerKey(l)));
+}
+
+function headerKey(line) {
+  return /^([A-Za-z]+):(\s|$)/.exec(line)?.[1] ?? null;
 }
 
 function stripHeader(text) {
@@ -771,6 +773,7 @@ class Parser {
     this.attachLineComments = attachLineComments;
     this.pendingLineComments = [];
     this.seenComments = new Set();
+    this.unclosedComments = new Set();
     this.listForDepth = 0;
     this.depth = 0;
     this.inRegion = false;
@@ -923,7 +926,21 @@ class Parser {
         this.i += 2;
         const textStart = this.i;
         while (!this.eof() && !(this.peek() === '*' && this.peek(1) === '/')) this.i++;
-        if (this.eof()) continue;
+        if (this.eof()) {
+          if (!this.unclosedComments.has(start)) {
+            this.unclosedComments.add(start);
+            const err = this.makeError(
+              'this /* comment is never closed',
+              'add */ where the comment ends; everything after the /* is treated as part of the comment',
+              'FR125',
+              start,
+              start + 2
+            );
+            err.region = { from: start, to: this.len };
+            this.errors.push(err);
+          }
+          continue;
+        }
         const textEnd = this.i;
         this.i += 2;
         if (this.attachLineComments && !this.seenComments.has(start)) {

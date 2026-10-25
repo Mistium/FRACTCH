@@ -109,12 +109,18 @@ test('the generated header is not a comment, but a leading doc comment is', () =
   );
 });
 
-test('an unterminated /* and comment markers inside strings are not comments', () => {
-  const open = parseFractch('when flag {\n  say 1;\n}\n/* never closed\nsay 2;\n');
-  assert.deepEqual(open.errors, []);
+test('an unterminated /* is an error and comment markers inside strings are not comments', () => {
+  const src = 'when flag {\n  say 1;\n}\n/* never closed\nsay 2;\n';
+  const open = parseFractch(src);
+  assert.deepEqual(
+    open.errors.map((e) => [e.code, e.from, e.to, e.line, e.region]),
+    [['FR125', src.indexOf('/*'), src.indexOf('/*') + 2, 4, { from: src.indexOf('/*'), to: src.length }]]
+  );
   assert.deepEqual(open.comments, []);
   assert.equal(open.scripts.length, 1);
-  assert.ok(parseFractch('when flag {\n  say 1; /* open\n}\n').errors.length > 0);
+  assert.ok(parseFractch('when flag {\n  say 1; /* open\n}\n').errors.some((e) => e.code === 'FR125'));
+  const inRegion = parseFractch('region "r" {\n  when flag {\n    say 1;\n  }\n  /* open\n}\n');
+  assert.ok(inRegion.errors.some((e) => e.code === 'FR125' && e.line === 5));
 
   const strings = parseFractch('when flag {\n  say "/* not */ // either";\n  say """raw /* x */""";\n}\n');
   assert.deepEqual(strings.errors, []);
@@ -884,4 +890,57 @@ test('separate comments written next to each other stay separate', async (t) => 
     .filter((x) => !x.startsWith(MEMBERSHIP_MAGIC))
     .sort();
   assert.deepEqual(texts, ['four', 'has */ in it', 'hat', 'on reporter', 'on say', 'one', 'two']);
+});
+
+test('an unclosed /* in Code mode is an error instead of deleting scripts', () => {
+  const { ctx, id } = freshStage();
+  const first = applyText(ctx, id, 'when key space {\n  move 10;\n}\n\nwhen flag {\n  say 1;\n}\n');
+  const emitted = emitTarget(first.ctx, id);
+  const broken = emitted.text.replace('when key space', '/* when key space');
+  const built = buildTarget(first.ctx, id, broken, { previous: emitted });
+  const err = errorsOf(built).find((d) => d.code === 'FR125');
+  assert.ok(err, JSON.stringify(built.diagnostics));
+  assert.equal(err.line, 1);
+});
+
+test('a comment alone in a C-block body attaches to the C-block', async (t) => {
+  const source =
+    'var x = 0;\nwhen flag {\n  if (x > 1) {\n    /*\n    say 1;\n    */\n  }\n  repeat 2 {\n    // later\n  }\n  think 2;\n}\n';
+  const dir = writeFiles(tempDir(t), { 'Stage/main.fractch': source });
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+  const st = manifest.targets[0];
+  const on = (text) => st.blocks[st.comments[commentIdByText(st, text)].blockId]?.opcode;
+  assert.equal(on('say 1;'), 'control_if');
+  assert.equal(on('later'), 'control_repeat');
+
+  const { ctx, id } = freshStage();
+  const built = applyText(ctx, id, source).built;
+  const target = built.target;
+  assert.equal(target.blocks[target.comments[commentIdByText(target, 'say 1;')].blockId].opcode, 'control_if');
+  assert.equal(
+    Object.values(target.comments).filter((c) => !c.blockId && !c.text.startsWith(MEMBERSHIP_MAGIC)).length,
+    0
+  );
+
+  const nonEmpty = parseFractch('when flag {\n  if (x > 1) {\n    say 1;\n    // after say\n  }\n}\n');
+  const { buildBlocksFromCalls, IdGen } = await import('../src/buildBlocks.js');
+  const commentsOut = [];
+  const { blocks } = buildBlocksFromCalls(nonEmpty.scripts[0].calls, { idGen: new IdGen(), commentsOut });
+  assert.equal(blocks[commentsOut[0].blockId].opcode, 'looks_say');
+});
+
+test('old dslBodyHash headers are stripped but a user doc comment with pos: is kept', () => {
+  const old = parseFractch(
+    '/**\n * target: Stage\n * targetId: s\n * dslBodyHash: abc123\n */\n\nwhen flag {\n  say 1;\n}\n'
+  );
+  assert.deepEqual(old.errors, []);
+  assert.deepEqual(old.comments, []);
+  assert.equal(old.scripts[0].calls.filter((c) => c.type === 'commentDecl').length, 0);
+  const index = parseFractch('/**\n * fractch index for target\n * scripts: 2\n */\n');
+  assert.deepEqual(index.comments, []);
+  const user = parseFractch('/** pos: 10,20 */\n\nwhen flag {\n  say 1;\n}\n');
+  assert.deepEqual(
+    user.comments.map((c) => c.text),
+    ['pos: 10,20']
+  );
 });

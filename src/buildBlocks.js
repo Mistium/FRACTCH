@@ -100,7 +100,7 @@ export function buildBlocksFromCalls(calls, opts = {}) {
   for (const entry of pendingTopComments) entry.blockId = topId;
   for (const entry of pendingNextComments) {
     if (ctx.commentsOut) {
-      entry.blockId = lastId || topId || null;
+      entry.blockId = lastId || topId || ctx.enclosingId || null;
       ctx.commentsOut.push(entry);
     }
   }

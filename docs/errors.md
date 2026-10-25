@@ -42,6 +42,7 @@ The parser never invents scripts. When a statement can't be read, everything up 
 | <a id="fr122"></a>FR122 | error | Invalid hidden value | The part after `??` is not a plain value or a shadow block (for example a variable or an expression), or it sits in a boolean slot, which never holds a hidden value. |
 | <a id="fr123"></a>FR123 | warning | Text with no effect | Part of the text is ignored: `??` after a plain value, a branch label used twice, or a loose `(@reporter());` call that isn't alone in its script. |
 | <a id="fr124"></a>FR124 | error | Declaration inside a script | A top-level line such as `var`, `costume`, `import`, `def` or `when` was written inside a script body. Move it out of the `{ }` block. |
+| <a id="fr125"></a>FR125 | error | Unclosed block comment | A `/*` comment has no closing `*/`, so the rest of the file would be part of it. Nothing after the `/*` is built, and the editor refuses to apply the text. |
 | <a id="fr201"></a>FR201 | error | Unknown block | Unknown block opcode, with the closest known one. Unknown opcodes load as red blocks. |
 | <a id="fr202"></a>FR202 | error | Menu used as a statement | A dropdown menu block written on its own. Menus only work inside another block's input. |
 | <a id="fr203"></a>FR203 | error | Value used as a statement | A line that is only a value. Show it with `say`, or store it with `name = ...`. |
