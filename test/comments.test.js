@@ -555,3 +555,106 @@ test('Code mode leaves positions out of explicit comments and keeps the live one
     [77, 88, 300]
   );
 });
+
+const HAT_CODE = [
+  '// free note',
+  '',
+  '// boss moves',
+  'when key space {',
+  '  move 10;',
+  '}',
+  '',
+  'region "enemies" {',
+  '  /*',
+  '   * spawns',
+  '   * enemies',
+  '   */',
+  '  when flag {',
+  '    say 1;',
+  '  }',
+  '}',
+  '',
+].join('\n');
+
+test('simple hat comments are written above the when line and attach to the hat', () => {
+  const { ctx, id } = freshStage();
+  const first = applyText(ctx, id, HAT_CODE);
+  const target = first.ctx.targets[0];
+  const keyTop = topIdByOpcode(target, 'event_whenkeypressed');
+  const flagTop = topIdByOpcode(target, 'event_whenflagclicked');
+  assert.equal(target.comments[commentIdByText(target, 'boss moves')].blockId, keyTop);
+  assert.equal(target.comments[commentIdByText(target, 'spawns\nenemies')].blockId, flagTop);
+  assert.equal(target.comments[commentIdByText(target, 'free note')].blockId, null);
+  assert.equal(target.blocks[keyTop].comment, commentIdByText(target, 'boss moves'));
+
+  const emitted = emitTarget(first.ctx, id);
+  assert.equal(emitted.text.replace(/ at -?\d+,-?\d+/g, ''), HAT_CODE);
+  assert.doesNotMatch(emitted.text, /comment "/);
+  const keyRange = emitted.sourceMap.scripts[keyTop];
+  assert.ok(emitted.text.slice(keyRange.from, keyRange.to).startsWith('// boss moves\nwhen key space'));
+  assert.ok(emitted.text.slice(keyRange.from, keyRange.to).endsWith('}'));
+  const flagRange = emitted.sourceMap.scripts[flagTop];
+  assert.ok(
+    emitted.text.slice(flagRange.from, flagRange.to).startsWith('/*\n   * spawns\n   * enemies\n   */\n  when flag')
+  );
+  assert.equal(emitted.text.split('\n')[flagRange.line - 1], '  /*');
+
+  const again = buildTarget(first.ctx, id, emitted.text, { previous: emitted });
+  assert.deepEqual(errorsOf(again), []);
+  assert.deepEqual(again.unchangedScripts.sort(), [keyTop, flagTop].sort());
+  assert.deepEqual(again.created.comments, []);
+  assert.deepEqual(again.removed.comments, []);
+});
+
+test('hat comments that are not simple stay in the body', () => {
+  const project = projectOf(
+    stageTarget(
+      { h: { ...flag('s'), comment: 'c' }, s: stmt('looks_say', 'h', { MESSAGE: [1, [10, 'a']] }) },
+      { comments: { c: { blockId: 'h', x: 0, y: 0, width: 300, height: 200, minimized: false, text: 'wide' } } }
+    )
+  );
+  const ctx = liveContext(project);
+  const emitted = emitTarget(ctx, ctx.targets[0].id);
+  assert.match(emitted.text, /^when flag at 0,0 \{\n {2}comment "wide" size 300x200;\n {2}say "a";\n\}/);
+});
+
+test('a tree round trip keeps hat comments above the when line', async (t) => {
+  const project = projectOf(
+    stageTarget(
+      {
+        h: { ...flag('s'), opcode: 'event_whenkeypressed', fields: { KEY_OPTION: ['space', null] }, comment: 'c' },
+        s: stmt('motion_movesteps', 'h', { STEPS: [1, [4, '10']] }),
+        d: { ...flag('t'), y: 300, comment: 'm' },
+        t: stmt('looks_say', 'd', { MESSAGE: [1, [10, 'a']] }),
+      },
+      {
+        comments: {
+          c: { blockId: 'h', x: 0, y: 0, width: 200, height: 200, minimized: false, text: 'boss moves' },
+          m: { blockId: 'd', x: 0, y: 0, width: 200, height: 200, minimized: false, text: 'two\nlines' },
+        },
+      }
+    )
+  );
+  const out = tempDir(t);
+  await convertProject(structuredClone(project), { outDir: out, fs });
+  const text = readTree(out)['Stage/main.fractch'];
+  assert.doesNotMatch(text, /comment "/);
+  assert.match(text, /\n\/\/ boss moves\nwhen key space at 0,0 \{\n {2}move 10;\n\}/);
+  assert.match(text, /\n\/\*\n \* two\n \* lines\n \*\/\nwhen flag at 0,300 \{/);
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
+  const st = manifest.targets[0];
+  const on = (text) => st.blocks[st.comments[commentIdByText(st, text)].blockId]?.opcode;
+  assert.equal(on('boss moves'), 'event_whenkeypressed');
+  assert.equal(on('two\nlines'), 'event_whenflagclicked');
+  const again = tempDir(t);
+  await convertProject(manifest, { outDir: again, fs });
+  assert.equal(bodyOf(readTree(again)['Stage/main.fractch']).replace(/^costume .*\n\n/m, ''), bodyOf(text));
+});
+
+test('def comments stay as // inside the definition', async (t) => {
+  const dir = writeFiles(tempDir(t), { 'Stage/main.fractch': 'def @f() {\n  // on def\n  say 2;\n}\n' });
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+  const out = tempDir(t);
+  await convertProject(manifest, { outDir: out, fs });
+  assert.match(readTree(out)['Stage/main.fractch'], /def @f\(\) at 0,0 \{\n {2}\/\/ on def\n {2}say 2;\n\}/);
+});

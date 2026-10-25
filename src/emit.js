@@ -236,8 +236,15 @@ export function emitScriptBody({ script, subgraph, context, cfg = {} }) {
     const sugar = top ? whenSugarFor(top, context, subgraph, S) : null;
     if (sugar) {
       let rest = top.next ? S.renderBody(subgraph, top.next, cfg) : '';
-      rest = prependOwnComments(context, topBlockId, rest, true);
-      body = `when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
+      const own = context?.blockComments?.get(topBlockId) || [];
+      const above = own.filter((c) => isSimpleAttachedComment(c));
+      rest = prependComments(
+        own.filter((c) => !above.includes(c)),
+        rest,
+        true
+      );
+      const lead = above.map((c) => `${lineCommentText(c)}\n`).join('');
+      body = `${lead}when ${sugar}${atText(top)} {\n${indentBlock(rest)}\n}`;
     } else {
       const inner = renderFallbackBody(subgraph, topBlockId, cfg, context, S);
       body = `script${atText(top)} {\n${indentBlock(inner)}\n}`;
@@ -320,7 +327,10 @@ function renderFallbackBody(subgraph, topId, cfg, context, S) {
 }
 
 function prependOwnComments(context, topBlockId, bodyText, explicit = false) {
-  const own = context?.blockComments?.get(topBlockId);
+  return prependComments(context?.blockComments?.get(topBlockId), bodyText, explicit);
+}
+
+function prependComments(own, bodyText, explicit = false) {
   if (!own?.length) return bodyText;
   const lines = own
     .map((c) => (!explicit && isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c)))
