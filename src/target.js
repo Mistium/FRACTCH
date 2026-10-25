@@ -1915,8 +1915,8 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
       const live = reused && !c.positioned ? target.comments?.[reused] : null;
       outComments[cid] = {
         blockId: anchor,
-        x: live ? (live.x ?? 0) : (c.x ?? 0),
-        y: live ? (live.y ?? 0) : (c.y ?? 0),
+        x: c.positioned ? c.x : live ? (live.x ?? null) : null,
+        y: c.positioned ? c.y : live ? (live.y ?? null) : null,
         width: c.width ?? 200,
         height: c.height ?? 200,
         minimized: !!c.minimized,

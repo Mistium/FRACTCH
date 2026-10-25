@@ -284,8 +284,8 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
           const cid = uniqueCommentId(manifestTarget.comments, `~c${++commentSeq}`);
           manifestTarget.comments[cid] = {
             blockId: c.blockId || null,
-            x: c.x ?? 0,
-            y: c.y ?? 0,
+            x: c.positioned ? c.x : null,
+            y: c.positioned ? c.y : null,
             width: c.width ?? 200,
             height: c.height ?? 200,
             minimized: !!c.minimized,

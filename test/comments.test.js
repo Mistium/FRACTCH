@@ -720,7 +720,7 @@ test('attached comments with a position are written as // in trees', async (t) =
   const st = manifest.targets[0];
   const n = st.comments[commentIdByText(st, 'say it')];
   assert.equal(st.blocks[n.blockId].opcode, 'looks_say');
-  assert.deepEqual([n.x, n.y], [0, 0]);
+  assert.deepEqual([n.x, n.y], [null, null]);
 });
 
 test('a hand-written at on an attached comment is still read', async (t) => {
@@ -735,4 +735,57 @@ test('a hand-written at on an attached comment is still read', async (t) => {
   const built = applyText(ctx, id, source).built;
   const placed = Object.values(built.target.comments).find((x) => x.text === 'placed');
   assert.deepEqual([placed.x, placed.y], [1, 2]);
+});
+
+test('new attached comments have no position so the editor places them', () => {
+  const { ctx, id } = freshStage();
+  const source = '// on the hat\nwhen flag {\n  // on say\n  say 1;\n  move 10;\n}\n';
+  const first = applyText(ctx, id, source);
+  const comments = () => Object.values(first.ctx.targets[0].comments).filter((c) => c.blockId);
+  assert.deepEqual(
+    comments().map((c) => [c.text, c.x, c.y]),
+    [
+      ['on the hat', null, null],
+      ['on say', null, null],
+    ]
+  );
+
+  const emitted = emitTarget(first.ctx, id);
+  assert.equal(emitted.text.replace(/ at -?\d+,-?\d+/, ''), source);
+  const again = buildTarget(first.ctx, id, emitted.text, { previous: emitted });
+  assert.deepEqual(again.changed, []);
+  assert.equal(again.unchangedScripts.length, 1);
+  const edited = buildTarget(first.ctx, id, emitted.text.replace('move 10', 'move 20'), { previous: emitted });
+  assert.deepEqual(
+    Object.values(edited.target.comments)
+      .filter((c) => c.blockId)
+      .map((c) => [c.x, c.y]),
+    [
+      [null, null],
+      [null, null],
+    ]
+  );
+
+  const placed = structuredClone(first.ctx.targets[0]);
+  const sayNote = Object.keys(placed.comments).find((k) => placed.comments[k].text === 'on say');
+  placed.comments[sayNote] = { ...placed.comments[sayNote], x: 250, y: 60 };
+  const moved = { ...first.ctx, targets: [placed] };
+  const fromBlocks = emitTarget(moved, id);
+  const rebuilt = buildTarget(moved, id, fromBlocks.text.replace('move 10', 'move 30'), { previous: fromBlocks });
+  assert.deepEqual([rebuilt.target.comments[sayNote].x, rebuilt.target.comments[sayNote].y], [250, 60]);
+});
+
+test('packed attached comments have no position unless the text gives one', async (t) => {
+  const dir = writeFiles(tempDir(t), {
+    'Stage/main.fractch': '// hat note\nwhen flag {\n  say 1;\n  comment "placed" at 5,6;\n}\n\n// free\n',
+  });
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+  const st = manifest.targets[0];
+  const pos = (text) => {
+    const c = st.comments[commentIdByText(st, text)];
+    return [c.x, c.y];
+  };
+  assert.deepEqual(pos('hat note'), [null, null]);
+  assert.deepEqual(pos('placed'), [5, 6]);
+  assert.deepEqual(pos('free'), [0, 200]);
 });
