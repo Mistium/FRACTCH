@@ -560,7 +560,7 @@ export function emitTarget(context, targetId, inputOpts = {}) {
       if (!regions.has(entry.region)) regions.set(entry.region, []);
       list = regions.get(entry.region);
     }
-    const item = { comment: c, body: freeCommentText(c, { ignorePosition: true }) };
+    const item = { comment: c, body: freeCommentText(c) };
     const at = entry.before ? list.findIndex((it) => it.script?.topBlockId === entry.before) : -1;
     if (at >= 0) list.splice(at, 0, item);
     else list.push(item);
@@ -594,7 +594,7 @@ export function emitTarget(context, targetId, inputOpts = {}) {
       section('');
       looseComments.forEach((c, i) => {
         if (i) text += '\n';
-        const line = freeCommentText(c, { ignorePosition: true });
+        const line = freeCommentText(c);
         sourceMap.comments[c.id] = { from: text.length, to: text.length + line.length };
         text += line;
       });
@@ -1910,13 +1910,13 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
       const anchor = c.blockId ? r(c.blockId) : null;
       if (anchor && !outBlocks[anchor] && !view.blocks[anchor]) continue;
       const pool = anchor ? reusableComments.get(anchor) : null;
-      const cid = pool?.length
-        ? pool.shift()
-        : mint(new Set([...Object.keys(target.comments || {}), ...Object.keys(outComments)]));
+      const reused = pool?.length ? pool.shift() : null;
+      const cid = reused ?? mint(new Set([...Object.keys(target.comments || {}), ...Object.keys(outComments)]));
+      const live = reused && !c.positioned ? target.comments?.[reused] : null;
       outComments[cid] = {
         blockId: anchor,
-        x: c.x ?? 0,
-        y: c.y ?? 0,
+        x: live ? (live.x ?? 0) : (c.x ?? 0),
+        y: live ? (live.y ?? 0) : (c.y ?? 0),
         width: c.width ?? 200,
         height: c.height ?? 200,
         minimized: !!c.minimized,

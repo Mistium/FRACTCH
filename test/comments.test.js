@@ -128,13 +128,9 @@ test('simple comments are written as // or /* */ and read back exactly', () => {
   assert.equal(lineCommentText(simple('a\n\n  b')), '/*\n * a\n *\n *   b\n */');
   assert.equal(freeCommentText(simple('has */ inside\nline')), 'comment "has */ inside\\nline";');
   assert.match(freeCommentText(simple('trailing \nspace')), /^comment /);
-  assert.equal(freeCommentText({ ...simple('moved'), x: 5, y: 6 }), 'comment "moved" at 5,6;');
+  assert.equal(freeCommentText({ ...simple('moved'), x: 5, y: 6 }), '// moved');
   assert.equal(freeCommentText({ ...simple('big'), width: 300, height: 150 }), 'comment "big" size 300x150;');
-  assert.equal(
-    freeCommentText({ ...simple('tiny'), minimized: true }, { ignorePosition: true }),
-    'comment "tiny" minimized;'
-  );
-  assert.equal(freeCommentText({ ...simple('moved'), x: 5, y: 6 }, { ignorePosition: true }), '// moved');
+  assert.equal(freeCommentText({ ...simple('tiny'), minimized: true, x: 3 }), 'comment "tiny" minimized;');
 
   const texts = [
     'plain',
@@ -657,4 +653,86 @@ test('def comments stay as // inside the definition', async (t) => {
   const out = tempDir(t);
   await convertProject(manifest, { outDir: out, fs });
   assert.match(readTree(out)['Stage/main.fractch'], /def @f\(\) at 0,0 \{\n {2}\/\/ on def\n {2}say 2;\n\}/);
+});
+
+function attachedProject(extra = {}) {
+  const note = { blockId: 's', x: 412, y: -37, width: 200, height: 200, minimized: false, text: 'say it', ...extra };
+  const hat = { blockId: 'h', x: 90, y: 15, width: 200, height: 200, minimized: false, text: 'on the hat' };
+  return projectOf(
+    stageTarget(
+      {
+        h: { ...flag('s'), comment: 'hc' },
+        s: { ...stmt('looks_say', 'h', { MESSAGE: [1, [10, 'hi']] }, {}, 'm'), comment: 'n' },
+        m: stmt('motion_movesteps', 's', { STEPS: [1, [4, '10']] }),
+      },
+      { comments: { n: note, hc: hat } }
+    )
+  );
+}
+
+test('attached comments with a position are written as // and keep their position in Code mode', () => {
+  const ctx = liveContext(attachedProject());
+  const id = ctx.targets[0].id;
+  const live = ctx.targets[0];
+  const emitted = emitTarget(ctx, id);
+  assert.equal(emitted.text, '// on the hat\nwhen flag at 0,0 {\n  // say it\n  say "hi";\n  move 10;\n}\n');
+  assert.deepEqual(emitted.lockedScripts, []);
+
+  const same = buildTarget(ctx, id, emitted.text, { previous: emitted });
+  assert.deepEqual(same.unchangedScripts, ['h']);
+  assert.strictEqual(same.target.comments.n, live.comments.n);
+
+  const edited = buildTarget(ctx, id, emitted.text.replace('move 10', 'move 20'), { previous: emitted });
+  assert.deepEqual(errorsOf(edited), []);
+  assert.deepEqual(edited.changed.length, 1);
+  assert.deepEqual(
+    [edited.target.comments.n.x, edited.target.comments.n.y, edited.target.comments.n.blockId],
+    [412, -37, 's']
+  );
+  assert.deepEqual([edited.target.comments.hc.x, edited.target.comments.hc.y], [90, 15]);
+
+  const retext = buildTarget(ctx, id, emitted.text.replace('// say it', '// say it loudly'), { previous: emitted });
+  assert.deepEqual(errorsOf(retext), []);
+  assert.deepEqual(
+    [retext.target.comments.n.text, retext.target.comments.n.x, retext.target.comments.n.y],
+    ['say it loudly', 412, -37]
+  );
+});
+
+test('a resized attached comment keeps the explicit form without at', () => {
+  const ctx = liveContext(attachedProject({ width: 300 }));
+  const id = ctx.targets[0].id;
+  const emitted = emitTarget(ctx, id);
+  assert.match(emitted.text, /\n {2}say "hi";\n {2}comment "say it" size 300x200;\n {2}move 10;/);
+  const edited = buildTarget(ctx, id, emitted.text.replace('move 10', 'move 20'), { previous: emitted });
+  assert.deepEqual(
+    [edited.target.comments.n.x, edited.target.comments.n.y, edited.target.comments.n.width],
+    [412, -37, 300]
+  );
+});
+
+test('attached comments with a position are written as // in trees', async (t) => {
+  const out = tempDir(t);
+  await convertProject(attachedProject(), { outDir: out, fs });
+  const text = bodyOf(readTree(out)['Stage/main.fractch']);
+  assert.equal(text, '// on the hat\nwhen flag at 0,0 {\n  // say it\n  say "hi";\n  move 10;\n}\n');
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
+  const st = manifest.targets[0];
+  const n = st.comments[commentIdByText(st, 'say it')];
+  assert.equal(st.blocks[n.blockId].opcode, 'looks_say');
+  assert.deepEqual([n.x, n.y], [0, 0]);
+});
+
+test('a hand-written at on an attached comment is still read', async (t) => {
+  const source = 'when flag {\n  say "hi";\n  comment "placed" at 1,2;\n}\n';
+  const dir = writeFiles(tempDir(t), { 'Stage/main.fractch': source });
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+  const st = manifest.targets[0];
+  const c = st.comments[commentIdByText(st, 'placed')];
+  assert.deepEqual([st.blocks[c.blockId].opcode, c.x, c.y], ['looks_say', 1, 2]);
+
+  const { ctx, id } = freshStage();
+  const built = applyText(ctx, id, source).built;
+  const placed = Object.values(built.target.comments).find((x) => x.text === 'placed');
+  assert.deepEqual([placed.x, placed.y], [1, 2]);
 });

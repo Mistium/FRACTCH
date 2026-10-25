@@ -334,14 +334,9 @@ export function isPlainCommentText(text) {
   return !s.includes('*/') && s.split('\n').every((l) => l === l.trimEnd());
 }
 
-export function isSimpleAttachedComment(c, { ignorePosition = false } = {}) {
+export function isSimpleAttachedComment(c) {
   return (
-    (ignorePosition || ((c.x ?? 0) === 0 && (c.y ?? 0) === 0)) &&
-    (c.width ?? 200) === 200 &&
-    (c.height ?? 200) === 200 &&
-    !c.minimized &&
-    !c.forId &&
-    isPlainCommentText(c.text)
+    (c.width ?? 200) === 200 && (c.height ?? 200) === 200 && !c.minimized && !c.forId && isPlainCommentText(c.text)
   );
 }
 
@@ -351,8 +346,8 @@ export function lineCommentText(c) {
   return text ? `// ${text}` : '//';
 }
 
-export function freeCommentText(c, opts) {
-  return isSimpleAttachedComment(c, opts) ? lineCommentText(c) : commentDeclLine(c, opts);
+export function freeCommentText(c) {
+  return isSimpleAttachedComment(c) ? lineCommentText(c) : commentDeclLine(c);
 }
 
 export function withAttachedComments(line, attached) {
@@ -363,13 +358,12 @@ export function withAttachedComments(line, attached) {
   let out = '';
   if (before.length) out += before.map(lineCommentText).join('\n') + '\n';
   out += line;
-  if (after.length) out += '\n' + after.map(commentDeclLine).join('\n');
+  if (after.length) out += '\n' + after.map((c) => commentDeclLine(c)).join('\n');
   return out;
 }
 
-export function commentDeclLine(c, { ignorePosition = false } = {}) {
+export function commentDeclLine(c) {
   const parts = [`comment ${JSON.stringify(String(c.text ?? ''))}`];
-  if (!ignorePosition && ((c.x ?? 0) !== 0 || (c.y ?? 0) !== 0)) parts.push(`at ${numToken(c.x)},${numToken(c.y)}`);
   if ((c.width ?? 200) !== 200 || (c.height ?? 200) !== 200) {
     parts.push(`size ${numToken(c.width ?? 200)}x${numToken(c.height ?? 200)}`);
   }
