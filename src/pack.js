@@ -41,6 +41,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   let commentSeq = 0;
   let fileSeq = 0;
   const commentAnchors = new Map();
+  const commentSlots = new Map();
   let totalScripts = 0;
   let parsedScripts = 0;
 
@@ -123,6 +124,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       const sourceStem = cleanRelStem(sourceRel);
       const fileRegion = sourceStem && sourceStem !== 'main' ? sourceStem : null;
       if (!commentAnchors.has(manifestName)) commentAnchors.set(manifestName, []);
+      if (!commentSlots.has(manifestName)) commentSlots.set(manifestName, []);
       for (const c of parsed.comments || []) {
         if (!manifestTarget.comments) manifestTarget.comments = {};
         const cid = uniqueCommentId(manifestTarget.comments, `~c${++commentSeq}`);
@@ -135,6 +137,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
             commentId: cid,
           });
         }
+        if (!c.positioned) commentSlots.get(manifestName).push({ cid, file: sourceRel, at: c.span?.[0] ?? 0 });
         manifestTarget.comments[cid] = {
           blockId: c.forId || null,
           x: c.x ?? 0,
@@ -294,6 +297,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       stackIndex++;
       scripts.push({ oldTopId: s.topBlockId || null, blocks, newTopId: topId });
     }
+    if (manifestTarget) placeUnpositionedComments(manifestTarget, commentSlots.get(name) || [], scripts);
     const commentEntries = commentBeforeAnchors(anchorItems);
     if (manifestTarget && (commentEntries.size || [...membershipEntries.values()].some((e) => e.region || e.module))) {
       if (!manifestTarget.comments) manifestTarget.comments = {};
@@ -450,6 +454,27 @@ function applyWatchDecls(manifest, watchDecls, renamePlans, report) {
     if (existing >= 0) manifest.monitors[existing] = monitor;
     else manifest.monitors.push(monitor);
   }
+}
+
+function slotFileOrder(a, b) {
+  const main = (f) => (f === 'main.fractch' ? 0 : 1);
+  return main(a) - main(b) || (a < b ? -1 : a > b ? 1 : 0);
+}
+
+function placeUnpositionedComments(manifestTarget, slots, scripts) {
+  if (!slots.length) return;
+  let lowestY = null;
+  for (const { blocks, newTopId } of scripts) {
+    const top = newTopId ? blocks[newTopId] : null;
+    if (top?.topLevel) lowestY = Math.max(lowestY ?? -Infinity, Math.round(top.y ?? 0));
+  }
+  const ordered = [...slots].sort((a, b) => slotFileOrder(a.file, b.file) || a.at - b.at);
+  ordered.forEach(({ cid }, n) => {
+    const c = manifestTarget.comments?.[cid];
+    if (!c) return;
+    c.x = 0;
+    c.y = lowestY == null ? n * 200 : lowestY + 200 * (n + 1);
+  });
 }
 
 function uniqueCommentId(dict, preferred) {

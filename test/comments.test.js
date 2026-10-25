@@ -126,9 +126,14 @@ test('simple comments are written as // or /* */ and read back exactly', () => {
   const simple = (text) => ({ text, x: 0, y: 0, width: 200, height: 200, minimized: false, forId: null });
   assert.equal(lineCommentText(simple('one line')), '// one line');
   assert.equal(lineCommentText(simple('a\n\n  b')), '/*\n * a\n *\n *   b\n */');
-  assert.match(freeCommentText(simple('has */ inside\nline')), /^comment "has \*\/ inside\\nline" size 200x200;$/);
+  assert.equal(freeCommentText(simple('has */ inside\nline')), 'comment "has */ inside\\nline";');
   assert.match(freeCommentText(simple('trailing \nspace')), /^comment /);
-  assert.match(freeCommentText({ ...simple('moved'), x: 5, y: 6 }), /^comment "moved" at 5,6/);
+  assert.equal(freeCommentText({ ...simple('moved'), x: 5, y: 6 }), 'comment "moved" at 5,6;');
+  assert.equal(freeCommentText({ ...simple('big'), width: 300, height: 150 }), 'comment "big" size 300x150;');
+  assert.equal(
+    freeCommentText({ ...simple('tiny'), minimized: true }, { ignorePosition: true }),
+    'comment "tiny" minimized;'
+  );
   assert.equal(freeCommentText({ ...simple('moved'), x: 5, y: 6 }, { ignorePosition: true }), '// moved');
 
   const texts = [
@@ -297,10 +302,7 @@ test('a comment whose script was deleted moves to the end of its file', async (t
 
   const out = tempDir(t);
   await convertProject(projectOf(target), { outDir: out, fs });
-  assert.match(
-    readTree(out)['Stage/main.fractch'],
-    /\}\n\ncomment "between the scripts" at -?\d+,-?\d+ size 200x200;\n$/
-  );
+  assert.match(readTree(out)['Stage/main.fractch'], /\}\n\n\/\/ between the scripts\n$/);
 });
 
 test('a tree keeps free comments in their files and order', async (t) => {
@@ -328,14 +330,14 @@ test('a tree keeps free comments in their files and order', async (t) => {
       '',
     ].join('\n'),
     'Stage/enemies/boss.fractch': [
-      'comment "positioned" at 10,20 size 200x200;',
+      'comment "sized" size 300x150;',
       '',
       'when clicked at 0,400 {',
       '  say 3;',
       '}',
       '',
     ].join('\n'),
-    'Stage/notes.fractch': '// only comments here\n\n// and here\n',
+    'Stage/notes.fractch': '// only comments here\n\ncomment "big" size 300x150;\n\n// and here\n',
   });
   const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
   const st = manifest.targets.find((x) => x.isStage);
@@ -345,11 +347,24 @@ test('a tree keeps free comments in their files and order', async (t) => {
     [id('first')]: { before: topIdByOpcode(st, 'event_whenflagclicked') },
     [id('second\n\nstill second')]: { before: topIdByOpcode(st, 'event_whenkeypressed') },
     [id('last in main')]: {},
-    [id('positioned')]: { region: 'enemies/boss', before: topIdByOpcode(st, 'event_whenthisspriteclicked') },
+    [id('sized')]: { region: 'enemies/boss', before: topIdByOpcode(st, 'event_whenthisspriteclicked') },
     [id('only comments here')]: { region: 'notes' },
+    [id('big')]: { region: 'notes' },
     [id('and here')]: { region: 'notes' },
   });
-  assert.deepEqual([st.comments[id('positioned')].x, st.comments[id('positioned')].y], [10, 20]);
+  const at = (text) => [st.comments[id(text)].x, st.comments[id(text)].y];
+  assert.deepEqual(
+    ['first', 'second\n\nstill second', 'last in main', 'sized', 'only comments here', 'big', 'and here'].map(at),
+    [
+      [0, 600],
+      [0, 800],
+      [0, 1000],
+      [0, 1200],
+      [0, 1400],
+      [0, 1600],
+      [0, 1800],
+    ]
+  );
 
   const out = tempDir(t);
   await convertProject(manifest, { outDir: out, fs });
@@ -381,8 +396,9 @@ test('Code mode text round-trips through a tree with comments in place', async (
     'Stage/main.fractch',
     'Stage/notes.fractch',
   ]);
-  assert.match(tree['Stage/main.fractch'], /\}\n\ncomment "between the scripts" at [^\n]+\n\nwhen key space/);
-  assert.match(tree['Stage/notes.fractch'], /comment "only a comment" at /);
+  assert.match(tree['Stage/main.fractch'], /\}\n\n\/\/ between the scripts\n\nwhen key space/);
+  assert.match(tree['Stage/notes.fractch'], /\n\/\/ only a comment\n$/);
+  assert.doesNotMatch(Object.values(tree).join('\n'), /comment "/);
   const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
   const back = liveContext(manifest);
   const text = emitTarget(back, back.targets[0].id).text;
@@ -465,4 +481,77 @@ test('unsafe comment regions fall back to main in a tree', async (t) => {
   const tree = readTree(out);
   assert.deepEqual(Object.keys(tree), ['Stage/main.fractch']);
   assert.match(tree['Stage/main.fractch'], /\/\/ kept\n\nwhen flag/);
+});
+
+test('a moved free comment goes through a tree as // and comes back in a default slot', async (t) => {
+  const comment = (text, extra = {}) => ({
+    blockId: null,
+    x: 123,
+    y: 456,
+    width: 200,
+    height: 200,
+    minimized: false,
+    text,
+    ...extra,
+  });
+  const project = projectOf(
+    stageTarget(
+      { h: { ...flag('s'), y: 100 }, s: stmt('looks_say', 'h', { MESSAGE: [1, [10, 'a']] }) },
+      {
+        comments: {
+          moved: comment('moved'),
+          lines: comment('two\nlines', { x: -50, y: 9 }),
+          big: comment('big', { width: 320, height: 90 }),
+        },
+      }
+    )
+  );
+  const out = tempDir(t);
+  await convertProject(structuredClone(project), { outDir: out, fs });
+  const text = bodyOf(readTree(out)['Stage/main.fractch']);
+  assert.equal(
+    text,
+    '// moved\n/*\n * two\n * lines\n */\ncomment "big" size 320x90;\n\nwhen flag at 0,100 {\n  say "a";\n}\n'
+  );
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: out, fs, prune: false });
+  const st = manifest.targets[0];
+  const at = (text) => {
+    const c = st.comments[commentIdByText(st, text)];
+    return [c.x, c.y, c.width, c.height];
+  };
+  assert.deepEqual(at('moved'), [0, 300, 200, 200]);
+  assert.deepEqual(at('two\nlines'), [0, 500, 200, 200]);
+  assert.deepEqual(at('big'), [0, 700, 320, 90]);
+  const again = tempDir(t);
+  await convertProject(manifest, { outDir: again, fs });
+  assert.equal(
+    bodyOf(readTree(again)['Stage/main.fractch']).replace(/^costume .*\n\n/m, ''),
+    text.replace(/\n(?=\/\*|comment)/g, '\n\n')
+  );
+});
+
+test('the explicit comment form leaves out the default size and the parser fills it in', () => {
+  const parsed = parseFractch('comment "a */ b\\nc";\ncomment "w" size 300x150 minimized;\n');
+  assert.deepEqual(
+    parsed.comments.map((c) => [c.text, c.width, c.height, !!c.minimized]),
+    [
+      ['a */ b\nc', 200, 200, false],
+      ['w', 300, 150, true],
+    ]
+  );
+});
+
+test('Code mode leaves positions out of explicit comments and keeps the live ones', () => {
+  const big = { blockId: null, x: 77, y: 88, width: 320, height: 90, minimized: false, text: 'big' };
+  const ctx = liveContext(projectOf(stageTarget({ h: flag(null) }, { comments: { big } })));
+  const id = ctx.targets[0].id;
+  const emitted = emitTarget(ctx, id);
+  assert.match(emitted.text, /^comment "big" size 320x90;\n/);
+  const built = buildTarget(ctx, id, emitted.text, { previous: emitted });
+  assert.strictEqual(built.target.comments.big, ctx.targets[0].comments.big);
+  const resized = buildTarget(ctx, id, emitted.text.replace('320x90', '300x90'), { previous: emitted });
+  assert.deepEqual(
+    [resized.target.comments.big.x, resized.target.comments.big.y, resized.target.comments.big.width],
+    [77, 88, 300]
+  );
 });

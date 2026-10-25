@@ -352,7 +352,7 @@ export function lineCommentText(c) {
 }
 
 export function freeCommentText(c, opts) {
-  return isSimpleAttachedComment(c, opts) ? lineCommentText(c) : commentDeclLine(c);
+  return isSimpleAttachedComment(c, opts) ? lineCommentText(c) : commentDeclLine(c, opts);
 }
 
 export function withAttachedComments(line, attached) {
@@ -367,10 +367,12 @@ export function withAttachedComments(line, attached) {
   return out;
 }
 
-export function commentDeclLine(c) {
+export function commentDeclLine(c, { ignorePosition = false } = {}) {
   const parts = [`comment ${JSON.stringify(String(c.text ?? ''))}`];
-  if ((c.x ?? 0) !== 0 || (c.y ?? 0) !== 0) parts.push(`at ${numToken(c.x)},${numToken(c.y)}`);
-  parts.push(`size ${numToken(c.width ?? 200)}x${numToken(c.height ?? 200)}`);
+  if (!ignorePosition && ((c.x ?? 0) !== 0 || (c.y ?? 0) !== 0)) parts.push(`at ${numToken(c.x)},${numToken(c.y)}`);
+  if ((c.width ?? 200) !== 200 || (c.height ?? 200) !== 200) {
+    parts.push(`size ${numToken(c.width ?? 200)}x${numToken(c.height ?? 200)}`);
+  }
   if (c.minimized) parts.push('minimized');
   if (c.forId) parts.push(`for ${JSON.stringify(String(c.forId))}`);
   return parts.join(' ') + ';';

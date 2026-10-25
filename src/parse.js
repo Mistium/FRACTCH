@@ -488,16 +488,17 @@ const NON_ATTACHABLE_TOP = new Set([
   'lockedScript',
 ]);
 
-function mergeLeadingComments(stmts) {
+function mergeLeadingComments(stmts, blankLineBetween) {
   const out = [];
   for (let i = 0; i < stmts.length; i++) {
     const st = stmts[i];
-    if (st.type === 'commentDecl' && st.fromLineComment && !st.detached) {
+    if (st.type === 'commentDecl' && st.fromLineComment) {
       if (st.anchor === 'next') {
         let j = i + 1;
         while (j < stmts.length && stmts[j].type === 'commentDecl') j++;
         const target = stmts[j];
-        if (target && !NON_ATTACHABLE_TOP.has(target.type)) {
+        const detached = target?.span && st.span && blankLineBetween(st.span[1], target.span[0]);
+        if (target && !detached && !NON_ATTACHABLE_TOP.has(target.type)) {
           (target.leadingComments || (target.leadingComments = [])).push(st);
           continue;
         }
@@ -523,7 +524,7 @@ function withComments(st, ...calls) {
 export function parseFractch(content, { attachLineComments = true } = {}) {
   const text = stripHeader(content);
   const parser = new Parser(text, { attachLineComments });
-  const stmts = mergeLeadingComments(parser.parseStatementList(false));
+  const stmts = mergeLeadingComments(parser.parseStatementList(false), (a, b) => parser.blankLineBetween(a, b));
   const assets = { costumes: [], sounds: [] };
 
   const scripts = [];
@@ -824,12 +825,11 @@ class Parser {
     return false;
   }
 
-  drainLineComments(out, { havePrev, comments = null, detachable = false }) {
+  drainLineComments(out, { havePrev, comments = null }) {
     const pending = comments ?? this.pendingLineComments;
     if (!pending.length) return;
     for (const c of pending) {
       const anchor = c.anchor === 'prev' && havePrev ? 'prev' : 'next';
-      const detached = detachable && anchor === 'next' && this.blankLineBetween(c.end, this.i);
       out.push({
         type: 'commentDecl',
         text: c.text,
@@ -841,7 +841,6 @@ class Parser {
         forId: null,
         fromLineComment: true,
         anchor,
-        ...(detached ? { detached: true } : {}),
         span: [c.start, c.end],
         line: this.lineAt(c.start),
       });
@@ -958,7 +957,7 @@ class Parser {
     let implicitStart = -1;
     for (;;) {
       this.skipWS();
-      this.drainLineComments(stmts, { havePrev: haveRealPrev, detachable: scriptLevel });
+      this.drainLineComments(stmts, { havePrev: haveRealPrev });
       if (this.eof()) break;
       if (this.peek() === '}') {
         if (stopAtBrace) break;
@@ -1768,7 +1767,9 @@ class Parser {
         this.inRegion = true;
         let body;
         try {
-          body = mergeLeadingComments(this.parseStatementList(true, { scriptLevel: true }));
+          body = mergeLeadingComments(this.parseStatementList(true, { scriptLevel: true }), (a, b) =>
+            this.blankLineBetween(a, b)
+          );
         } finally {
           this.inRegion = false;
         }
