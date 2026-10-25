@@ -47,3 +47,44 @@ export function collectBlocksSubgraph(blocks, topId) {
   }
   return sub;
 }
+
+export const SCRIPT_BLOCK_HEIGHT = 48;
+
+export function scriptsBottom(blocks) {
+  const topOf = new Map();
+  const findTop = (id) => {
+    const seen = [];
+    let cur = id;
+    for (let guard = 0; guard < 10000; guard++) {
+      if (topOf.has(cur)) break;
+      const b = blocks[cur];
+      if (!b || typeof b !== 'object' || Array.isArray(b)) {
+        cur = null;
+        break;
+      }
+      seen.push(cur);
+      if (!b.parent || !blocks[b.parent]) break;
+      cur = b.parent;
+    }
+    const top = cur == null ? null : topOf.has(cur) ? topOf.get(cur) : cur;
+    for (const s of seen) topOf.set(s, top);
+    return top;
+  };
+  const counts = new Map();
+  for (const [id, b] of Object.entries(blocks || {})) {
+    if (!b || typeof b !== 'object' || Array.isArray(b) || b.shadow) continue;
+    const top = findTop(id);
+    if (top != null) counts.set(top, (counts.get(top) || 0) + 1);
+  }
+  let bottom = null;
+  for (const [top, count] of counts) {
+    const b = blocks[top];
+    if (!b?.topLevel) continue;
+    bottom = Math.max(bottom ?? -Infinity, Math.round(b.y ?? 0) + SCRIPT_BLOCK_HEIGHT * count);
+  }
+  return bottom;
+}
+
+export function commentSlotY(bottom, n) {
+  return bottom == null ? n * 200 : bottom + SCRIPT_BLOCK_HEIGHT + 200 * n;
+}

@@ -358,13 +358,13 @@ test('a tree keeps free comments in their files and order', async (t) => {
   assert.deepEqual(
     ['first', 'second\n\nstill second', 'last in main', 'sized', 'only comments here', 'big', 'and here'].map(at),
     [
-      [0, 600],
-      [0, 800],
-      [0, 1000],
-      [0, 1200],
-      [0, 1400],
-      [0, 1600],
-      [0, 1800],
+      [0, 544],
+      [0, 744],
+      [0, 944],
+      [0, 1144],
+      [0, 1344],
+      [0, 1544],
+      [0, 1744],
     ]
   );
 
@@ -521,9 +521,9 @@ test('a moved free comment goes through a tree as // and comes back in a default
     const c = st.comments[commentIdByText(st, text)];
     return [c.x, c.y, c.width, c.height];
   };
-  assert.deepEqual(at('moved'), [0, 300, 200, 200]);
-  assert.deepEqual(at('two\nlines'), [0, 500, 200, 200]);
-  assert.deepEqual(at('big'), [0, 700, 320, 90]);
+  assert.deepEqual(at('moved'), [0, 244, 200, 200]);
+  assert.deepEqual(at('two\nlines'), [0, 444, 200, 200]);
+  assert.deepEqual(at('big'), [0, 644, 320, 90]);
   const again = tempDir(t);
   await convertProject(manifest, { outDir: again, fs });
   assert.equal(
@@ -793,7 +793,7 @@ test('packed attached comments have no position unless the text gives one', asyn
   };
   assert.deepEqual(pos('hat note'), [null, null]);
   assert.deepEqual(pos('placed'), [5, 6]);
-  assert.deepEqual(pos('free'), [0, 200]);
+  assert.deepEqual(pos('free'), [0, 144]);
 });
 
 test('consecutive // lines make one comment', () => {
@@ -943,4 +943,19 @@ test('old dslBodyHash headers are stripped but a user doc comment with pos: is k
     user.comments.map((c) => c.text),
     ['pos: 10,20']
   );
+});
+
+test('default comment slots go below the bottom of the longest script', async (t) => {
+  const long = Array.from({ length: 20 }, (_, i) => `  say ${i};`).join('\n');
+  const source = `when flag at 0,0 {\n${long}\n}\n\nwhen key space at 300,100 {\n  say 1;\n}\n\n// note\n`;
+  const dir = writeFiles(tempDir(t), { 'Stage/main.fractch': source });
+  const { manifest } = await buildProjectFromBuildDir({ buildDir: dir, fs, prune: false });
+  const st = manifest.targets[0];
+  const note = st.comments[commentIdByText(st, 'note')];
+  assert.deepEqual([note.x, note.y], [0, 21 * 48 + 48]);
+
+  const { ctx, id } = freshStage();
+  const built = applyText(ctx, id, source).built;
+  const codeNote = Object.values(built.target.comments).find((c) => c.text === 'note');
+  assert.deepEqual([codeNote.x, codeNote.y], [0, 21 * 48 + 48]);
 });

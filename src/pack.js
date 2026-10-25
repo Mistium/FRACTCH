@@ -4,6 +4,7 @@ import { parseFractch } from './parse.js';
 import { buildBlocksFromCalls, mergeIntoManifest, IdGen, synthesizeProccode, listMethodCall } from './buildBlocks.js';
 import { checkFractch } from './lint.js';
 import { cleanRelStem } from './fileMarkers.js';
+import { commentSlotY, scriptsBottom } from './graph.js';
 import { diagnostic } from './diagnostics.js';
 import { MEMBERSHIP_COMMENT_ID, commentBeforeAnchors, membershipText, splitCommentText } from './membership.js';
 import { STDLIB_MODULES, STDLIB_METHODS, resolveStdlibModules, resolvePackageMethod } from './stdlib/index.js';
@@ -463,17 +464,13 @@ function slotFileOrder(a, b) {
 
 function placeUnpositionedComments(manifestTarget, slots, scripts) {
   if (!slots.length) return;
-  let lowestY = null;
-  for (const { blocks, newTopId } of scripts) {
-    const top = newTopId ? blocks[newTopId] : null;
-    if (top?.topLevel) lowestY = Math.max(lowestY ?? -Infinity, Math.round(top.y ?? 0));
-  }
+  const bottom = scriptsBottom(Object.assign({}, ...scripts.map((s) => s.blocks)));
   const ordered = [...slots].sort((a, b) => slotFileOrder(a.file, b.file) || a.at - b.at);
   ordered.forEach(({ cid }, n) => {
     const c = manifestTarget.comments?.[cid];
     if (!c) return;
     c.x = 0;
-    c.y = lowestY == null ? n * 200 : lowestY + 200 * (n + 1);
+    c.y = commentSlotY(bottom, n);
   });
 }
 

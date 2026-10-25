@@ -4,7 +4,7 @@ import { emitScriptBody, varNameToken, varValueText, watchDeclLine, indentBlock 
 import { commentDeclLine, commentRun, EXTENDABLE_OPERATORS, freeCommentText } from './stringify.js';
 import { hiddenShadowToWrite, sameHiddenShadow } from './shadowDefaults.js';
 import { buildProcByCode, routeMonitors, topLevelPrimitiveBlock } from './convert.js';
-import { groupTopLevelScripts, collectBlocksSubgraph, isMenuShadow } from './graph.js';
+import { groupTopLevelScripts, collectBlocksSubgraph, commentSlotY, isMenuShadow, scriptsBottom } from './graph.js';
 import {
   buildNameIdMap,
   collectLocalDeclNames,
@@ -2449,6 +2449,8 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
     prevCommentByText.set(id, normalizeLines(String(previous.text).slice(range.from, range.to)));
   }
   const usedComment = new Set();
+  let commentsBottom;
+  let newCommentIndex = 0;
   const anchorItems = [];
   for (const [topId, range] of Object.entries(sourceMap.scripts)) {
     anchorItems.push({ kind: 'script', at: range.from, file: 0, region: regionAt(range.from), topId });
@@ -2502,9 +2504,9 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
       fields.x = lc.x ?? 0;
       fields.y = lc.y ?? 0;
     } else if (!match && !c.positioned) {
+      if (commentsBottom === undefined) commentsBottom = scriptsBottom(outBlocks);
       fields.x = 0;
-      fields.y = lowestY == null ? newScriptIndex * 200 : lowestY + 200 * (newScriptIndex + 1);
-      newScriptIndex++;
+      fields.y = commentSlotY(commentsBottom, newCommentIndex++);
     }
     if (match) {
       usedComment.add(match);
