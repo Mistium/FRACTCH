@@ -57,6 +57,8 @@ function topLevelScripts(blocks) {
   return scripts;
 }
 
+const placeText = (script) => `${Math.round(Number(script.x) || 0)}, ${Math.round(Number(script.y) || 0)}`;
+
 const placeKey = (script) =>
   `${script.opcode}@${Math.round(Number(script.x) || 0)},${Math.round(Number(script.y) || 0)}`;
 
@@ -88,7 +90,7 @@ function compareScripts(before, after, report, where) {
   for (const script of leftovers) {
     const index = remaining.findIndex((candidate) => candidate.opcode === script.opcode);
     if (index < 0) {
-      report(`${where}.scripts`, `lost a ${script.opcode} script at ${placeKey(script).split('@')[1]}`);
+      report(`${where}.scripts`, `would lose the script at ${placeText(script)}`, script.opcode);
       continue;
     }
     pairs.push([script, remaining.splice(index, 1)[0]]);
@@ -96,13 +98,13 @@ function compareScripts(before, after, report, where) {
   for (const [a, b] of pairs) {
     if (Array.isArray(before.blocks[a.id]) || Array.isArray(after.blocks[b.id])) {
       if (looseReporterName(before.blocks, a.id) !== looseReporterName(after.blocks, b.id)) {
-        report(`${where}.scripts`, `a loose ${a.opcode} reporter changed`);
+        report(`${where}.scripts`, `would change the loose reporter at ${placeText(a)}`, a.opcode);
       }
       continue;
     }
     const difference = compareTrees(before.blocks, a.id, after.blocks, b.id);
     if (difference)
-      report(`${where}.scripts`, `the ${a.opcode} script at ${placeKey(a).split('@')[1]} changed: ${difference}`);
+      report(`${where}.scripts`, `would change the script at ${placeText(a)}`, `${a.opcode} ${difference}`);
   }
 }
 
@@ -340,7 +342,7 @@ async function compareProjectExtras(before, after, report, sameAsset) {
 
 export async function compareProjects(before, after, { readBefore, readAfter } = {}) {
   const differences = [];
-  const report = (path, message) => differences.push({ path, message });
+  const report = (path, message, detail) => differences.push(detail ? { path, message, detail } : { path, message });
   const sameAsset = async (a, b) => {
     if (a === b) return true;
     if (typeof readBefore !== 'function' || typeof readAfter !== 'function') return false;
