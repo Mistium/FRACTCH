@@ -62,7 +62,7 @@ const { ok, differences } = await verifyProjectFiles({ projectJson, readAsset })
 // differences: [{ path: 'sprite "Player".scripts', message: '...' }]
 ```
 
-`filesToProject` skips unsafe paths (`..`, absolute paths, dot folders) and the `.git/` folder and `mwp.json` of an `.mwp`, so a zip's entries can be passed straight in. `compareProjects(before, after, { readBefore, readAfter })` is the comparison `verifyProjectFiles` uses, for any two project.json objects. `memoryFs(entries)` is the in-memory filesystem behind them, usable with every function that takes an `fs`.
+`filesToProject` skips unsafe paths (`..`, absolute paths, dot folders) and the `.git/` folder and `mwp.json` of an `.mwp`, so a zip's entries can be passed straight in. `compareProjects(before, after, { readBefore, readAfter })` is the comparison `verifyProjectFiles` uses, for any two project.json objects. `projectAssetPaths(projectJson)` maps each costume and sound file path to its md5ext without reading any bytes. `memoryFs(entries)` is the in-memory filesystem behind them, usable with every function that takes an `fs`.
 
 In Node, `readArchive(path)` returns a zip's entries as a `Map`, and `unpackSb3`/`packSb3` accept `.mwp` files on either side.
 

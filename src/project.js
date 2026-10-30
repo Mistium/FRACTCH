@@ -36,6 +36,16 @@ const assetReader = (readAsset) => {
   };
 };
 
+export function projectAssetPaths(projectJson) {
+  const paths = new Map();
+  const targets = Array.isArray(projectJson?.targets) ? projectJson.targets : [];
+  const dirs = targetDirNames(targets);
+  for (const target of targets) {
+    for (const [md5ext, rel] of targetAssetFiles(target)) paths.set(`${dirs.get(target)}/${rel}`, md5ext);
+  }
+  return paths;
+}
+
 export async function projectToFiles({ projectJson, readAsset, config = {} } = {}) {
   if (!projectJson || typeof projectJson !== 'object') throw new TypeError('projectToFiles needs a projectJson object');
   const read = assetReader(readAsset);

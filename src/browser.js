@@ -23,8 +23,15 @@ export { DIAGNOSTIC_CODES, diagnostic, formatDiagnostic, hasErrors, makeLineInde
 export { MEMBERSHIP_MAGIC, readMembership, membershipText, commentText, splitCommentText } from './membership.js';
 export { normalizeSignatures, normalizeOpcodeTable, signatureHash } from './signatures.js';
 export { languageReference, referenceWithDocs } from './reference.js';
-export { projectToFiles, filesToProject, verifyProjectFiles, safeProjectPath, CUSTOM_ASSETS_DIR } from './project.js';
+export {
+  projectToFiles,
+  filesToProject,
+  verifyProjectFiles,
+  projectAssetPaths,
+  safeProjectPath,
+  CUSTOM_ASSETS_DIR,
+} from './project.js';
 export { compareProjects } from './projectDiff.js';
 export { METADATA_FILE, LEGACY_METADATA_FILES, FONTS_DIR } from './projectMeta.js';
 export { memoryFs } from './memoryFs.js';
-export { RESERVED_ROOT_DIRS } from './emit.js';
+export { RESERVED_ROOT_DIRS, targetDirNames } from './emit.js';

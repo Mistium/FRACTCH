@@ -11,6 +11,7 @@ import {
   compareProjects,
   memoryFs,
   md5hex,
+  projectAssetPaths,
   METADATA_FILE,
 } from '../src/index.js';
 import { cli, flag, projectOf, spriteTarget, stageTarget, stmt, tempDir } from './helpers/regressions.js';
@@ -226,4 +227,12 @@ test('the CLI writes, reads and packs .mwp project files', async (t) => {
     () => execFileSync('node', [cli, 'from', historyOnly, 'to', path.join(dir, 'tree3')], { stdio: 'pipe' }),
     /only holds project history/
   );
+});
+
+test('projectAssetPaths names the file each costume and sound is written to', async () => {
+  const project = sample();
+  const paths = projectAssetPaths(project);
+  assert.equal(paths.get('Hero/assets/idle.svg'), svgId);
+  const { files } = await projectToFiles({ projectJson: project, readAsset });
+  for (const p of paths.keys()) assert.ok(files.has(p), `${p} is written`);
 });
