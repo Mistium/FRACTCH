@@ -59,7 +59,7 @@ const { projectJson: rebuilt, assets } = await filesToProject(files);
 // assets: Map<md5ext, Uint8Array>, every file the rebuilt project.json refers to
 
 const { ok, differences } = await verifyProjectFiles({ projectJson, readAsset });
-// differences: [{ path: 'sprite "Player".scripts', message: 'would change the script at 40, 80', detail }]
+// differences: [{ target: 'Player', path: 'sprite "Player".scripts', message: 'The script at 40, 80 would change.', detail }]
 ```
 
 `filesToProject` skips unsafe paths (`..`, absolute paths, dot folders) and the `.git/` folder and `mwp.json` of an `.mwp`, so a zip's entries can be passed straight in. `compareProjects(before, after, { readBefore, readAfter })` is the comparison `verifyProjectFiles` uses, for any two project.json objects. `projectAssetPaths(projectJson)` maps each costume and sound file path to its md5ext without reading any bytes. `memoryFs(entries)` is the in-memory filesystem behind them, usable with every function that takes an `fs`.

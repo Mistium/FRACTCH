@@ -70,7 +70,7 @@ const looseReporterName = (blocks, id) => {
   return null;
 };
 
-function compareScripts(before, after, report, where) {
+function compareScripts(before, after, say) {
   const left = topLevelScripts(before.blocks);
   const right = topLevelScripts(after.blocks);
   const unmatched = new Map();
@@ -90,7 +90,7 @@ function compareScripts(before, after, report, where) {
   for (const script of leftovers) {
     const index = remaining.findIndex((candidate) => candidate.opcode === script.opcode);
     if (index < 0) {
-      report(`${where}.scripts`, `would lose the script at ${placeText(script)}`, script.opcode);
+      say('scripts', `The script at ${placeText(script)} would be lost.`, script.opcode);
       continue;
     }
     pairs.push([script, remaining.splice(index, 1)[0]]);
@@ -98,13 +98,12 @@ function compareScripts(before, after, report, where) {
   for (const [a, b] of pairs) {
     if (Array.isArray(before.blocks[a.id]) || Array.isArray(after.blocks[b.id])) {
       if (looseReporterName(before.blocks, a.id) !== looseReporterName(after.blocks, b.id)) {
-        report(`${where}.scripts`, `would change the loose reporter at ${placeText(a)}`, a.opcode);
+        say('scripts', `The loose reporter at ${placeText(a)} would change.`, a.opcode);
       }
       continue;
     }
     const difference = compareTrees(before.blocks, a.id, after.blocks, b.id);
-    if (difference)
-      report(`${where}.scripts`, `would change the script at ${placeText(a)}`, `${a.opcode} ${difference}`);
+    if (difference) say('scripts', `The script at ${placeText(a)} would change.`, `${a.opcode} ${difference}`);
   }
 }
 
@@ -119,55 +118,61 @@ function namedEntries(dict) {
   return out;
 }
 
-function compareVariables(before, after, report, where) {
+function compareVariables(before, after, say) {
   for (const kind of ['variables', 'lists']) {
     const left = namedEntries(before[kind]);
     const right = namedEntries(after[kind]);
+    const noun = kind === 'lists' ? 'list' : 'variable';
     for (const [name, entry] of left) {
       const other = right.get(name);
       if (!other) {
-        report(`${where}.${kind}`, `lost ${JSON.stringify(name)}`);
+        say(kind, `The ${noun} ${JSON.stringify(name)} would be lost.`);
         continue;
       }
       const value = kind === 'lists' ? (entry[1] || []).map(String) : String(entry[1] ?? '');
       const otherValue = kind === 'lists' ? (other[1] || []).map(String) : String(other[1] ?? '');
-      if (!deepEqual(value, otherValue)) report(`${where}.${kind}`, `${JSON.stringify(name)} changed its value`);
+      if (!deepEqual(value, otherValue)) say(kind, `The ${noun} ${JSON.stringify(name)} would get a different value.`);
       if (kind === 'variables' && Boolean(entry[2]) !== Boolean(other[2])) {
-        report(`${where}.${kind}`, `${JSON.stringify(name)} changed whether it is a cloud variable`);
+        say(kind, `The variable ${JSON.stringify(name)} would change whether it is a cloud variable.`);
       }
     }
   }
 }
 
-async function compareAssets(before, after, report, where, sameAsset) {
+async function compareAssets(before, after, say, sameAsset) {
   for (const kind of ['costumes', 'sounds']) {
     const left = before[kind] || [];
     const right = after[kind] || [];
     if (kind === 'costumes' && !left.length) continue;
+    const noun = kind === 'costumes' ? 'costume' : 'sound';
     if (left.length !== right.length) {
-      report(`${where}.${kind}`, `has ${left.length} before and ${right.length} after`);
+      say(kind, `It would have ${right.length} ${kind} instead of ${left.length}.`);
       continue;
     }
     for (let i = 0; i < left.length; i++) {
       const a = left[i];
       const b = right[i];
-      const label = `${where}.${kind}[${JSON.stringify(String(a.name ?? i))}]`;
-      if (String(a.name ?? '') !== String(b.name ?? '')) report(label, `was renamed to ${JSON.stringify(b.name)}`);
-      if (!(await sameAsset(a.md5ext, b.md5ext))) report(label, 'has different file contents');
+      const sub = `${kind}[${JSON.stringify(String(a.name ?? i))}]`;
+      const what = `The ${noun} ${JSON.stringify(String(a.name ?? ''))}`;
+      if (String(a.name ?? '') !== String(b.name ?? ''))
+        say(sub, `${what} would be renamed to ${JSON.stringify(b.name)}.`);
+      if (!(await sameAsset(a.md5ext, b.md5ext))) say(sub, `${what} would get different file contents.`);
       const fields =
         kind === 'costumes'
           ? [
-              ['rotationCenterX', 0],
-              ['rotationCenterY', 0],
-              ['bitmapResolution', 1],
+              ['rotationCenterX', 0, 'rotation center'],
+              ['rotationCenterY', 0, 'rotation center'],
+              ['bitmapResolution', 1, 'bitmap resolution'],
             ]
           : [
-              ['rate', null],
-              ['sampleCount', null],
+              ['rate', null, 'sample rate'],
+              ['sampleCount', null, 'length'],
             ];
-      for (const [field, fallback] of fields) {
-        if (!same(a[field] ?? fallback, b[field] ?? fallback)) report(label, `changed ${field}`);
+      const changed = new Set();
+      for (const [field, fallback, words] of fields) {
+        if (!same(a[field] ?? fallback, b[field] ?? fallback)) changed.add(words);
       }
+      for (const words of changed) say(sub, `${what} would get a different ${words}.`);
     }
   }
 }
@@ -193,7 +198,7 @@ function commentsOf(target) {
     .sort();
 }
 
-function compareComments(before, after, report, where) {
+function compareComments(before, after, say) {
   const left = commentsOf(before);
   const right = commentsOf(after);
   const counts = new Map();
@@ -204,12 +209,9 @@ function compareComments(before, after, report, where) {
     if (count) counts.set(item, count - 1);
     else changed++;
   }
-  if (changed || left.length !== right.length) {
-    report(
-      `${where}.comments`,
-      `${changed || Math.abs(left.length - right.length)} comment(s) changed text, place or size`
-    );
-  }
+  const count = changed || Math.abs(left.length - right.length);
+  if (count === 1) say('comments', 'A comment would move or change.');
+  else if (count) say('comments', `${count} comments would move or change.`);
 }
 
 function framesOf(target) {
@@ -229,21 +231,54 @@ function framesOf(target) {
     .sort();
 }
 
-function compareProps(before, after, report, where) {
+function compareProps(before, after, say) {
   const defaults = before.isStage ? STAGE_DEFAULTS : SPRITE_DEFAULTS;
   for (const [field, fallback] of Object.entries(defaults)) {
     if (!same(before[field] ?? fallback, after[field] ?? fallback)) {
-      report(where, `changed ${field} from ${JSON.stringify(before[field])} to ${JSON.stringify(after[field])}`);
+      say(
+        '',
+        `Its ${PROP_WORDS[field] || field} would change from ${JSON.stringify(before[field])} to ${JSON.stringify(after[field])}.`
+      );
     }
   }
   if (!before.isStage && before.layerOrder != null && !same(before.layerOrder, after.layerOrder)) {
-    report(where, 'changed its layer');
+    say('', 'Its layer would change.');
   }
   if (!deepEqual(before.extensionStorage ?? null, after.extensionStorage ?? null)) {
-    report(where, 'changed its extension storage');
+    say('', 'Its extension storage would change.');
   }
-  if (!deepEqual(framesOf(before), framesOf(after))) report(`${where}.frames`, 'changed');
+  if (!deepEqual(framesOf(before), framesOf(after))) say('frames', 'Its frames would change.');
 }
+
+const PROP_WORDS = {
+  x: 'x position',
+  y: 'y position',
+  visible: 'visibility',
+  draggable: 'draggable setting',
+  rotationStyle: 'rotation style',
+  currentCostume: 'current costume',
+  videoState: 'video setting',
+  videoTransparency: 'video transparency',
+  textToSpeechLanguage: 'text to speech language',
+};
+
+const MONITOR_WORDS = {
+  mode: 'style',
+  x: 'place',
+  y: 'place',
+  visible: 'visibility',
+  width: 'size',
+  height: 'size',
+  sliderMin: 'slider range',
+  sliderMax: 'slider range',
+  isDiscrete: 'slider steps',
+};
+
+const monitorName = (monitor) => {
+  const name = monitor.params?.VARIABLE ?? monitor.params?.LIST;
+  if (typeof name === 'string') return `The monitor for ${JSON.stringify(name)}`;
+  return `The ${monitor.opcode} monitor`;
+};
 
 const MONITOR_DEFAULTS = [
   ['mode', 'default'],
@@ -269,14 +304,14 @@ function compareMonitors(before, after, report) {
   for (const monitor of (before.monitors || []).filter(Boolean)) {
     const other = right.get(monitorKey(monitor));
     if (!other) {
-      report('monitors', `lost the ${monitor.opcode} monitor`);
+      report('monitors', `${monitorName(monitor)} would be lost.`);
       continue;
     }
+    const changed = new Set();
     for (const [field, fallback] of MONITOR_DEFAULTS) {
-      if (!same(monitor[field] ?? fallback, other[field] ?? fallback)) {
-        report('monitors', `the ${monitor.opcode} monitor changed ${field}`);
-      }
+      if (!same(monitor[field] ?? fallback, other[field] ?? fallback)) changed.add(MONITOR_WORDS[field] || field);
     }
+    for (const words of changed) report('monitors', `${monitorName(monitor)} would change its ${words}.`);
   }
 }
 
@@ -286,14 +321,16 @@ const extensionSource = (url) =>
 function compareExtensions(before, after, report) {
   const left = new Set(before.extensions || []);
   const right = new Set(after.extensions || []);
-  for (const id of left) if (!right.has(id)) report('extensions', `lost ${JSON.stringify(id)}`);
-  for (const id of right) if (!left.has(id)) report('extensions', `gained ${JSON.stringify(id)}`);
+  for (const id of left)
+    if (!right.has(id)) report('extensions', `The extension ${JSON.stringify(id)} would be removed.`);
+  for (const id of right)
+    if (!left.has(id)) report('extensions', `The extension ${JSON.stringify(id)} would be added.`);
   const urls = before.extensionURLs || {};
   const otherUrls = after.extensionURLs || {};
   for (const id of Object.keys(urls)) {
     if (!left.has(id)) continue;
     if (extensionSource(urls[id]) !== extensionSource(otherUrls[id]))
-      report('extensions', `${JSON.stringify(id)} changed its code or URL`);
+      report('extensions', `The extension ${JSON.stringify(id)} would get different code or a different URL.`);
   }
 }
 
@@ -302,7 +339,7 @@ async function compareProjectExtras(before, after, report, sameAsset) {
   const leftFonts = fonts(before);
   const rightFonts = fonts(after);
   if (leftFonts.length !== rightFonts.length)
-    report('customFonts', `has ${leftFonts.length} before and ${rightFonts.length} after`);
+    report('customFonts', `The project would have ${rightFonts.length} fonts instead of ${leftFonts.length}.`);
   else {
     for (let i = 0; i < leftFonts.length; i++) {
       const a = leftFonts[i];
@@ -312,9 +349,9 @@ async function compareProjectExtras(before, after, report, sameAsset) {
         Boolean(a.system) !== Boolean(b.system) ||
         (a.fallback || '') !== (b.fallback || '')
       ) {
-        report('customFonts', `${JSON.stringify(a.family)} changed`);
+        report('customFonts', `The font ${JSON.stringify(a.family)} would change.`);
       } else if (!a.system && !(await sameAsset(a.md5ext, b.md5ext))) {
-        report('customFonts', `${JSON.stringify(a.family)} has a different file`);
+        report('customFonts', `The font ${JSON.stringify(a.family)} would get a different file.`);
       }
     }
   }
@@ -326,23 +363,34 @@ async function compareProjectExtras(before, after, report, sameAsset) {
   const leftAssets = customAssets(before);
   const rightAssets = customAssets(after);
   for (const [name, md5ext] of leftAssets) {
-    if (!rightAssets.has(name)) report('customAssets', `lost ${JSON.stringify(name)}`);
+    if (!rightAssets.has(name)) report('customAssets', `The custom asset ${JSON.stringify(name)} would be lost.`);
     else if (!(await sameAsset(md5ext, rightAssets.get(name))))
-      report('customAssets', `${JSON.stringify(name)} has different contents`);
+      report('customAssets', `The custom asset ${JSON.stringify(name)} would get different contents.`);
   }
   for (const name of rightAssets.keys())
-    if (!leftAssets.has(name)) report('customAssets', `gained ${JSON.stringify(name)}`);
+    if (!leftAssets.has(name)) report('customAssets', `The custom asset ${JSON.stringify(name)} would be added.`);
 
   if (!deepEqual(before.extensionStorage ?? null, after.extensionStorage ?? null)) {
-    report('extensionStorage', 'changed');
+    report('extensionStorage', 'The project extension storage would change.');
   }
-  if (!deepEqual(before.meta?.platform ?? null, after.meta?.platform ?? null)) report('meta.platform', 'changed');
-  if ((before.meta?.origin ?? null) !== (after.meta?.origin ?? null)) report('meta.origin', 'changed');
+  if (!deepEqual(before.meta?.platform ?? null, after.meta?.platform ?? null)) {
+    report('meta.platform', 'The platform recorded in the project would change.');
+  }
+  if ((before.meta?.origin ?? null) !== (after.meta?.origin ?? null)) {
+    report('meta.origin', 'The origin recorded in the project would change.');
+  }
 }
 
 export async function compareProjects(before, after, { readBefore, readAfter } = {}) {
   const differences = [];
-  const report = (path, message, detail) => differences.push(detail ? { path, message, detail } : { path, message });
+  const report = (path, message, { target, detail } = {}) => {
+    const difference = { path, message };
+    if (target !== undefined) difference.target = target;
+    if (detail) difference.detail = detail;
+    differences.push(difference);
+  };
+  const sayFor = (where, target) => (sub, message, detail) =>
+    report(sub ? `${where}.${sub}` : where, message, { target, detail });
   const sameAsset = async (a, b) => {
     if (a === b) return true;
     if (typeof readBefore !== 'function' || typeof readAfter !== 'function') return false;
@@ -362,24 +410,26 @@ export async function compareProjects(before, after, { readBefore, readAfter } =
     const key = target.isStage ? '\u0000stage' : target.name;
     const other = byName.get(key);
     const where = target.isStage ? 'Stage' : `sprite ${JSON.stringify(target.name)}`;
+    const say = sayFor(where, target.isStage ? 'Stage' : target.name);
     if (!other) {
-      report(where, 'is missing');
+      say('', target.isStage ? 'The stage would be lost.' : 'The sprite would be lost.');
       continue;
     }
-    compareProps(target, other, report, where);
-    compareVariables(target, other, report, where);
-    await compareAssets(target, other, report, where, sameAsset);
-    compareComments(target, other, report, where);
-    compareScripts(target, other, report, where);
+    compareProps(target, other, say);
+    compareVariables(target, other, say);
+    await compareAssets(target, other, say, sameAsset);
+    compareComments(target, other, say);
+    compareScripts(target, other, say);
   }
   for (const target of rightTargets) {
     const key = target.isStage ? '\u0000stage' : target.name;
     if (!leftTargets.some((item) => (item.isStage ? '\u0000stage' : item.name) === key)) {
-      report(target.isStage ? 'Stage' : `sprite ${JSON.stringify(target.name)}`, 'was added');
+      const where = target.isStage ? 'Stage' : `sprite ${JSON.stringify(target.name)}`;
+      sayFor(where, target.isStage ? 'Stage' : target.name)('', 'It would be added.');
     }
   }
   if (!deepEqual(order(leftTargets), order(rightTargets)) && leftTargets.length === rightTargets.length) {
-    report('targets', 'the sprite order changed');
+    report('targets', 'The order of the sprites would change.');
   }
   compareMonitors(before, after, report);
   compareExtensions(before, after, report);
