@@ -13,8 +13,7 @@ import {
   checkProject,
   buildProjectFromBuildDir,
   convertProject,
-  writeAssets,
-  writeExtensions,
+  projectToFiles,
 } from '../src/index.js';
 import { runPackage } from '../src/packageCmd.js';
 import { formatDiagnostic } from '../src/diagnostics.js';
@@ -56,7 +55,7 @@ const command = ['new', 'clone', 'check', 'fmt', 'watch', 'run', 'package'].incl
 
 const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
 
-const WATCHED_FILE_RE = /\.(fractch|json|svg|png|jpg|jpeg|gif|wav|mp3)$/i;
+const WATCHED_FILE_RE = /\.(fractch|json|js|svg|png|jpg|jpeg|gif|webp|bmp|wav|mp3|ogg|ttf|otf|woff|woff2)$/i;
 
 function translateWordSyntax(args) {
   const flags = [];
@@ -428,6 +427,9 @@ async function runClone(url, dir, verbose) {
       const md5ext = a.md5ext || (a.assetId && `${a.assetId}.${a.dataFormat || ''}`);
       if (md5ext) md5exts.add(md5ext);
     }
+  for (const extra of [...(manifest.customFonts || []), ...(manifest.customAssets || [])]) {
+    if (extra && typeof extra.md5ext === 'string') md5exts.add(extra.md5ext);
+  }
   const blobs = new Map(
     await Promise.all(
       [...md5exts].map(async (md5ext) => {
@@ -441,13 +443,19 @@ async function runClone(url, dir, verbose) {
     )
   );
 
-  const result = await convertProject(manifest, { outDir, verbose });
-  printDiagnostics(result.diagnostics, verbose);
-  writeAssets({ readFile: (md5ext) => blobs.get(md5ext) }, manifest, outDir);
-  await writeExtensions(manifest, outDir);
+  const { files, diagnostics } = await projectToFiles({
+    projectJson: manifest,
+    readAsset: (md5ext) => blobs.get(md5ext) || null,
+  });
+  printDiagnostics(diagnostics, verbose);
+  for (const [rel, data] of files) {
+    const target = path.join(outDir, ...rel.split('/'));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, data);
+  }
 
   const rel = path.relative(process.cwd(), outDir) || '.';
-  console.log(`[fractch] wrote ${result.filesWritten} files + ${blobs.size} assets to ${rel}`);
+  console.log(`[fractch] wrote ${files.size} files to ${rel}`);
   console.log('');
   console.log('Next steps:');
   console.log(`  fractch check ${rel}`);

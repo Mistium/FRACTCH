@@ -44,6 +44,28 @@ const { manifest, assetFiles } = await buildProjectFromBuildDir({ buildDir: '/pr
 
 Zip handling stays outside the browser core on purpose: use whatever zip library your app already has. In Node, `unpackSb3`/`packSb3` wrap the same core with adm-zip.
 
+## Whole projects
+
+`projectToFiles` and `filesToProject` turn a project into the files of a project folder and back, in memory, with no filesystem or zip library. They cover everything in [projects.md](projects.md): scripts, costumes and sounds, embedded extensions, custom assets, fonts and `fractch.json`. They work the same in Node and the browser.
+
+```js
+import { projectToFiles, filesToProject, verifyProjectFiles } from 'fractch';
+
+// readAsset(md5ext) returns the asset's bytes (or a promise of them), or null
+const { files, diagnostics } = await projectToFiles({ projectJson, readAsset });
+// files: Map<'Player/main.fractch' | 'Player/assets/walk.svg' | ..., Uint8Array>
+
+const { projectJson: rebuilt, assets } = await filesToProject(files);
+// assets: Map<md5ext, Uint8Array>, every file the rebuilt project.json refers to
+
+const { ok, differences } = await verifyProjectFiles({ projectJson, readAsset });
+// differences: [{ target: 'Player', path: 'sprite "Player".scripts', message: 'The script at 40, 80 would change.', detail }]
+```
+
+`filesToProject` skips unsafe paths (`..`, absolute paths, dot folders) and the `.git/` folder and `mwp.json` of an `.mwp`, so a zip's entries can be passed straight in. `compareProjects(before, after, { readBefore, readAfter })` is the comparison `verifyProjectFiles` uses, for any two project.json objects. `projectAssetPaths(projectJson)` maps each costume and sound file path to its md5ext without reading any bytes. `memoryFs(entries)` is the in-memory filesystem behind them, usable with every function that takes an `fs`.
+
+In Node, `readArchive(path)` returns a zip's entries as a `Map`, and `unpackSb3`/`packSb3` accept `.mwp` files on either side.
+
 ## Lower-level exports
 
 For tools that work on `.fractch` text or Scratch block JSON directly:

@@ -56,6 +56,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
   let fileSeq = 0;
   const commentAnchors = new Map();
   const commentSlots = new Map();
+  const positionedComments = new Set();
   const forComments = new Map();
   let totalScripts = 0;
   let parsedScripts = 0;
@@ -164,6 +165,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
           minimized: !!c.minimized,
           ...splitCommentText(c.text),
         };
+        if (c.positioned) positionedComments.add(`${manifestName}\u0000${cid}`);
       }
       if (parsed.platform) {
         if (!manifest.meta || typeof manifest.meta !== 'object') manifest.meta = {};
@@ -308,6 +310,7 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
             minimized: !!c.minimized,
             ...splitCommentText(c.text),
           };
+          if (c.positioned) positionedComments.add(`${name}\u0000${cid}`);
           if (c.blockId && blocks[c.blockId]) blocks[c.blockId].comment = cid;
         }
       }
@@ -359,7 +362,15 @@ export async function buildProjectFromBuildDir({ buildDir, fs: fsLike, prune = t
       if (block && typeof block === 'object' && !Array.isArray(block)) delete block.id;
     }
   }
-  return { manifest: newManifest, hasManifest, totalScripts, parsedScripts, assetFiles, diagnostics };
+  return {
+    manifest: newManifest,
+    hasManifest,
+    totalScripts,
+    parsedScripts,
+    assetFiles,
+    diagnostics,
+    positionedComments,
+  };
 }
 
 function validateSb3InputPrimitives(manifest) {

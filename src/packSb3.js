@@ -4,6 +4,7 @@ import AdmZip from 'adm-zip';
 import { buildProjectFromBuildDir, deepEqual, BLANK_SVG, BLANK_SVG_ID } from './pack.js';
 import { writeCompressedZip } from './writeZip.js';
 import { diagnostic } from './diagnostics.js';
+import { readProjectExtras } from './project.js';
 
 export async function packFromBuildDir({ buildDir, outSb3, originSb3, fs: fsLike = fs }) {
   const {
@@ -13,11 +14,14 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, fs: fsLike
     parsedScripts,
     assetFiles,
     diagnostics,
+    positionedComments,
   } = await buildProjectFromBuildDir({
     buildDir,
     fs: fsLike,
   });
   const info = (message) => diagnostics.push(diagnostic('FR308', message, { severity: 'info' }));
+  const extras = await readProjectExtras({ fs: fsLike, dir: buildDir, manifest: newManifest, positionedComments });
+  diagnostics.push(...extras.diagnostics);
 
   const zip = new AdmZip();
   const origin = originSb3 ? path.resolve(originSb3) : hasManifest ? findOriginSb3() : null;
@@ -65,6 +69,9 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, fs: fsLike
     }
   } catch {
     zip.getEntries();
+  }
+  for (const [name, data] of extras.assets) {
+    if (!zip.getEntry(name)) zip.addFile(name, Buffer.from(data));
   }
   addMissingAssetFiles(zip, newManifest);
   const entries = zip.getEntries().map((entry) => ({

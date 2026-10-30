@@ -7,6 +7,7 @@ Fractch converts Scratch 3 / TurboWarp `.sb3` projects into a lossless, human-re
 - [Syntax reference](syntax.md) — the full `.fractch` language
 - [High-level abstractions](abstractions.md) — syntax that compiles to multiple Scratch blocks
 - [Assets](assets.md) — costumes, sounds, and unused-asset pruning
+- [Project folders and .mwp files](projects.md) — the layout, custom assets, fonts, `fractch.json`
 - [Errors](errors.md) — every error message, what it means, how to fix it
 - [Programmatic API](api.md) — Node and browser usage
 - [Architecture](architecture.md) — how the round trip works, for contributors

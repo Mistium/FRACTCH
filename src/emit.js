@@ -28,8 +28,10 @@ export function emitMultiScriptFile({ target, entries, context, cfg = {}, includ
   return `${header}\n${[prelude, assets, bodies.join('\n\n')].filter(Boolean).join('\n\n')}\n`;
 }
 
+export const RESERVED_ROOT_DIRS = ['assets', 'extensions', 'fonts'];
+
 export function targetDirNames(targets) {
-  const used = new Set();
+  const used = new Set(RESERVED_ROOT_DIRS);
   const map = new Map();
   for (const t of targets || []) {
     const base = String(t?.name ?? '').replace(/[^a-zA-Z0-9-_]/g, '_') || 'target';
