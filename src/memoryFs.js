@@ -36,6 +36,10 @@ export function memoryFs(entries) {
     const key = clean(p);
     if (!key) throw fsError('EISDIR', p);
     if (dirs.has(key)) throw fsError('EISDIR', p);
+    const parts = key.split('/');
+    for (let i = 1; i < parts.length; i++) {
+      if (files.has(parts.slice(0, i).join('/'))) throw fsError('ENOTDIR', p);
+    }
     addParents(key);
     files.set(key, toBytes(data));
   };

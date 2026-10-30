@@ -52,8 +52,8 @@ A `.mwp` file is a zip of a project folder. MistWarp may also put two things in 
 - `.git/`: the project's history.
 - `mwp.json`: MistWarp's manifest (branch, head commit, project id).
 
-Anything that only needs the project ignores both. `fractch from game.mwp to game` extracts the folder, `fractch game.mwp from game` zips one, and `fractch game.sb3 from game.mwp` packs one straight into an `.sb3`. An `.mwp` that holds only history (no project files) has to be opened in MistWarp and saved again before fractch can read it.
+Anything that only needs the project ignores both. `fractch from game.mwp to game` extracts the folder, `fractch game.mwp from game` zips one, and `fractch game.sb3 from game.mwp` packs one straight into an `.sb3`. Zipping a folder leaves out dot folders, `node_modules`, and `.sb3` and `.mwp` files at its top level, and never includes history. An `.mwp` that holds only history (no project files) has to be opened in MistWarp and saved again before fractch can read it.
 
 ## Checking a round trip
 
-`verifyProjectFiles({ projectJson, readAsset })` writes the project to files, reads it back, and returns every difference that a reader would notice: a lost script, a changed value, a missing costume or font, a moved comment. Differences that do not change the project are ignored: new block ids, inline variable reporters, default values filled in, the blank costume a target with no costumes gets, and blocks that were never visible. MistWarp runs it before each commit, so history never silently loses part of a project.
+`verifyProjectFiles({ projectJson, readAsset })` writes the project to files, reads it back, and returns every difference that a reader would notice: a lost script, a changed value, a missing costume or font, a moved comment. Differences that do not change the project are ignored: new block ids, inline variable reporters, default values filled in, the blank costume a target with no costumes gets, and blocks that were never visible. MistWarp runs it before the save window adds a version, and lists the differences before saving.

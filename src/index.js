@@ -60,7 +60,8 @@ function readFileMap(dir) {
   const files = new Map();
   const walk = (current, rel) => {
     for (const entry of nodeFs.readdirSync(current, { withFileTypes: true })) {
-      if (entry.name.startsWith('.')) continue;
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      if (!rel && /\.(?:sb3|mwp)$/i.test(entry.name)) continue;
       const childRel = rel ? `${rel}/${entry.name}` : entry.name;
       const child = path.join(current, entry.name);
       if (entry.isDirectory()) walk(child, childRel);

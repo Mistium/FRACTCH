@@ -72,10 +72,23 @@ export async function projectToFiles({ projectJson, readAsset, config = {} } = {
   }
 
   const customAssets = Array.isArray(projectJson.customAssets) ? projectJson.customAssets : [];
+  const customNames = new Set(customAssets.map((entry) => safeProjectPath(entry?.name)).filter(Boolean));
+  const insideAnother = (name) => {
+    const parts = name.split('/');
+    for (let i = 1; i < parts.length; i++) if (customNames.has(parts.slice(0, i).join('/'))) return true;
+    return false;
+  };
   for (const entry of customAssets) {
     const name = safeProjectPath(entry?.name);
     if (!name) {
       report('FR301', `custom asset ${JSON.stringify(entry?.name)} has an unsafe name, so it was left out`);
+      continue;
+    }
+    if (insideAnother(name)) {
+      report(
+        'FR301',
+        `custom asset ${JSON.stringify(name)} sits inside another custom asset's name, so it was left out`
+      );
       continue;
     }
     const data = typeof entry.md5ext === 'string' ? await read(entry.md5ext) : null;
@@ -129,23 +142,28 @@ export async function readProjectExtras({ fs: fsLike, dir, manifest, assets = ne
   return { assets, diagnostics: metadata.diagnostics };
 }
 
-const loadFiles = (files) => {
-  const entries = new Map();
+async function loadFiles(files) {
+  const fs = memoryFs();
+  const diagnostics = [];
   const iterable = files instanceof Map ? files : Object.entries(files || {});
   for (const [p, data] of iterable) {
     if (ARCHIVE_IGNORED.test(p)) continue;
     const safe = safeProjectPath(p);
     if (!safe || data == null) continue;
-    entries.set(`${ROOT}/${safe}`, data);
+    try {
+      await fs.writeFile(`${ROOT}/${safe}`, data);
+    } catch {
+      diagnostics.push(diagnostic('FR309', `${safe} clashes with a folder of the same name, so it was skipped`));
+    }
   }
-  return memoryFs(entries);
-};
+  return { fs, diagnostics };
+}
 
 export async function filesToProject(files, { prune = false } = {}) {
-  const fs = loadFiles(files);
+  const { fs, diagnostics: loadProblems } = await loadFiles(files);
   const built = await buildProjectFromBuildDir({ buildDir: ROOT, fs, prune });
   const projectJson = built.manifest;
-  const diagnostics = [...(built.diagnostics || [])];
+  const diagnostics = [...loadProblems, ...(built.diagnostics || [])];
   const assets = new Map();
 
   for (const [md5ext, rel] of built.assetFiles || []) {

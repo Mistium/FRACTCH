@@ -343,8 +343,12 @@ const restoreCommentLayout = (target, layout) => {
       pending.push({ comment, textKey: `${attached ? 'a' : 'f'}:${entry.text}` });
     }
   }
+  const pendingCounts = new Map();
+  for (const { textKey } of pending) pendingCounts.set(textKey, (pendingCounts.get(textKey) || 0) + 1);
   for (const { comment, textKey } of pending) {
-    const item = nextUnused(byText.get(textKey));
+    const candidates = byText.get(textKey);
+    if (textKey.startsWith('a:') && (pendingCounts.get(textKey) !== 1 || candidates?.length !== 1)) continue;
+    const item = nextUnused(candidates);
     if (!item) continue;
     item.used = true;
     comment.x = item.x;

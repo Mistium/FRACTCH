@@ -128,6 +128,7 @@ test('filesToProject ignores the history and manifest inside an .mwp', async () 
   archive.set('.git/HEAD', bytes('ref: refs/heads/main\n'));
   archive.set('mwp.json', bytes('{"format":"mistwarp-project"}'));
   archive.set('../escape.fractch', bytes('when flag {}'));
+  archive.set('Hero/main.fractch/clash.txt', bytes('x'));
   const { projectJson } = await filesToProject(archive);
   assert.deepEqual(
     projectJson.targets.map((t) => t.name),
@@ -235,4 +236,40 @@ test('projectAssetPaths names the file each costume and sound is written to', as
   assert.equal(paths.get('Hero/assets/idle.svg'), svgId);
   const { files } = await projectToFiles({ projectJson: project, readAsset });
   for (const p of paths.keys()) assert.ok(files.has(p), `${p} is written`);
+});
+
+test('a custom asset named inside another custom asset is left out instead of breaking the write', async () => {
+  const project = sample();
+  project.customAssets = [
+    { name: 'levels', md5ext: dataId },
+    { name: 'levels/one.json', md5ext: dataId },
+  ];
+  const { files, diagnostics } = await projectToFiles({ projectJson: project, readAsset });
+  assert.ok(files.has('assets/levels'));
+  assert.ok(!files.has('assets/levels/one.json'));
+  assert.ok(diagnostics.some((d) => d.code === 'FR301' && d.message.includes('levels/one.json')));
+});
+
+test('two attached comments with the same text keep their own places', async () => {
+  const blocks = {
+    a: { ...flag('sa'), x: 0, y: 0 },
+    sa: stmt('looks_say', 'a', { MESSAGE: [1, [10, 'one']] }),
+    b: { ...flag('sb'), x: 0, y: 400 },
+    sb: stmt('looks_think', 'b', { MESSAGE: [1, [10, 'two']] }),
+  };
+  const comments = {
+    c1: { blockId: 'sa', x: 300, y: 10, width: 200, height: 200, minimized: false, text: 'TODO' },
+    c2: { blockId: 'sb', x: 300, y: 410, width: 200, height: 200, minimized: false, text: 'TODO' },
+  };
+  const project = projectOf(stageTarget(), spriteTarget('S', blocks, { comments }));
+  const result = await verifyProjectFiles({ projectJson: project });
+  assert.deepEqual(result.differences, []);
+  const rebuilt = result.rebuilt.projectJson.targets[1];
+  const placeOf = (opcode) => {
+    const id = Object.keys(rebuilt.blocks).find((key) => rebuilt.blocks[key].opcode === opcode);
+    const comment = Object.values(rebuilt.comments).find((c) => c.blockId === id);
+    return [comment.x, comment.y];
+  };
+  assert.deepEqual(placeOf('looks_say'), [300, 10]);
+  assert.deepEqual(placeOf('looks_think'), [300, 410]);
 });
