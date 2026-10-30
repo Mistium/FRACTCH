@@ -133,12 +133,12 @@ async function readCustomAssets(vfs, dir, assets) {
   return found;
 }
 
-export async function readProjectExtras({ fs: fsLike, dir, manifest, assets = new Map() }) {
+export async function readProjectExtras({ fs: fsLike, dir, manifest, assets = new Map(), positionedComments }) {
   const vfs = toPromiseFs(fsLike);
   const customAssets = await readCustomAssets(vfs, dir, assets);
   if (customAssets.length) manifest.customAssets = customAssets;
   else delete manifest.customAssets;
-  const metadata = await readProjectMetadata({ vfs, dir, manifest, assets });
+  const metadata = await readProjectMetadata({ vfs, dir, manifest, assets, positionedComments });
   return { assets, diagnostics: metadata.diagnostics };
 }
 
@@ -182,7 +182,13 @@ export async function filesToProject(files, { prune = false } = {}) {
     if (usesBlank) assets.set(blank, toBytes(BLANK_SVG));
   }
 
-  const extras = await readProjectExtras({ fs, dir: ROOT, manifest: projectJson, assets });
+  const extras = await readProjectExtras({
+    fs,
+    dir: ROOT,
+    manifest: projectJson,
+    assets,
+    positionedComments: built.positionedComments,
+  });
   diagnostics.push(...extras.diagnostics);
 
   return { projectJson, assets, diagnostics };

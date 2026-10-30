@@ -273,3 +273,19 @@ test('two attached comments with the same text keep their own places', async () 
   assert.deepEqual(placeOf('looks_say'), [300, 10]);
   assert.deepEqual(placeOf('looks_think'), [300, 410]);
 });
+
+test('a comment place typed in the code wins over the stored layout', async () => {
+  const project = sample();
+  Object.assign(project.targets[1].comments.c1, { width: 150, height: 80 });
+  const { files } = await projectToFiles({ projectJson: project, readAsset });
+  const source = text(files.get('Hero/main.fractch'));
+  assert.match(source, /comment "greet"/);
+  const unedited = await filesToProject(files);
+  const kept = Object.values(unedited.projectJson.targets[1].comments).find((c) => c.text === 'greet');
+  assert.deepEqual([kept.x, kept.y], [300, 90]);
+  const edited = new Map(files);
+  edited.set('Hero/main.fractch', bytes(source.replace('comment "greet"', 'comment "greet" at 10,20')));
+  const { projectJson } = await filesToProject(edited);
+  const comment = Object.values(projectJson.targets[1].comments).find((c) => c.text === 'greet');
+  assert.deepEqual([comment.x, comment.y], [10, 20]);
+});

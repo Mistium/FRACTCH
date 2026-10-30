@@ -14,12 +14,13 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, fs: fsLike
     parsedScripts,
     assetFiles,
     diagnostics,
+    positionedComments,
   } = await buildProjectFromBuildDir({
     buildDir,
     fs: fsLike,
   });
   const info = (message) => diagnostics.push(diagnostic('FR308', message, { severity: 'info' }));
-  const extras = await readProjectExtras({ fs: fsLike, dir: buildDir, manifest: newManifest });
+  const extras = await readProjectExtras({ fs: fsLike, dir: buildDir, manifest: newManifest, positionedComments });
   diagnostics.push(...extras.diagnostics);
 
   const zip = new AdmZip();

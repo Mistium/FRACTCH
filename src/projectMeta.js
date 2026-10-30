@@ -310,7 +310,7 @@ const commentLayoutOf = (target) => {
 
 const nextUnused = (queue) => (queue ? queue.find((item) => !item.used) || null : null);
 
-const restoreCommentLayout = (target, layout) => {
+const restoreCommentLayout = (target, layout, positioned) => {
   if (!Array.isArray(layout)) return;
   const exact = new Map();
   const byText = new Map();
@@ -330,11 +330,15 @@ const restoreCommentLayout = (target, layout) => {
   }
   const pending = [];
   const order = placedComments(target)
-    .map(([, comment]) => ({ comment, entry: layoutEntry(target, comment) }))
+    .map(([id, comment]) => ({ id, comment, entry: layoutEntry(target, comment) }))
     .sort((a, b) => compareOrder(a.entry.order || [0, 0, 0], b.entry.order || [0, 0, 0]));
-  for (const { comment, entry } of order) {
+  for (const { id, comment, entry } of order) {
     const attached = Boolean(comment.blockId);
     const item = nextUnused(exact.get(entryKey(entry)));
+    if (positioned.has(`${target.name}\u0000${id}`)) {
+      if (item) item.used = true;
+      continue;
+    }
     if (item) {
       item.used = true;
       comment.x = item.x;
@@ -432,7 +436,7 @@ const sortSprites = (manifest, order) => {
   manifest.targets = manifest.targets.map((target) => (target.isStage ? target : ranked[next++]));
 };
 
-function applyMetadata(manifest, metadata, fonts) {
+function applyMetadata(manifest, metadata, fonts, positioned) {
   const targets = Array.isArray(manifest.targets) ? manifest.targets : [];
 
   if (fonts.length) manifest.customFonts = fonts;
@@ -447,7 +451,7 @@ function applyMetadata(manifest, metadata, fonts) {
   if (isPlainObject(metadata.comments)) {
     for (const target of targets) {
       if (hasOwn(metadata.comments, targetKey(target))) {
-        restoreCommentLayout(target, metadata.comments[targetKey(target)]);
+        restoreCommentLayout(target, metadata.comments[targetKey(target)], positioned);
       }
     }
   }
@@ -470,12 +474,12 @@ function applyMetadata(manifest, metadata, fonts) {
   sortSprites(manifest, metadata.spriteOrder);
 }
 
-export async function readProjectMetadata({ vfs, dir, manifest, assets }) {
+export async function readProjectMetadata({ vfs, dir, manifest, assets, positionedComments = new Set() }) {
   const diagnostics = [];
   const report = (code, message, extra = {}) =>
     diagnostics.push(diagnostic(code, message, { file: METADATA_FILE, ...extra }));
   const metadata = (await readMetadataFile(vfs, dir, report)) || {};
   const fonts = await readFonts({ entries: metadata.fonts, vfs, dir, assets, report });
-  applyMetadata(manifest, metadata, fonts);
+  applyMetadata(manifest, metadata, fonts, positionedComments);
   return { diagnostics };
 }
