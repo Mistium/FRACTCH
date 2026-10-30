@@ -42,6 +42,19 @@ export function nameIdMap(dict) {
   return m;
 }
 
+function reporterRef(blocks, value) {
+  if (Array.isArray(value)) {
+    if (value[0] === 12) return `var:${value[1]}`;
+    if (value[0] === 13) return `list:${value[1]}`;
+    return null;
+  }
+  const block = typeof value === 'string' ? blocks[value] : null;
+  if (!block || Array.isArray(block) || block.next) return null;
+  if (block.opcode === 'data_variable') return `var:${block.fields?.VARIABLE?.[0]}`;
+  if (block.opcode === 'data_listcontents') return `list:${block.fields?.LIST?.[0]}`;
+  return null;
+}
+
 export function compareTrees(origBlocks, origId, newBlocks, newId, path_ = '$', seen = new Set()) {
   if (origId == null && newId == null) return null;
   if (origId == null || newId == null) return `${path_}: one side null (orig=${origId}, new=${newId})`;
@@ -91,6 +104,12 @@ export function compareTrees(origBlocks, origId, newBlocks, newId, path_ = '$', 
     }
     const aVal = activeOf(av);
     const bVal = activeOf(bv);
+    const aRef = reporterRef(origBlocks, aVal);
+    const bRef = reporterRef(newBlocks, bVal);
+    if (aRef && bRef && (Array.isArray(aVal) || Array.isArray(bVal))) {
+      if (aRef === bRef) return null;
+      return `${path_}.inputs.${k}: reporter ${aRef} vs ${bRef}`;
+    }
     const aChild = typeof aVal === 'string' && origBlocks[aVal] ? aVal : null;
     const bChild = typeof bVal === 'string' && newBlocks[bVal] ? bVal : null;
     if (aChild || bChild) {

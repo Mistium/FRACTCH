@@ -65,6 +65,7 @@ export const DIAGNOSTIC_CODES = {
   FR310: { severity: 'error', title: 'Standard library problem' },
   FR311: { severity: 'error', title: 'Unreadable file' },
   FR312: { severity: 'warning', title: 'Package method fell back to an opcode' },
+  FR313: { severity: 'warning', title: 'Project metadata problem' },
 };
 
 export function diagnostic(code, message, extra = {}) {

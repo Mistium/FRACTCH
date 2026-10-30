@@ -28,6 +28,10 @@ The check for this is `scripts/check-roundtrip.mjs`: it parses every generated f
 | `src/packSb3.js` | Node zip wrapper: writes the `.sb3`, copies referenced assets, preserves non-asset origin extras |
 | `src/fileMarkers.js` | 0.9 file markers (top id prefixes, hat comments), read for old projects only |
 | `src/membership.js` | the per-target membership map comment, `text` + `extraText` joining and splitting, reserved comments |
+| `src/project.js` | `projectToFiles` / `filesToProject` / `verifyProjectFiles`: a whole project as a file map, including custom assets and fonts |
+| `src/projectMeta.js` | `fractch.json`: sprite order, frames, comment places, fonts, extension storage, `meta.origin` |
+| `src/projectDiff.js` | `compareProjects`: the differences a reader would notice between two project.json objects |
+| `src/memoryFs.js` | in-memory promises filesystem the project functions run on |
 | `src/target.js` | `emitTarget` / `buildTarget`: one target, no disk, live VM form, id reuse, lock check, validation, round trip |
 | `src/signatures.js` | extension `getInfo` signatures and the injected core opcode table |
 | `src/diagnostics.js` | diagnostic codes and positions; the core never prints |

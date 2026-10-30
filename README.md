@@ -115,18 +115,16 @@ await unpackSb3({ input: './project.sb3', outDir: './project' });
 await packSb3({ buildDir: './project', outSb3: './repacked.sb3' });
 ```
 
-The package's `browser` export condition (or `fractch/browser`) resolves to a build with no Node built-ins. Every function takes an `fs` option, so an in-memory filesystem such as [lightning-fs](https://github.com/isomorphic-git/lightning-fs) works directly:
+The package's `browser` export condition (or `fractch/browser`) resolves to a build with no Node built-ins. `projectToFiles` and `filesToProject` turn a whole project (scripts, assets, custom assets, fonts) into a map of files and back, in memory:
 
 ```js
-import LightningFS from '@isomorphic-git/lightning-fs';
-import { convertProject, buildProjectFromBuildDir } from 'fractch';
+import { projectToFiles, filesToProject } from 'fractch';
 
-const fs = new LightningFS('fractch');
-await convertProject(projectJson, { outDir: '/project', fs });
-const { manifest } = await buildProjectFromBuildDir({ buildDir: '/project', fs });
+const { files } = await projectToFiles({ projectJson, readAsset: (md5ext) => assets.get(md5ext) });
+const { projectJson: rebuilt, assets: rebuiltAssets } = await filesToProject(files);
 ```
 
-`manifest` is a complete `project.json`; zipping it with the assets is left to the host app. Lower-level pieces (`parseFractch`, `buildBlocksFromCalls`, `checkFractch`, `emitScriptFile`, and others) are exported too. See [docs/api.md](docs/api.md).
+Zipping is left to the host app. A `.mwp` file is that same file map zipped, see [docs/projects.md](docs/projects.md). Lower-level pieces (`parseFractch`, `buildBlocksFromCalls`, `checkFractch`, `emitScriptFile`, and others) are exported too. See [docs/api.md](docs/api.md).
 
 ## Fidelity
 
@@ -144,7 +142,7 @@ Values hidden behind a plugged-in reporter are kept too: the text writes them as
 
 ## Documentation
 
-[Getting started](docs/getting-started.md) · [CLI](docs/cli.md) · [Syntax](docs/syntax.md) · [Abstractions](docs/abstractions.md) · [Assets](docs/assets.md) · [API](docs/api.md) · [Architecture](docs/architecture.md) · [Errors](docs/errors.md) · [Packages](docs/packages.md)
+[Getting started](docs/getting-started.md) · [CLI](docs/cli.md) · [Syntax](docs/syntax.md) · [Abstractions](docs/abstractions.md) · [Assets](docs/assets.md) · [Projects](docs/projects.md) · [API](docs/api.md) · [Architecture](docs/architecture.md) · [Errors](docs/errors.md) · [Packages](docs/packages.md)
 
 ## License
 

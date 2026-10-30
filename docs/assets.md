@@ -16,7 +16,7 @@ costume "walk" file "assets/walk.svg" center 48,50;
 sound "jump" file "assets/jump.wav";
 ```
 
-There are no sidecar JSON files and no global asset folder. Declarations appear at the top of the target's `main.fractch` (or any of its `.fractch` files); declaration order is costume order, and the stage's costumes are its backdrops (`backdrop "night" file "..."` also works there).
+Costumes and sounds have no sidecar JSON files and no global folder (the root `assets/` folder holds custom assets, see [projects.md](projects.md)). Declarations appear at the top of the target's `main.fractch` (or any of its `.fractch` files); declaration order is costume order, and the stage's costumes are its backdrops (`backdrop "night" file "..."` also works there).
 
 ## Attributes
 

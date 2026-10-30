@@ -11,7 +11,7 @@ function decodeBase64(data) {
   return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
 }
 
-function decodeDataUrl(u) {
+export function decodeDataUrl(u) {
   const comma = u.indexOf(',');
   if (comma < 0) return '';
   const meta = u.slice(5, comma);

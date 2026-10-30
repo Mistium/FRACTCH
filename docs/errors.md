@@ -83,6 +83,7 @@ The parser never invents scripts. When a statement can't be read, everything up 
 | <a id="fr310"></a>FR310 | error | Standard library problem | A bundled standard library module failed to parse (a bug in fractch). |
 | <a id="fr311"></a>FR311 | error | Unreadable file | A file could not be read. |
 | <a id="fr312"></a>FR312 | warning | Package method fell back to an opcode | A package call did not resolve and was packed as an extension opcode. |
+| <a id="fr313"></a>FR313 | warning | Project metadata problem | `fractch.json` (or the older `mistwarp.json`) could not be read, or one of its entries points at a file that is not allowed. That part is skipped. |
 
 ## Tips
 

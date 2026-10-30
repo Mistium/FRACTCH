@@ -3,8 +3,8 @@
 ```txt
 fractch new <dir>                       scaffold a fresh fractch project
 fractch clone <url> [to <dir>]          download a MistWarp project into .fractch text
-fractch from <project.sb3> [to <dir>]   unpack an .sb3 into .fractch text
-fractch [to] <project.sb3> from <dir>   pack a project dir into an .sb3
+fractch from <project.sb3|.mwp> [to <dir>]   unpack an .sb3 or .mwp into .fractch text
+fractch [to] <project.sb3|.mwp> from <dir|.mwp>   pack a project into an .sb3 or .mwp
 fractch check <dir>                     parse + lint every .fractch file
 fractch fmt <dir>                       rewrite files in canonical (current) syntax
 fractch watch <dir> [to <sb3>]          repack automatically on change
@@ -25,7 +25,9 @@ Downloads a shared MistWarp project and unpacks it, same output as `from`. Takes
 
 ### `fractch from <sb3> [to <dir>]`
 
-Unpack. Without `to`, the output directory is derived from the sb3 name (`game.sb3` → `./game`). Produces per-target folders with `main.fractch`, target-local `assets/`, and an `extensions/` folder listing custom extension sources.
+Unpack. Without `to`, the output directory is derived from the sb3 name (`game.sb3` → `./game`). Produces per-target folders with `main.fractch` and target-local `assets/`, plus the root `assets/`, `fonts/`, `extensions/` and `fractch.json` when the project has custom assets, fonts, embedded extensions or editor details. See [projects.md](projects.md) for the layout.
+
+An `.mwp` input is a zipped project folder: its files are extracted as they are, without its `.git/` history or `mwp.json`.
 
 ### `fractch <out.sb3> from <dir>` (also `fractch to <out.sb3> from <dir>`)
 
@@ -33,6 +35,8 @@ Pack. Options:
 
 - `--origin <sb3>` — copy non-asset extras (e.g. a `git.json` MistWarp keeps in the archive) from this sb3. Asset files always come from the project folder first. Without the flag, pack looks for an `.sb3` in the current directory.
 - `--verbose` — logs skipped statements, asset pruning, and write details.
+
+When the output ends in `.mwp`, the project folder is zipped as it is (after a check that it reads back cleanly) instead of being packed. When the input is an `.mwp` file, it is packed straight into the `.sb3`.
 
 Every statement the parser has to skip is warned as `file:line: skipped unparsable statement: ...` — a typo can't silently drop blocks.
 

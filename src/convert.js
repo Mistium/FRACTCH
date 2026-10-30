@@ -112,14 +112,14 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
         )
       );
     }
-    let droppedShadows = 0;
+    const looseShadows = [];
     for (const id of Object.keys(allBlocks)) {
       if (coveredIds.has(id)) continue;
 
       const entry = allBlocks[id];
       if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.opcode !== 'string') continue;
-      if (isMenuShadow(entry)) {
-        droppedShadows++;
+      if (isMenuShadow(entry) || (entry.shadow && !entry.topLevel)) {
+        looseShadows.push(id);
         continue;
       }
       const subgraph = collectBlocksSubgraph(allBlocks, id);
@@ -129,6 +129,7 @@ export async function convertProject(projectJson, { outDir, fs: fsLike, config =
       scripts.push({ topBlockId: id, hatOpcode: allBlocks[id]?.opcode || null });
       subgraphs.set(id, subgraph);
     }
+    const droppedShadows = looseShadows.filter((id) => !coveredIds.has(id)).length;
     if (droppedShadows) {
       diagnostics.push(
         diagnostic(
