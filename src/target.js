@@ -2246,7 +2246,14 @@ export function buildTarget(context, targetId, text, inputOpts = {}) {
           continue;
         }
         if (a.kind === 'keyed' && a.sep === 'field' && a.key === 'LIST' && a.value?.type === 'list') {
-          if (!listMap.has(a.value.name) && !scope.has(a.value.name)) implicitLists.add(a.value.name);
+          const listName = a.value.name;
+          if (!listMap.has(listName) && varMap.has(listName) && !scope.has(listName) && !implicitVars.has(listName)) {
+            report('FR228', `${JSON.stringify(listName)} is a variable, but this treats it as a list`, {
+              ...at(span),
+              hint: `if you meant its text length, write length(${listName}); a list is declared as var ${listName} = [...];`,
+            });
+          }
+          if (!listMap.has(listName) && !scope.has(listName)) implicitLists.add(listName);
           continue;
         }
         if (a.kind === 'keyed' && a.sep === 'field') continue;
