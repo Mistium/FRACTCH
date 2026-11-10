@@ -1341,3 +1341,26 @@ test('manifest-less declarations round-trip project state', () => {
 
   assert.ok(!Object.values(cat.variables).some((v) => v[0] === 'plain'), 'stage global duplicated into sprite');
 });
+
+test('built-in extension blocks register themselves when no use line declares them', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-builtin-ext-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'Stage', 'main.fractch'), 'when flag {\n  penClear;\n  penDown;\n  move 10;\n}\n');
+  const sb3 = path.join(dir, 'pen.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  assert.deepStrictEqual(project.extensions, ['pen']);
+});
+
+test('an explicit use line and plain core blocks leave extensions alone', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-builtin-ext-'));
+  fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'use "pen";\nwhen flag {\n  penClear;\n  move 10;\n  say "hi";\n}\n'
+  );
+  const sb3 = path.join(dir, 'pen.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}"`);
+  const project = JSON.parse(new AdmZip(sb3).readAsText('project.json'));
+  assert.deepStrictEqual(project.extensions, ['pen']);
+});

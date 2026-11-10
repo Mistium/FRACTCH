@@ -604,6 +604,22 @@ const BUILTIN_NAMESPACES = new Set([
   'note',
 ]);
 
+// Built-in but still separately loadable: Scratch lists these in project.json's
+// extensions whenever their blocks are used, so an sb3 we emit should too.
+const LOADABLE_BUILTINS = new Set([
+  'pen',
+  'music',
+  'videoSensing',
+  'text2speech',
+  'translate',
+  'makeymakey',
+  'microbit',
+  'ev3',
+  'boost',
+  'wedo2',
+  'gdxfor',
+]);
+
 function autoRegisterExtensions(manifest) {
   const found = new Set();
   const declared = (manifest.extensions || []).slice().sort((a, b) => b.length - a.length);
@@ -613,7 +629,7 @@ function autoRegisterExtensions(manifest) {
       const byDecl = declared.find((id) => b.opcode.startsWith(id + '_'));
       if (byDecl) continue;
       const m = /^([A-Za-z][A-Za-z0-9]*)_/.exec(b.opcode);
-      if (m && !BUILTIN_NAMESPACES.has(m[1])) found.add(m[1]);
+      if (m && (!BUILTIN_NAMESPACES.has(m[1]) || LOADABLE_BUILTINS.has(m[1]))) found.add(m[1]);
     }
   }
   if (!found.size) return;
