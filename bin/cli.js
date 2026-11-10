@@ -29,6 +29,9 @@ const USAGE =
   'Usage:\n' +
   '  fractch new <dir>                       scaffold a fresh fractch project\n' +
   '  fractch clone <url> [to <dir>]          download a MistWarp project into .fractch text\n' +
+  '  fractch push <dir>                      pack a project dir and upload it to MistWarp\n' +
+  '                                          (--validator <v> or MISTWARP_VALIDATOR, --id <project>\n' +
+  '                                          to update one, --title, --description, --publish)\n' +
   '  fractch from <project.sb3> [to <dir>]   unpack an .sb3 into .fractch text\n' +
   '  fractch [to] <project.sb3> from <dir>   pack a project dir into an .sb3\n' +
   '                                          (--origin <sb3> copies non-asset extras from it)\n' +
@@ -51,7 +54,7 @@ for (let i = 0; i < rawArgs.length; i++) {
   }
   if (!rawArgs[i].startsWith('-')) words.push(rawArgs[i]);
 }
-const command = ['new', 'clone', 'check', 'fmt', 'watch', 'run', 'package'].includes(words[0]) ? words[0] : null;
+const command = ['new', 'clone', 'push', 'check', 'fmt', 'watch', 'run', 'package'].includes(words[0]) ? words[0] : null;
 
 const DEFAULT_EDITOR = 'https://warp.mistium.com/editor.html';
 
@@ -381,6 +384,7 @@ function openInBrowser(url) {
 }
 
 const API_BASE = 'https://mwapi.mistium.com';
+const PUBLIC_BASE = 'https://mistwarp.org';
 
 async function fetchRetry(url, tries = 3) {
   for (let attempt = 1; ; attempt++) {
@@ -462,6 +466,92 @@ async function runClone(url, dir, verbose) {
   console.log(`  fractch run ${rel}`);
 }
 
+async function postJson(url, body, token) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body ?? {}),
+  });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    // not every failure comes back as JSON
+  }
+  if (!res.ok) {
+    throw new Error(`${res.status} ${res.statusText} from ${url}: ${json?.error || text.slice(0, 200)}`);
+  }
+  return json ?? {};
+}
+
+async function runPush(dir, args) {
+  if (!dir) {
+    console.error('usage: fractch push <dir> [--validator <v>] [--id <project>] [--title X] [--publish]');
+    process.exit(1);
+  }
+  const flag = (name) => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args[i + 1] : null;
+  };
+  const validator = flag('--validator') || process.env.MISTWARP_VALIDATOR;
+  if (!validator) {
+    console.error('a MistWarp sign-in validator is needed: --validator <v> or MISTWARP_VALIDATOR');
+    console.error('the editor hands one out when you sign in; it proves the account is yours and lasts five minutes');
+    process.exit(1);
+  }
+
+  const buildDir = path.resolve(dir);
+  if (!fs.existsSync(buildDir)) {
+    console.error(`no such directory: ${buildDir}`);
+    process.exit(1);
+  }
+
+  const auth = await postJson(`${API_BASE}/v1/auth?v=${encodeURIComponent(validator)}`);
+  if (!auth.token) throw new Error('the api did not return a session token');
+  console.log(`[fractch] signed in as ${auth.username}`);
+
+  const tmpSb3 = path.join(os.tmpdir(), `fractch-push-${Date.now()}.sb3`);
+  const packed = await packSb3({ buildDir, outSb3: tmpSb3 });
+  printDiagnostics(packed.diagnostics, args.includes('--verbose') || args.includes('-v'));
+
+  let id = flag('--id');
+  if (id) {
+    console.log(`[fractch] updating project ${id}`);
+  } else {
+    const title = flag('--title') || path.basename(buildDir);
+    const created = await postJson(
+      `${API_BASE}/v1/projects`,
+      { title, description: flag('--description') || '' },
+      auth.token
+    );
+    id = created.id;
+    if (!id) throw new Error('the api did not return a project id');
+    console.log(`[fractch] created "${title}" as ${id}`);
+  }
+
+  const body = new FormData();
+  body.append('project', new Blob([fs.readFileSync(tmpSb3)], { type: 'application/octet-stream' }), 'project.sb3');
+  const upload = await fetch(`${API_BASE}/v1/projects/${encodeURIComponent(id)}/upload`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${auth.token}` },
+    body,
+  });
+  const uploadText = await upload.text();
+  if (!upload.ok) throw new Error(`${upload.status} ${upload.statusText} on upload: ${uploadText.slice(0, 200)}`);
+  fs.rmSync(tmpSb3, { force: true });
+
+  if (args.includes('--publish')) {
+    await postJson(`${API_BASE}/v1/projects/${encodeURIComponent(id)}/publish`, {}, auth.token);
+    console.log('[fractch] published');
+  }
+
+  console.log(`[fractch] ${PUBLIC_BASE}/project/${id}`);
+}
+
 function runNew(dir) {
   if (!dir) {
     console.error('usage: fractch new <dir>');
@@ -508,6 +598,10 @@ function runNew(dir) {
     if (command === 'clone') {
       const out = words[2] === 'to' ? words[3] : words[2];
       await runClone(words[1], out, rawArgs.includes('--verbose') || rawArgs.includes('-v'));
+      return;
+    }
+    if (command === 'push') {
+      await runPush(words[1], rawArgs);
       return;
     }
     if (command === 'check') {
