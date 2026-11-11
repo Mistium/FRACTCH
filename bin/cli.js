@@ -34,7 +34,8 @@ const USAGE =
   '                                          to update one, --title, --description, --publish)\n' +
   '  fractch from <project.sb3> [to <dir>]   unpack an .sb3 into .fractch text\n' +
   '  fractch [to] <project.sb3> from <dir>   pack a project dir into an .sb3\n' +
-  '                                          (--origin <sb3> copies non-asset extras from it)\n' +
+  '                                          (--origin <sb3> copies non-asset extras from it,\n' +
+  '                                          --keep-assets keeps costumes/sounds nothing references)\n' +
   '  fractch check <dir>                     parse + lint every .fractch file\n' +
   '  fractch fmt <dir>                       rewrite files in canonical (current) syntax\n' +
   '  fractch watch <dir> [to <sb3>]          repack automatically on change\n' +
@@ -639,6 +640,11 @@ function runNew(dir) {
         describe: 'Pack build directory into an .sb3 (reverse conversion)',
       })
       .option('outSb3', { type: 'string', describe: 'Output .sb3 path when using --pack' })
+      .option('keep-assets', {
+        type: 'boolean',
+        default: false,
+        describe: 'Keep costumes and sounds the code never references',
+      })
       .check((argv) => {
         if (argv.pack) {
           if (!argv.out) throw new Error('--out (build directory) is required when using --pack');
@@ -657,6 +663,7 @@ function runNew(dir) {
         buildDir: path.resolve(argv.out),
         outSb3: path.resolve(argv.outSb3 || path.join(process.cwd(), 'out.sb3')),
         originSb3: originIdx >= 0 ? path.resolve(rawArgs[originIdx + 1]) : undefined,
+        keepAssets: Boolean(argv.keepAssets),
       });
       printDiagnostics(packed.diagnostics, verbose);
       process.exit(0);

@@ -106,7 +106,7 @@ export async function unpackSb3({ input, outDir, verbose = false }) {
   return { diagnostics, filesWritten: [...files.keys()].filter(isFractchSource).length };
 }
 
-export async function packSb3({ buildDir, outSb3, originSb3 }) {
+export async function packSb3({ buildDir, outSb3, originSb3, keepAssets = false }) {
   const fromArchive = /\.mwp$/i.test(buildDir) && nodeFs.existsSync(buildDir) && nodeFs.statSync(buildDir).isFile();
   if (/\.mwp$/i.test(outSb3)) {
     const files = fromArchive ? projectTreeEntries(readArchive(buildDir)) : readFileMap(buildDir);
@@ -122,7 +122,7 @@ export async function packSb3({ buildDir, outSb3, originSb3 }) {
     writeCompressedZip(outSb3, projectArchiveEntries(projectJson, assets));
     return { diagnostics };
   }
-  return packFromBuildDir({ buildDir, outSb3, originSb3 });
+  return packFromBuildDir({ buildDir, outSb3, originSb3, keepAssets });
 }
 
 function readCwdConfig() {

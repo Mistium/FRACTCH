@@ -293,6 +293,34 @@ test('unused costumes/sounds are pruned; dynamic references keep everything', ()
   );
 });
 
+test('--keep-assets keeps costumes/sounds nothing references', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-keep-'));
+  fs.mkdirSync(path.join(dir, 'Stage', 'assets'), { recursive: true });
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
+  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 'a.svg'), svg);
+  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 's1.wav'), 'RIFF1');
+  fs.writeFileSync(path.join(dir, 'Stage', 'assets', 's2.wav'), 'RIFF2');
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'backdrop "a" file "assets/a.svg";\n' +
+      'sound "used" file "assets/s1.wav";\nsound "unused" file "assets/s2.wav";\n' +
+      'when flag {\n  sound.play(SOUND_MENU: sound.sounds_menu("used"));\n}\n'
+  );
+  const sb3 = path.join(dir, 'kept.sb3');
+  run(`node ./bin/cli.js "${sb3}" from "${dir}" --keep-assets`);
+  const stage = JSON.parse(new AdmZip(sb3).readAsText('project.json')).targets.find((t) => t.name === 'Stage');
+  assert.deepStrictEqual(
+    stage.sounds.map((s) => s.name),
+    ['used', 'unused'],
+    'both sounds survive with --keep-assets'
+  );
+  assert.strictEqual(
+    new AdmZip(sb3).getEntries().filter((e) => e.entryName.endsWith('.wav')).length,
+    2,
+    'both sound files are in the archive'
+  );
+});
+
 test('index imports prune unimported target assets from packed sb3', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fractch-assets-'));
   fs.mkdirSync(path.join(dir, 'Stage'), { recursive: true });

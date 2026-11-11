@@ -42,6 +42,9 @@ Packing removes costumes and sounds the code never references:
 - The costume at the target's current-costume index is always kept (it's what the sprite is wearing), and the index is remapped after pruning.
 - Backdrop references from *any* sprite protect the Stage's costumes.
 
+Packing with `--keep-assets` skips the pruning entirely, which is what you want when you're converting a
+project you didn't write: nothing gets dropped on the way back out, referenced or not.
+
 `--verbose` on pack logs each removal. Caveat: code that picks costumes/sounds inside extension JavaScript (strings passed to eval-style extension blocks) is invisible to this analysis — if you do that, keep a dynamic reference (e.g. `costume some.reporter();`) or the asset will be treated as unused.
 
 ## Round trips
