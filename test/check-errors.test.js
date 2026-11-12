@@ -103,3 +103,19 @@ test('only content-losing problems are fatal, so fmt can still format a lint-cle
     'an unparsable file must be fatal so fmt refuses to rewrite it'
   );
 });
+
+test('check points at list syntax used on a name declared as a variable', async (t) => {
+  const dir = project('var prog = "++.";\nvar cells = [];\nwhen flag {\n  say length(prog);\n  say cells.length;\n}\n');
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(
+    path.join(dir, 'Stage', 'main.fractch'),
+    'var prog = "++.";\nvar cells = [];\nwhen flag {\n  say length(prog);\n  while xPosition() < prog.length {\n    say cells.length;\n    stop all;\n  }\n}\n'
+  );
+  const { problems } = await checkProject({ buildDir: dir, fs });
+  const warns = problems.filter((p) => p.code === 'FR228');
+  assert.equal(warns.length, 1);
+  assert.equal(warns[0].line, 5);
+  assert.equal(warns[0].severity, 'warning');
+  assert.match(warns[0].message, /'prog' is a variable/);
+  assert.match(warns[0].hint, /length\(prog\)/);
+});

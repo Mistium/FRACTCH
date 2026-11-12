@@ -982,3 +982,26 @@ test('replacing a reporter with null falls back to its shadow', () => {
   assert.deepEqual(say.inputs.MESSAGE, [1, [10, 'hello']]);
   assert.ok(!Object.values(built.target.blocks).some((b) => b.opcode === 'operator_add'));
 });
+
+test('list syntax on a name that is a declared variable warns instead of silently making a list', async () => {
+  const manifest = await packFiles({
+    'Stage/main.fractch': 'var prog = "++.";\nvar cells = [];\nwhen flag {\n  say length(prog);\n}\n',
+  });
+  const ctx = liveContext(manifest);
+  const id = ctx.targets[0].id;
+  const emitted = emitTarget(ctx, id);
+  // a string read as a list: the loop condition would be 0 and the run silently does nothing
+  const built = buildTarget(ctx, id, emitted.text.replace('say length(prog);', 'say prog.length;'), {
+    previous: emitted,
+  });
+  const warn = built.diagnostics.find((d) => d.code === 'FR228');
+  assert.ok(warn, 'expected FR228');
+  assert.equal(warn.severity, 'warning');
+  assert.match(warn.message, /"prog" is a variable/);
+  assert.match(warn.hint, /length\(prog\)/);
+  // a real list is untouched, and length(x) stays the string operator
+  const ok = buildTarget(ctx, id, emitted.text.replace('say length(prog);', 'say length(prog);\n  say cells.length;'), {
+    previous: emitted,
+  });
+  assert.equal(ok.diagnostics.filter((d) => d.code === 'FR228').length, 0);
+});
