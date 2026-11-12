@@ -6,7 +6,7 @@ import { writeCompressedZip } from './writeZip.js';
 import { diagnostic } from './diagnostics.js';
 import { readProjectExtras } from './project.js';
 
-export async function packFromBuildDir({ buildDir, outSb3, originSb3, fs: fsLike = fs }) {
+export async function packFromBuildDir({ buildDir, outSb3, originSb3, keepAssets = false, fs: fsLike = fs }) {
   const {
     manifest: newManifest,
     hasManifest,
@@ -18,6 +18,7 @@ export async function packFromBuildDir({ buildDir, outSb3, originSb3, fs: fsLike
   } = await buildProjectFromBuildDir({
     buildDir,
     fs: fsLike,
+    prune: !keepAssets,
   });
   const info = (message) => diagnostics.push(diagnostic('FR308', message, { severity: 'info' }));
   const extras = await readProjectExtras({ fs: fsLike, dir: buildDir, manifest: newManifest, positionedComments });
