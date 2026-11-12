@@ -2,7 +2,7 @@ import * as path from './pathUtils.js';
 import { toPromiseFs } from './fsAdapter.js';
 import { parseFractch, closestMatch } from './parse.js';
 import { checkFractch } from './lint.js';
-import { DIAGNOSTIC_CODES } from './diagnostics.js';
+import { DIAGNOSTIC_CODES, makeLineIndex } from './diagnostics.js';
 import { LIST_METHOD_OPS } from './buildBlocks.js';
 import { KNOWN_OPCODES, MENU_OPCODES, VALIDATED_NAMESPACES } from './knownOpcodes.js';
 import { STDLIB_METHODS, STDLIB_MODULE_META } from './stdlib/index.js';
@@ -88,6 +88,7 @@ export async function checkProject({ buildDir, fs: fsLike }) {
         vars: new Set(),
         lists: new Set(),
         methodUses: [],
+        listUses: [],
         packages: {},
       });
     return perTarget.get(name);
@@ -139,7 +140,9 @@ export async function checkProject({ buildDir, fs: fsLike }) {
     Object.assign(st.packages, parsed.importNamespaces || {});
     for (const script of parsed.scripts || []) {
       const locals = new Set();
-      collectScriptFacts(script.calls, rel, st, locals, push);
+      const lineIndex = makeLineIndex(text);
+      const lineAt = (offset) => lineIndex.position(offset ?? 0).line;
+      collectScriptFacts(script.calls, rel, st, locals, lineAt, push);
     }
 
     for (const decl of [...(parsed.assets?.costumes || []), ...(parsed.assets?.sounds || [])]) {
@@ -206,6 +209,21 @@ export async function checkProject({ buildDir, fs: fsLike }) {
           0,
           `'${u.ident}' is a variable and has no method '.${u.method}(...)'${near ? ` - did you mean '.${near}'?` : ''}`,
           'variable methods come from the stdlib: .split(d) .join(d) .item(i) .count() .push(v)'
+        );
+      }
+    }
+    for (const u of st.listUses) {
+      if (u.local) continue;
+      const isList = st.lists.has(u.ident) || stage?.lists.has(u.ident);
+      const isVar = st.vars.has(u.ident) || stage?.vars.has(u.ident);
+      if (!isList && isVar) {
+        push(
+          'FR228',
+          u.file,
+          u.line,
+          0,
+          `'${u.ident}' is a variable, but this treats it as a list`,
+          `if you meant its text length, write length(${u.ident}); a list is declared as var ${u.ident} = [...];`
         );
       }
     }
@@ -297,7 +315,7 @@ function checkOpcodeUse(opcode, line, file, stmt, push) {
   }
 }
 
-function collectScriptFacts(nodes, file, st, locals, push, stmt = true) {
+function collectScriptFacts(nodes, file, st, locals, lineAt, push, stmt = true) {
   for (const node of nodes || []) {
     if (!node) continue;
     if (node.type === 'localDecl') {
@@ -312,7 +330,7 @@ function collectScriptFacts(nodes, file, st, locals, push, stmt = true) {
         );
       }
       locals.add(node.name);
-      collectFromValue(node.value, file, st, locals, push);
+      collectFromValue(node.value, file, st, locals, lineAt, push);
       continue;
     }
     if (node.type === 'procDef') {
@@ -335,12 +353,17 @@ function collectScriptFacts(nodes, file, st, locals, push, stmt = true) {
         });
       }
       const bodyScope = new Set([...locals, ...node.params.map((p) => p.ident)]);
-      collectScriptFacts(node.body, file, st, bodyScope, push);
+      collectScriptFacts(node.body, file, st, bodyScope, lineAt, push);
       continue;
     }
     if (node.type !== 'call') continue;
     if (node.callee?.type === 'procedureCall') {
       st.calls.push({ ident: node.callee.name, line: node.callee.line ?? 0, argCount: node.args.length, file });
+    }
+    for (const a of node.args || []) {
+      if (a.kind === 'keyed' && a.sep === 'field' && a.key === 'LIST' && a.value?.type === 'list') {
+        st.listUses.push({ ident: a.value.name, line: lineAt(node.span?.[0]), file, local: locals.has(a.value.name) });
+      }
     }
     if (node.callee?.type === 'identOrMethod') {
       st.methodUses.push({
@@ -356,18 +379,18 @@ function collectScriptFacts(nodes, file, st, locals, push, stmt = true) {
       checkOpcodeUse(node.callee.name, node.callee.line ?? 0, file, stmt, push);
     }
     for (const a of node.args || []) {
-      if (a.kind === 'branch') collectScriptFacts(a.body, file, st, locals, push);
-      else if (a.kind === 'keyed' || a.kind === 'positional') collectFromValue(a.value, file, st, locals, push);
+      if (a.kind === 'branch') collectScriptFacts(a.body, file, st, locals, lineAt, push);
+      else if (a.kind === 'keyed' || a.kind === 'positional') collectFromValue(a.value, file, st, locals, lineAt, push);
     }
   }
 }
 
-function collectFromValue(v, file, st, locals, push) {
+function collectFromValue(v, file, st, locals, lineAt, push) {
   if (!v) return;
-  if (v.type === 'call') collectScriptFacts([v.value], file, st, locals, push, false);
+  if (v.type === 'call') collectScriptFacts([v.value], file, st, locals, lineAt, push, false);
   else if (v.type === 'obscured') {
-    collectFromValue(v.active, file, st, locals, push);
-    collectFromValue(v.shadow, file, st, locals, push);
+    collectFromValue(v.active, file, st, locals, lineAt, push);
+    collectFromValue(v.shadow, file, st, locals, lineAt, push);
   }
 }
 
